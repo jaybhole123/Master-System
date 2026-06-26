@@ -1,0 +1,853 @@
+import { useState, useMemo, useEffect } from "react";
+import useDataStore, { DocumentItem } from "../../store/dataStore";
+import { toast } from "react-hot-toast";
+import { X, Save, Plus, Upload, Trash2, Loader2 } from "lucide-react";
+import SearchableInput from "../../components/SearchableInput";
+import {
+  fetchMasterFromGoogleSheets,
+  submitToGoogleSheets,
+  fetchDocumentsFromGoogleSheets,
+} from "../../utils/googleSheetsService";
+
+interface DocumentEntry {
+  id: string;
+  documentName: string;
+  documentType: string;
+  category: string;
+  name: string;
+  companyName: string;
+  needsRenewal: boolean;
+  renewalDate?: string;
+  file: File | null;
+  fileName: string;
+  fileContent?: string;
+  issueDate: string;
+  concernPersonName: string;
+  concernPersonMobile: string;
+  concernPersonDepartment: string;
+}
+
+interface AddDocumentProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+// NEW: Function to get serial numbers from backend
+const getSerialNumbersFromBackend = async (prefix: string, count: number): Promise<string[]> => {
+  try {
+    const scriptURL = import.meta.env.VITE_GOOGLE_APPS_SCRIPT_URL;
+    
+    if (!scriptURL || scriptURL.includes("undefined")) {
+      throw new Error("Backend URL not configured. Please set VITE_GOOGLE_APPS_SCRIPT_URL");
+    }
+    
+    console.log(`🔹 Requesting ${count} SNs with prefix ${prefix}`);
+    
+    const formData = new FormData();
+    formData.append('action', 'handleSerialNumbers');
+    formData.append('prefix', prefix);
+    formData.append('count', count.toString());
+    formData.append('generatedBy', 'Web Form');
+    
+    const response = await fetch(scriptURL, {
+      method: 'POST',
+      body: formData
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    const text = await response.text();
+    console.log("🔹 Backend response:", text);
+    
+    const data = JSON.parse(text);
+    
+    if (data.success && data.serialNumbers && Array.isArray(data.serialNumbers)) {
+      console.log(`✅ Received SNs: ${data.serialNumbers.join(', ')}`);
+      return data.serialNumbers;
+    } else {
+      throw new Error(data.error || 'Failed to get serial numbers');
+    }
+  } catch (error) {
+    console.error('❌ Error getting serial numbers:', error);
+    throw error;
+  }
+};
+
+const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
+  const { addDocuments, masterData, addMasterData, documents } = useDataStore();
+  const defaultCategories = ["Personal", "Company", "Director"];
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [remoteDocTypes, setRemoteDocTypes] = useState<string[]>([]);
+  const [remoteCategories, setRemoteCategories] = useState<string[]>([]);
+  const [entries, setEntries] = useState<DocumentEntry[]>([
+    {
+      id: Math.random().toString(),
+      documentName: "",
+      documentType: "",
+      category: "",
+      name: "",
+      companyName: "",
+      needsRenewal: false,
+      renewalDate: "",
+      file: null,
+      fileName: "",
+      issueDate: "",
+      concernPersonName: "",
+      concernPersonMobile: "",
+      concernPersonDepartment: "",
+    },
+  ]);
+
+  const [companies, setCompanies] = useState([
+    "Botivate",
+    "Tata Insurance",
+    "Company A",
+    "Company B",
+    "Company C",
+  ]);
+
+  const typeOptions = useMemo(() => {
+    const local = masterData?.map((m) => m.documentType) || [];
+    return Array.from(new Set([...remoteDocTypes, ...local])).filter(Boolean);
+  }, [masterData, remoteDocTypes]);
+
+  const categoryOptions = useMemo(() => {
+    const local = masterData?.map((m) => m.category) || [];
+    return Array.from(
+      new Set([...remoteCategories, ...local, ...defaultCategories]),
+    ).filter(Boolean);
+  }, [masterData, remoteCategories]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    let mounted = true;
+    (async () => {
+      try {
+        const rows = await fetchMasterFromGoogleSheets();
+        if (!mounted) return;
+
+        const docTypes = rows
+          .map(
+            (r: {
+              documentType: string;
+              category: string;
+              companyName: string;
+            }) => r.documentType,
+          )
+          .filter((v: string) => typeof v === "string" && v.trim().length > 0);
+        const cats = rows
+          .map(
+            (r: {
+              documentType: string;
+              category: string;
+              companyName: string;
+            }) => r.category,
+          )
+          .filter((v: string) => typeof v === "string" && v.trim().length > 0);
+
+        setRemoteDocTypes(Array.from(new Set(docTypes)));
+        setRemoteCategories(Array.from(new Set(cats)));
+      } catch (err) {
+        console.error(err);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  const handleChange = (id: string, field: keyof DocumentEntry, value: any) => {
+    setEntries((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, [field]: value } : item)),
+    );
+  };
+
+  const handleFileChange = (
+    id: string,
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEntries((prev) =>
+          prev.map((item) =>
+            item.id === id
+              ? {
+                  ...item,
+                  file: file,
+                  fileName: file.name,
+                  fileContent: reader.result as string,
+                }
+              : item,
+          ),
+        );
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const addEntry = () => {
+    if (entries.length >= 10) {
+      toast.error("You can add maximum 10 documents at a time.");
+      return;
+    }
+
+    const lastEntry = entries[entries.length - 1];
+
+    const newEntry: DocumentEntry = {
+      id: Math.random().toString(),
+      documentName: "",
+      documentType: lastEntry.documentType || "",
+      category: lastEntry.category || "",
+      name: lastEntry.name || "",
+      companyName: lastEntry.companyName || "",
+      needsRenewal: lastEntry.needsRenewal || false,
+      renewalDate: lastEntry.renewalDate || "",
+      file: null,
+      fileName: "",
+      issueDate: lastEntry.issueDate || "",
+      concernPersonName: lastEntry.concernPersonName || "",
+      concernPersonMobile: lastEntry.concernPersonMobile || "",
+      concernPersonDepartment: lastEntry.concernPersonDepartment || "",
+    };
+
+    setEntries((prev) => [...prev, newEntry]);
+
+    toast.success(
+      "Previous entry data copied to new form. Please fill Document Name.",
+    );
+  };
+
+  const removeEntry = (id: string) => {
+    if (entries.length === 1) {
+      toast.error("At least one document is required.");
+      return;
+    }
+    setEntries((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const getNameLabel = (category: string) => {
+    const c = category?.toLowerCase() || "";
+    if (c.includes("personal")) return "Person Name";
+    if (c.includes("director")) return "Director Name";
+    if (c.includes("company")) return "Company Name";
+    return "Name";
+  };
+
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  // Validation remains the same
+  for (const entry of entries) {
+    if (!entry.documentName || entry.documentName.trim() === "") {
+      toast.error("Please fill Document Name for all entries.");
+      return;
+    }
+
+    if (entry.needsRenewal && !entry.renewalDate) {
+      toast.error(
+        "Please select a renewal date for entries that need renewal.",
+      );
+      return;
+    }
+  }
+
+  setIsSubmitting(true);
+
+  // STEP 1: Get serial numbers from backend
+  let snList: string[] = [];
+  try {
+    console.log("🔹 Requesting serial numbers from backend...");
+    const prefix = "SN";
+    snList = await getSerialNumbersFromBackend(prefix, entries.length);
+    console.log("✅ Serial numbers allocated:", snList);
+    
+    if (snList.length !== entries.length) {
+      throw new Error(`Requested ${entries.length} SNs but got ${snList.length}`);
+    }
+  } catch (error) {
+    console.error("❌ Failed to get serial numbers:", error);
+    
+    // Fallback: Generate locally based on existing data
+    console.log("🔄 Using local fallback for SN generation...");
+    
+    let maxSn = 0;
+    try {
+      const allDocs = await fetchDocumentsFromGoogleSheets();
+      
+      allDocs.forEach((d: DocumentItem) => {
+        if (d.sn && d.sn.trim().startsWith("SN-")) {
+          const part = d.sn.trim().replace("SN-", "");
+          const n = parseInt(part, 10);
+          if (!isNaN(n) && n > maxSn) {
+            maxSn = n;
+          }
+        }
+      });
+    } catch (err) {
+      console.warn("Could not fetch documents for fallback:", err);
+      // Use local store as fallback
+      documents.forEach((d) => {
+        if (d.sn && d.sn.trim().startsWith("SN-")) {
+          const part = d.sn.trim().replace("SN-", "");
+          const n = parseInt(part, 10);
+          if (!isNaN(n) && n > maxSn) {
+            maxSn = n;
+          }
+        }
+      });
+    }
+    
+    for (let i = 0; i < entries.length; i++) {
+      const nextVal = maxSn + 1 + i;
+      snList.push(`SN-${nextVal.toString().padStart(3, "0")}`);
+    }
+    
+    toast.success("Using local serial number generation");
+  }
+
+  try {
+    const newDocuments: DocumentItem[] = [];
+    const folderId = import.meta.env.VITE_GOOGLE_DRIVE_FOLDER_ID;
+    
+    // Create an array to store file upload results
+    const uploadResults: Array<{index: number, fileUrl: string | null}> = [];
+    
+    // STEP 2: Upload all files sequentially with delay
+    for (let i = 0; i < entries.length; i++) {
+      const entry = entries[i];
+      
+      if (entry.file && entry.fileContent && folderId) {
+        try {
+          // Add delay between uploads (1 second gap)
+          if (i > 0) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+          
+          console.log(`📤 Uploading file ${i + 1}: ${entry.fileName}`);
+          
+          const uploadRes = await submitToGoogleSheets({
+            action: "uploadFile",
+            sheetName: "Documents",
+            data: {
+              base64Data: entry.fileContent,
+              fileName: entry.fileName,
+              mimeType: entry.file.type,
+              folderId: folderId,
+            },
+          });
+
+          if (uploadRes && uploadRes.fileUrl) {
+            console.log(`✅ Upload successful for file ${i + 1}`);
+            uploadResults.push({index: i, fileUrl: uploadRes.fileUrl});
+          } else {
+            console.error(`❌ Upload failed for file ${i + 1}`);
+            uploadResults.push({index: i, fileUrl: null});
+            toast.error(`File ${entry.fileName} upload failed. Saving without file.`);
+          }
+        } catch (uploadErr) {
+          console.error(`❌ Upload error for file ${i + 1}:`, uploadErr);
+          uploadResults.push({index: i, fileUrl: null});
+          toast.error(`Failed to upload ${entry.fileName}, saving without file.`);
+        }
+      } else {
+        uploadResults.push({index: i, fileUrl: null});
+      }
+    }
+
+    // STEP 3: Process all entries with their respective file URLs
+    for (const [index, entry] of entries.entries()) {
+      // Only add to master data if all three fields are filled
+      if (entry.name && entry.documentType && entry.category) {
+        const exists = masterData?.some(
+          (m) =>
+            m.companyName.toLowerCase() === entry.name.toLowerCase() &&
+            m.documentType.toLowerCase() ===
+              entry.documentType.toLowerCase() &&
+            m.category.toLowerCase() === entry.category.toLowerCase(),
+        );
+
+        if (!exists) {
+          addMasterData({
+            id: Math.random().toString(36).substr(2, 9),
+            companyName: entry.name,
+            documentType: entry.documentType,
+            category: entry.category,
+          });
+        }
+      }
+
+      // Use the SN from backend allocation
+      const randomSN = snList[index];
+      
+      // Get file URL from upload results
+      const uploadResult = uploadResults.find(r => r.index === index);
+      const fileUrl = uploadResult?.fileUrl || "";
+
+      // Prepare Payload
+      const now = new Date();
+      const formattedTimestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}:${String(now.getSeconds()).padStart(2, "0")}`;
+
+      // Format Renewal Date
+      let formattedRenewalDate = "";
+      if (entry.renewalDate) {
+        const hours = String(now.getHours()).padStart(2, "0");
+        const minutes = String(now.getMinutes()).padStart(2, "0");
+        formattedRenewalDate = `${entry.renewalDate} ${hours}:${minutes}`;
+      }
+
+      // Format Issue Date
+      let formattedIssueDate = "";
+      if (entry.issueDate) {
+        formattedIssueDate = entry.issueDate;
+      }
+
+      // Use empty strings for optional fields if not filled
+      const sheetData = {
+        Timestamp: formattedTimestamp,
+        "Serial No": randomSN,
+        "Document name": entry.documentName,
+        "Document Type": entry.documentType || "",
+        Category: entry.category || "",
+        Name: entry.name || "",
+        "Need Renewal": entry.needsRenewal ? "Yes" : "No",
+        "Renewal Date": formattedRenewalDate,
+        Image: fileUrl || "",
+        issueDate: formattedIssueDate,
+        concernPersonName: entry.concernPersonName || "",
+        concernPersonMobile: entry.concernPersonMobile || "",
+        concernPersonDepartment: entry.concernPersonDepartment || "",
+        CompanyName: entry.companyName || "",
+      };
+
+      // Submit Document to Google Sheets
+      try {
+    // STEP: Save each document (SERIAL GENERATED BY BACKEND)
+await submitToGoogleSheets({
+  action: "insertDocument",   // ✅ IMPORTANT
+  data: {
+    documentName: entry.documentName,
+    documentType: entry.documentType || "",
+    category: entry.category || "",
+    name: entry.name || "",
+    needRenewal: entry.needsRenewal ? "Yes" : "No",
+    renewalDate: formattedRenewalDate,
+    image: fileUrl || "",
+    issueDate: formattedIssueDate,
+    concernPersonName: entry.concernPersonName || "",
+    concernPersonMobile: entry.concernPersonMobile || "",
+    concernPersonDepartment: entry.concernPersonDepartment || "",
+    companyName: entry.companyName || "",
+  },
+});
+
+        
+        console.log(`✅ Document ${index + 1} saved to Google Sheets`);
+      } catch (error) {
+        console.error(`❌ Error saving document ${index + 1}:`, error);
+        throw error;
+      }
+
+      // Update Local State
+      newDocuments.push({
+        id: Math.random().toString(36).substr(2, 9),
+        sn: randomSN,
+        documentName: entry.documentName,
+        companyName: entry.name || "",
+        pName: entry.name || "",
+        documentType: entry.documentType || "",
+        category: entry.category || "",
+        needsRenewal: entry.needsRenewal,
+        renewalDate: entry.needsRenewal ? entry.renewalDate : undefined,
+        file: entry.fileName || null,
+        fileContent: entry.fileContent,
+        date: new Date().toISOString().split("T")[0],
+        status: "Active",
+        issueDate: entry.issueDate,
+        concernPersonName: entry.concernPersonName,
+        concernPersonMobile: entry.concernPersonMobile,
+        concernPersonDepartment: entry.concernPersonDepartment,
+        companyBranch: entry.companyName || "",
+        sharedExpiryDate: undefined,
+        lastSharedAt: "",
+      });
+    }
+
+    addDocuments(newDocuments);
+    toast.success(`${newDocuments.length} Document(s) added successfully`);
+    onClose();
+
+    // Reset form
+    setEntries([
+      {
+        id: Math.random().toString(),
+        documentName: "",
+        documentType: "",
+        category: "",
+        name: "",
+        companyName: "",
+        needsRenewal: false,
+        renewalDate: "",
+        file: null,
+        fileName: "",
+        issueDate: "",
+        concernPersonName: "",
+        concernPersonMobile: "",
+        concernPersonDepartment: "",
+      },
+    ]);
+  } catch (error) {
+    console.error(error);
+    toast.error("Failed to save to Google Sheets.");
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
+  // UI CODE REMAINS EXACTLY THE SAME - NO CHANGES
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 bg-black/40 backdrop-blur-sm overflow-y-auto">
+      <div className="relative my-4 w-full max-w-4xl bg-white rounded-xl shadow-input">
+        {/* Header Compact */}
+        <div className="flex justify-between items-center px-5 py-3 border-b border-gray-100">
+          <div>
+            <h2 className="text-lg font-bold text-gray-800">
+              New Document Entry
+            </h2>
+            <p className="text-xs text-gray-500">Add details (Max 10)</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Body Compact */}
+        <div className="p-4 max-h-[75vh] overflow-y-auto bg-gray-50/30">
+          <form id="add-doc-form" onSubmit={handleSubmit} className="space-y-3">
+            {entries.map((entry, index) => (
+              <div
+                key={entry.id}
+                className="relative p-4 bg-white rounded-lg shadow-input group"
+              >
+                <div className="flex justify-between items-center pb-1 mb-2 border-b border-gray-50">
+                  <h3 className="text-xs font-bold tracking-wider text-gray-600 uppercase">
+                    Document #{index + 1}
+                    {index > 0 && (
+                      <span className="ml-2 text-xs font-normal text-indigo-600">
+                        (Auto-filled from previous)
+                      </span>
+                    )}
+                  </h3>
+                  {entries.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeEntry(entry.id)}
+                      className="p-1 text-red-500 rounded transition-colors hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                </div>
+
+                {/* Compact Grid: Gaps reduced */}
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  {/* 1. Document Name (Input) - ONLY MANDATORY */}
+                  <div>
+                    <label className="block mb-1 text-xs font-semibold text-gray-600">
+                      Document Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-indigo-500 bg-gray-50/50 focus:bg-white"
+                      value={entry.documentName}
+                      onChange={(e) =>
+                        handleChange(entry.id, "documentName", e.target.value)
+                      }
+                      placeholder="e.g. Agreement"
+                    />
+                  </div>
+
+                  {/* 2. Document Type (Searchable) - OPTIONAL */}
+                  <div>
+                    <SearchableInput
+                      compact
+                      label="Document Type"
+                      value={entry.documentType}
+                      onChange={(val) =>
+                        handleChange(entry.id, "documentType", val)
+                      }
+                      options={typeOptions}
+                      placeholder="Select Type..."
+                    />
+                  </div>
+
+                  {/* 3. Category (Searchable) - OPTIONAL */}
+                  <div>
+                    <SearchableInput
+                      compact
+                      label="Category"
+                      value={entry.category}
+                      onChange={(val) =>
+                        handleChange(entry.id, "category", val)
+                      }
+                      options={categoryOptions}
+                      placeholder="Select Category..."
+                    />
+                  </div>
+
+                  {/* 4. Name (Input - user entered name) - OPTIONAL */}
+                  <div>
+                    <label className="block mb-1 text-xs font-semibold text-gray-600">
+                      {getNameLabel(entry.category)}
+                    </label>
+                    <input
+                      type="text"
+                      className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-indigo-500 bg-gray-50/50 focus:bg-white"
+                      value={entry.name}
+                      onChange={(e) =>
+                        handleChange(entry.id, "name", e.target.value)
+                      }
+                      placeholder={`Enter ${getNameLabel(entry.category)}...`}
+                    />
+                  </div>
+
+                  {/* 5. Company Name (Dropdown Field) - OPTIONAL */}
+
+                  <div>
+                    <label className="block mb-1 text-xs font-semibold text-gray-600">
+                      Company Name
+                    </label>
+
+                    <input
+                      list="company-list"
+                      placeholder="Type or select company"
+                      className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-indigo-500 bg-gray-50/50 focus:bg-white"
+                      value={entry.companyName}
+                      onChange={(e) =>
+                        handleChange(entry.id, "companyName", e.target.value)
+                      }
+                      onBlur={() => {
+                        const value = entry.companyName?.trim();
+                        if (value && !companies.includes(value)) {
+                          setCompanies((prev) => [...prev, value]);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          const value = entry.companyName?.trim();
+                          if (value && !companies.includes(value)) {
+                            setCompanies((prev) => [...prev, value]);
+                          }
+                        }
+                      }}
+                    />
+
+                    <datalist id="company-list">
+                      {companies.map((company, index) => (
+                        <option key={index} value={company} />
+                      ))}
+                    </datalist>
+                  </div>
+
+                  {/* 6. Needs Renewal & Date - OPTIONAL */}
+                  <div className="flex gap-3 items-center p-2 rounded-lg border border-gray-100 bg-gray-50/50">
+                    <label className="flex gap-2 items-center cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        className="w-3.5 h-3.5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                        checked={entry.needsRenewal}
+                        onChange={(e) =>
+                          handleChange(
+                            entry.id,
+                            "needsRenewal",
+                            e.target.checked,
+                          )
+                        }
+                      />
+                      <span className="text-xs font-medium text-gray-700">
+                        Need Renewal
+                      </span>
+                    </label>
+
+                    {entry.needsRenewal && (
+                      <div className="flex-1">
+                        <input
+                          type="date"
+                          className="w-full p-1.5 text-xs shadow-input border-none rounded focus:ring-1 focus:ring-indigo-500 outline-none bg-white"
+                          value={entry.renewalDate || ""}
+                          onChange={(e) =>
+                            handleChange(
+                              entry.id,
+                              "renewalDate",
+                              e.target.value,
+                            )
+                          }
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 7. Issue Date - OPTIONAL */}
+                  <div>
+                    <label className="block mb-1 text-xs font-semibold text-gray-600">
+                      Issue Date
+                    </label>
+                    <input
+                      type="date"
+                      className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-indigo-500 bg-gray-50/50 focus:bg-white"
+                      value={entry.issueDate}
+                      onChange={(e) =>
+                        handleChange(entry.id, "issueDate", e.target.value)
+                      }
+                    />
+                  </div>
+
+                  {/* 8. Concern Person Name - OPTIONAL */}
+                  <div>
+                    <label className="block mb-1 text-xs font-semibold text-gray-600">
+                      Conser Person Name
+                    </label>
+                    <input
+                      type="text"
+                      className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-indigo-500 bg-gray-50/50 focus:bg-white"
+                      value={entry.concernPersonName || ""}
+                      onChange={(e) =>
+                        handleChange(
+                          entry.id,
+                          "concernPersonName",
+                          e.target.value,
+                        )
+                      }
+                      placeholder="Name (Optional)"
+                    />
+                  </div>
+
+                  {/* 9. Concern Person Mobile - OPTIONAL */}
+                  <div>
+                    <label className="block mb-1 text-xs font-semibold text-gray-600">
+                      Conser Mobile
+                    </label>
+                    <input
+                      type="text"
+                      className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-indigo-500 bg-gray-50/50 focus:bg-white"
+                      value={entry.concernPersonMobile}
+                      onChange={(e) =>
+                        handleChange(
+                          entry.id,
+                          "concernPersonMobile",
+                          e.target.value,
+                        )
+                      }
+                      placeholder="Mobile"
+                    />
+                  </div>
+
+                  {/* 10. Concern Person Department - OPTIONAL */}
+                  <div>
+                    <label className="block mb-1 text-xs font-semibold text-gray-600">
+                      Issue By
+                    </label>
+                    <input
+                      type="text"
+                      className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-indigo-500 bg-gray-50/50 focus:bg-white"
+                      value={entry.concernPersonDepartment}
+                      onChange={(e) =>
+                        handleChange(
+                          entry.id,
+                          "concernPersonDepartment",
+                          e.target.value,
+                        )
+                      }
+                    />
+                  </div>
+
+                  {/* 11. File Upload - OPTIONAL */}
+                  <div>
+                    <div className="relative">
+                      <label className="block mb-1 text-xs font-semibold text-gray-600">
+                        Upload File
+                      </label>
+                      <input
+                        type="file"
+                        id={`file-${entry.id}`}
+                        className="hidden"
+                        onChange={(e) => handleFileChange(entry.id, e)}
+                      />
+                      <label
+                        htmlFor={`file-${entry.id}`}
+                        className="flex gap-2 justify-center items-center p-2 w-full text-gray-600 bg-white rounded-lg border border-gray-300 border-dashed transition-all cursor-pointer hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600"
+                      >
+                        <Upload size={14} />
+                        <span className="text-xs font-medium truncate max-w-[180px]">
+                          {entry.fileName || "Choose File"}
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            <div className="flex justify-center pt-2">
+              <button
+                type="button"
+                onClick={addEntry}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-full border border-indigo-200 text-indigo-600 text-xs font-bold hover:bg-indigo-50 transition-colors bg-white shadow-sm"
+              >
+                <Plus size={16} />
+                Add Another Document ({entries.length}/10)
+              
+              </button>
+            </div>
+          </form>
+        </div>
+
+        {/* Footer Compact */}
+        <div className="flex gap-3 px-5 py-4 bg-gray-50 rounded-b-xl border-t border-gray-100">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 px-3 py-2 text-sm font-bold text-gray-700 rounded-lg border border-gray-200 shadow-sm transition-all hover:bg-white hover:border-gray-300"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form="add-doc-form"
+            disabled={isSubmitting}
+            className={`flex-[2] flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-white text-sm font-bold transition-all shadow-md shadow-indigo-100 ${
+              isSubmitting
+                ? "bg-indigo-400 cursor-not-allowed"
+                : "bg-indigo-600 hover:bg-indigo-700"
+            }`}
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save size={16} />
+                Save
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AddDocument;

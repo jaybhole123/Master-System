@@ -1,0 +1,1068 @@
+"use client";
+
+
+import { useState, useEffect } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchNotifications } from "../../redux/slice/notificationSlice";
+import supabase from "../../SupabaseClient";
+import jbtLogo from "../../assets/jbt.png";
+import {
+  CheckSquare,
+  ClipboardList,
+  Home,
+  LogOut,
+  Menu,
+  Database,
+  ChevronDown,
+  ChevronRight,
+  Zap,
+  Settings,
+  CirclePlus,
+  UserRound,
+  CalendarCheck,
+  Calendar as CalendarIcon,
+  BookmarkCheck,
+  CrossIcon,
+  X,
+  Bell,
+  Video,
+  LayoutDashboard,
+  FileText,
+  Banknote,
+  List,
+  RefreshCw,
+  Share2,
+  CheckCircle,
+  DollarSign,
+  ShieldCheck,
+  Ban,
+  CreditCard
+} from "lucide-react";
+
+export default function AdminLayout({ children, darkMode, toggleDarkMode, showLayout = true }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { list: notifications } = useSelector((state) => state.notifications);
+  
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isHolidaySubmenuOpen, setIsHolidaySubmenuOpen] = useState(false);
+  const [username, setUsername] = useState("");
+  const [userRole, setUserRole] = useState("");
+  const [userEmail, setUserEmail] = useState("");
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [profileImage, setProfileImage] = useState("");
+
+  const [isUserPopupOpen, setIsUserPopupOpen] = useState(false);
+
+  // States for Document Submenus
+  const [isResourceMenuOpen, setIsResourceMenuOpen] = useState(false);
+  const [isLoanMenuOpen, setIsLoanMenuOpen] = useState(false);
+
+  // State for Module Accordions
+  const [openModules, setOpenModules] = useState(() => {
+    const path = location.pathname;
+    return {
+      "Profile": path.includes("/dashboard/profile"),
+      "Checklist & Delegation": path.includes("/dashboard") && !path.includes("/dashboard/profile"),
+      "Document & Substruction": path.includes("/document") || path.includes("/doc-dashboard") || path.includes("/resource-manager") || path.includes("/loan") || path.includes("/subscription") || path.includes("/bg") || path === "/",
+    };
+  });
+
+  const toggleModule = (moduleName) => {
+    setOpenModules((prev) => ({
+      ...prev,
+      [moduleName]: !prev[moduleName],
+    }));
+  };
+
+  // Check authentication on component mount
+  useEffect(() => {
+    const storedUsername = localStorage.getItem("user-name");
+    const storedRole = localStorage.getItem("role");
+    const storedEmail = localStorage.getItem("email_id");
+
+    if (!storedUsername) {
+      // Redirect to login if not authenticated
+      navigate("/login");
+      return;
+    }
+
+    setUsername(storedUsername);
+    setUserRole(storedRole || "user");
+    setUserEmail(storedEmail);
+    setIsSuperAdmin(storedUsername.toLowerCase() === "admin");
+
+    // Centralized Security Guard for User Role
+    const path = location.pathname;
+    const restrictedPages = [
+      "/dashboard/assign-task",
+      "/dashboard/admin-approval",
+      "/dashboard/checklist",
+      "/dashboard/maintenance",
+      "/dashboard/repair",
+      "/dashboard/ea-task",
+      "/dashboard/quick-task",
+      "/dashboard/holiday-list",
+      "/dashboard/working-day-calendar",
+      "/dashboard/setting"
+    ];
+
+    const storedRoleLower = (storedRole || "user").toLowerCase();
+
+    if (storedRoleLower === "user" && restrictedPages.some(p => path.startsWith(p))) {
+      navigate("/dashboard/admin");
+      return;
+    }
+
+    if (storedRoleLower === "hod") {
+      const designation = (localStorage.getItem("designation") || "").toLowerCase();
+      const isMachineOperator = designation.includes("machin") || designation.includes("operat") || designation.includes("oprat");
+      
+      const hodRestrictedPages = [
+        "/dashboard/maintenance",
+        "/dashboard/ea-task",
+        "/dashboard/quick-task",
+        "/dashboard/holiday-list",
+        "/dashboard/working-day-calendar",
+        "/dashboard/setting"
+      ];
+      
+      if (!isMachineOperator) {
+        hodRestrictedPages.push("/dashboard/repair");
+      }
+
+      if (hodRestrictedPages.some(p => path.startsWith(p))) {
+        navigate("/dashboard/admin");
+        return;
+      }
+    }
+
+    // Initial load from localStorage
+    const cachedImage = localStorage.getItem("profile_image");
+    setProfileImage(cachedImage || "");
+
+      // Fetch reporting users for HOD role check
+      let reportingUsers = [storedUsername?.toLowerCase()];
+      const currentUserRole = (localStorage.getItem("role") || "").toLowerCase();
+      if (currentUserRole === "hod") {
+          const fetchReportingUsers = async () => {
+              const { data: reports } = await supabase
+                  .from("users")
+                  .select("user_name")
+                  .eq("reported_by", storedUsername);
+              if (reports) {
+                  reportingUsers = [storedUsername.toLowerCase(), ...reports.map(r => (r.user_name || "").toLowerCase())];
+              }
+          };
+          fetchReportingUsers();
+      }
+
+    // Sync with database to get the latest image
+    const syncProfileImage = async () => {
+      try {
+        const { data } = await supabase
+          .from("users")
+          .select("profile_image")
+          .eq("user_name", storedUsername)
+          .single();
+
+        if (data && data.profile_image) {
+          setProfileImage(data.profile_image);
+          localStorage.setItem("profile_image", data.profile_image);
+          console.log("✅ Profile image synced from DB:", data.profile_image);
+        }
+      } catch (err) {
+        console.error("❌ Error syncing profile image:", err);
+      }
+    };
+
+    if (storedUsername) {
+      syncProfileImage();
+    }
+
+    console.log("AdminLayout - Profile Image URL (Cached):", cachedImage);
+
+    // Check if this is the super admin (username = 'admin')
+    const normalizedUsername = (storedUsername || "").toLowerCase();
+    setIsSuperAdmin(normalizedUsername === "admin");
+  }, [navigate, location.pathname]);
+
+  // Fetch notifications globally for badge count
+  useEffect(() => {
+    const role = localStorage.getItem("role");
+    const userId = localStorage.getItem("user-id");
+    if (role) {
+      dispatch(fetchNotifications({ role: role.toLowerCase(), userId }));
+    }
+  }, [dispatch, location.pathname]);
+
+  // Set initial submenu state based on current location
+  useEffect(() => {
+    if (location.pathname.includes("/dashboard/holiday") || location.pathname.includes("/dashboard/working-day")) {
+      setIsHolidaySubmenuOpen(true);
+    }
+    if (location.pathname.includes("/resource-manager") || location.pathname.includes("/document/") || location.pathname.includes("/subscription/")) {
+      setIsResourceMenuOpen(true);
+    }
+    if (location.pathname.includes("/loan/")) {
+      setIsLoanMenuOpen(true);
+    }
+  }, [location.pathname]);
+
+  // Handle logout
+  const handleLogout = () => {
+    localStorage.removeItem("user-name");
+    localStorage.removeItem("role");
+    localStorage.removeItem("email_id");
+    localStorage.removeItem("token");
+    localStorage.removeItem("profile_image");
+    window.location.href = "/login";
+  };
+
+  // No data categories needed as Task is now a main route
+
+  // Update the routes array based on user role and super admin status
+  const routes = [
+    {
+      href: "/dashboard/profile",
+      label: "My Profile",
+      icon: UserRound,
+      active: location.pathname === "/dashboard/profile",
+      showFor: ["admin", "user", "HOD"],
+      module: "Profile",
+    },
+    {
+      href: "/dashboard/admin",
+      label: "Dashboard",
+      icon: Database,
+      active: location.pathname === "/dashboard/admin",
+      showFor: ["admin", "user", "HOD"],
+      module: "Checklist & Delegation",
+    },
+    {
+      href: "/dashboard/notifications",
+      label: "Notifications",
+      icon: Bell,
+      active: location.pathname === "/dashboard/notifications",
+      showFor: ["admin", "user", "hod"],
+      badge: notifications.filter(n => !n.isRead).length || null,
+    },
+    {
+      href: "/dashboard/quick-task",
+      label: "Task Manager",
+      icon: Zap,
+      active: location.pathname === "/dashboard/quick-task",
+      // Show for super admin OR anyone with 'admin' role
+      showFor: (isSuperAdmin || userRole.toLowerCase() === "admin") ? ["admin"] : [],
+    },
+    {
+      href: "/dashboard/assign-task",
+      label: "Assign Task",
+      icon: CheckSquare,
+      active: location.pathname === "/dashboard/assign-task",
+      showFor: ["admin", "HOD"],
+    },
+    {
+      href: "/dashboard/delegation",
+      label: "Delegation",
+      icon: ClipboardList,
+      active: location.pathname === "/dashboard/delegation",
+      showFor: ["admin", "user", "HOD"],
+    },
+    {
+      href: "/dashboard/task",
+      label: "Checklist",
+      icon: CalendarCheck,
+      active: location.pathname === "/dashboard/task",
+      showFor: ["admin", "HOD", "user"],
+    },
+    {
+      href: "/dashboard/calendar",
+      label: "Calendar",
+      icon: CalendarIcon,
+      active: location.pathname === "/dashboard/calendar",
+      showFor: ["admin", "user", "HOD"],
+    },
+    {
+      label: "Holiday",
+      icon: CalendarIcon, // Or a specific holiday icon
+      showFor: (isSuperAdmin || userRole.toLowerCase() === "admin") ? ["admin"] : [], 
+      isSubmenu: true,
+      isOpen: isHolidaySubmenuOpen,
+      setIsOpen: setIsHolidaySubmenuOpen,
+      active: location.pathname.includes("/dashboard/holiday") || location.pathname.includes("/dashboard/working-day"),
+      subItems: [
+        {
+          href: "/dashboard/holiday-list",
+          label: "Holiday List",
+          active: location.pathname === "/dashboard/holiday-list",
+          showFor: ["admin"],
+        },
+        {
+          href: "/dashboard/working-day-calendar",
+          label: "Working Day Calendar",
+          active: location.pathname === "/dashboard/working-day-calendar",
+          showFor: ["admin"],
+        }
+      ]
+    },
+    {
+      href: "/dashboard/admin-approval",
+      label: "Admin Approval",
+      icon: BookmarkCheck,
+      active: location.pathname === "/dashboard/admin-approval",
+      showFor: ["admin", "HOD"],
+    },
+    {
+      href: "/dashboard/training-video",
+      label: "Training Video",
+      icon: Video,
+      active: location.pathname === "/dashboard/training-video",
+      showFor: ["admin", "user", "HOD"],
+      module: "Checklist & Delegation",
+    },
+    // Document & Substruction Routes
+    {
+      href: "/doc-dashboard",
+      label: "Doc Dashboard",
+      icon: LayoutDashboard,
+      active: location.pathname === "/doc-dashboard" || location.pathname === "/",
+      showFor: ["admin", "user", "HOD"],
+      module: "Document & Substruction",
+    },
+    {
+      label: "Resource Manager",
+      icon: FileText,
+      showFor: ["admin", "user", "HOD"],
+      isSubmenu: true,
+      isOpen: isResourceMenuOpen,
+      setIsOpen: setIsResourceMenuOpen,
+      active: location.pathname.includes("/resource-manager") || location.pathname.includes("/document/") || location.pathname.includes("/subscription/"),
+      module: "Document & Substruction",
+      subItems: [
+        { href: "/resource-manager", label: "All Resources", active: location.pathname === "/resource-manager", showFor: ["admin", "user", "HOD"] },
+        { href: "/document/renewal", label: "Document Renewal", active: location.pathname === "/document/renewal", showFor: ["admin", "user", "HOD"] },
+        { href: "/subscription/renewal", label: "Subscription Renewal", active: location.pathname === "/subscription/renewal", showFor: ["admin", "user", "HOD"] },
+        { href: "/document/shared", label: "Document Shared", active: location.pathname === "/document/shared", showFor: ["admin", "user", "HOD"] },
+        { href: "/subscription/approval", label: "Subscription Approval", active: location.pathname === "/subscription/approval", showFor: ["admin", "user", "HOD"] },
+        { href: "/subscription/payment", label: "Subscription Payment", active: location.pathname === "/subscription/payment", showFor: ["admin", "user", "HOD"] },
+      ]
+    },
+    {
+      label: "Loan",
+      icon: Banknote,
+      showFor: ["admin", "user", "HOD"],
+      isSubmenu: true,
+      isOpen: isLoanMenuOpen,
+      setIsOpen: setIsLoanMenuOpen,
+      active: location.pathname.includes("/loan/"),
+      module: "Document & Substruction",
+      subItems: [
+         { href: "/loan/all", label: "All Loan", active: location.pathname === "/loan/all", showFor: ["admin", "user", "HOD"] },
+         { href: "/loan/foreclosure", label: "Request Forecloser", active: location.pathname === "/loan/foreclosure", showFor: ["admin", "user", "HOD"] },
+         { href: "/loan/noc", label: "Collect NOC", active: location.pathname === "/loan/noc", showFor: ["admin", "user", "HOD"] }
+      ]
+    },
+    {
+      href: "/bg/all",
+      label: "Bank Guarantee",
+      icon: List,
+      active: location.pathname === "/bg/all",
+      showFor: ["admin", "user", "HOD"],
+      module: "Document & Substruction",
+    },
+    {
+      href: "/dashboard/setting",
+      label: "Settings",
+      icon: Settings,
+      active: location.pathname.includes("/dashboard/setting") || location.pathname.includes("/settings"),
+      showFor: ["admin"],
+      module: "Checklist & Delegation",
+    },
+  ];
+
+  const getAccessibleDepartments = () => {
+    return [];
+  };
+
+  // Filter routes based on user role and super admin status
+  const getAccessibleRoutes = () => {
+    const userRole = localStorage.getItem("role") || "user";
+    const username = localStorage.getItem("user-name");
+    
+    return routes
+      .filter((route) => {
+        const userRoleNormalized = (userRole || "user").toLowerCase();
+        const usernameNormalized = (username || "").toLowerCase();
+        
+        // If it's the Setting page, show for admin role
+        if (route.label === "Settings") {
+          return userRoleNormalized === "admin";
+        }
+        
+        // Holiday submenu logic handled by showFor in routes
+        if (route.label === "Holiday") {
+            return isSuperAdmin || userRoleNormalized === "admin";
+        }
+        return route.showFor.some(role => role.toLowerCase() === userRoleNormalized);
+      })
+      .map(route => {
+        if (route.subItems) {
+          const userRoleNormalized = (userRole || "user").toLowerCase();
+          return {
+            ...route,
+            subItems: route.subItems.filter(sub => sub.showFor.some(role => role.toLowerCase() === userRoleNormalized))
+          };
+        }
+        return route;
+      })
+      .filter(route => !route.isSubmenu || (route.subItems && route.subItems.length > 0));
+  };
+
+  // Submenu logic removed
+
+  // Get accessible routes
+  const accessibleRoutes = getAccessibleRoutes();
+
+  if (!showLayout) {
+    return <>{children}</>;
+  }
+
+  return (
+    <div
+      className={`flex h-screen overflow-hidden bg-gradient-to-br from-blue-50 to-purple-50`}
+    >
+      {/* Sidebar for desktop */}
+      <aside className="hidden w-56 flex-shrink-0 border-r border-slate-100 bg-white shadow-[4px_0_24px_rgba(0,0,0,0.06)] md:flex md:flex-col z-20 relative">
+        <div className="flex h-16 items-center border-b border-slate-100 px-4 bg-white">
+          <Link
+            to="/master-dashboard"
+            className="flex items-center gap-3 hover:opacity-90 transition-opacity"
+          >
+            <img src={jbtLogo} alt="JBT Logo" className="h-9 w-auto object-contain rounded-lg border border-slate-200 bg-white p-1 shadow-sm shrink-0" />
+            <span className="text-sm font-bold tracking-tight leading-tight text-slate-800 whitespace-nowrap">
+              Jay Bhole
+            </span>
+          </Link>
+        </div>
+        <nav className="flex-1 overflow-y-auto p-2">
+          <ul className="space-y-1">
+            {Object.entries(
+              accessibleRoutes.reduce((acc, route) => {
+                const module = route.module || "Checklist & Delegation";
+                if (!acc[module]) acc[module] = [];
+                acc[module].push(route);
+                return acc;
+              }, {})
+            ).map(([moduleName, moduleRoutes]) => (
+              <div key={moduleName} className="mb-4">
+                {moduleName === "Profile" ? (
+                  <Link
+                    to="/dashboard/profile"
+                    className={`group w-full flex items-center justify-between px-4 py-3 text-[14px] font-semibold rounded-xl transition-all relative overflow-hidden ${location.pathname.includes('/dashboard/profile') ? 'text-red-600 bg-slate-100' : 'text-slate-600 hover:text-red-600 hover:bg-slate-50'}`}
+                  >
+                    {location.pathname.includes('/dashboard/profile') && (
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 h-2/3 w-1.5 bg-red-600 rounded-r-full"></div>
+                    )}
+                    <div className="flex items-center gap-3 overflow-hidden">
+                      <UserRound className="h-5 w-5 shrink-0" />
+                      <span className="text-left leading-tight truncate">{moduleName}</span>
+                    </div>
+                  </Link>
+                ) : (
+                  <button
+                    onClick={() => toggleModule(moduleName)}
+                    className={`group w-full flex items-center justify-between px-4 py-3 text-[14px] font-semibold rounded-xl transition-all relative overflow-hidden ${openModules[moduleName] ? 'text-red-600 bg-slate-100' : 'text-slate-600 hover:text-red-600 hover:bg-slate-50'}`}
+                  >
+                    {openModules[moduleName] && (
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 h-2/3 w-1.5 bg-red-600 rounded-r-full"></div>
+                    )}
+                    <div className="flex items-center gap-3 overflow-hidden">
+                      {moduleName === "Checklist & Delegation" && <ClipboardList className="h-5 w-5 shrink-0" />}
+                      {moduleName === "Document & Substruction" && <Database className="h-5 w-5 shrink-0" />}
+                      <span className="text-left leading-tight truncate">{moduleName}</span>
+                    </div>
+                    {openModules[moduleName] ? (
+                      <ChevronDown className="h-4 w-4 shrink-0" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 shrink-0" />
+                    )}
+                  </button>
+                )}
+                {moduleName !== "Profile" && openModules[moduleName] && moduleRoutes.map((route) => (
+                  <li key={route.label}>
+                {route.isSubmenu ? (
+                  <div className="flex flex-col">
+                    <button
+                      onClick={() => route.setIsOpen(!route.isOpen)}
+                      className={`group flex items-center justify-between w-full rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ${route.active
+                        ? "bg-red-600 text-white shadow-md shadow-red-500/20"
+                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                        }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <route.icon
+                          className={`h-4 w-4 ${route.active ? "text-white" : "text-slate-400 group-hover:text-slate-600"}`}
+                        />
+                        <div className="flex items-center justify-between w-full">
+                          <span>{route.label}</span>
+                          {route.badge && (
+                            <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                              {route.badge}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {route.isOpen ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                    </button>
+                    {route.isOpen && (
+                      <ul className="mt-1 ml-4 space-y-1 border-l-2 border-slate-100 pl-2">
+                        {route.subItems.map((sub) => (
+                          <li key={sub.label}>
+                            <Link
+                              to={sub.href}
+                              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-xs font-medium transition-all duration-200 ${sub.active
+                                ? "text-red-700 bg-red-50 font-bold"
+                                : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
+                                }`}
+                            >
+                              {sub.label}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                ) : (
+                  <Link
+                    to={route.href}
+                    className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ${route.active
+                      ? "bg-red-600 text-white shadow-md shadow-red-500/20"
+                      : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                      }`}
+                  >
+                    <route.icon
+                      className={`h-4 w-4 ${route.active ? "text-white" : "text-slate-400 group-hover:text-slate-600"}`}
+                    />
+                    <div className="flex items-center justify-between w-full">
+                      <span>{route.label}</span>
+                      {route.badge && (
+                        <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                          {route.badge}
+                        </span>
+                      )}
+                    </div>
+                  </Link>
+                )}
+                  </li>
+                ))}
+              </div>
+            ))}
+          </ul>
+        </nav>
+      <div className="border-t border-slate-200 p-4 bg-white">
+          <div className="flex flex-col">
+            {/* User info section */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-9 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200 shrink-0">
+                  {profileImage ? (
+                    <img src={profileImage} alt={username} className="h-full w-full object-cover" />
+                  ) : (
+                    <span className="text-sm font-bold text-slate-600">
+                      {username ? username.charAt(0).toUpperCase() : "U"}
+                    </span>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-slate-800 truncate leading-tight mb-0.5">
+                    {username || "User"}{" "}
+                    {userRole.toLowerCase() === "admin"
+                      ? isSuperAdmin
+                        ? "(Super Admin)"
+                        : "(Admin)"
+                      : userRole.toLowerCase() === "hod"
+                        ? "(HOD)"
+                        : ""}
+                  </p>
+                  <p className="text-[11px] text-slate-500 truncate leading-tight">
+                    {userEmail || "user@example.com"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Dark mode toggle (if available) */}
+              {toggleDarkMode && (
+                <button
+                  onClick={toggleDarkMode}
+                  className="text-blue-700 hover:text-blue-900 p-1 rounded-full hover:bg-blue-100"
+                >
+                  {darkMode ? (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+                      />
+                    </svg>
+                  ) : (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+                      />
+                    </svg>
+                  )}
+                  <span className="sr-only">
+                    {darkMode ? "Light mode" : "Dark mode"}
+                  </span>
+                </button>
+              )}
+            </div>
+
+            {/* Logout button positioned below user info */}
+            <div className="mt-4 flex justify-center">
+              <button
+                onClick={handleLogout}
+                className="flex items-center justify-center gap-2 w-full text-slate-600 hover:text-red-600 px-3 py-2 rounded-lg hover:bg-red-50 text-sm font-medium transition-colors border border-transparent hover:border-red-100"
+              >
+                <LogOut className="h-4 w-4" />
+                <span>Logout</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      {/* Mobile menu button and sidebar - similar structure as desktop but with mobile classes */}
+      <button
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        className="md:hidden absolute left-4 top-3 z-[110] text-blue-700 p-2 rounded-md hover:bg-blue-100"
+      >
+        <Menu className="h-5 w-5" />
+        <span className="sr-only">Toggle menu</span>
+      </button>
+
+      {/* Mobile sidebar */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-[100] md:hidden">
+          <div
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
+            onClick={() => setIsMobileMenuOpen(false)}
+          ></div>
+          <div className="fixed inset-y-0 left-0 w-56 bg-white shadow-[4px_0_24px_rgba(0,0,0,0.1)]">
+            <div className="flex h-16 items-center border-b border-slate-100 px-4 bg-white">
+              <Link
+                to="/master-dashboard"
+                className="flex items-center gap-3 hover:opacity-90 transition-opacity"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <img src={jbtLogo} alt="JBT Logo" className="h-9 w-auto object-contain rounded-lg border border-slate-200 bg-white p-1 shadow-sm shrink-0" />
+                <span className="text-sm font-bold tracking-tight leading-tight text-slate-800 whitespace-nowrap">
+                  Jay Bhole
+                </span>
+              </Link>
+            </div>
+            <nav className="flex-1 overflow-y-auto p-2 bg-white">
+              <ul className="space-y-1">
+                {Object.entries(
+                  accessibleRoutes.reduce((acc, route) => {
+                    const module = route.module || "Checklist & Delegation";
+                    if (!acc[module]) acc[module] = [];
+                    acc[module].push(route);
+                    return acc;
+                  }, {})
+                ).map(([moduleName, moduleRoutes]) => (
+                  <div key={moduleName} className="mb-4">
+                    {moduleName === "Profile" ? (
+                      <Link
+                        to="/dashboard/profile"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className={`group w-full flex items-center justify-between px-4 py-3 text-[14px] font-semibold rounded-xl transition-all relative overflow-hidden ${location.pathname.includes('/dashboard/profile') ? 'text-red-600 bg-slate-100' : 'text-slate-600 hover:text-red-600 hover:bg-slate-50'}`}
+                      >
+                        {location.pathname.includes('/dashboard/profile') && (
+                          <div className="absolute left-0 top-1/2 -translate-y-1/2 h-2/3 w-1.5 bg-red-600 rounded-r-full"></div>
+                        )}
+                        <div className="flex items-center gap-3 overflow-hidden">
+                          <UserRound className="h-5 w-5 shrink-0" />
+                          <span className="text-left leading-tight truncate">{moduleName}</span>
+                        </div>
+                      </Link>
+                    ) : (
+                      <button
+                        onClick={() => toggleModule(moduleName)}
+                        className={`group w-full flex items-center justify-between px-4 py-3 text-[14px] font-semibold rounded-xl transition-all relative overflow-hidden ${openModules[moduleName] ? 'text-red-600 bg-slate-100' : 'text-slate-600 hover:text-red-600 hover:bg-slate-50'}`}
+                      >
+                        {openModules[moduleName] && (
+                          <div className="absolute left-0 top-1/2 -translate-y-1/2 h-2/3 w-1.5 bg-red-600 rounded-r-full"></div>
+                        )}
+                        <div className="flex items-center gap-3 overflow-hidden">
+                          {moduleName === "Checklist & Delegation" && <ClipboardList className="h-5 w-5 shrink-0" />}
+                          {moduleName === "Document & Substruction" && <Database className="h-5 w-5 shrink-0" />}
+                          <span className="text-left leading-tight truncate">{moduleName}</span>
+                        </div>
+                        {openModules[moduleName] ? (
+                          <ChevronDown className="h-4 w-4 shrink-0" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4 shrink-0" />
+                        )}
+                      </button>
+                    )}
+                    {moduleName !== "Profile" && openModules[moduleName] && moduleRoutes.map((route) => (
+                      <li key={route.label}>
+                    {route.isSubmenu ? (
+                      <div className="flex flex-col">
+                        <button
+                          onClick={() => route.setIsOpen(!route.isOpen)}
+                          className={`group flex items-center justify-between w-full rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ${route.active
+                            ? "bg-red-600 text-white shadow-md shadow-red-500/20"
+                            : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                            }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <route.icon
+                              className={`h-4 w-4 ${route.active ? "text-white" : "text-slate-400 group-hover:text-slate-600"}`}
+                            />
+                            {route.label}
+                          </div>
+                          {route.isOpen ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
+                          )}
+                        </button>
+                        {route.isOpen && (
+                          <ul className="mt-1 ml-4 space-y-1 border-l-2 border-red-50 pl-2">
+                            {route.subItems.map((sub) => (
+                              <li key={sub.label}>
+                                <Link
+                                  to={sub.href}
+                                  className={`flex items-center gap-3 rounded-lg px-3 py-2 text-xs font-medium transition-all duration-200 ${sub.active
+                                    ? "text-red-700 bg-red-50 font-bold"
+                                    : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
+                                    }`}
+                                  onClick={() => setIsMobileMenuOpen(false)}
+                                >
+                                  {sub.label}
+                                </Link>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    ) : (
+                      <Link
+                        to={route.href}
+                        className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ${route.active
+                          ? "bg-red-600 text-white shadow-md shadow-red-500/20"
+                          : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                          }`}
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        <route.icon
+                          className={`h-4 w-4 ${route.active ? "text-white" : "text-slate-400 group-hover:text-slate-600"}`}
+                        />
+                        <div className="flex items-center justify-between w-full">
+                          <span>{route.label}</span>
+                          {route.badge && (
+                            <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                              {route.badge}
+                            </span>
+                          )}
+                        </div>
+                      </Link>
+                    )}
+                      </li>
+                    ))}
+                  </div>
+                ))}
+              </ul>
+            </nav>
+            <div className="border-t border-slate-200 p-4 bg-white">
+              <div className="flex flex-col">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200 shrink-0">
+                      {profileImage ? (
+                        <img src={profileImage} alt={username} className="h-full w-full object-cover" />
+                      ) : (
+                        <span className="text-sm font-bold text-slate-600">
+                          {username ? username.charAt(0).toUpperCase() : "U"}
+                        </span>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-slate-800 truncate leading-tight mb-0.5">
+                        {username || "User"}{" "}
+                        {userRole === "admin"
+                          ? isSuperAdmin
+                            ? "(Super Admin)"
+                            : "(Admin)"
+                          : userRole === "HOD"
+                            ? "(HOD)"
+                            : ""}
+                      </p>
+                      <p className="text-[11px] text-slate-500 truncate leading-tight">
+                        {userEmail || "user@example.com"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {toggleDarkMode && (
+                      <button
+                        onClick={toggleDarkMode}
+                        className="text-slate-500 hover:text-slate-800 p-1 rounded-full hover:bg-slate-100"
+                      >
+                        {darkMode ? (
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-4 w-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+                            />
+                          </svg>
+                        ) : (
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-4 w-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M20.354 15.354A9 9 0 018.646 3.646A9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+                            />
+                          </svg>
+                        )}
+                        <span className="sr-only">
+                          {darkMode ? "Light mode" : "Dark mode"}
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-4 flex justify-center">
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center justify-center gap-2 w-full text-slate-600 hover:text-red-600 px-3 py-2 rounded-lg hover:bg-red-50 text-sm font-medium transition-colors border border-transparent hover:border-red-100"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span>Logout</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main content */}
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <header className="flex h-16 items-center justify-between border-b border-purple-100 bg-white px-4 md:px-6 shadow-sm z-30">
+          <div className="flex md:hidden w-8"></div>
+          <div className="flex flex-col items-center">
+            <h1 className="text-lg font-bold bg-gradient-to-r from-red-600 to-red-800 bg-clip-text text-transparent">
+              Checklist & Delegation
+            </h1>
+            <p className="text-[10px] text-gray-400 font-medium uppercase tracking-[0.2em] -mt-1 hidden xs:block">
+              Checklist & Delegation
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:flex flex-col items-end mr-1">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Welcome</span>
+              <span className="text-sm font-black text-red-700 -mt-1">Hello, {username || 'User'}</span>
+            </div>
+            <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-red-500 to-red-600 flex items-center justify-center shadow-lg border-2 border-white ring-2 ring-red-100/50 overflow-hidden">
+              {profileImage ? (
+                <img
+                  src={profileImage}
+                  alt={username}
+                  className="h-full w-full object-cover"
+                  onError={() => {
+                    console.error("❌ AdminLayout Image Failed to Load:", profileImage);
+                    setProfileImage(""); // Fallback to initials
+                  }}
+                />
+              ) : (
+                <span className="text-white text-sm font-black uppercase">{username ? username.charAt(0) : 'U'}</span>
+              )}
+            </div>
+          </div>
+        </header>
+
+        <main className="flex-1 overflow-y-auto overflow-x-hidden px-4 pb-4 md:px-6 md:pb-6 bg-gradient-to-br from-red-50/50 to-red-50/50 pb-24 md:pb-6">
+          {children}
+        </main>
+
+        <div className="bg-gradient-to-r from-red-600 to-red-700 h-5 flex items-center justify-center px-4 shadow-md z-40">
+          <a
+            href="https://www.botivate.in"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[9px] text-white/90 font-medium tracking-[0.2em] uppercase hover:underline hover:text-white transition-colors"
+          >
+            Powered by <span className="font-bold">Botivate</span>
+          </a>
+        </div>
+
+        {/* Premium Bottom Navigation for Mobile */}
+        <div className="md:hidden fixed bottom-6 left-4 right-4 h-16 bg-white/80 backdrop-blur-xl border border-white/20 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.12)] z-50 flex items-center justify-around px-2">
+          <Link
+            to="/dashboard/admin"
+            className={`flex flex-col items-center justify-center w-12 h-12 rounded-xl transition-all duration-300 ${location.pathname === "/dashboard/admin"
+              ? "text-red-600 bg-red-50"
+              : "text-gray-400 hover:text-red-400"
+              }`}
+          >
+            <Home size={22} strokeWidth={location.pathname === "/dashboard/admin" ? 2.5 : 2} />
+            <span className="text-[10px] mt-1 font-bold">Home</span>
+          </Link>
+
+
+
+          <Link
+            to="/dashboard/task"
+            className={`flex flex-col items-center justify-center w-12 h-12 rounded-xl transition-all duration-300 ${location.pathname === "/dashboard/task"
+              ? "text-red-600 bg-red-50"
+              : "text-gray-400 hover:text-red-400"
+              }`}
+          >
+            <CalendarCheck size={22} strokeWidth={location.pathname === "/dashboard/task" ? 2.5 : 2} />
+            <span className="text-[10px] mt-1 font-bold">Checklist</span>
+          </Link>
+
+          {(userRole?.toUpperCase() === "ADMIN" || userRole?.toUpperCase() === "HOD") && (
+            <div className="relative -mt-12">
+              <Link
+                to="/dashboard/assign-task"
+                className="flex items-center justify-center w-14 h-14 bg-gradient-to-tr from-red-600 to-red-700 rounded-2xl shadow-lg shadow-red-200 text-white transform active:scale-90 transition-all duration-300 border-4 border-red-50"
+              >
+                <CirclePlus size={28} strokeWidth={2.5} />
+              </Link>
+            </div>
+          )}
+
+          <Link
+            to="/dashboard/delegation"
+            className={`flex flex-col items-center justify-center w-12 h-12 rounded-xl transition-all duration-300 ${location.pathname === "/dashboard/delegation"
+              ? "text-red-600 bg-red-50"
+              : "text-gray-400 hover:text-red-400"
+              }`}
+          >
+            <BookmarkCheck size={22} strokeWidth={location.pathname === "/dashboard/delegation" ? 2.5 : 2} />
+            <span className="text-[10px] mt-1 font-bold">Status</span>
+          </Link>
+
+          <button
+            onClick={() => setIsUserPopupOpen(true)}
+            className="flex flex-col items-center justify-center w-12 h-12 rounded-xl text-gray-400 hover:text-red-400 transition-all"
+          >
+            <UserRound size={22} strokeWidth={2} />
+            <span className="text-[10px] mt-1 font-bold">Profile</span>
+          </button>
+        </div>
+
+        {/* User Popup */}
+        {isUserPopupOpen && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/40 backdrop-blur-md p-4 transition-all duration-300">
+            <div className="bg-white rounded-[2rem] w-full max-w-[340px] shadow-[0_20px_50px_rgba(0,0,0,0.15)] overflow-hidden animate-in fade-in zoom-in-95 duration-300 border border-white/50">
+              {/* Header Gradient */}
+              <div className="h-32 bg-gradient-to-br from-red-600 via-red-700 to-red-800 relative">
+                <div className="absolute inset-0 bg-white/10 backdrop-blur-[2px]"></div>
+                <button
+                  onClick={() => setIsUserPopupOpen(false)}
+                  className="absolute top-4 right-4 p-2 bg-black/20 hover:bg-black/40 rounded-full text-white transition-all hover:rotate-90 z-10"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Profile Info */}
+              <div className="px-8 pb-8 text-center bg-white">
+                <div className="relative -mt-16 mb-6 flex justify-center">
+                  <div className="h-28 w-28 rounded-full bg-white p-1.5 shadow-2xl ring-4 ring-white/30">
+                    <div className="h-full w-full rounded-full bg-gradient-to-tr from-red-500 to-red-600 flex items-center justify-center overflow-hidden border-2 border-white shadow-inner">
+                      {profileImage ? (
+                        <img src={profileImage} alt={username} className="h-full w-full object-cover transform hover:scale-110 transition-transform duration-500" />
+                      ) : (
+                        <span className="text-4xl font-black text-white uppercase tracking-tighter">
+                          {username ? username.charAt(0) : "U"}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4 mb-8">
+                  <div>
+                    <h3 className="text-2xl font-black text-gray-900 tracking-tight mb-1">
+                      {username || "User"}
+                    </h3>
+                    <div className="flex justify-center flex-wrap gap-2">
+                      <span className="text-[10px] font-black text-red-600 uppercase tracking-[0.2em] px-3 py-1 bg-red-50 rounded-full border border-red-100/50">
+                        {userRole?.toLowerCase() === "admin" ? (isSuperAdmin ? "Super Admin" : "Administrator") : userRole?.toLowerCase() === "hod" ? "HOD / Supervisor" : "Staff"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="py-3 px-4 bg-gray-50 rounded-2xl flex items-center justify-center gap-2 border border-gray-100">
+                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                    <span className="text-xs font-bold text-gray-500 truncate">{userEmail || "user@example.com"}</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    onClick={() => setIsUserPopupOpen(false)}
+                    className="flex justify-center items-center py-3.5 px-4 rounded-2xl text-xs font-black text-gray-400 border-2 border-gray-50 hover:bg-gray-50 hover:text-gray-600 transition-all active:scale-95 uppercase tracking-widest"
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    onClick={handleLogout}
+                    className="flex justify-center items-center gap-2 py-3.5 px-4 rounded-2xl text-xs font-black text-white bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 shadow-[0_10px_20px_-5px_rgba(220,38,38,0.4)] hover:shadow-red-200 transition-all active:scale-95 uppercase tracking-widest"
+                  >
+                    Logout <LogOut size={14} strokeWidth={3} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
