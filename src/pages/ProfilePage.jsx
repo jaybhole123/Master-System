@@ -72,7 +72,7 @@ export default function ProfilePage() {
       <div className="max-w-4xl mx-auto p-6 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
           {/* Header Banner */}
-          <div className="h-32 bg-gradient-to-r from-red-600 to-red-700 relative"></div>
+          <div className="h-32 bg-gradient-to-r from-red-700 to-red-900 relative"></div>
           
           <div className="px-8 pb-8">
             <div className="flex flex-col sm:flex-row items-center sm:items-end gap-6 -mt-16 relative z-10 mb-8">

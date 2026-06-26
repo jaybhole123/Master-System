@@ -81,14 +81,20 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
   const [isLoanMenuOpen, setIsLoanMenuOpen] = useState(false);
 
   // State for Module Accordions
-  const [openModules, setOpenModules] = useState(() => {
-    const path = location.pathname;
-    return {
-      "Profile": path.includes("/dashboard/profile"),
-      "Checklist & Delegation": path.includes("/dashboard") && !path.includes("/dashboard/profile"),
-      "Document & Substruction": path.includes("/document") || path.includes("/doc-dashboard") || path.includes("/resource-manager") || path.includes("/loan") || path.includes("/subscription") || path.includes("/bg") || path === "/",
-    };
+  const [openModules, setOpenModules] = useState({
+    "Profile": false,
+    "Checklist & Delegation": true,
+    "Document & Substruction": false,
   });
+
+  useEffect(() => {
+    const path = location.pathname;
+    setOpenModules({
+      "Profile": path.includes("/dashboard/profile"),
+      "Checklist & Delegation": path.includes("/dashboard") && !path.includes("/dashboard/profile") && !path.includes("/dashboard/global-settings"),
+      "Document & Substruction": path.includes("/document") || path.includes("/doc-dashboard") || path.includes("/resource-manager") || path.includes("/loan") || path.includes("/subscription") || path.includes("/bg") || path === "/",
+    });
+  }, [location.pathname]);
 
   const toggleModule = (moduleName) => {
     setOpenModules((prev) => ({
