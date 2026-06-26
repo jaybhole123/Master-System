@@ -50,14 +50,28 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
   
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isHolidaySubmenuOpen, setIsHolidaySubmenuOpen] = useState(false);
-  const [username, setUsername] = useState("");
-  const [userRole, setUserRole] = useState("");
-  const [userEmail, setUserEmail] = useState("");
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [username, setUsername] = useState(() => localStorage.getItem("user-name") || "");
+  const [userRole, setUserRole] = useState(() => localStorage.getItem("role") || "user");
+  const [userEmail, setUserEmail] = useState(() => localStorage.getItem("email_id") || "");
+  const [isSuperAdmin, setIsSuperAdmin] = useState(() => (localStorage.getItem("user-name") || "").toLowerCase() === "admin");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
-  const [profileImage, setProfileImage] = useState("");
-  const [systemAccess, setSystemAccess] = useState([]);
-  const [pageAccess, setPageAccess] = useState([]);
+  const [profileImage, setProfileImage] = useState(() => localStorage.getItem("profile_image") || "");
+  const [systemAccess, setSystemAccess] = useState(() => {
+    try {
+      const data = localStorage.getItem("system_access");
+      if (!data) return [];
+      if (data.trim().startsWith('[')) return JSON.parse(data);
+      return data.split(',').filter(Boolean);
+    } catch(e) { return []; }
+  });
+  const [pageAccess, setPageAccess] = useState(() => {
+    try {
+      const data = localStorage.getItem("page_access");
+      if (!data) return [];
+      if (data.trim().startsWith('[')) return JSON.parse(data);
+      return data.split(',').filter(Boolean);
+    } catch(e) { return []; }
+  });
   const [pageCounts, setPageCounts] = useState({});
 
   // Get data from Document Store
@@ -81,20 +95,14 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
   const [isLoanMenuOpen, setIsLoanMenuOpen] = useState(false);
 
   // State for Module Accordions
-  const [openModules, setOpenModules] = useState({
-    "Profile": false,
-    "Checklist & Delegation": true,
-    "Document & Substruction": false,
-  });
-
-  useEffect(() => {
+  const [openModules, setOpenModules] = useState(() => {
     const path = location.pathname;
-    setOpenModules({
+    return {
       "Profile": path.includes("/dashboard/profile"),
       "Checklist & Delegation": path.includes("/dashboard") && !path.includes("/dashboard/profile") && !path.includes("/dashboard/global-settings"),
       "Document & Substruction": path.includes("/document") || path.includes("/doc-dashboard") || path.includes("/resource-manager") || path.includes("/loan") || path.includes("/subscription") || path.includes("/bg") || path === "/",
-    });
-  }, [location.pathname]);
+    };
+  });
 
   const toggleModule = (moduleName) => {
     setOpenModules((prev) => ({
