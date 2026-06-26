@@ -385,7 +385,7 @@ const DocumentRenewal = () => {
                 </div>
                 <div className="flex justify-center items-center py-12">
                     <div className="flex flex-col items-center gap-3">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
                         <p className="text-gray-500">Loading documents...</p>
                     </div>
                 </div>
@@ -444,7 +444,7 @@ const DocumentRenewal = () => {
                         <input
                             type="text"
                             placeholder="Search documents..."
-                            className="pl-10 pr-4 py-2.5 w-full border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-gray-50"
+                            className="pl-10 pr-4 py-2.5 w-full border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent bg-gray-50"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
@@ -454,7 +454,7 @@ const DocumentRenewal = () => {
                     <button
                         onClick={() => loadDocuments(true)}
                         title="Refresh Data from Google Sheets"
-                        className="p-2.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 hover:text-indigo-600 transition-colors"
+                        className="p-2.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 hover:text-red-600 transition-colors"
                         disabled={isLoading}
                     >
                         <RotateCcw size={20} className={isLoading ? "animate-spin" : ""} />
@@ -465,7 +465,7 @@ const DocumentRenewal = () => {
                         <button
                             onClick={() => setActiveTab('pending')}
                             className={`flex-1 sm:flex-none px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'pending'
-                                ? 'bg-white text-indigo-600 shadow-sm'
+                                ? 'bg-white text-red-600 shadow-sm'
                                 : 'text-gray-500 hover:text-gray-700'
                                 }`}
                         >
@@ -474,7 +474,7 @@ const DocumentRenewal = () => {
                         <button
                             onClick={() => setActiveTab('history')}
                             className={`flex-1 sm:flex-none px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'history'
-                                ? 'bg-white text-indigo-600 shadow-sm'
+                                ? 'bg-white text-red-600 shadow-sm'
                                 : 'text-gray-500 hover:text-gray-700'
                                 }`}
                         >
@@ -512,7 +512,7 @@ const DocumentRenewal = () => {
                                         <td className="p-3 text-center">
                                             <button
                                                 onClick={() => handleOpenRenewal(doc)}
-                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-200"
+                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white text-xs font-semibold rounded-lg hover:bg-red-700 transition-colors shadow-sm shadow-red-200"
                                             >
                                                 <RotateCcw size={14} />
                                                 Renewal
@@ -522,7 +522,7 @@ const DocumentRenewal = () => {
                                         <td className="p-3 font-medium text-gray-900">{doc.documentName}</td>
                                         <td className="p-3 text-gray-600">{doc.documentType}</td>
                                         <td className="p-3">
-                                            <span className="px-2 py-1 bg-indigo-50 text-indigo-700 rounded text-xs font-medium">
+                                            <span className="px-2 py-1 bg-red-50 text-red-700 rounded text-xs font-medium">
                                                 {doc.category}
                                             </span>
                                         </td>
@@ -541,7 +541,7 @@ const DocumentRenewal = () => {
                                             {doc.fileContent ? (
                                                 <div
                                                     onClick={() => handleDownload(doc.fileContent, doc.file || 'document')}
-                                                    className="flex items-center gap-2 text-indigo-600 text-xs cursor-pointer hover:underline"
+                                                    className="flex items-center gap-2 text-red-600 text-xs cursor-pointer hover:underline"
                                                 >
                                                     <Download size={14} />
                                                     <span className="truncate max-w-[100px]">View</span>
@@ -596,7 +596,7 @@ const DocumentRenewal = () => {
                                         <td className="p-3 font-medium text-gray-900">{item.documentName}</td>
                                         <td className="p-3 text-gray-600">{item.documentType}</td>
                                         <td className="p-3">
-                                            <span className="px-2 py-1 bg-indigo-50 text-indigo-700 rounded text-xs font-medium">
+                                            <span className="px-2 py-1 bg-red-50 text-red-700 rounded text-xs font-medium">
                                                 {item.category}
                                             </span>
                                         </td>
@@ -613,7 +613,7 @@ const DocumentRenewal = () => {
                                             {item.oldFileContent ? (
                                                 <div
                                                     onClick={() => handleDownload(item.oldFileContent, item.oldFile)}
-                                                    className="flex items-center gap-1 text-gray-600 text-xs cursor-pointer hover:text-indigo-600 hover:underline"
+                                                    className="flex items-center gap-1 text-gray-600 text-xs cursor-pointer hover:text-red-600 hover:underline"
                                                 >
                                                     <Download size={12} />
                                                     <span className="truncate max-w-[100px]">View</span>
@@ -631,14 +631,14 @@ const DocumentRenewal = () => {
                                                 </span>
                                             )}
                                         </td>
-                                        <td className="p-3 font-medium text-indigo-600 font-mono text-xs">
+                                        <td className="p-3 font-medium text-red-600 font-mono text-xs">
                                             {formatDate(item.nextRenewalDate)}
                                         </td>
                                         <td className="p-3">
                                             {item.newFileContent ? (
                                                 <span
                                                     onClick={() => handleDownload(item.newFileContent, item.newFile)}
-                                                    className="text-indigo-600 font-medium flex items-center gap-1 cursor-pointer hover:underline text-xs"
+                                                    className="text-red-600 font-medium flex items-center gap-1 cursor-pointer hover:underline text-xs"
                                                 >
                                                     <Download size={12} /> View
                                                 </span>
@@ -690,7 +690,7 @@ const DocumentRenewal = () => {
                                 {doc.fileContent ? (
                                     <button
                                         onClick={() => handleDownload(doc.fileContent, doc.file || 'document')}
-                                        className="flex items-center gap-1.5 text-indigo-600 text-xs font-medium bg-indigo-50 px-2 py-1.5 rounded-lg"
+                                        className="flex items-center gap-1.5 text-red-600 text-xs font-medium bg-red-50 px-2 py-1.5 rounded-lg"
                                     >
                                         <Download size={14} />
                                         View File
@@ -700,7 +700,7 @@ const DocumentRenewal = () => {
                                 )}
                                 <button
                                     onClick={() => handleOpenRenewal(doc)}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg shadow-sm"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white text-xs font-semibold rounded-lg shadow-sm"
                                 >
                                     <RotateCcw size={14} />
                                     Renewal
@@ -748,7 +748,7 @@ const DocumentRenewal = () => {
                                     </div>
                                     <div>
                                         <span className="block text-gray-400 text-[10px] uppercase">Next Renewal</span>
-                                        <span className="font-medium text-indigo-600">{item.nextRenewalDate ? formatDate(item.nextRenewalDate) : '-'}</span>
+                                        <span className="font-medium text-red-600">{item.nextRenewalDate ? formatDate(item.nextRenewalDate) : '-'}</span>
                                     </div>
                                 </div>
                                 <div className="col-span-2 grid grid-cols-2 gap-2">
@@ -768,7 +768,7 @@ const DocumentRenewal = () => {
                                     {item.oldFileContent && (
                                         <button
                                             onClick={() => handleDownload(item.oldFileContent, item.oldFile)}
-                                            className="flex items-center gap-1 text-gray-500 text-xs hover:text-indigo-600"
+                                            className="flex items-center gap-1 text-gray-500 text-xs hover:text-red-600"
                                         >
                                             <Download size={14} />
                                             Old File
@@ -777,7 +777,7 @@ const DocumentRenewal = () => {
                                     {item.newFileContent && (
                                         <button
                                             onClick={() => handleDownload(item.newFileContent, item.newFile)}
-                                            className="flex items-center gap-1 text-indigo-600 text-xs font-medium"
+                                            className="flex items-center gap-1 text-red-600 text-xs font-medium"
                                         >
                                             <Download size={14} />
                                             New File
@@ -811,7 +811,7 @@ const DocumentRenewal = () => {
 
                             <form onSubmit={handleSaveRenewal} className="p-4 space-y-4">
                                 {/* Pre-filled Info Grid */}
-                                <div className="grid grid-cols-2 gap-3 text-xs bg-blue-50/50 p-3 rounded-xl border border-blue-100/50">
+                                <div className="grid grid-cols-2 gap-3 text-xs bg-red-50/50 p-3 rounded-xl border border-red-100/50">
                                     <div className="col-span-2">
                                         <label className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Document</label>
                                         <div className="font-medium text-gray-900">{selectedDoc.documentName}</div>
@@ -837,7 +837,7 @@ const DocumentRenewal = () => {
                                         {selectedDoc.fileContent ? (
                                             <div
                                                 onClick={() => handleDownload(selectedDoc.fileContent, selectedDoc.file || 'document')}
-                                                className="text-indigo-600 truncate cursor-pointer hover:underline flex items-center gap-1 font-medium"
+                                                className="text-red-600 truncate cursor-pointer hover:underline flex items-center gap-1 font-medium"
                                                 title="Click to view document"
                                             >
                                                 <FileText size={14} />
@@ -851,9 +851,9 @@ const DocumentRenewal = () => {
 
                                 {/* Inputs */}
                                 <div className="space-y-4">
-                                    <div className="flex items-center justify-between p-2.5 border border-gray-200 rounded-xl hover:border-indigo-200 transition-colors cursor-pointer" onClick={() => setAgainRenewal(!againRenewal)}>
+                                    <div className="flex items-center justify-between p-2.5 border border-gray-200 rounded-xl hover:border-red-200 transition-colors cursor-pointer" onClick={() => setAgainRenewal(!againRenewal)}>
                                         <span className="font-medium text-sm text-gray-700">Again Renewal?</span>
-                                        <div className={`w-10 h-5 rounded-full p-0.5 transition-colors duration-300 ${againRenewal ? 'bg-indigo-600' : 'bg-gray-300'}`}>
+                                        <div className={`w-10 h-5 rounded-full p-0.5 transition-colors duration-300 ${againRenewal ? 'bg-red-600' : 'bg-gray-300'}`}>
                                             <div className={`w-4 h-4 bg-white rounded-full shadow-sm transform transition-transform duration-300 ${againRenewal ? 'translate-x-5' : 'translate-x-0'}`} />
                                         </div>
                                     </div>
@@ -867,7 +867,7 @@ const DocumentRenewal = () => {
                                                     <input
                                                         type="date"
                                                         required
-                                                        className="w-full pl-9 p-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                                                        className="w-full pl-9 p-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-red-500 outline-none"
                                                         value={nextRenewalDate}
                                                         onChange={e => setNextRenewalDate(e.target.value)}
                                                     />
@@ -888,7 +888,7 @@ const DocumentRenewal = () => {
                                             />
                                             <label
                                                 htmlFor="renewal-file"
-                                                className="flex items-center justify-center gap-2 w-full p-2.5 border border-dashed border-gray-300 rounded-xl text-gray-600 cursor-pointer hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600 transition-all"
+                                                className="flex items-center justify-center gap-2 w-full p-2.5 border border-dashed border-gray-300 rounded-xl text-gray-600 cursor-pointer hover:bg-red-50 hover:border-red-300 hover:text-red-600 transition-all"
                                             >
                                                 <Upload size={16} />
                                                 <span className="text-xs font-medium truncate max-w-[180px]">{newFileName || "Upload New Version"}</span>
@@ -907,7 +907,7 @@ const DocumentRenewal = () => {
                                     </button>
                                     <button
                                         type="submit"
-                                        className="flex-1 py-2 px-4 rounded-xl bg-indigo-600 text-white font-medium text-sm hover:bg-indigo-700 transition-all shadow-md shadow-indigo-200"
+                                        className="flex-1 py-2 px-4 rounded-xl bg-red-600 text-white font-medium text-sm hover:bg-red-700 transition-all shadow-md shadow-red-200"
                                     >
                                         Save Record
                                     </button>

@@ -327,7 +327,7 @@ const SubscriptionApproval = () => {
                         <input
                             type="text"
                             placeholder="Search..."
-                            className="pl-10 pr-4 py-2.5 w-full border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-gray-50"
+                            className="pl-10 pr-4 py-2.5 w-full border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent bg-gray-50"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
@@ -339,7 +339,7 @@ const SubscriptionApproval = () => {
                             <button
                                 onClick={() => setActiveTab('pending')}
                                 className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'pending'
-                                    ? 'bg-white text-indigo-600 shadow-sm'
+                                    ? 'bg-white text-red-600 shadow-sm'
                                     : 'text-gray-500 hover:text-gray-700'
                                     }`}
                             >
@@ -348,7 +348,7 @@ const SubscriptionApproval = () => {
                             <button
                                 onClick={() => setActiveTab('history')}
                                 className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'history'
-                                    ? 'bg-white text-indigo-600 shadow-sm'
+                                    ? 'bg-white text-red-600 shadow-sm'
                                     : 'text-gray-500 hover:text-gray-700'
                                     }`}
                             >
@@ -359,7 +359,7 @@ const SubscriptionApproval = () => {
                         <button
                             onClick={refreshData}
                             disabled={isLoading}
-                            className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-white rounded-md transition-all disabled:opacity-50"
+                            className="p-2 text-gray-500 hover:text-red-600 hover:bg-white rounded-md transition-all disabled:opacity-50"
                             title="Sync with Google Sheets"
                         >
                             <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} />
@@ -398,7 +398,7 @@ const SubscriptionApproval = () => {
                                         <td className="p-3">
                                             <button
                                                 onClick={() => handleActionClick(item)}
-                                                className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 shadow-sm shadow-indigo-200 transition-colors"
+                                                className="px-3 py-1.5 bg-red-600 text-white text-xs font-semibold rounded-lg hover:bg-red-700 shadow-sm shadow-red-200 transition-colors"
                                             >
                                                 Approve
                                             </button>
@@ -407,7 +407,7 @@ const SubscriptionApproval = () => {
                                     <td className="p-3 font-mono text-sm font-bold text-gray-700">{item.sn}</td>
                                     <td className="p-3 font-medium text-gray-900">{item.companyName}</td>
                                     <td className="p-3 text-gray-700">{item.subscriberName}</td>
-                                    <td className="p-3 text-indigo-600 font-medium">{item.subscriptionName}</td>
+                                    <td className="p-3 text-red-600 font-medium">{item.subscriptionName}</td>
                                     <td className="p-3 font-medium text-gray-900">{item.price}</td>
                                     <td className="p-3 text-gray-500">{item.frequency}</td>
                                     <td className="p-3 text-gray-500 whitespace-nowrap">{formatDate(item.requestedDate)}</td>
@@ -446,7 +446,7 @@ const SubscriptionApproval = () => {
                         {/* Header */}
                         <div className="flex justify-between items-start">
                             <div className="flex gap-3 items-start">
-                                <div className="h-10 w-10 flex items-center justify-center bg-indigo-50 text-indigo-600 rounded-lg shrink-0 mt-0.5">
+                                <div className="h-10 w-10 flex items-center justify-center bg-red-50 text-red-600 rounded-lg shrink-0 mt-0.5">
                                     <FileText size={20} />
                                 </div>
                                 <div>
@@ -468,7 +468,7 @@ const SubscriptionApproval = () => {
                             {activeTab === 'pending' && (
                                 <button
                                     onClick={() => handleActionClick(item)}
-                                    className="p-2 bg-indigo-100 text-indigo-600 rounded-lg"
+                                    className="p-2 bg-red-100 text-red-600 rounded-lg"
                                 >
                                     <CheckCircle size={18} />
                                 </button>
@@ -502,7 +502,7 @@ const SubscriptionApproval = () => {
                             {activeTab === 'history' && (
                                 <div className="text-right pl-2 border-l border-gray-200">
                                     <span className="block text-gray-400 mb-0.5 uppercase tracking-wider font-semibold">Apr. Date</span>
-                                    <span className="font-mono text-indigo-600 font-bold">{formatDate(item.approvalDate)}</span>
+                                    <span className="font-mono text-red-600 font-bold">{formatDate(item.approvalDate)}</span>
                                 </div>
                             )}
                         </div>
@@ -549,7 +549,7 @@ const SubscriptionApproval = () => {
                                 </div>
                                 <div className="col-span-2">
                                     <span className="block text-xs text-gray-500 uppercase font-semibold">Subscription</span>
-                                    <span className="font-medium text-indigo-600">{selectedSub.subscriptionName}</span>
+                                    <span className="font-medium text-red-600">{selectedSub.subscriptionName}</span>
                                 </div>
                                 <div>
                                     <span className="block text-xs text-gray-500 uppercase font-semibold">Price</span>
@@ -566,7 +566,7 @@ const SubscriptionApproval = () => {
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 mb-1.5">Action Status</label>
                                     <select
-                                        className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white font-medium"
+                                        className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none bg-white font-medium"
                                         value={approvalStatus}
                                         onChange={(e) => setApprovalStatus(e.target.value as 'Approve' | 'Reject')}
                                     >
@@ -578,7 +578,7 @@ const SubscriptionApproval = () => {
                                     <label className="block text-sm font-bold text-gray-700 mb-1.5">Remarks</label>
                                     <input
                                         type="text"
-                                        className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all placeholder:text-gray-400"
+                                        className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none transition-all placeholder:text-gray-400"
                                         placeholder="Enter remarks..."
                                         value={remarks}
                                         onChange={(e) => setRemarks(e.target.value)}

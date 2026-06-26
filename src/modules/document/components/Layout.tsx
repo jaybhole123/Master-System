@@ -19,7 +19,7 @@ const Layout: React.FC = () => {
 
       {/* Sidebar */}
       <div className={`
-        fixed top-0 left-0 h-[100dvh] z-50 w-72 transform bg-indigo-900 transition duration-300 ease-in-out lg:static lg:h-auto lg:translate-x-0
+        fixed top-0 left-0 h-[100dvh] z-50 w-72 transform bg-red-900 transition duration-300 ease-in-out lg:static lg:h-auto lg:translate-x-0
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         <Sidebar onClose={() => setSidebarOpen(false)} />
@@ -30,7 +30,7 @@ const Layout: React.FC = () => {
         <Header>
           <button
             onClick={() => setSidebarOpen(true)}
-            className="p-2 rounded-md text-gray-400 lg:hidden hover:bg-gray-100 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
+            className="p-2 rounded-md text-gray-400 lg:hidden hover:bg-gray-100 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-red-500"
           >
             <span className="sr-only">Open sidebar</span>
             <Menu className="h-6 w-6" />
@@ -51,7 +51,7 @@ const Layout: React.FC = () => {
               href="https://www.botivate.com" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="text-indigo-600 hover:text-indigo-800 font-medium"
+              className="text-red-600 hover:text-red-800 font-medium"
             >
               Botivate
             </a>

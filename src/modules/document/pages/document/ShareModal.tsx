@@ -430,9 +430,9 @@ const ShareModal: React.FC<ShareModalProps> = ({
                 {/* Header */}
                 <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
                     <div className="flex items-center gap-2">
-                        {type === 'email' && <Mail className="text-blue-600" size={20} />}
+                        {type === 'email' && <Mail className="text-red-600" size={20} />}
                         {type === 'whatsapp' && <MessageCircle className="text-green-600" size={20} />}
-                        {type === 'both' && <Share2 className="text-purple-600" size={20} />}
+                        {type === 'both' && <Share2 className="text-red-600" size={20} />}
                         <h2 className="text-lg font-semibold text-gray-800">
                             {isBatch
                                 ? `Share ${batchDocuments.length} Documents`
@@ -457,7 +457,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
                         <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
                             {isBatch ? 'Documents' : 'Document'}
                         </label>
-                        <div className="p-3 bg-indigo-50 border border-indigo-100 rounded-lg text-sm text-indigo-700 font-medium">
+                        <div className="p-3 bg-red-50 border border-red-100 rounded-lg text-sm text-red-700 font-medium">
                             {isBatch ? (
                                 <div>
                                     <p className="font-bold mb-2">Sharing {batchDocuments.length} documents:</p>
@@ -499,7 +499,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
                                     required={isEmail}
                                     value={recipientName}
                                     onChange={(e) => setRecipientName(e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                     placeholder="Enter recipient name"
                                     disabled={isSending || emailSent}
                                 />
@@ -513,7 +513,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
                                     required={isEmail}
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                     placeholder="john@example.com"
                                     disabled={isSending || emailSent}
                                 />
@@ -554,7 +554,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
                                     required={isEmail}
                                     value={subject}
                                     onChange={(e) => setSubject(e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                     placeholder="Enter email subject"
                                     disabled={isSending || emailSent}
                                 />
@@ -567,7 +567,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
                                     rows={3}
                                     value={message}
                                     onChange={(e) => setMessage(e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none transition-all resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 outline-none transition-all resize-none disabled:opacity-50 disabled:cursor-not-allowed"
                                     placeholder="Add a message..."
                                     disabled={isSending || emailSent}
                                 />
@@ -606,9 +606,9 @@ const ShareModal: React.FC<ShareModalProps> = ({
                             type="submit"
                             disabled={isSending || (isEmail && emailSent)}
                             className={`flex-1 px-4 py-2.5 text-white rounded-xl font-medium transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2
-                                ${type === 'email' ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-200' : ''}
+                                ${type === 'email' ? 'bg-red-600 hover:bg-red-700 shadow-red-200' : ''}
                                 ${type === 'whatsapp' ? 'bg-green-600 hover:bg-green-700 shadow-green-200' : ''}
-                                ${type === 'both' ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200' : ''}
+                                ${type === 'both' ? 'bg-red-600 hover:bg-red-700 shadow-red-200' : ''}
                                 ${emailSent ? 'bg-green-600 hover:bg-green-700 shadow-green-200' : ''}
                             `}
                         >

@@ -196,13 +196,13 @@ const Settings = () => {
                         <input
                             type="text"
                             placeholder="Find a user..."
-                            className="w-full pl-9 pr-4 py-2 bg-gray-50 rounded-lg border border-gray-200 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-50 outline-none transition-all text-sm"
+                            className="w-full pl-9 pr-4 py-2 bg-gray-50 rounded-lg border border-gray-200 focus:bg-white focus:border-red-500 focus:ring-2 focus:ring-red-50 outline-none transition-all text-sm"
                         />
                     </div>
 
                     <button
                         onClick={openAddUserModal}
-                        className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-all shadow-sm active:scale-95 whitespace-nowrap"
+                        className="flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-all shadow-sm active:scale-95 whitespace-nowrap"
                     >
                         <Plus size={16} />
                         Add User
@@ -213,7 +213,7 @@ const Settings = () => {
             {/* Content Area */}
             {isLoading ? (
                 <div className="flex flex-col items-center justify-center py-20 bg-white rounded-xl border border-gray-100 shadow-sm space-y-4">
-                    <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                    <div className="w-10 h-10 border-4 border-red-600 border-t-transparent rounded-full animate-spin"></div>
                     <p className="text-gray-500 font-medium animate-pulse">Loading users and permissions...</p>
                 </div>
             ) : (
@@ -237,7 +237,7 @@ const Settings = () => {
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-4">
                                                     <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs shadow-sm
-                                                        ${user.role === 'admin' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600'}`}>
+                                                        ${user.role === 'admin' ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-600'}`}>
                                                         {user.id.charAt(0).toUpperCase()}
                                                     </div>
                                                     <p className="font-semibold text-sm text-gray-900">{user.id}</p>
@@ -246,8 +246,8 @@ const Settings = () => {
                                             <td className="px-6 py-4">
                                                 <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[10px] uppercase font-bold tracking-wider
                                                     ${user.role === 'admin'
-                                                        ? 'bg-purple-100 text-purple-700 border border-purple-200'
-                                                        : 'bg-blue-50 text-blue-700 border border-blue-100'}`}>
+                                                        ? 'bg-red-100 text-red-700 border border-red-200'
+                                                        : 'bg-red-50 text-red-700 border border-red-100'}`}>
                                                     {user.role}
                                                 </span>
                                             </td>
@@ -272,7 +272,7 @@ const Settings = () => {
                                                 <div className="flex justify-end gap-3">
                                                     <button
                                                         onClick={() => openEditUserModal(user)}
-                                                        className="p-2 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all"
+                                                        className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all"
                                                         title="Edit User"
                                                     >
                                                         <Edit2 size={16} />
@@ -300,14 +300,14 @@ const Settings = () => {
                                 <div key={user.id} className="p-5 space-y-4">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-12 h-12 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-600 font-bold text-lg border border-indigo-100">
+                                            <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center text-red-600 font-bold text-lg border border-red-100">
                                                 {user.id.charAt(0).toUpperCase()}
                                             </div>
                                             <div>
                                                 <p className="font-bold text-gray-900 text-base">{user.id}</p>
                                                 <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${user.role === 'admin'
-                                                    ? 'bg-purple-100 text-purple-700'
-                                                    : 'bg-blue-100 text-blue-700'
+                                                    ? 'bg-red-100 text-red-700'
+                                                    : 'bg-red-100 text-red-700'
                                                     }`}>
                                                     {user.role}
                                                 </span>
@@ -332,7 +332,7 @@ const Settings = () => {
                                     <div className="flex gap-3 pt-2 border-t border-gray-50">
                                         <button
                                             onClick={() => openEditUserModal(user)}
-                                            className="flex-1 py-2 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg text-sm font-bold"
+                                            className="flex-1 py-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg text-sm font-bold"
                                         >
                                             Edit User
                                         </button>
@@ -372,7 +372,7 @@ const Settings = () => {
                                         <input
                                             type="text"
                                             required
-                                            className="w-full p-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all bg-white font-medium"
+                                            className="w-full p-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-red-500 transition-all bg-white font-medium"
                                             value={formData.name}
                                             onChange={e => setFormData({ ...formData, name: e.target.value })}
                                         />
@@ -382,7 +382,7 @@ const Settings = () => {
                                         <input
                                             type="text"
                                             required
-                                            className="w-full p-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all bg-white font-medium"
+                                            className="w-full p-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-red-500 transition-all bg-white font-medium"
                                             value={formData.id}
                                             onChange={e => setFormData({ ...formData, id: e.target.value })}
                                         />
@@ -392,7 +392,7 @@ const Settings = () => {
                                     <div>
                                         <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Role</label>
                                         <select
-                                            className="w-full p-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 bg-white font-medium"
+                                            className="w-full p-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-red-500 bg-white font-medium"
                                             value={formData.role}
                                             onChange={e => setFormData({ ...formData, role: e.target.value as 'admin' | 'user' })}
                                         >
@@ -405,7 +405,7 @@ const Settings = () => {
                                         <input
                                             type="text"
                                             required
-                                            className="w-full p-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+                                            className="w-full p-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-red-500 font-medium"
                                             value={formData.password}
                                             onChange={e => setFormData({ ...formData, password: e.target.value })}
                                         />
@@ -419,11 +419,11 @@ const Settings = () => {
                                             <label key={perm} className={`
                                         flex items-center gap-3 p-3 border rounded-xl cursor-pointer transition-all
                                         ${(formData.permissions || []).includes(perm)
-                                                    ? 'bg-indigo-50 border-indigo-200 shadow-sm'
+                                                    ? 'bg-red-50 border-red-200 shadow-sm'
                                                     : 'border-gray-100 hover:bg-gray-50'}
                                     `}>
                                                 <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors ${(formData.permissions || []).includes(perm)
-                                                    ? 'bg-indigo-600 border-indigo-600'
+                                                    ? 'bg-red-600 border-red-600'
                                                     : 'border-gray-300 bg-white'
                                                     }`}>
                                                     {(formData.permissions || []).includes(perm) && <Check size={14} className="text-white" />}
@@ -434,7 +434,7 @@ const Settings = () => {
                                                     checked={(formData.permissions || []).includes(perm)}
                                                     onChange={() => handlePermissionToggle(perm)}
                                                 />
-                                                <span className={`text-sm font-medium ${(formData.permissions || []).includes(perm) ? 'text-indigo-900' : 'text-gray-600'}`}>
+                                                <span className={`text-sm font-medium ${(formData.permissions || []).includes(perm) ? 'text-red-900' : 'text-gray-600'}`}>
                                                     {perm}
                                                 </span>
                                             </label>
@@ -453,7 +453,7 @@ const Settings = () => {
                                 </button>
                                 <button
                                     type="submit"
-                                    className="flex-1 py-3 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all hover:scale-[1.02]"
+                                    className="flex-1 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 shadow-lg shadow-red-200 transition-all hover:scale-[1.02]"
                                 >
                                     {editingUser ? 'Save Changes' : 'Create User'}
                                 </button>

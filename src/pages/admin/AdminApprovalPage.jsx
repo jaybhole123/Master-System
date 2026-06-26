@@ -431,9 +431,9 @@ export default function AdminApprovalPage() {
                                     animate={{ y: 0, opacity: 1 }}
                                     className="flex items-center gap-2 sm:gap-4"
                                 >
-                                    <div className="w-1 h-6 sm:w-1.5 sm:h-8 bg-purple-600 rounded-full" />
+                                    <div className="w-1 h-6 sm:w-1.5 sm:h-8 bg-red-600 rounded-full" />
                                     <h1 className="text-xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
-                                        Admin <span className="text-purple-600">Approval</span>
+                                        Admin <span className="text-red-600">Approval</span>
                                     </h1>
                                 </motion.div>
                                 <p className="text-[10px] sm:text-sm font-medium text-gray-400 ml-3 sm:ml-5 hidden sm:flex items-center gap-2">
@@ -470,7 +470,7 @@ export default function AdminApprovalPage() {
                                                 animate={{ scale: 1, opacity: 1 }}
                                                 onClick={() => setShowBulkRemarkModal(true)}
                                                 disabled={bulkProcessing}
-                                                className="px-2.5 sm:px-4 py-1.5 sm:py-2 bg-purple-600 text-white rounded-lg sm:rounded-xl shadow-lg shadow-purple-200 flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs font-black hover:bg-purple-700 disabled:opacity-50 transition-all font-inter"
+                                                className="px-2.5 sm:px-4 py-1.5 sm:py-2 bg-red-600 text-white rounded-lg sm:rounded-xl shadow-lg shadow-red-200 flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs font-black hover:bg-red-700 disabled:opacity-50 transition-all font-inter"
                                             >
                                                 <MessageSquare size={12} className="sm:w-[14px] sm:h-[14px]" />
                                                 <span className="hidden xs:inline">Remark</span> ({pendingTasks.filter(t => selectedTaskIds.includes(t.id) && t.status === 'extend').length})
@@ -478,9 +478,9 @@ export default function AdminApprovalPage() {
                                         )}
                                     </div>
                                 )}
-                                <div className="px-4 py-2 bg-purple-50 rounded-xl border border-purple-100 flex items-center gap-2.5">
-                                    <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
-                                    <span className="text-[11px] font-bold text-purple-700 uppercase tracking-wider">
+                                <div className="px-4 py-2 bg-red-50 rounded-xl border border-red-100 flex items-center gap-2.5">
+                                    <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                                    <span className="text-[11px] font-bold text-red-700 uppercase tracking-wider">
                                         {pendingTasks.length} {viewMode === 'pending' ? 'Pending' : 'Total'}
                                     </span>
                                 </div>
@@ -491,7 +491,7 @@ export default function AdminApprovalPage() {
                             {/* Tabs */}
                             <div className="flex bg-gray-100/80 p-0.5 sm:p-1 rounded-lg sm:rounded-xl border border-gray-200/30 relative overflow-x-auto no-scrollbar max-w-full">
                                 {[
-                                    { id: 'checklist', label: 'Checklist', icon: BookCheck, color: 'bg-purple-600' },
+                                    { id: 'checklist', label: 'Checklist', icon: BookCheck, color: 'bg-red-600' },
                                     { id: 'delegation', label: 'Delegation', icon: BookCheck, color: 'bg-indigo-600' },
                                     { id: 'ea', label: 'EA Tasks', icon: Briefcase, color: 'bg-emerald-600' },
                                 ].map((tab) => (
@@ -500,7 +500,7 @@ export default function AdminApprovalPage() {
                                         onClick={() => setActiveTab(tab.id)}
                                         className={`
                                             relative flex items-center justify-center gap-1.5 py-1.5 px-3 sm:px-6 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-bold transition-all duration-300 whitespace-nowrap min-w-[85px] sm:min-w-[110px] z-10
-                                            ${activeTab === tab.id ? 'text-white' : 'text-gray-500 hover:text-purple-600'}
+                                            ${activeTab === tab.id ? 'text-white' : 'text-gray-500 hover:text-red-600'}
                                         `}
                                     >
                                         {activeTab === tab.id && (
@@ -547,7 +547,7 @@ export default function AdminApprovalPage() {
                                         placeholder="Search..."
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="w-full pl-8 pr-3 py-1.5 sm:py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 text-[11px] sm:text-sm font-medium shadow-none"
+                                        className="w-full pl-8 pr-3 py-1.5 sm:py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-red-500 text-[11px] sm:text-sm font-medium shadow-none"
                                     />
                                 </div>
                             </div>
@@ -565,7 +565,7 @@ export default function AdminApprovalPage() {
                                         <th className="px-6 py-3 text-left">
                                             <input
                                                 type="checkbox"
-                                                className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500 cursor-pointer"
+                                                className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500 cursor-pointer"
                                                 checked={selectedTaskIds.length === paginatedTasks.length && paginatedTasks.length > 0}
                                                 onChange={toggleSelectAll}
                                             />
@@ -602,12 +602,12 @@ export default function AdminApprovalPage() {
                                     </tr>
                                 ) : (
                                     paginatedTasks.map((task) => (
-                                        <tr key={task.id} className={`hover:bg-gray-50 transition-colors ${selectedTaskIds.includes(task.id) ? 'bg-purple-50/50' : ''}`}>
+                                        <tr key={task.id} className={`hover:bg-gray-50 transition-colors ${selectedTaskIds.includes(task.id) ? 'bg-red-50/50' : ''}`}>
                                             {viewMode === 'pending' && (
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <input
                                                         type="checkbox"
-                                                        className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500 cursor-pointer"
+                                                        className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500 cursor-pointer"
                                                         checked={selectedTaskIds.includes(task.id)}
                                                         onChange={() => toggleTaskSelection(task.id)}
                                                     />
@@ -703,14 +703,14 @@ export default function AdminApprovalPage() {
                                                         <div className="flex flex-col gap-2 min-w-[200px]">
                                                             <textarea
                                                                 placeholder="Add administrative remark..."
-                                                                className="text-xs p-2 border border-gray-200 rounded-lg focus:ring-1 focus:ring-purple-500 min-h-[60px]"
+                                                                className="text-xs p-2 border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 min-h-[60px]"
                                                                 value={adminRemarks[task.id] || ""}
                                                                 onChange={(e) => setAdminRemarks(prev => ({ ...prev, [task.id]: e.target.value }))}
                                                             />
                                                             <button
                                                                 onClick={() => handleExtensionRemark(task)}
                                                                 disabled={processingId === task.id}
-                                                                className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-all text-[11px] font-bold"
+                                                                className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-all text-[11px] font-bold"
                                                             >
                                                                 {processingId === task.id ? (
                                                                     <Loader2 size={12} className="animate-spin" />
@@ -791,7 +791,7 @@ export default function AdminApprovalPage() {
                                             type="checkbox"
                                             checked={selectedTaskIds.length === paginatedTasks.length && paginatedTasks.length > 0}
                                             onChange={toggleSelectAll}
-                                            className="h-5 w-5 text-purple-600 border-gray-300 rounded focus:ring-purple-500 transition-all cursor-pointer"
+                                            className="h-5 w-5 text-red-600 border-gray-300 rounded focus:ring-red-500 transition-all cursor-pointer"
                                         />
                                     </div>
                                     <span className="text-sm font-black text-gray-700 uppercase tracking-tight">Select All Pending</span>
@@ -825,14 +825,14 @@ export default function AdminApprovalPage() {
                             </div>
                         ) : (
                             paginatedTasks.map((task) => (
-                                <div key={`card-${task.id}`} className={`p-4 space-y-4 hover:bg-blue-50/30 transition-colors ${selectedTaskIds.includes(task.id) ? 'bg-purple-50/80 border-l-4 border-l-purple-500' : ''}`}>
+                                <div key={`card-${task.id}`} className={`p-4 space-y-4 hover:bg-blue-50/30 transition-colors ${selectedTaskIds.includes(task.id) ? 'bg-red-50/80 border-l-4 border-l-red-500' : ''}`}>
                                     {/* Card Header: User & Info */}
                                     <div className="flex justify-between items-start">
                                         <div className="flex gap-3">
                                             {viewMode === 'pending' && (
                                                 <input
                                                     type="checkbox"
-                                                    className="w-5 h-5 mt-1 text-purple-600 border-gray-300 rounded focus:ring-purple-500 cursor-pointer"
+                                                    className="w-5 h-5 mt-1 text-red-600 border-gray-300 rounded focus:ring-red-500 cursor-pointer"
                                                     checked={selectedTaskIds.includes(task.id)}
                                                     onChange={() => toggleTaskSelection(task.id)}
                                                 />
@@ -876,7 +876,7 @@ export default function AdminApprovalPage() {
                                                     Machine: {task.machine_name}
                                                 </span>
                                                 {task.part_name && (
-                                                    <span className="text-[9px] font-black text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded uppercase">
+                                                    <span className="text-[9px] font-black text-red-700 bg-red-50 px-1.5 py-0.5 rounded uppercase">
                                                         Part: {task.part_name}
                                                     </span>
                                                 )}
@@ -928,17 +928,17 @@ export default function AdminApprovalPage() {
                                     <div className="pt-2">
                                         {viewMode === 'pending' ? (
                                             task.status === 'extend' ? (
-                                                <div className="flex flex-col gap-3 p-3 bg-purple-50/50 rounded-xl border border-purple-100">
+                                                <div className="flex flex-col gap-3 p-3 bg-red-50/50 rounded-xl border border-red-100">
                                                     <textarea
                                                         placeholder="Add administrative remark..."
-                                                        className="w-full text-xs p-3 border border-gray-200 rounded-xl focus:ring-1 focus:ring-purple-500 min-h-[80px] bg-white shadow-sm"
+                                                        className="w-full text-xs p-3 border border-gray-200 rounded-xl focus:ring-1 focus:ring-red-500 min-h-[80px] bg-white shadow-sm"
                                                         value={adminRemarks[task.id] || ""}
                                                         onChange={(e) => setAdminRemarks(prev => ({ ...prev, [task.id]: e.target.value }))}
                                                     />
                                                     <button
                                                         onClick={() => handleExtensionRemark(task)}
                                                         disabled={processingId === task.id}
-                                                        className="flex items-center justify-center gap-2 py-3 bg-purple-600 text-white rounded-xl text-xs font-black shadow-lg shadow-purple-100 disabled:opacity-50 active:scale-95 transition-all w-full"
+                                                        className="flex items-center justify-center gap-2 py-3 bg-red-600 text-white rounded-xl text-xs font-black shadow-lg shadow-red-100 disabled:opacity-50 active:scale-95 transition-all w-full"
                                                     >
                                                         {processingId === task.id ? (
                                                             <Loader2 size={16} className="animate-spin" />
@@ -1001,10 +1001,10 @@ export default function AdminApprovalPage() {
                 {/* Mobile Floating Action Bar */}
                 {viewMode === 'pending' && selectedTaskIds.length > 0 && (
                     <div className="md:hidden fixed bottom-6 left-4 right-4 z-40 animate-in slide-in-from-bottom-8 duration-500">
-                        <div className="bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-purple-100 p-2 overflow-hidden">
+                        <div className="bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-red-100 p-2 overflow-hidden">
                             <div className="flex items-center justify-between gap-2">
                                 <div className="pl-4">
-                                    <p className="text-[10px] font-black text-purple-600 uppercase tracking-[0.2em] mb-0.5">Admin Action</p>
+                                    <p className="text-[10px] font-black text-red-600 uppercase tracking-[0.2em] mb-0.5">Admin Action</p>
                                     <p className="text-xs font-bold text-gray-500">{selectedTaskIds.length} items</p>
                                 </div>
                                 
@@ -1030,7 +1030,7 @@ export default function AdminApprovalPage() {
                                         <button
                                             onClick={() => setShowBulkRemarkModal(true)}
                                             disabled={bulkProcessing}
-                                            className="px-4 py-2.5 bg-purple-600 text-white text-xs font-black rounded-xl shadow-lg shadow-purple-100 transition-all active:scale-95 flex items-center gap-2 whitespace-nowrap"
+                                            className="px-4 py-2.5 bg-red-600 text-white text-xs font-black rounded-xl shadow-lg shadow-red-100 transition-all active:scale-95 flex items-center gap-2 whitespace-nowrap"
                                         >
                                             <MessageSquare size={14} />
                                             Remark ({pendingTasks.filter(t => selectedTaskIds.includes(t.id) && t.status === 'extend').length})
@@ -1129,8 +1129,8 @@ export default function AdminApprovalPage() {
                             >
                                 <div className="p-6 space-y-4">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center">
-                                            <MessageSquare className="w-6 h-6 text-purple-600" />
+                                        <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center">
+                                            <MessageSquare className="w-6 h-6 text-red-600" />
                                         </div>
                                         <div>
                                             <h3 className="text-lg font-black text-gray-900 leading-tight">Bulk Remark</h3>
@@ -1144,7 +1144,7 @@ export default function AdminApprovalPage() {
                                             value={bulkRemark}
                                             onChange={(e) => setBulkRemark(e.target.value)}
                                             placeholder="Example: Keep up the good work, Please complete by today evening..."
-                                            className="w-full h-32 p-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500/50 transition-all resize-none shadow-inner"
+                                            className="w-full h-32 p-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500/50 transition-all resize-none shadow-inner"
                                             autoFocus
                                         />
                                         <p className="text-[10px] text-gray-400 italic px-1 flex items-center gap-1.5 font-medium">
@@ -1166,7 +1166,7 @@ export default function AdminApprovalPage() {
                                         <button
                                             onClick={handleBulkRemark}
                                             disabled={!bulkRemark.trim()}
-                                            className="flex-[2] py-3.5 text-xs font-black text-white bg-purple-600 shadow-xl shadow-purple-100 hover:bg-purple-700 active:scale-95 transition-all rounded-2xl disabled:opacity-50 disabled:grayscale disabled:scale-100"
+                                            className="flex-[2] py-3.5 text-xs font-black text-white bg-red-600 shadow-xl shadow-red-100 hover:bg-red-700 active:scale-95 transition-all rounded-2xl disabled:opacity-50 disabled:grayscale disabled:scale-100"
                                         >
                                             SEND REMARKS
                                         </button>
@@ -1212,7 +1212,7 @@ export default function AdminApprovalPage() {
                                         href={selectedImage}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="px-6 py-2 bg-purple-600 text-white rounded-full text-sm font-black uppercase tracking-widest hover:bg-purple-700 transition-all shadow-lg shadow-purple-900/40"
+                                        className="px-6 py-2 bg-red-600 text-white rounded-full text-sm font-black uppercase tracking-widest hover:bg-red-700 transition-all shadow-lg shadow-red-900/40"
                                         onClick={(e) => e.stopPropagation()}
                                     >
                                         Open Original URL

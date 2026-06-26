@@ -147,7 +147,7 @@ const Foreclosure = () => {
                         <input
                             type="text"
                             placeholder="Search loans..."
-                            className="pl-10 pr-4 py-2.5 w-full border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50"
+                            className="pl-10 pr-4 py-2.5 w-full border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 bg-gray-50"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
@@ -158,7 +158,7 @@ const Foreclosure = () => {
                         <button
                             onClick={() => setActiveTab('pending')}
                             className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-medium transition-all ${activeTab === 'pending'
-                                ? 'bg-white text-indigo-600 shadow-sm'
+                                ? 'bg-white text-red-600 shadow-sm'
                                 : 'text-gray-500 hover:text-gray-700'
                                 }`}
                         >
@@ -167,7 +167,7 @@ const Foreclosure = () => {
                         <button
                             onClick={() => setActiveTab('history')}
                             className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-medium transition-all ${activeTab === 'history'
-                                ? 'bg-white text-indigo-600 shadow-sm'
+                                ? 'bg-white text-red-600 shadow-sm'
                                 : 'text-gray-500 hover:text-gray-700'
                                 }`}
                         >
@@ -180,7 +180,7 @@ const Foreclosure = () => {
             {/* Content */}
             {isLoading ? (
                 <div className="flex flex-col items-center justify-center py-20 bg-white rounded-xl border border-gray-100 shadow-sm">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
                     <p className="mt-4 text-gray-500 font-medium text-sm">Loading loan data...</p>
                 </div>
             ) : activeTab === 'pending' ? (
@@ -209,7 +209,7 @@ const Foreclosure = () => {
                                             <td className="p-4">
                                                 <button
                                                     onClick={() => handleActionClick(item)}
-                                                    className="px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition-colors"
+                                                    className="px-3 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg shadow-sm transition-colors"
                                                 >
                                                     Request
                                                 </button>
@@ -243,7 +243,7 @@ const Foreclosure = () => {
                             <div key={item.id} className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
                                 <div className="flex justify-between items-start mb-4">
                                     <div className="flex items-center gap-3">
-                                        <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
+                                        <div className="p-2.5 bg-red-50 text-red-600 rounded-xl">
                                             <Building size={24} />
                                         </div>
                                         <div>
@@ -253,7 +253,7 @@ const Foreclosure = () => {
                                     </div>
                                     <button
                                         onClick={() => handleActionClick(item)}
-                                        className="px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition-colors"
+                                        className="px-3 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg shadow-sm transition-colors"
                                     >
                                         Request
                                     </button>
@@ -265,7 +265,7 @@ const Foreclosure = () => {
                                     </div>
                                     <div className="flex justify-between text-gray-600">
                                         <span>EMI:</span>
-                                        <span className="font-bold text-indigo-600">{formatCurrency(item.emi)}</span>
+                                        <span className="font-bold text-red-600">{formatCurrency(item.emi)}</span>
                                     </div>
                                     <div className="flex justify-between text-gray-600">
                                         <span>Loan Start Date:</span>
@@ -374,7 +374,7 @@ const Foreclosure = () => {
                                     </div>
                                     <div className="flex justify-between text-gray-600">
                                         <span>EMI:</span>
-                                        <span className="font-bold text-indigo-600">{formatCurrency(item.emi)}</span>
+                                        <span className="font-bold text-red-600">{formatCurrency(item.emi)}</span>
                                     </div>
                                     <div className="flex justify-between text-gray-600">
                                         <span>Loan Start Date:</span>
@@ -439,7 +439,7 @@ const Foreclosure = () => {
                                 </div>
                                 <div>
                                     <span className="block text-gray-500 text-xs uppercase font-semibold mb-1">EMI</span>
-                                    <span className="font-bold text-indigo-600">{formatCurrency(selectedLoan.emi)}</span>
+                                    <span className="font-bold text-red-600">{formatCurrency(selectedLoan.emi)}</span>
                                 </div>
                                 <div>
                                     <span className="block text-gray-500 text-xs uppercase font-semibold mb-1">Loan Start Date</span>
@@ -467,7 +467,7 @@ const Foreclosure = () => {
                                 <input
                                     type="date"
                                     required
-                                    className="w-full p-2.5 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-100"
+                                    className="w-full p-2.5 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-red-500 disabled:bg-gray-100"
                                     value={formData.requestDate}
                                     onChange={e => setFormData({ ...formData, requestDate: e.target.value })}
                                     disabled={isSaving}
@@ -480,7 +480,7 @@ const Foreclosure = () => {
                                 <input
                                     type="text"
                                     required
-                                    className="w-full p-2.5 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-100"
+                                    className="w-full p-2.5 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-red-500 disabled:bg-gray-100"
                                     value={formData.requesterName}
                                     onChange={e => setFormData({ ...formData, requesterName: e.target.value })}
                                     disabled={isSaving}
@@ -500,7 +500,7 @@ const Foreclosure = () => {
                                 <button
                                     type="submit"
                                     disabled={isSaving}
-                                    className="flex-1 py-2.5 flex items-center justify-center gap-2 rounded-xl bg-indigo-600 text-white font-medium hover:bg-indigo-700 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="flex-1 py-2.5 flex items-center justify-center gap-2 rounded-xl bg-red-600 text-white font-medium hover:bg-red-700 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {isSaving ? (
                                         <>

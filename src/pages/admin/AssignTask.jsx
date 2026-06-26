@@ -24,10 +24,10 @@ export default function AssignTask() {
       subLabel: "Daily Routine Tasks",
       icon: ClipboardList,
       path: "/dashboard/checklist",
-      color: "text-purple-600",
-      bg: "bg-purple-50",
-      border: "hover:border-purple-500",
-      ring: "hover:ring-purple-200"
+      color: "text-red-600",
+      bg: "bg-red-50",
+      border: "hover:border-red-500",
+      ring: "hover:ring-red-200"
     },
     {
       id: "maintenance",
@@ -35,10 +35,10 @@ export default function AssignTask() {
       subLabel: "Preventive Care",
       icon: Wrench,
       path: "/dashboard/maintenance",
-      color: "text-purple-600",
-      bg: "bg-purple-50",
-      border: "hover:border-purple-500",
-      ring: "hover:ring-purple-200"
+      color: "text-red-600",
+      bg: "bg-red-50",
+      border: "hover:border-red-500",
+      ring: "hover:ring-red-200"
     },
     {
       id: "repair",
@@ -46,10 +46,10 @@ export default function AssignTask() {
       subLabel: "Issue Resolution",
       icon: Hammer,
       path: "/dashboard/repair",
-      color: "text-purple-600",
-      bg: "bg-purple-50",
-      border: "hover:border-purple-500",
-      ring: "hover:ring-purple-200"
+      color: "text-red-600",
+      bg: "bg-red-50",
+      border: "hover:border-red-500",
+      ring: "hover:ring-red-200"
     },
     {
       id: "ea",
@@ -57,10 +57,10 @@ export default function AssignTask() {
       subLabel: "Executive Assistant",
       icon: Users,
       path: "/dashboard/ea-task",
-      color: "text-purple-600",
-      bg: "bg-purple-50",
-      border: "hover:border-purple-500",
-      ring: "hover:ring-purple-200"
+      color: "text-red-600",
+      bg: "bg-red-50",
+      border: "hover:border-red-500",
+      ring: "hover:ring-red-200"
     }
   ];
 
@@ -81,10 +81,10 @@ export default function AssignTask() {
         {/* System Header */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8 pb-6 border-b border-gray-100/80">
           <div className="flex items-center gap-4">
-            <div className="w-1.5 h-8 bg-purple-600 rounded-full hidden sm:block" />
+            <div className="w-1.5 h-8 bg-red-600 rounded-full hidden sm:block" />
             <div>
               <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
-                Task <span className="text-purple-600">Assignment</span>
+                Task <span className="text-red-600">Assignment</span>
               </h1>
               <p className="text-sm font-medium text-gray-400 mt-1 flex items-center gap-2">
                 <LayoutGrid size={14} className="text-gray-300" />

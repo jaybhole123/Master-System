@@ -71,7 +71,7 @@ const AllBG = () => {
             <div className="space-y-3">
                 {isLoading ? (
                     <div className="flex flex-col items-center justify-center py-20 bg-white rounded-xl border border-gray-100 shadow-sm mt-4">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
                         <p className="mt-4 text-gray-500 font-medium text-sm">Loading BGs...</p>
                     </div>
                 ) : (
@@ -88,7 +88,7 @@ const AllBG = () => {
                                     <input
                                         type="text"
                                         placeholder="Search BGs..."
-                                        className="pl-10 pr-4 py-2 w-full border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-gray-50/50 text-sm shadow-sm"
+                                        className="pl-10 pr-4 py-2 w-full border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent bg-gray-50/50 text-sm shadow-sm"
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
                                     />
@@ -98,7 +98,7 @@ const AllBG = () => {
                                     <select
                                         value={filterBank}
                                         onChange={(e) => setFilterBank(e.target.value)}
-                                        className="appearance-none pl-4 pr-10 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50/50 text-gray-700 text-sm font-medium cursor-pointer hover:bg-gray-100 transition-colors w-full"
+                                        className="appearance-none pl-4 pr-10 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 bg-gray-50/50 text-gray-700 text-sm font-medium cursor-pointer hover:bg-gray-100 transition-colors w-full"
                                     >
                                         <option value="">All Banks</option>
                                         {Array.from(new Set(bgs.map(b => b.bankName))).filter(Boolean).sort().map(bank => (
@@ -112,7 +112,7 @@ const AllBG = () => {
 
                                 <button
                                     onClick={() => setIsAddModalOpen(true)}
-                                    className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg transition-all shadow-md hover:shadow-lg whitespace-nowrap text-sm font-semibold"
+                                    className="flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-lg transition-all shadow-md hover:shadow-lg whitespace-nowrap text-sm font-semibold"
                                 >
                                     <Plus className="h-4 w-4" />
                                     <span>Add New BG</span>
@@ -140,14 +140,14 @@ const AllBG = () => {
                                     </thead>
                                     <tbody className="text-sm divide-y divide-gray-50">
                                         {filteredData.map((item) => (
-                                            <tr key={item.id} className="hover:bg-indigo-50/30 transition-colors group/row">
-                                                <td className="px-4 py-4 font-mono text-xs font-semibold text-indigo-600">{item.sn}</td>
+                                            <tr key={item.id} className="hover:bg-red-50/30 transition-colors group/row">
+                                                <td className="px-4 py-4 font-mono text-xs font-semibold text-red-600">{item.sn}</td>
                                                 <td className="px-4 py-4 font-semibold text-gray-900">{item.bgName}</td>
                                                 <td className="px-4 py-4 font-mono text-xs text-gray-600">{item.bgNo}</td>
                                                 <td className="px-4 py-4">
                                                     <div className="flex items-center gap-2 text-gray-700">
-                                                        <div className="p-1 bg-indigo-50 rounded">
-                                                            <Building size={14} className="text-indigo-600" />
+                                                        <div className="p-1 bg-red-50 rounded">
+                                                            <Building size={14} className="text-red-600" />
                                                         </div>
                                                         {item.bankName}
                                                     </div>
@@ -163,7 +163,7 @@ const AllBG = () => {
                                                                 href={getFileUrl(item.fileContent)}
                                                                 target="_blank"
                                                                 rel="noopener noreferrer"
-                                                                className="inline-flex items-center gap-2 px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-600 hover:text-white transition-all duration-200 shadow-sm"
+                                                                className="inline-flex items-center gap-2 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-600 hover:text-white transition-all duration-200 shadow-sm"
                                                                 title={item.file}
                                                             >
                                                                 <FileText size={16} />
@@ -180,7 +180,7 @@ const AllBG = () => {
                                                                             title="Preview"
                                                                         />
                                                                     )}
-                                                                    <div className="absolute bottom-0 left-0 right-0 bg-indigo-600/90 backdrop-blur-sm px-3 py-1.5 text-[10px] text-white font-medium truncate">
+                                                                    <div className="absolute bottom-0 left-0 right-0 bg-red-600/90 backdrop-blur-sm px-3 py-1.5 text-[10px] text-white font-medium truncate">
                                                                         Preview: {item.file}
                                                                     </div>
                                                                 </div>
@@ -204,7 +204,7 @@ const AllBG = () => {
                                 <div key={item.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300">
                                     <div className="flex justify-between items-start mb-5">
                                         <div className="flex items-center gap-4">
-                                            <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl shadow-inner">
+                                            <div className="p-3 bg-red-50 text-red-600 rounded-xl shadow-inner">
                                                 <Building size={24} />
                                             </div>
                                             <div>
@@ -219,7 +219,7 @@ const AllBG = () => {
 
                                     <div className="space-y-3 mb-4">
                                         <div className="flex items-center gap-2 text-gray-700">
-                                            <Building size={16} className="text-indigo-600" />
+                                            <Building size={16} className="text-red-600" />
                                             <span className="text-sm font-medium">{item.bankName}</span>
                                         </div>
                                         <div className="p-4 bg-gray-50/50 rounded-xl border border-gray-50">
@@ -246,20 +246,20 @@ const AllBG = () => {
 
                                     <div className="space-y-3 pt-4 border-t border-gray-100">
                                         {item.file && (
-                                            <div className="flex justify-between items-center bg-indigo-50/50 p-3 rounded-xl border border-indigo-50">
+                                            <div className="flex justify-between items-center bg-red-50/50 p-3 rounded-xl border border-red-50">
                                                 <span className="text-xs text-gray-500 font-medium">Document File</span>
                                                 <div className="group relative">
                                                     <a
                                                         href={getFileUrl(item.fileContent)}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        className="flex items-center gap-2 text-indigo-600 font-bold hover:text-indigo-800 transition-colors text-xs"
+                                                        className="flex items-center gap-2 text-red-600 font-bold hover:text-red-800 transition-colors text-xs"
                                                     >
                                                         <FileText size={16} />
                                                         <span>View File</span>
                                                     </a>
                                                     {item.fileContent && (
-                                                        <div className="absolute bottom-full right-0 mb-3 hidden group-hover:block z-[100] w-64 h-72 bg-white border border-gray-200 rounded-2xl shadow-2xl overflow-hidden pointer-events-none animate-in fade-in slide-in-from-bottom-2 duration-200 ring-4 ring-indigo-50">
+                                                        <div className="absolute bottom-full right-0 mb-3 hidden group-hover:block z-[100] w-64 h-72 bg-white border border-gray-200 rounded-2xl shadow-2xl overflow-hidden pointer-events-none animate-in fade-in slide-in-from-bottom-2 duration-200 ring-4 ring-red-50">
                                                             {item.fileContent.startsWith('data:image') ? (
                                                                 <img src={item.fileContent} className="w-full h-full object-contain bg-gray-50 p-2" alt="Preview" />
                                                             ) : (

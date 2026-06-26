@@ -19,6 +19,7 @@ import Setting from "./pages/Setting"
 import MisReport from "./pages/MisReport"
 import MasterDashboard from "./pages/MasterDashboard"
 import ProfilePage from "./pages/ProfilePage"
+import GlobalSettings from "./pages/admin/GlobalSettings"
 
 // --- Data & Delegation Imports ---
 import DataPage from "./pages/admin/DataPage"
@@ -40,12 +41,16 @@ import { MagicToastProvider } from "./context/MagicToastContext"
 export const ProtectedRoute = ({ children, allowedRoles = [] }) => {
     const username = (localStorage.getItem("user-name") || "").toLowerCase();
     const role = (localStorage.getItem("role") || "").toLowerCase();
+    
+    // Custom Permission Bypass
+    const sysAccessStr = localStorage.getItem("system_access");
+    const hasCustomPermissions = sysAccessStr && sysAccessStr.length > 0;
 
     if (!username) {
         return <Navigate to="/login" replace />
     }
 
-    if (allowedRoles.length > 0 && !allowedRoles.map(r => r.toLowerCase()).includes(role)) {
+    if (!hasCustomPermissions && allowedRoles.length > 0 && !allowedRoles.map(r => r.toLowerCase()).includes(role)) {
         return <Navigate to="/dashboard/admin" replace />
     }
 
@@ -286,6 +291,14 @@ function App() {
                         element={
                             <ProtectedRoute allowedRoles={["admin"]}>
                                 <Setting />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/dashboard/global-settings"
+                        element={
+                            <ProtectedRoute allowedRoles={["admin"]}>
+                                <GlobalSettings />
                             </ProtectedRoute>
                         }
                     />

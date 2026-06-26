@@ -36,8 +36,8 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
                 {currentUser?.role || "User"}
               </p>
             </div>
-            <div className="flex justify-center items-center w-10 h-10 bg-indigo-50 border border-indigo-100 rounded-full shadow-sm">
-              <User size={20} className="text-indigo-600" />
+            <div className="flex justify-center items-center w-10 h-10 bg-red-50 border border-red-100 rounded-full shadow-sm">
+              <User size={20} className="text-red-600" />
             </div>
           </div>
         </div>

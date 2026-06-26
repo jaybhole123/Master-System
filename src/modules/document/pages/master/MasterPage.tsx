@@ -38,14 +38,14 @@ const MasterPage = () => {
                         <input
                             type="text"
                             placeholder="Search records..."
-                            className="pl-10 pr-4 py-2.5 w-full border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-gray-50"
+                            className="pl-10 pr-4 py-2.5 w-full border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent bg-gray-50"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
                      <button 
                         onClick={() => setIsAddModalOpen(true)}
-                        className="w-full sm:w-auto flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-lg transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 active:scale-95 whitespace-nowrap font-medium"
+                        className="w-full sm:w-auto flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white px-6 py-2.5 rounded-lg transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 active:scale-95 whitespace-nowrap font-medium"
                     >
                         <Plus className="h-5 w-5" />
                         Add New
@@ -68,7 +68,7 @@ const MasterPage = () => {
                             {filteredData.map((item) => (
                                 <tr key={item.id} className="hover:bg-gray-50/80 transition-colors">
                                     <td className="p-4 font-medium text-gray-900 flex items-center gap-3">
-                                        <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                                        <div className="p-2 bg-red-50 text-red-600 rounded-lg">
                                             <Building2 size={18} />
                                         </div>
                                         {item.companyName}

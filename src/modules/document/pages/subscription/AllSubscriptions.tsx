@@ -66,7 +66,7 @@ const AllSubscriptions = () => {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <div className="flex flex-col items-center gap-4">
-          <Loader className="h-8 w-8 text-indigo-600 animate-spin" />
+          <Loader className="h-8 w-8 text-red-600 animate-spin" />
           <p className="text-gray-600">Loading subscriptions from Google Sheets...</p>
         </div>
       </div>
@@ -81,7 +81,7 @@ const AllSubscriptions = () => {
           <p className="text-gray-700 mb-4">{error}</p>
           <button
             onClick={handleRefresh}
-            className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
           >
             <RefreshCw size={16} />
             Try Again
@@ -113,7 +113,7 @@ const AllSubscriptions = () => {
               <input
                 type="text"
                 placeholder="Search by SN, Company, Subscriber..."
-                className="pl-10 pr-4 py-2.5 w-full shadow-input border-none rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-gray-50"
+                className="pl-10 pr-4 py-2.5 w-full shadow-input border-none rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent bg-gray-50"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -124,7 +124,7 @@ const AllSubscriptions = () => {
               <select
                 value={filterFrequency}
                 onChange={(e) => setFilterFrequency(e.target.value)}
-                className="appearance-none pl-4 pr-10 py-2.5 shadow-input border-none rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50 text-gray-700 text-sm font-medium cursor-pointer hover:bg-gray-100 transition-colors w-full sm:w-auto"
+                className="appearance-none pl-4 pr-10 py-2.5 shadow-input border-none rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 bg-gray-50 text-gray-700 text-sm font-medium cursor-pointer hover:bg-gray-100 transition-colors w-full sm:w-auto"
               >
                 <option value="">All Frequencies</option>
                 <option value="Monthly">Monthly</option>
@@ -156,7 +156,7 @@ const AllSubscriptions = () => {
 
             <button
               onClick={() => setIsAddModalOpen(true)}
-              className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg transition-all shadow-md hover:shadow-lg whitespace-nowrap"
+              className="flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-lg transition-all shadow-md hover:shadow-lg whitespace-nowrap"
             >
               <Plus className="h-5 w-5" />
               <span className="hidden sm:inline">Add New</span>
@@ -185,10 +185,10 @@ const AllSubscriptions = () => {
               <tbody className="text-sm divide-y divide-gray-50">
                 {filteredData.map((item) => (
                   <tr key={item.id} className="hover:bg-gray-50/80 transition-colors">
-                    <td className="px-3 py-2 font-bold text-indigo-600 text-xs font-mono">{item.sn}</td>
+                    <td className="px-3 py-2 font-bold text-red-600 text-xs font-mono">{item.sn}</td>
                     <td className="px-3 py-2">
                       <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border ${item.status === 'Paid' ? 'bg-green-50 text-green-700 border-green-100' :
-                        item.status === 'Approved' ? 'bg-blue-50 text-blue-700 border-blue-100' :
+                        item.status === 'Approved' ? 'bg-red-50 text-red-700 border-red-100' :
                           item.status === 'Rejected' ? 'bg-red-50 text-red-700 border-red-100' :
                             'bg-gray-50 text-gray-600 border-gray-100'
                         }`}>
@@ -198,10 +198,10 @@ const AllSubscriptions = () => {
                     <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{item.requestedDate}</td>
                     <td className="px-3 py-2 font-medium text-gray-900">{item.companyName}</td>
                     <td className="px-3 py-2 text-gray-700">{item.subscriberName}</td>
-                    <td className="px-3 py-2 font-medium text-indigo-600">{item.subscriptionName}</td>
+                    <td className="px-3 py-2 font-medium text-red-600">{item.subscriptionName}</td>
                     <td className="px-3 py-2 font-medium text-gray-900">{item.price}</td>
                     <td className="px-3 py-2 text-gray-600">
-                      <span className="px-2 py-1 bg-indigo-50 text-indigo-700 rounded text-xs font-medium">
+                      <span className="px-2 py-1 bg-red-50 text-red-700 rounded text-xs font-medium">
                         {item.frequency}
                       </span>
                     </td>
@@ -225,14 +225,14 @@ const AllSubscriptions = () => {
             <div key={item.id} className="bg-white p-4 rounded-xl shadow-input space-y-3">
               <div className="flex justify-between items-start">
                 <div className="flex gap-3 items-start">
-                  <div className="h-10 w-10 flex items-center justify-center bg-indigo-50 text-indigo-600 rounded-lg shrink-0 mt-0.5">
+                  <div className="h-10 w-10 flex items-center justify-center bg-red-50 text-red-600 rounded-lg shrink-0 mt-0.5">
                     <CreditCard size={20} />
                   </div>
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-xs font-mono font-bold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded shadow-input border-none">{item.sn}</span>
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border ${item.status === 'Paid' ? 'bg-green-50 text-green-700 border-green-100' :
-                        item.status === 'Approved' ? 'bg-blue-50 text-blue-700 border-blue-100' :
+                        item.status === 'Approved' ? 'bg-red-50 text-red-700 border-red-100' :
                           item.status === 'Rejected' ? 'bg-red-50 text-red-700 border-red-100' :
                             'bg-gray-50 text-gray-600 border-gray-100'
                         }`}>

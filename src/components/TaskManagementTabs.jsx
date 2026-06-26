@@ -9,7 +9,7 @@ export default function TaskManagementTabs({ activeTab, setActiveTab }) {
     const isMachineOperator = designation.includes("machin") || designation.includes("operat") || designation.includes("oprat");
 
     const allTabs = [
-        { id: 'checklist', label: 'Checklist', icon: ClipboardCheck, color: 'text-purple-600', activeColor: 'bg-purple-600' },
+        { id: 'checklist', label: 'Checklist', icon: ClipboardCheck, color: 'text-red-600', activeColor: 'bg-red-600' },
         { id: 'maintenance', label: 'Maintenance', icon: Hammer, color: 'text-blue-600', activeColor: 'bg-blue-600' },
         { id: 'repair', label: 'Repair', icon: Wrench, color: 'text-orange-600', activeColor: 'bg-orange-600' },
         { id: 'ea', label: 'EA', icon: Users, color: 'text-green-600', activeColor: 'bg-green-600' },
@@ -43,13 +43,13 @@ export default function TaskManagementTabs({ activeTab, setActiveTab }) {
                                     onClick={() => setActiveTab(tab.id)}
                                     className={`
                                         relative flex items-center justify-center gap-2.5 py-2 px-6 rounded-lg text-xs font-bold transition-all duration-500 whitespace-nowrap min-w-[100px] md:min-w-[120px] z-10
-                                        ${isActive ? 'text-white' : 'text-gray-500 hover:text-purple-600'}
+                                        ${isActive ? 'text-white' : 'text-gray-500 hover:text-red-600'}
                                     `}
                                 >
                                     {isActive && (
                                         <motion.div
                                             layoutId="activeTabPillGlobal"
-                                            className={`absolute inset-0 rounded-lg shadow-md z-[-1] ${tab.id === 'checklist' ? 'bg-purple-600' : tab.id === 'maintenance' ? 'bg-blue-600' : tab.id === 'repair' ? 'bg-orange-600' : 'bg-green-600'}`}
+                                            className={`absolute inset-0 rounded-lg shadow-md z-[-1] ${tab.id === 'checklist' ? 'bg-red-600' : tab.id === 'maintenance' ? 'bg-blue-600' : tab.id === 'repair' ? 'bg-orange-600' : 'bg-green-600'}`}
                                             transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                                         />
                                     )}

@@ -37,7 +37,8 @@ import {
   DollarSign,
   ShieldCheck,
   Ban,
-  CreditCard
+  CreditCard,
+  Settings2
 } from "lucide-react";
 
 export default function AdminLayout({ children, darkMode, toggleDarkMode, showLayout = true }) {
@@ -53,6 +54,8 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
   const [userEmail, setUserEmail] = useState("");
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [profileImage, setProfileImage] = useState("");
+  const [systemAccess, setSystemAccess] = useState([]);
+  const [pageAccess, setPageAccess] = useState([]);
 
   const [isUserPopupOpen, setIsUserPopupOpen] = useState(false);
 
@@ -110,8 +113,9 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
     ];
 
     const storedRoleLower = (storedRole || "user").toLowerCase();
+    const hasCustomPermissions = !!localStorage.getItem("system_access");
 
-    if (storedRoleLower === "user" && restrictedPages.some(p => path.startsWith(p))) {
+    if (!hasCustomPermissions && storedRoleLower === "user" && restrictedPages.some(p => path.startsWith(p))) {
       navigate("/dashboard/admin");
       return;
     }
@@ -133,7 +137,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
         hodRestrictedPages.push("/dashboard/repair");
       }
 
-      if (hodRestrictedPages.some(p => path.startsWith(p))) {
+      if (!hasCustomPermissions && hodRestrictedPages.some(p => path.startsWith(p))) {
         navigate("/dashboard/admin");
         return;
       }
@@ -159,22 +163,42 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
           fetchReportingUsers();
       }
 
-    // Sync with database to get the latest image
+    // Sync with database to get the latest image and access rights
     const syncProfileImage = async () => {
       try {
         const { data } = await supabase
           .from("users")
-          .select("profile_image")
+          .select("profile_image, system_access, page_access")
           .eq("user_name", storedUsername)
           .single();
 
-        if (data && data.profile_image) {
-          setProfileImage(data.profile_image);
-          localStorage.setItem("profile_image", data.profile_image);
-          console.log("✅ Profile image synced from DB:", data.profile_image);
+        if (data) {
+          if (data.profile_image) {
+            setProfileImage(data.profile_image);
+            localStorage.setItem("profile_image", data.profile_image);
+            console.log("✅ Profile image synced from DB:", data.profile_image);
+          }
+          try {
+             let sysAccess = [];
+             if (typeof data.system_access === 'string') {
+                 if (data.system_access.trim().startsWith('[')) sysAccess = JSON.parse(data.system_access);
+                 else sysAccess = data.system_access.split(',').filter(Boolean);
+             } else { sysAccess = data.system_access || []; }
+             setSystemAccess(sysAccess);
+             localStorage.setItem("system_access", sysAccess.join(','));
+          } catch(e) {}
+          try {
+             let pgAccess = [];
+             if (typeof data.page_access === 'string') {
+                 if (data.page_access.trim().startsWith('[')) pgAccess = JSON.parse(data.page_access);
+                 else pgAccess = data.page_access.split(',').filter(Boolean);
+             } else { pgAccess = data.page_access || []; }
+             setPageAccess(pgAccess);
+             localStorage.setItem("page_access", pgAccess.join(','));
+          } catch(e) {}
         }
       } catch (err) {
-        console.error("❌ Error syncing profile image:", err);
+        console.error("❌ Error syncing profile data:", err);
       }
     };
 
@@ -218,6 +242,8 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
     localStorage.removeItem("email_id");
     localStorage.removeItem("token");
     localStorage.removeItem("profile_image");
+    localStorage.removeItem("system_access");
+    localStorage.removeItem("page_access");
     window.location.href = "/login";
   };
 
@@ -232,6 +258,14 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/dashboard/profile",
       showFor: ["admin", "user", "HOD"],
       module: "Profile",
+    },
+    {
+      href: "/dashboard/global-settings",
+      label: "Global Settings",
+      icon: Settings2,
+      active: location.pathname.includes("/dashboard/global-settings"),
+      showFor: ["admin"],
+      module: "Global Settings",
     },
     {
       href: "/dashboard/admin",
@@ -326,7 +360,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
     // Document & Substruction Routes
     {
       href: "/doc-dashboard",
-      label: "Doc Dashboard",
+      label: "Dashboard",
       icon: LayoutDashboard,
       active: location.pathname === "/doc-dashboard" || location.pathname === "/",
       showFor: ["admin", "user", "HOD"],
@@ -380,7 +414,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname.includes("/dashboard/setting") || location.pathname.includes("/settings"),
       showFor: ["admin"],
       module: "Checklist & Delegation",
-    },
+    }
   ];
 
   const getAccessibleDepartments = () => {
@@ -391,20 +425,37 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
   const getAccessibleRoutes = () => {
     const userRole = localStorage.getItem("role") || "user";
     const username = localStorage.getItem("user-name");
+    const isSuperAdminUser = (username || "").toLowerCase() === "admin";
+    const hasCustomPermissions = systemAccess && systemAccess.length > 0;
     
     return routes
       .filter((route) => {
         const userRoleNormalized = (userRole || "user").toLowerCase();
-        const usernameNormalized = (username || "").toLowerCase();
         
-        // If it's the Setting page, show for admin role
-        if (route.label === "Settings") {
+        if (isSuperAdminUser) return true;
+
+        if (hasCustomPermissions) {
+           if (route.module === "Profile") return true; 
+           if (route.isSubmenu && route.subItems) return true; 
+
+           let mappedLabel = route.label;
+           let mappedModule = route.module || "Checklist & Delegation";
+           
+           if (route.label === "Global Settings") {
+               mappedModule = "Checklist & Delegation";
+           }
+
+           const pageKey = `${mappedModule}::${mappedLabel}`;
+           return pageAccess && pageAccess.includes(pageKey);
+        }
+
+        // Fallback to old behavior
+        if (route.label === "Settings" || route.label === "Global Settings") {
           return userRoleNormalized === "admin";
         }
         
-        // Holiday submenu logic handled by showFor in routes
         if (route.label === "Holiday") {
-            return isSuperAdmin || userRoleNormalized === "admin";
+            return userRoleNormalized === "admin";
         }
         return route.showFor.some(role => role.toLowerCase() === userRoleNormalized);
       })
@@ -413,7 +464,18 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
           const userRoleNormalized = (userRole || "user").toLowerCase();
           return {
             ...route,
-            subItems: route.subItems.filter(sub => sub.showFor.some(role => role.toLowerCase() === userRoleNormalized))
+            subItems: route.subItems.filter(sub => {
+                if (isSuperAdminUser) return true;
+                if (hasCustomPermissions) {
+                    let mappedLabel = sub.label;
+                    // We only map Holiday to match the Global Settings page name
+                    if (sub.label === "Holiday List" || sub.label === "Working Day Calendar") mappedLabel = "Holiday";
+
+                    const pageKey = `${route.module}::${mappedLabel}`;
+                    return pageAccess && pageAccess.includes(pageKey);
+                }
+                return sub.showFor.some(role => role.toLowerCase() === userRoleNormalized);
+            })
           };
         }
         return route;
@@ -458,16 +520,17 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
               }, {})
             ).map(([moduleName, moduleRoutes]) => (
               <div key={moduleName} className="mb-4">
-                {moduleName === "Profile" ? (
+                {moduleName === "Profile" || moduleName === "Global Settings" ? (
                   <Link
-                    to="/dashboard/profile"
-                    className={`group w-full flex items-center justify-between px-4 py-3 text-[14px] font-semibold rounded-xl transition-all relative overflow-hidden ${location.pathname.includes('/dashboard/profile') ? 'text-red-600 bg-slate-100' : 'text-slate-600 hover:text-red-600 hover:bg-slate-50'}`}
+                    to={moduleRoutes[0].href}
+                    className={`group w-full flex items-center justify-between px-4 py-3 text-[14px] font-semibold rounded-xl transition-all relative overflow-hidden ${location.pathname.includes(moduleRoutes[0].href) ? 'text-red-600 bg-slate-100' : 'text-slate-600 hover:text-red-600 hover:bg-slate-50'}`}
                   >
-                    {location.pathname.includes('/dashboard/profile') && (
+                    {location.pathname.includes(moduleRoutes[0].href) && (
                       <div className="absolute left-0 top-1/2 -translate-y-1/2 h-2/3 w-1.5 bg-red-600 rounded-r-full"></div>
                     )}
                     <div className="flex items-center gap-3 overflow-hidden">
-                      <UserRound className="h-5 w-5 shrink-0" />
+                      {moduleName === "Profile" && <UserRound className="h-5 w-5 shrink-0" />}
+                      {moduleName === "Global Settings" && <Settings2 className="h-5 w-5 shrink-0" />}
                       <span className="text-left leading-tight truncate">{moduleName}</span>
                     </div>
                   </Link>
@@ -695,17 +758,18 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                   }, {})
                 ).map(([moduleName, moduleRoutes]) => (
                   <div key={moduleName} className="mb-4">
-                    {moduleName === "Profile" ? (
+                    {moduleName === "Profile" || moduleName === "Global Settings" ? (
                       <Link
-                        to="/dashboard/profile"
+                        to={moduleRoutes[0].href}
                         onClick={() => setIsMobileMenuOpen(false)}
-                        className={`group w-full flex items-center justify-between px-4 py-3 text-[14px] font-semibold rounded-xl transition-all relative overflow-hidden ${location.pathname.includes('/dashboard/profile') ? 'text-red-600 bg-slate-100' : 'text-slate-600 hover:text-red-600 hover:bg-slate-50'}`}
+                        className={`group w-full flex items-center justify-between px-4 py-3 text-[14px] font-semibold rounded-xl transition-all relative overflow-hidden ${location.pathname.includes(moduleRoutes[0].href) ? 'text-red-600 bg-slate-100' : 'text-slate-600 hover:text-red-600 hover:bg-slate-50'}`}
                       >
-                        {location.pathname.includes('/dashboard/profile') && (
+                        {location.pathname.includes(moduleRoutes[0].href) && (
                           <div className="absolute left-0 top-1/2 -translate-y-1/2 h-2/3 w-1.5 bg-red-600 rounded-r-full"></div>
                         )}
                         <div className="flex items-center gap-3 overflow-hidden">
-                          <UserRound className="h-5 w-5 shrink-0" />
+                          {moduleName === "Profile" && <UserRound className="h-5 w-5 shrink-0" />}
+                          {moduleName === "Global Settings" && <Settings2 className="h-5 w-5 shrink-0" />}
                           <span className="text-left leading-tight truncate">{moduleName}</span>
                         </div>
                       </Link>

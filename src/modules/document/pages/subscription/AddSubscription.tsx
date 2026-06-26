@@ -226,7 +226,7 @@ const AddSubscription: React.FC<AddSubscriptionProps> = ({ isOpen, onClose, onSu
                   name="companyName"
                   required
                   disabled={submitting}
-                  className="w-full p-3 shadow-input border-none rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full p-3 shadow-input border-none rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   value={formData.companyName}
                   onChange={handleInputChange}
                   placeholder="e.g. Netflix Inc"
@@ -241,7 +241,7 @@ const AddSubscription: React.FC<AddSubscriptionProps> = ({ isOpen, onClose, onSu
                   name="subscriberName"
                   required
                   disabled={submitting}
-                  className="w-full p-3 shadow-input border-none rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full p-3 shadow-input border-none rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   value={formData.subscriberName}
                   onChange={handleInputChange}
                   placeholder="e.g. John Doe"
@@ -258,7 +258,7 @@ const AddSubscription: React.FC<AddSubscriptionProps> = ({ isOpen, onClose, onSu
                 name="subscriptionName"
                 required
                 disabled={submitting}
-                className="w-full p-3 shadow-input border-none rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full p-3 shadow-input border-none rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 value={formData.subscriptionName}
                 onChange={handleInputChange}
                 placeholder="e.g. Netflix Premium"
@@ -275,7 +275,7 @@ const AddSubscription: React.FC<AddSubscriptionProps> = ({ isOpen, onClose, onSu
                   name="price"
                   required
                   disabled={submitting}
-                  className="w-full p-3 shadow-input border-none rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full p-3 shadow-input border-none rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   value={formData.price}
                   onChange={handleInputChange}
                   placeholder="e.g. ₹1499"
@@ -289,7 +289,7 @@ const AddSubscription: React.FC<AddSubscriptionProps> = ({ isOpen, onClose, onSu
                   name="frequency"
                   required
                   disabled={submitting}
-                  className="w-full p-3 shadow-input border-none rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full p-3 shadow-input border-none rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition-all bg-white disabled:opacity-50 disabled:cursor-not-allowed"
                   value={formData.frequency}
                   onChange={handleInputChange}
                 >
@@ -312,7 +312,7 @@ const AddSubscription: React.FC<AddSubscriptionProps> = ({ isOpen, onClose, onSu
                 required
                 rows={3}
                 disabled={submitting}
-                className="w-full p-3 shadow-input border-none rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full p-3 shadow-input border-none rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition-all resize-none disabled:opacity-50 disabled:cursor-not-allowed"
                 value={formData.purpose}
                 onChange={handleInputChange}
                 placeholder="Why is this subscription needed? What is its purpose?"
@@ -337,7 +337,7 @@ const AddSubscription: React.FC<AddSubscriptionProps> = ({ isOpen, onClose, onSu
             type="submit"
             form="add-sub-form"
             disabled={submitting}
-            className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-red-600 text-white font-medium hover:bg-red-700 transition-all shadow-lg shadow-red-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {submitting ? (
               <>

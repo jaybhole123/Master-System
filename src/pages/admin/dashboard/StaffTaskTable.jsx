@@ -163,7 +163,7 @@ export default function StaffTasksTable({
               id="month-select"
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
-              className="appearance-none pl-4 pr-10 py-2 bg-gray-50/80 border border-gray-200/50 hover:border-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-purple-400 text-sm font-bold text-gray-700 transition-all cursor-pointer min-w-[200px]"
+              className="appearance-none pl-4 pr-10 py-2 bg-gray-50/80 border border-gray-200/50 hover:border-red-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-red-400 text-sm font-bold text-gray-700 transition-all cursor-pointer min-w-[200px]"
             >
               {availableMonths.map((month) => (
                 <option key={month.value} value={month.value}>
@@ -171,7 +171,7 @@ export default function StaffTasksTable({
                 </option>
               ))}
             </select>
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover:text-purple-600 transition-colors">
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover:text-red-600 transition-colors">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
             </div>
           </div>
@@ -183,7 +183,7 @@ export default function StaffTasksTable({
             <div className="flex flex-col gap-1 items-start sm:items-end">
               <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Audit Log</div>
               <div className="text-xs font-bold text-gray-600 bg-gray-50/80 px-3 py-1.5 rounded-md border border-gray-100/50">
-                <span className="text-purple-600">{staffMembers.length}</span> / {totalUsersCount} active
+                <span className="text-red-600">{staffMembers.length}</span> / {totalUsersCount} active
               </div>
             </div>
           )}
@@ -192,7 +192,7 @@ export default function StaffTasksTable({
           <div className="flex flex-wrap gap-2 pt-2 sm:pt-0">
             {dashboardStaffFilter !== "all" && (
               <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 border border-gray-200/50 rounded-md text-[11px] font-bold text-gray-600 tracking-wide">
-                <div className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse"></div>
+                <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></div>
                 Staff: {dashboardStaffFilter}
               </div>
             )}

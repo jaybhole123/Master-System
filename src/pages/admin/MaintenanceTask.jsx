@@ -169,13 +169,13 @@ const MaintenanceTaskCard = ({
             )}
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-visible hover:shadow-md transition-all duration-300">
                 {/* Card Header */}
-                <div className="flex items-center justify-between px-5 py-3.5 bg-gradient-to-r from-purple-50 to-indigo-50 border-b border-purple-100 rounded-t-2xl">
+                <div className="flex items-center justify-between px-5 py-3.5 bg-gradient-to-r from-red-50 to-indigo-50 border-b border-red-100 rounded-t-2xl">
                     <div className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-full bg-purple-600 text-white flex items-center justify-center text-xs font-black shadow-sm">
+                        <div className="w-7 h-7 rounded-full bg-red-600 text-white flex items-center justify-center text-xs font-black shadow-sm">
                             {index + 1}
                         </div>
-                        <span className="text-sm font-bold text-purple-800">Maintenance Task {index + 1}</span>
-                        {task.machineName && <span className="text-xs text-purple-500 font-medium">— {task.machineName}</span>}
+                        <span className="text-sm font-bold text-red-800">Maintenance Task {index + 1}</span>
+                        {task.machineName && <span className="text-xs text-red-500 font-medium">— {task.machineName}</span>}
                     </div>
                     {total > 1 && (
                         <button type="button" onClick={() => onRemove(task.id)} className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all">
@@ -193,7 +193,7 @@ const MaintenanceTaskCard = ({
                             value={task.givenBy}
                             onChange={handleChange}
                             disabled={localStorage.getItem("role")?.toUpperCase() === "HOD"}
-                            className={`w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none bg-gray-50 focus:bg-white transition-all text-sm ${localStorage.getItem("role")?.toUpperCase() === "HOD" ? 'opacity-70 cursor-not-allowed' : ''}`}
+                            className={`w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 outline-none bg-gray-50 focus:bg-white transition-all text-sm ${localStorage.getItem("role")?.toUpperCase() === "HOD" ? 'opacity-70 cursor-not-allowed' : ''}`}
                         >
                             <option value="">Select Assign From</option>
                             {givenBy.map((g, i) => { const val = typeof g === 'object' ? (g.given_by || g.name) : g; return <option key={i} value={val}>{val}</option>; })}
@@ -204,14 +204,14 @@ const MaintenanceTaskCard = ({
                     <div className="grid grid-cols-2 gap-3">
                         <div>
                             <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Machine Name</label>
-                            <select name="machineName" value={task.machineName} onChange={handleChange} className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none bg-gray-50 focus:bg-white transition-all text-sm">
+                            <select name="machineName" value={task.machineName} onChange={handleChange} className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 outline-none bg-gray-50 focus:bg-white transition-all text-sm">
                                 <option value="">Select Machine</option>
                                 {getUniqueDropdownValues("Machine Name").map(item => <option key={item.id} value={item.value}>{item.value}</option>)}
                             </select>
                         </div>
                         <div>
                             <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Machine Area</label>
-                            <select name="machineArea" value={task.machineArea} onChange={handleChange} className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none bg-gray-50 focus:bg-white transition-all text-sm">
+                            <select name="machineArea" value={task.machineArea} onChange={handleChange} className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 outline-none bg-gray-50 focus:bg-white transition-all text-sm">
                                 <option value="">Select Area</option>
                                 {getUniqueDropdownValues("Machine Area").map(item => <option key={item.id} value={item.value}>{item.value}</option>)}
                             </select>
@@ -226,7 +226,7 @@ const MaintenanceTaskCard = ({
                                 type="button"
                                 onClick={() => onUpdate(task.id, { showPartDropdown: !task.showPartDropdown })}
                                 disabled={!task.machineName}
-                                className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none bg-gray-50 hover:bg-white transition-all text-left flex items-center justify-between disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                                className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 outline-none bg-gray-50 hover:bg-white transition-all text-left flex items-center justify-between disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                             >
                                 <span>{task.partName?.length === 0 ? (task.machineName ? 'Select Parts' : 'Select Machine First') : `${task.partName?.length} part(s) selected`}</span>
                                 <svg className={`w-4 h-4 transition-transform ${task.showPartDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -236,13 +236,13 @@ const MaintenanceTaskCard = ({
                             {task.showPartDropdown && task.machineName && (
                                 <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-2xl max-h-60 overflow-y-auto">
                                     {getUniqueDropdownValues("Part Name").filter(item => !item.parent || item.parent === task.machineName).map(item => (
-                                        <label key={item.id} className="flex items-center gap-3 px-4 py-3 hover:bg-purple-50 cursor-pointer transition-colors border-b border-gray-100 last:border-b-0">
-                                            <input type="checkbox" checked={task.partName?.includes(item.value)} onChange={() => handlePartToggle(item.value)} className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500 flex-shrink-0" />
+                                        <label key={item.id} className="flex items-center gap-3 px-4 py-3 hover:bg-red-50 cursor-pointer transition-colors border-b border-gray-100 last:border-b-0">
+                                            <input type="checkbox" checked={task.partName?.includes(item.value)} onChange={() => handlePartToggle(item.value)} className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500 flex-shrink-0" />
                                             {item.image_url ? (
                                                 <img
                                                     src={item.image_url}
                                                     alt={item.value}
-                                                    className="w-10 h-10 object-cover rounded-lg shadow-sm border border-gray-200 bg-gray-50 flex-shrink-0 cursor-zoom-in hover:ring-2 hover:ring-purple-400 transition-all"
+                                                    className="w-10 h-10 object-cover rounded-lg shadow-sm border border-gray-200 bg-gray-50 flex-shrink-0 cursor-zoom-in hover:ring-2 hover:ring-red-400 transition-all"
                                                     onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLightboxImage({ url: item.image_url, name: item.value }); }}
                                                     title="Click to enlarge"
                                                 />
@@ -253,7 +253,7 @@ const MaintenanceTaskCard = ({
                                             )}
                                             <span className="text-sm font-medium text-gray-700">{item.value}</span>
                                             {task.partName?.includes(item.value) && (
-                                                <span className="ml-auto text-[10px] font-bold text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full">Selected</span>
+                                                <span className="ml-auto text-[10px] font-bold text-red-600 bg-red-100 px-2 py-0.5 rounded-full">Selected</span>
                                             )}
                                         </label>
                                     ))}
@@ -268,15 +268,15 @@ const MaintenanceTaskCard = ({
                         {task.partName?.length > 0 && (
                             <div className="flex flex-wrap gap-1.5 mt-2">
                                 {task.partName.map((part, i) => (
-                                    <span key={i} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
+                                    <span key={i} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">
                                         {(() => {
                                             const partItem = getUniqueDropdownValues("Part Name").find(p => p.value === part);
                                             return partItem?.image_url ? (
-                                                <img src={partItem.image_url} alt={part} className="w-4 h-4 object-cover rounded-full border border-purple-300" />
+                                                <img src={partItem.image_url} alt={part} className="w-4 h-4 object-cover rounded-full border border-red-300" />
                                             ) : null;
                                         })()}
                                         {part}
-                                        <button type="button" onClick={() => handlePartToggle(part)} className="hover:bg-purple-200 rounded-full p-0.5 ml-0.5"><X className="w-3 h-3" /></button>
+                                        <button type="button" onClick={() => handlePartToggle(part)} className="hover:bg-red-200 rounded-full p-0.5 ml-0.5"><X className="w-3 h-3" /></button>
                                     </span>
                                 ))}
                             </div>
@@ -330,7 +330,7 @@ const MaintenanceTaskCard = ({
                                 handleChange(e);
                                 dispatch(uniqueDoerNameData(e.target.value));
                             }}
-                            className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none bg-gray-50 focus:bg-white transition-all text-sm"
+                            className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 outline-none bg-gray-50 focus:bg-white transition-all text-sm"
                         >
                             <option value="">Select Department</option>
                             {department.map((dept, i) => { const val = typeof dept === 'object' ? dept.department : dept; return <option key={i} value={val}>{val}</option>; })}
@@ -341,14 +341,14 @@ const MaintenanceTaskCard = ({
                     <div className="grid grid-cols-2 gap-3">
                         <div>
                             <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Doer's Name <span className="text-red-500">*</span></label>
-                            <select name="doerName" value={task.doerName} onChange={handleChange} className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none bg-gray-50 focus:bg-white transition-all text-sm">
+                            <select name="doerName" value={task.doerName} onChange={handleChange} className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 outline-none bg-gray-50 focus:bg-white transition-all text-sm">
                                 <option value="">Select Doer</option>
                                 {getFilteredDoers().map((d, i) => { const val = typeof d === 'object' ? (d.user_name || d.name) : d; return <option key={i} value={val}>{val}</option>; })}
                             </select>
                         </div>
                         <div>
                             <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Need Sound Test</label>
-                            <select name="needSoundTest" value={task.needSoundTest} onChange={handleChange} className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none bg-gray-50 focus:bg-white transition-all text-sm">
+                            <select name="needSoundTest" value={task.needSoundTest} onChange={handleChange} className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 outline-none bg-gray-50 focus:bg-white transition-all text-sm">
                                 <option value="">Select</option>
                                 {customDropdowns.filter(item => item.category === "Sound Test").map(item => <option key={item.id} value={item.value}>{item.value}</option>)}
                                 {!customDropdowns.some(item => item.category === "Sound Test") && (<><option value="Yes">Yes</option><option value="No">No</option></>)}
@@ -360,7 +360,7 @@ const MaintenanceTaskCard = ({
                     <div className="grid grid-cols-2 gap-3">
                         <div>
                             <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Temperature</label>
-                            <select name="temperature" value={task.temperature} onChange={handleChange} className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none bg-gray-50 focus:bg-white transition-all text-sm">
+                            <select name="temperature" value={task.temperature} onChange={handleChange} className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 outline-none bg-gray-50 focus:bg-white transition-all text-sm">
                                 <option value="">Select</option>
                                 {customDropdowns.filter(item => item.category === "Temperature").map(item => <option key={item.id} value={item.value}>{item.value}</option>)}
                                 {!customDropdowns.some(item => item.category === "Temperature") && (<><option value="Low">Low</option><option value="Medium">Medium</option><option value="High">High</option></>)}
@@ -368,7 +368,7 @@ const MaintenanceTaskCard = ({
                         </div>
                         <div>
                             <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Priority</label>
-                            <select name="priority" value={task.priority} onChange={handleChange} className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none bg-gray-50 focus:bg-white transition-all text-sm">
+                            <select name="priority" value={task.priority} onChange={handleChange} className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 outline-none bg-gray-50 focus:bg-white transition-all text-sm">
                                 <option value="">Select</option>
                                 {customDropdowns.filter(item => item.category === "Task Priority").map(item => <option key={item.id} value={item.value}>{item.value}</option>)}
                                 {!customDropdowns.some(item => item.category === "Task Priority") && (<><option value="Low">Low</option><option value="Medium">Medium</option><option value="High">High</option></>)}
@@ -392,9 +392,9 @@ const MaintenanceTaskCard = ({
                                                 onChange={handleChange}
                                                 rows="3"
                                                 placeholder="Enter work description..."
-                                                className="w-full p-3 pr-11 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none resize-none bg-gray-50 focus:bg-white transition-all text-sm"
+                                                className="w-full p-3 pr-11 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none resize-none bg-gray-50 focus:bg-white transition-all text-sm"
                                             />
-                                            <button type="button" onClick={startRecording} className="absolute bottom-2.5 right-2.5 p-1.5 bg-purple-100 text-purple-600 rounded-full hover:bg-purple-200 transition-all" title="Record Voice Note">
+                                            <button type="button" onClick={startRecording} className="absolute bottom-2.5 right-2.5 p-1.5 bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition-all" title="Record Voice Note">
                                                 <Mic className="w-4 h-4" />
                                             </button>
                                         </div>
@@ -411,9 +411,9 @@ const MaintenanceTaskCard = ({
                                         </div>
                                     )}
                                     {task.recordedAudio && status !== 'recording' && (
-                                        <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                                        <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
                                             <div className="flex items-center justify-between mb-2">
-                                                <span className="text-xs font-bold text-purple-700 flex items-center gap-1.5"><Mic className="w-3 h-3" /> Voice Note Attached</span>
+                                                <span className="text-xs font-bold text-red-700 flex items-center gap-1.5"><Mic className="w-3 h-3" /> Voice Note Attached</span>
                                                 <button type="button" onClick={() => { clearBlobUrl(); onUpdate(task.id, { recordedAudio: null }); }} className="text-xs text-red-500 hover:text-red-700 font-bold flex items-center gap-1">
                                                     <Trash2 className="w-3 h-3" /> Remove
                                                 </button>
@@ -433,7 +433,7 @@ const MaintenanceTaskCard = ({
                                 <button
                                     type="button"
                                     onClick={() => onUpdate(task.id, { showCalendar: !task.showCalendar })}
-                                    className="w-full p-2.5 text-left border border-gray-200 rounded-lg bg-gray-50 hover:bg-white focus:ring-2 focus:ring-purple-500 transition-all flex items-center justify-between text-xs"
+                                    className="w-full p-2.5 text-left border border-gray-200 rounded-lg bg-gray-50 hover:bg-white focus:ring-2 focus:ring-red-500 transition-all flex items-center justify-between text-xs"
                                 >
                                     <span className={task.startDate ? "text-gray-800" : "text-gray-400"}>
                                         {task.startDate ? formatDateLong(new Date(task.startDate)) : "Select date"}
@@ -453,11 +453,11 @@ const MaintenanceTaskCard = ({
                             </div>
                         <div>
                             <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Time</label>
-                            <input type="time" name="startTime" value={task.startTime} onChange={handleChange} className="w-full p-2.5 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none transition-all text-sm" />
+                            <input type="time" name="startTime" value={task.startTime} onChange={handleChange} className="w-full p-2.5 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-red-500 outline-none transition-all text-sm" />
                         </div>
                         <div>
                             <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Frequency</label>
-                            <select name="frequency" value={task.frequency} onChange={handleChange} className="w-full p-2.5 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none transition-all text-xs">
+                            <select name="frequency" value={task.frequency} onChange={handleChange} className="w-full p-2.5 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-red-500 outline-none transition-all text-xs">
                                 <option value="one-time">One Time</option>
                                 <option value="alternate-day">Alternate Day</option>
                                 <option value="daily">Daily</option>
@@ -488,7 +488,7 @@ const MaintenanceTaskCard = ({
                                         onUpdate(task.id, { duration: val ? `${val} MIN` : '' });
                                     }}
                                     placeholder="e.g. 30"
-                                    className="w-full pl-3 pr-12 p-2.5 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none transition-all text-sm"
+                                    className="w-full pl-3 pr-12 p-2.5 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-red-500 outline-none transition-all text-sm"
                                 />
                                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">MIN</span>
                             </div>
@@ -497,15 +497,15 @@ const MaintenanceTaskCard = ({
 
                     {/* Toggles */}
                     <div className="flex gap-3">
-                        <button type="button" onClick={() => onUpdate(task.id, { enableReminder: !task.enableReminder })} className={`flex-1 flex items-center justify-between px-3 py-2 rounded-lg border text-xs font-bold transition-all ${task.enableReminder ? 'bg-purple-50 border-purple-200 text-purple-700' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>
+                        <button type="button" onClick={() => onUpdate(task.id, { enableReminder: !task.enableReminder })} className={`flex-1 flex items-center justify-between px-3 py-2 rounded-lg border text-xs font-bold transition-all ${task.enableReminder ? 'bg-red-50 border-red-200 text-red-700' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>
                             <span>Enable Reminder</span>
-                            <div className={`w-8 h-4 flex items-center rounded-full p-0.5 transition-colors ${task.enableReminder ? 'bg-purple-600' : 'bg-gray-300'}`}>
+                            <div className={`w-8 h-4 flex items-center rounded-full p-0.5 transition-colors ${task.enableReminder ? 'bg-red-600' : 'bg-gray-300'}`}>
                                 <div className={`bg-white w-3 h-3 rounded-full shadow transform transition-transform ${task.enableReminder ? 'translate-x-4' : ''}`} />
                             </div>
                         </button>
-                        <button type="button" onClick={() => onUpdate(task.id, { requireAttachment: !task.requireAttachment })} className={`flex-1 flex items-center justify-between px-3 py-2 rounded-lg border text-xs font-bold transition-all ${task.requireAttachment ? 'bg-purple-50 border-purple-200 text-purple-700' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>
+                        <button type="button" onClick={() => onUpdate(task.id, { requireAttachment: !task.requireAttachment })} className={`flex-1 flex items-center justify-between px-3 py-2 rounded-lg border text-xs font-bold transition-all ${task.requireAttachment ? 'bg-red-50 border-red-200 text-red-700' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>
                             <span>Require Attachment</span>
-                            <div className={`w-8 h-4 flex items-center rounded-full p-0.5 transition-colors ${task.requireAttachment ? 'bg-purple-600' : 'bg-gray-300'}`}>
+                            <div className={`w-8 h-4 flex items-center rounded-full p-0.5 transition-colors ${task.requireAttachment ? 'bg-red-600' : 'bg-gray-300'}`}>
                                 <div className={`bg-white w-3 h-3 rounded-full shadow transform transition-transform ${task.requireAttachment ? 'translate-x-4' : ''}`} />
                             </div>
                         </button>
@@ -890,7 +890,7 @@ export default function MaintenanceTask() {
                 {/* Header */}
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
-                        <div className="p-2.5 bg-purple-600 rounded-xl text-white shadow-md">
+                        <div className="p-2.5 bg-red-600 rounded-xl text-white shadow-md">
                             <Wrench size={20} />
                         </div>
                         <div>
@@ -937,7 +937,7 @@ export default function MaintenanceTask() {
                 <button
                     type="button"
                     onClick={addTask}
-                    className="mt-4 w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-purple-300 text-purple-600 font-bold rounded-2xl hover:border-purple-500 hover:bg-purple-50 transition-all duration-200 group"
+                    className="mt-4 w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-red-300 text-red-600 font-bold rounded-2xl hover:border-red-500 hover:bg-red-50 transition-all duration-200 group"
                 >
                     <Plus className="w-5 h-5 group-hover:scale-110 transition-transform" />
                     Add Another Task
@@ -951,7 +951,7 @@ export default function MaintenanceTask() {
                             <p className="text-xs text-gray-400 mt-0.5">Preview will show all generated dates before confirming</p>
                         </div>
                         <div className="text-right">
-                            <span className="text-2xl font-black text-purple-600">{tasks.length}</span>
+                            <span className="text-2xl font-black text-red-600">{tasks.length}</span>
                             <p className="text-xs text-gray-400">Entries</p>
                         </div>
                     </div>
@@ -963,7 +963,7 @@ export default function MaintenanceTask() {
                             type="button"
                             onClick={handlePreview}
                             disabled={isSubmitting}
-                            className="flex-grow py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl shadow-md transform transition-all active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            className="flex-grow py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-md transform transition-all active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
                             {isSubmitting ? (
                                 <><Loader2 size={18} className="animate-spin" /> Generating...</>
@@ -986,7 +986,7 @@ export default function MaintenanceTask() {
                             </button>
                         </div>
                         <div className="p-5 overflow-y-auto flex-1">
-                            <div className="mb-4 bg-purple-50 text-purple-800 p-4 rounded-xl flex items-start gap-3">
+                            <div className="mb-4 bg-red-50 text-red-800 p-4 rounded-xl flex items-start gap-3">
                                 <FileCheck className="h-5 w-5 mt-0.5 flex-shrink-0" />
                                 <div>
                                     <p className="font-bold">Summary</p>
@@ -1005,7 +1005,7 @@ export default function MaintenanceTask() {
                                         <div className="flex flex-col flex-1">
                                             <div className="flex items-center justify-between">
                                                 <span className="text-gray-600 text-xs font-bold">{task.name}</span>
-                                                {task.machine_name && <span className="text-[10px] text-purple-600 font-black uppercase tracking-wider">{task.machine_name}</span>}
+                                                {task.machine_name && <span className="text-[10px] text-red-600 font-black uppercase tracking-wider">{task.machine_name}</span>}
                                             </div>
                                             <div className="flex items-center gap-2 mt-0.5">
                                                 {task.task_description && (
@@ -1014,7 +1014,7 @@ export default function MaintenanceTask() {
                                                     </span>
                                                 )}
                                                 {task.recordedAudio && (
-                                                    <span className="inline-flex items-center gap-1 text-[10px] text-purple-600 font-bold bg-purple-50 px-1.5 py-0.5 rounded">
+                                                    <span className="inline-flex items-center gap-1 text-[10px] text-red-600 font-bold bg-red-50 px-1.5 py-0.5 rounded">
                                                         <Mic className="w-2 h-2" /> Voice
                                                     </span>
                                                 )}
@@ -1034,7 +1034,7 @@ export default function MaintenanceTask() {
                             <button
                                 onClick={confirmSubmission}
                                 disabled={isSubmitting}
-                                className="flex-1 py-3 px-4 rounded-xl bg-purple-600 text-white font-bold hover:bg-purple-700 transition-colors shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
+                                className="flex-1 py-3 px-4 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 transition-colors shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
                             >
                                 {isSubmitting ? <><Loader2 size={16} className="animate-spin" /> Assigning...</> : <><Save size={16} /> Confirm & Assign</>}
                             </button>

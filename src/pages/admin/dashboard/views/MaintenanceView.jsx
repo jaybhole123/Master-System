@@ -245,7 +245,7 @@ export default function MaintenanceView({ stats: originalStats, chartData, tasks
                     <StatCard icon={CheckCircle} label="Tasks Complete" value={processedData?.completedCount || 0} color="bg-green-500" />
                     <StatCard icon={Clock} label="Tasks Pending" value={processedData?.pendingCount || 0} color="bg-amber-500" />
                     <StatCard icon={AlertTriangle} label="Tasks Overdue" value={processedData?.overdueCount || 0} color="bg-red-500" />
-                    <StatCard icon={IndianRupee} label="Total Cost" value={`₹${processedData?.totalCost || 0}`} color="bg-purple-500" />
+                    <StatCard icon={IndianRupee} label="Total Cost" value={`₹${processedData?.totalCost || 0}`} color="bg-red-500" />
                 </div>
 
                 {/* Charts Grid */}
@@ -359,7 +359,7 @@ export default function MaintenanceView({ stats: originalStats, chartData, tasks
                         <div className="flex items-center gap-2">
                             <FileText className="h-4 w-4 text-gray-400" />
                             <h3 className="text-base font-bold text-gray-800">Maintenance Tasks</h3>
-                            <span className="text-[10px] font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-100 uppercase tracking-wider">
+                            <span className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full border border-red-100 uppercase tracking-wider">
                                 {maintFilter}
                             </span>
                         </div>
@@ -370,7 +370,7 @@ export default function MaintenanceView({ stats: originalStats, chartData, tasks
                                     key={f}
                                     onClick={() => setMaintFilter(f)}
                                     className={`flex-1 sm:flex-none px-3 sm:px-4 py-1.5 text-[10px] font-extrabold rounded-md transition-all uppercase tracking-tight text-center ${maintFilter === f
-                                        ? 'bg-white text-purple-700 shadow-sm border border-gray-100'
+                                        ? 'bg-white text-red-700 shadow-sm border border-gray-100'
                                         : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                                         }`}
                                 >
@@ -539,7 +539,7 @@ export default function MaintenanceView({ stats: originalStats, chartData, tasks
                                                                     setViewerMedia({ url: task.uploaded_image_url, type: 'image' });
                                                                     setViewerOpen(true);
                                                                 }}
-                                                                className="inline-flex items-center gap-1 text-purple-600 hover:text-purple-800 font-medium text-xs hover:underline transition-colors"
+                                                                className="inline-flex items-center gap-1 text-red-600 hover:text-red-800 font-medium text-xs hover:underline transition-colors"
                                                             >
                                                                 <CheckCircle className="h-3 w-3" /> View
                                                             </button>

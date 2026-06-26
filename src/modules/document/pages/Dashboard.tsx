@@ -31,7 +31,7 @@ const StatCard = ({ title, value, icon: Icon, color, subtext, onClick, bgColor =
         <div className="relative z-10 flex justify-between items-start">
             <div>
                 <p className="text-gray-500 text-sm font-semibold tracking-wide uppercase">{title}</p>
-                <h3 className="text-3xl font-extrabold text-gray-900 mt-2 tracking-tight group-hover:text-indigo-600 transition-colors">{value}</h3>
+                <h3 className="text-3xl font-extrabold text-gray-900 mt-2 tracking-tight group-hover:text-red-600 transition-colors">{value}</h3>
                 {subtext && <p className="text-xs text-gray-400 mt-2 font-medium">{subtext}</p>}
             </div>
             <div className={`p-3 rounded-xl ${color} bg-opacity-10 group-hover:bg-opacity-20 transition-all`}>
@@ -244,7 +244,7 @@ const Dashboard = () => {
                                     {selectedStat.data.map((item, idx) => (
                                         <div key={idx} className="flex justify-between items-center p-4 hover:bg-gray-50 transition-colors">
                                             <span className="font-medium text-gray-700">{item.label}</span>
-                                            <span className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-bold">{item.count}</span>
+                                            <span className="px-3 py-1 bg-red-50 text-red-700 rounded-full text-xs font-bold">{item.count}</span>
                                         </div>
                                     ))}
                                 </div>
@@ -255,7 +255,7 @@ const Dashboard = () => {
                         <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end">
                             <button
                                 onClick={() => navigate(selectedStat.link)}
-                                className="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
+                                className="px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 transition-colors"
                             >
                                 View Full List
                             </button>
@@ -272,7 +272,7 @@ const Dashboard = () => {
                         title="Total Documents"
                         value={totalDocuments}
                         icon={FileText}
-                        color="bg-blue-500 text-blue-600"
+                        color="bg-red-500 text-red-600"
                         subtext="All stored records"
                         onClick={() => handleStatClick('documents')}
                     />
@@ -280,7 +280,7 @@ const Dashboard = () => {
                         title="Total Subscriptions"
                         value={totalSubscriptions}
                         icon={CreditCard}
-                        color="bg-purple-500 text-purple-600"
+                        color="bg-red-500 text-red-600"
                         subtext={`${new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(monthlySubscriptionCost)} / mo estimated`}
                         onClick={() => handleStatClick('subscriptions')}
                     />
@@ -311,7 +311,7 @@ const Dashboard = () => {
                         title="Pending Approvals"
                         value={pendingApprovals}
                         icon={CheckCircle}
-                        color="bg-indigo-500 text-indigo-600"
+                        color="bg-red-500 text-red-600"
                         subtext="Subscriptions waiting approval"
                         onClick={() => handleStatClick('approval', 'Pending Approvals', getPendingApprovalStats(), '/subscription/approval')}
                     />

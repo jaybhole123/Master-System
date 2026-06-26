@@ -162,7 +162,7 @@ const HolidayListPage = () => {
                 {/* Header Section */}
                 <div className="bg-white border-b border-gray-200 pb-5">
                     <div className="flex items-center gap-3">
-                        <div className="p-2 bg-blue-700 rounded text-white font-bold">
+                        <div className="p-2 bg-red-700 rounded text-white font-bold">
                             <CalendarIcon size={20} />
                         </div>
                         <div>
@@ -189,7 +189,7 @@ const HolidayListPage = () => {
                                     <input
                                         type="text"
                                         required
-                                        className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:border-blue-500 outline-none"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:border-red-500 outline-none"
                                         value={newHoliday.holiday_name}
                                         onChange={(e) => setNewHoliday({ ...newHoliday, holiday_name: e.target.value })}
                                     />
@@ -201,7 +201,7 @@ const HolidayListPage = () => {
                                     <input
                                         type="date"
                                         required
-                                        className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:border-blue-500 outline-none"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:border-red-500 outline-none"
                                         value={newHoliday.holiday_date}
                                         onChange={(e) => setNewHoliday({ ...newHoliday, holiday_date: e.target.value })}
                                     />
@@ -209,7 +209,7 @@ const HolidayListPage = () => {
                                 <button
                                     type="submit"
                                     disabled={isSubmitting}
-                                    className="w-full py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded font-bold text-xs transition-colors flex items-center justify-center gap-2"
+                                    className="w-full py-2.5 bg-red-700 hover:bg-red-800 text-white rounded font-bold text-xs transition-colors flex items-center justify-center gap-2"
                                 >
                                     {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : 'Save Record'}
                                 </button>
@@ -229,7 +229,7 @@ const HolidayListPage = () => {
                                     <input
                                         type="text"
                                         placeholder="Search..."
-                                        className="w-full pl-9 pr-3 py-1.5 border border-gray-300 rounded text-xs focus:border-blue-500 outline-none"
+                                        className="w-full pl-9 pr-3 py-1.5 border border-gray-300 rounded text-xs focus:border-red-500 outline-none"
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
                                     />

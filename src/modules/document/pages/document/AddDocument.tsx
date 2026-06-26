@@ -460,7 +460,7 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
                   <h3 className="text-xs font-bold tracking-wider text-gray-600 uppercase">
                     Document #{index + 1}
                     {index > 0 && (
-                      <span className="ml-2 text-xs font-normal text-indigo-600">
+                      <span className="ml-2 text-xs font-normal text-red-600">
                         (Auto-filled from previous)
                       </span>
                     )}
@@ -486,7 +486,7 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
                     <input
                       type="text"
                       required
-                      className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-indigo-500 bg-gray-50/50 focus:bg-white"
+                      className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
                       value={entry.documentName}
                       onChange={(e) =>
                         handleChange(entry.id, "documentName", e.target.value)
@@ -530,7 +530,7 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
                     </label>
                     <input
                       type="text"
-                      className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-indigo-500 bg-gray-50/50 focus:bg-white"
+                      className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
                       value={entry.name}
                       onChange={(e) =>
                         handleChange(entry.id, "name", e.target.value)
@@ -549,7 +549,7 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
                     <input
                       list="company-list"
                       placeholder="Type or select company"
-                      className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-indigo-500 bg-gray-50/50 focus:bg-white"
+                      className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
                       value={entry.companyName}
                       onChange={(e) =>
                         handleChange(entry.id, "companyName", e.target.value)
@@ -582,7 +582,7 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
                     <label className="flex gap-2 items-center cursor-pointer select-none">
                       <input
                         type="checkbox"
-                        className="w-3.5 h-3.5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                        className="w-3.5 h-3.5 text-red-600 rounded border-gray-300 focus:ring-red-500"
                         checked={entry.needsRenewal}
                         onChange={(e) =>
                           handleChange(
@@ -601,7 +601,7 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
                       <div className="flex-1">
                         <input
                           type="date"
-                          className="w-full p-1.5 text-xs shadow-input border-none rounded focus:ring-1 focus:ring-indigo-500 outline-none bg-white"
+                          className="w-full p-1.5 text-xs shadow-input border-none rounded focus:ring-1 focus:ring-red-500 outline-none bg-white"
                           value={entry.renewalDate || ""}
                           onChange={(e) =>
                             handleChange(
@@ -622,7 +622,7 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
                     </label>
                     <input
                       type="date"
-                      className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-indigo-500 bg-gray-50/50 focus:bg-white"
+                      className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
                       value={entry.issueDate}
                       onChange={(e) =>
                         handleChange(entry.id, "issueDate", e.target.value)
@@ -637,7 +637,7 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
                     </label>
                     <input
                       type="text"
-                      className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-indigo-500 bg-gray-50/50 focus:bg-white"
+                      className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
                       value={entry.concernPersonName || ""}
                       onChange={(e) =>
                         handleChange(
@@ -657,7 +657,7 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
                     </label>
                     <input
                       type="text"
-                      className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-indigo-500 bg-gray-50/50 focus:bg-white"
+                      className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
                       value={entry.concernPersonMobile}
                       onChange={(e) =>
                         handleChange(
@@ -677,7 +677,7 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
                     </label>
                     <input
                       type="text"
-                      className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-indigo-500 bg-gray-50/50 focus:bg-white"
+                      className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
                       value={entry.concernPersonDepartment}
                       onChange={(e) =>
                         handleChange(
@@ -703,7 +703,7 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
                       />
                       <label
                         htmlFor={`file-${entry.id}`}
-                        className="flex gap-2 justify-center items-center p-2 w-full text-gray-600 bg-white rounded-lg border border-gray-300 border-dashed transition-all cursor-pointer hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600"
+                        className="flex gap-2 justify-center items-center p-2 w-full text-gray-600 bg-white rounded-lg border border-gray-300 border-dashed transition-all cursor-pointer hover:bg-red-50 hover:border-red-300 hover:text-red-600"
                       >
                         <Upload size={14} />
                         <span className="text-xs font-medium truncate max-w-[180px]">
@@ -720,7 +720,7 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
               <button
                 type="button"
                 onClick={addEntry}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-full border border-indigo-200 text-indigo-600 text-xs font-bold hover:bg-indigo-50 transition-colors bg-white shadow-sm"
+                className="flex items-center gap-1.5 px-4 py-2 rounded-full border border-red-200 text-red-600 text-xs font-bold hover:bg-red-50 transition-colors bg-white shadow-sm"
               >
                 <Plus size={16} />
                 Add Another Document ({entries.length}/10)
@@ -743,9 +743,9 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
             type="submit"
             form="add-doc-form"
             disabled={isSubmitting}
-            className={`flex-[2] flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-white text-sm font-bold transition-all shadow-md shadow-indigo-100 ${isSubmitting
-              ? "bg-indigo-400 cursor-not-allowed"
-              : "bg-indigo-600 hover:bg-indigo-700"
+            className={`flex-[2] flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-white text-sm font-bold transition-all shadow-md shadow-red-100 ${isSubmitting
+              ? "bg-red-400 cursor-not-allowed"
+              : "bg-red-600 hover:bg-red-700"
               }`}
           >
             {isSubmitting ? (

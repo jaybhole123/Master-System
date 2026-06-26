@@ -191,7 +191,7 @@ const AddLoan: React.FC<AddLoanProps> = ({ isOpen, onClose }) => {
                 <input
                   type="text"
                   required
-                  className="w-full p-2.5 shadow-input border-none rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                  className="w-full p-2.5 shadow-input border-none rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition-all"
                   value={formData.loanName}
                   onChange={e => setFormData({ ...formData, loanName: e.target.value })}
                   placeholder="e.g. Home Loan"
@@ -202,7 +202,7 @@ const AddLoan: React.FC<AddLoanProps> = ({ isOpen, onClose }) => {
                 <input
                   type="text"
                   required
-                  className="w-full p-2.5 shadow-input border-none rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                  className="w-full p-2.5 shadow-input border-none rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition-all"
                   value={formData.bankName}
                   onChange={e => setFormData({ ...formData, bankName: e.target.value })}
                   placeholder="e.g. HDFC Bank"
@@ -216,7 +216,7 @@ const AddLoan: React.FC<AddLoanProps> = ({ isOpen, onClose }) => {
                 <input
                   type="text"
                   required
-                  className="w-full p-2.5 shadow-input border-none rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                  className="w-full p-2.5 shadow-input border-none rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition-all"
                   value={formData.amount}
                   onChange={e => setFormData({ ...formData, amount: e.target.value })}
                   placeholder="e.g. ₹50,00,000"
@@ -227,7 +227,7 @@ const AddLoan: React.FC<AddLoanProps> = ({ isOpen, onClose }) => {
                 <input
                   type="text"
                   required
-                  className="w-full p-2.5 shadow-input border-none rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                  className="w-full p-2.5 shadow-input border-none rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition-all"
                   value={formData.emi}
                   onChange={e => setFormData({ ...formData, emi: e.target.value })}
                   placeholder="e.g. ₹45,000"
@@ -241,7 +241,7 @@ const AddLoan: React.FC<AddLoanProps> = ({ isOpen, onClose }) => {
                 <input
                   type="date"
                   required
-                  className="w-full p-2.5 shadow-input border-none rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all cursor-pointer"
+                  className="w-full p-2.5 shadow-input border-none rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition-all cursor-pointer"
                   value={formData.startDate}
                   onChange={e => setFormData({ ...formData, startDate: e.target.value })}
                 />
@@ -251,7 +251,7 @@ const AddLoan: React.FC<AddLoanProps> = ({ isOpen, onClose }) => {
                 <input
                   type="date"
                   required
-                  className="w-full p-2.5 shadow-input border-none rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all cursor-pointer"
+                  className="w-full p-2.5 shadow-input border-none rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition-all cursor-pointer"
                   value={formData.endDate}
                   onChange={e => setFormData({ ...formData, endDate: e.target.value })}
                 />
@@ -264,7 +264,7 @@ const AddLoan: React.FC<AddLoanProps> = ({ isOpen, onClose }) => {
                 <input
                   type="text"
                   required
-                  className="w-full p-2.5 shadow-input border-none rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                  className="w-full p-2.5 shadow-input border-none rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition-all"
                   value={formData.providedDocument}
                   onChange={e => setFormData({ ...formData, providedDocument: e.target.value })}
                   placeholder="e.g. Property Deed"
@@ -274,7 +274,7 @@ const AddLoan: React.FC<AddLoanProps> = ({ isOpen, onClose }) => {
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">Upload Document</label>
                 <input
                   type="file"
-                  className="w-full p-2 shadow-input border-none rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                  className="w-full p-2 shadow-input border-none rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition-all file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"
                   onChange={handleFileChange}
                 />
                 {formData.file && <p className="text-xs text-green-600 mt-1">Selected: {formData.file}</p>}
@@ -285,7 +285,7 @@ const AddLoan: React.FC<AddLoanProps> = ({ isOpen, onClose }) => {
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">Remarks</label>
               <input
                 type="text"
-                className="w-full p-2.5 shadow-input border-none rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                className="w-full p-2.5 shadow-input border-none rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition-all"
                 value={formData.remarks}
                 onChange={e => setFormData({ ...formData, remarks: e.target.value })}
                 placeholder="Optional remarks"
@@ -308,7 +308,7 @@ const AddLoan: React.FC<AddLoanProps> = ({ isOpen, onClose }) => {
             type="submit"
             form="add-loan-form"
             disabled={isSubmitting}
-            className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-red-600 text-white font-medium hover:bg-red-700 transition-all shadow-lg shadow-red-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? (
               <>

@@ -370,19 +370,19 @@ export default function RepairView({ tasks = [] }) {
             {/* Modal */}
             {isModalOpen && selectedTask && (
                 <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-lg shadow-xl w-full max-w-lg overflow-hidden animate-fade-in border border-purple-100">
-                        <div className="bg-gradient-to-r from-purple-50 to-pink-50 px-6 py-4 border-b border-purple-100 flex justify-between items-center">
-                            <h3 className="text-sm font-bold text-purple-800 uppercase">Update Ticket #{selectedTask.id}</h3>
-                            <button onClick={() => setIsModalOpen(false)} className="text-purple-400 hover:text-purple-600"><X className="w-5 h-5" /></button>
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-lg overflow-hidden animate-fade-in border border-red-100">
+                        <div className="bg-gradient-to-r from-red-50 to-pink-50 px-6 py-4 border-b border-red-100 flex justify-between items-center">
+                            <h3 className="text-sm font-bold text-red-800 uppercase">Update Ticket #{selectedTask.id}</h3>
+                            <button onClick={() => setIsModalOpen(false)} className="text-red-400 hover:text-red-600"><X className="w-5 h-5" /></button>
                         </div>
                         <form onSubmit={handleUpdateSubmit} className="p-6">
-                            <div className="bg-purple-50 rounded border border-purple-200 p-3 mb-6 flex gap-4 text-sm">
+                            <div className="bg-red-50 rounded border border-red-200 p-3 mb-6 flex gap-4 text-sm">
                                 <div className="flex-1">
-                                    <span className="block text-xs font-bold text-purple-500 uppercase mb-1">Machine</span>
+                                    <span className="block text-xs font-bold text-red-500 uppercase mb-1">Machine</span>
                                     <span className="text-gray-800 font-medium">{selectedTask.machine_name}</span>
                                 </div>
                                 <div className="flex-[2]">
-                                    <span className="block text-xs font-bold text-purple-500 uppercase mb-1">Issue</span>
+                                    <span className="block text-xs font-bold text-red-500 uppercase mb-1">Issue</span>
                                     {isAudioUrl(selectedTask.issue_description) ? (
                                         <AudioPlayer url={selectedTask.issue_description} />
                                     ) : (
@@ -393,7 +393,7 @@ export default function RepairView({ tasks = [] }) {
                             <div className="space-y-4">
                                 <div>
                                     <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Status <span className="text-red-500">*</span></label>
-                                    <select className="w-full p-2 text-sm border border-gray-300 rounded focus:border-purple-500 outline-none" value={updateForm.status} onChange={(e) => setUpdateForm({ ...updateForm, status: e.target.value })}>
+                                    <select className="w-full p-2 text-sm border border-gray-300 rounded focus:border-red-500 outline-none" value={updateForm.status} onChange={(e) => setUpdateForm({ ...updateForm, status: e.target.value })}>
                                         <option value="">Select Status...</option>
                                         <option value="✅ Completed (कार्य पूर्ण)">✅ Completed</option>
                                         <option value="⏳ Pending (लंबित कार्य)">⏳ Pending</option>
@@ -405,21 +405,21 @@ export default function RepairView({ tasks = [] }) {
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Part</label>
-                                        <input className="w-full p-2 text-sm border border-gray-300 rounded outline-none focus:border-purple-500" value={updateForm.partReplaced} onChange={(e) => setUpdateForm({ ...updateForm, partReplaced: e.target.value })} />
+                                        <input className="w-full p-2 text-sm border border-gray-300 rounded outline-none focus:border-red-500" value={updateForm.partReplaced} onChange={(e) => setUpdateForm({ ...updateForm, partReplaced: e.target.value })} />
                                     </div>
                                     <div>
                                         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Bill (₹)</label>
-                                        <input type="number" className="w-full p-2 text-sm border border-gray-300 rounded outline-none focus:border-purple-500" value={updateForm.billAmount} onChange={(e) => setUpdateForm({ ...updateForm, billAmount: e.target.value })} />
+                                        <input type="number" className="w-full p-2 text-sm border border-gray-300 rounded outline-none focus:border-red-500" value={updateForm.billAmount} onChange={(e) => setUpdateForm({ ...updateForm, billAmount: e.target.value })} />
                                     </div>
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Remarks</label>
-                                    <textarea className="w-full p-2 text-sm border border-gray-300 rounded outline-none focus:border-purple-500" rows="2" value={updateForm.remarks} onChange={(e) => setUpdateForm({ ...updateForm, remarks: e.target.value })}></textarea>
+                                    <textarea className="w-full p-2 text-sm border border-gray-300 rounded outline-none focus:border-red-500" rows="2" value={updateForm.remarks} onChange={(e) => setUpdateForm({ ...updateForm, remarks: e.target.value })}></textarea>
                                 </div>
                             </div>
                             <div className="flex justify-end gap-3 pt-6 mt-2 border-t border-gray-100">
                                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded hover:bg-gray-50 text-sm">Cancel</button>
-                                <button type="submit" disabled={isSubmitting} className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded text-sm flex items-center gap-2">{isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save</button>
+                                <button type="submit" disabled={isSubmitting} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded text-sm flex items-center gap-2">{isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save</button>
                             </div>
                         </form>
                     </div>

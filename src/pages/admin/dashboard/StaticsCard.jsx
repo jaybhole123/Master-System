@@ -102,12 +102,12 @@ export default function StatisticsCards({
 
       {/* Right side - Circular Progress Graph */}
       <div className="lg:w-1/2">
-        <div className="rounded-2xl border border-indigo-100 shadow-xl bg-white h-full flex flex-col">
-          <div className="flex flex-row items-center justify-between space-y-0 bg-gradient-to-r from-indigo-50 to-indigo-100/50 p-4 rounded-t-2xl border-b border-indigo-100">
-            <h3 className="text-sm font-black text-indigo-900 uppercase tracking-widest">
+        <div className="rounded-2xl border border-red-100 shadow-xl bg-white h-full flex flex-col">
+          <div className="flex flex-row items-center justify-between space-y-0 bg-gradient-to-r from-red-50 to-red-100/50 p-4 rounded-t-2xl border-b border-red-100">
+            <h3 className="text-sm font-black text-red-900 uppercase tracking-widest">
               {dateRange ? "Period Analytics" : "Compliance Overview"}
             </h3>
-            <div className="px-2 py-0.5 bg-indigo-200 text-indigo-800 text-[10px] font-black rounded-full">
+            <div className="px-2 py-0.5 bg-red-200 text-red-800 text-[10px] font-black rounded-full">
               LIVE
             </div>
           </div>
@@ -162,7 +162,7 @@ export default function StatisticsCards({
                 {/* Percentage text in center */}
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center">
-                    <div className="text-2xl sm:text-3xl font-black text-indigo-900 leading-none">
+                    <div className="text-2xl sm:text-3xl font-black text-red-900 leading-none">
                       {completionRate.toFixed(1)}%
                     </div>
                     <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">

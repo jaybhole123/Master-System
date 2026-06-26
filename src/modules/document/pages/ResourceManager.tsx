@@ -21,7 +21,7 @@ const ResourceManager = () => {
           onClick={() => setActiveTab('documents')}
           className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-medium transition-all ${
             activeTab === 'documents'
-              ? 'bg-indigo-50 text-indigo-700 shadow-sm border border-indigo-100'
+              ? 'bg-red-50 text-red-700 shadow-sm border border-red-100'
               : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
           }`}
         >
@@ -32,7 +32,7 @@ const ResourceManager = () => {
           onClick={() => setActiveTab('subscriptions')}
           className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-medium transition-all ${
             activeTab === 'subscriptions'
-              ? 'bg-indigo-50 text-indigo-700 shadow-sm border border-indigo-100'
+              ? 'bg-red-50 text-red-700 shadow-sm border border-red-100'
               : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
           }`}
         >

@@ -358,13 +358,13 @@ function DelegationPage({
     <>
       {/* Main Content */}
       {isInitialized && (
-        <div className="mt-4 rounded-lg border border-purple-200 shadow-md bg-white overflow-hidden">
-          <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-b border-purple-100 p-4 flex justify-between items-center">
+        <div className="mt-4 rounded-lg border border-red-200 shadow-md bg-white overflow-hidden">
+          <div className="bg-gradient-to-r from-red-50 to-pink-50 border-b border-red-100 p-4 flex justify-between items-center">
             <div>
-              <h2 className="text-purple-700 font-medium">
+              <h2 className="text-red-700 font-medium">
                 {departmentFilter ? `${departmentFilter} Tasks` : "Delegation Tasks"}
               </h2>
-              <p className="text-purple-600 text-sm">
+              <p className="text-red-600 text-sm">
                 Manage your {departmentFilter ? departmentFilter.toLowerCase() : "delegation"} tasks ({filteredTasks.length})
               </p>
             </div>
@@ -373,7 +373,7 @@ function DelegationPage({
               <button
                 onClick={handleDeleteSelected}
                 disabled={isDeleting}
-                className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50 shadow-sm transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 shadow-sm transition-colors"
               >
                 <Trash2 size={16} />
                 {isDeleting ? 'Deleting...' : `Delete (${selectedTasks.length})`}
@@ -394,7 +394,7 @@ function DelegationPage({
                       type="checkbox"
                       checked={selectedTasks.length === filteredTasks.length && filteredTasks.length > 0}
                       onChange={handleSelectAll}
-                      className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                      className="rounded border-gray-300 text-red-600 focus:ring-red-500"
                     />
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
@@ -442,7 +442,7 @@ function DelegationPage({
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredTasks.length > 0 ? (
                   filteredTasks.map((task, index) => (
-                    <tr key={index} className={`hover:bg-gray-50 ${selectedTasks.find(t => t.id === task.id) ? "bg-purple-50" : ""}`}>
+                    <tr key={index} className={`hover:bg-gray-50 ${selectedTasks.find(t => t.id === task.id) ? "bg-red-50" : ""}`}>
                       <td className="px-2 sm:px-3 py-2 sm:py-4 w-16">
                         <div className="text-xs sm:text-sm font-medium text-gray-900 text-center">
                           {index + 1}
@@ -453,7 +453,7 @@ function DelegationPage({
                           type="checkbox"
                           checked={!!selectedTasks.find(t => t.id === task.id)}
                           onChange={() => handleCheckboxChange(task)}
-                          className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                          className="rounded border-gray-300 text-red-600 focus:ring-red-500"
                         />
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-xs font-bold">
@@ -503,7 +503,7 @@ function DelegationPage({
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${task.frequency === 'Daily' ? 'bg-blue-100 text-blue-800' :
                           task.frequency === 'Weekly' ? 'bg-green-100 text-green-800' :
-                            task.frequency === 'Monthly' ? 'bg-purple-100 text-purple-800' :
+                            task.frequency === 'Monthly' ? 'bg-red-100 text-red-800' :
                               'bg-gray-100 text-gray-800'
                           }`}>
                           {task.frequency || "—"}
@@ -529,7 +529,7 @@ function DelegationPage({
                     <td colSpan={12} className="px-6 py-8 text-center text-gray-500">
                       {loading ? (
                         <div className="flex flex-col items-center justify-center">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mb-2"></div>
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mb-2"></div>
                           <p>Loading tasks from database...</p>
                         </div>
                       ) : (
@@ -545,7 +545,7 @@ function DelegationPage({
             <div className="md:hidden divide-y divide-gray-100">
               {filteredTasks.length > 0 ? (
                 filteredTasks.map((task, index) => (
-                  <div key={index} className={`p-5 bg-white space-y-4 ${selectedTasks.find(t => t.id === task.id) ? "bg-purple-50/50" : ""}`}>
+                  <div key={index} className={`p-5 bg-white space-y-4 ${selectedTasks.find(t => t.id === task.id) ? "bg-red-50/50" : ""}`}>
                     <div className="flex justify-between items-start gap-4">
                       <div className="flex items-center gap-3">
                         <span className="text-xs font-black text-gray-300">{(index + 1).toString().padStart(2, '0')}</span>
@@ -553,15 +553,15 @@ function DelegationPage({
                           type="checkbox"
                           checked={!!selectedTasks.find(t => t.id === task.id)}
                           onChange={() => handleCheckboxChange(task)}
-                          className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                          className="rounded border-gray-300 text-red-600 focus:ring-red-500"
                         />
                       </div>
                       <div className="flex-grow min-w-0">
                         <div className="flex justify-between items-center mb-1">
-                          <span className="text-[10px] font-black text-purple-500 uppercase tracking-wider">#{task.id || 'N/A'}</span>
+                          <span className="text-[10px] font-black text-red-500 uppercase tracking-wider">#{task.id || 'N/A'}</span>
                           <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tight ${task.frequency === 'Daily' ? 'bg-blue-100 text-blue-800' :
                             task.frequency === 'Weekly' ? 'bg-green-100 text-green-800' :
-                              'bg-purple-100 text-purple-800'
+                              'bg-red-100 text-red-800'
                             }`}>
                             {task.frequency || 'Manual'}
                           </span>

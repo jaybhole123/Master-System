@@ -166,9 +166,9 @@ const AddBG: React.FC<AddBGProps> = ({ isOpen, onClose }) => {
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto">
       <div className="relative w-full max-w-3xl bg-white rounded-2xl shadow-2xl my-8 overflow-hidden">
         {/* Modal Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-gradient-to-r from-indigo-50 to-blue-50">
+        <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-gradient-to-r from-red-50 to-red-50">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-indigo-600 rounded-lg">
+            <div className="p-2 bg-red-600 rounded-lg">
               <FileText size={20} className="text-white" />
             </div>
             <div>
@@ -195,14 +195,14 @@ const AddBG: React.FC<AddBGProps> = ({ isOpen, onClose }) => {
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">
                     <div className="flex items-center gap-2">
-                      <FileText size={14} className="text-indigo-600" />
+                      <FileText size={14} className="text-red-600" />
                       BG Name <span className="text-red-500">*</span>
                     </div>
                   </label>
                   <input
                     type="text"
                     required
-                    className="w-full p-2.5 shadow-input border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all bg-gray-50/50"
+                    className="w-full p-2.5 shadow-input border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all bg-gray-50/50"
                     value={formData.bgName}
                     onChange={e => setFormData({ ...formData, bgName: e.target.value })}
                     placeholder="e.g. Performance Guarantee"
@@ -212,14 +212,14 @@ const AddBG: React.FC<AddBGProps> = ({ isOpen, onClose }) => {
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">
                     <div className="flex items-center gap-2">
-                      <FileText size={14} className="text-indigo-600" />
+                      <FileText size={14} className="text-red-600" />
                       BG No <span className="text-red-500">*</span>
                     </div>
                   </label>
                   <input
                     type="text"
                     required
-                    className="w-full p-2.5 shadow-input border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all bg-gray-50/50"
+                    className="w-full p-2.5 shadow-input border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all bg-gray-50/50"
                     value={formData.bgNo}
                     onChange={e => setFormData({ ...formData, bgNo: e.target.value })}
                     placeholder="e.g. BG/2024/001"
@@ -231,14 +231,14 @@ const AddBG: React.FC<AddBGProps> = ({ isOpen, onClose }) => {
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">
                   <div className="flex items-center gap-2">
-                    <Building size={14} className="text-indigo-600" />
+                    <Building size={14} className="text-red-600" />
                     Bank Name <span className="text-red-500">*</span>
                   </div>
                 </label>
                 <input
                   type="text"
                   required
-                  className="w-full p-2.5 shadow-input border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all bg-gray-50/50"
+                  className="w-full p-2.5 shadow-input border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all bg-gray-50/50"
                   value={formData.bankName}
                   onChange={e => setFormData({ ...formData, bankName: e.target.value })}
                   placeholder="e.g. HDFC Bank, ICICI Bank, SBI"
@@ -249,14 +249,14 @@ const AddBG: React.FC<AddBGProps> = ({ isOpen, onClose }) => {
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">
                   <div className="flex items-center gap-2">
-                    <IndianRupee size={14} className="text-indigo-600" />
+                    <IndianRupee size={14} className="text-red-600" />
                     Amount <span className="text-red-500">*</span>
                   </div>
                 </label>
                 <input
                   type="text"
                   required
-                  className="w-full p-2.5 shadow-input border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all bg-gray-50/50"
+                  className="w-full p-2.5 shadow-input border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all bg-gray-50/50"
                   value={formData.amount}
                   onChange={e => setFormData({ ...formData, amount: e.target.value })}
                   placeholder="e.g. ₹10,00,000"
@@ -272,14 +272,14 @@ const AddBG: React.FC<AddBGProps> = ({ isOpen, onClose }) => {
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">
                     <div className="flex items-center gap-2">
-                      <Calendar size={14} className="text-indigo-600" />
+                      <Calendar size={14} className="text-red-600" />
                       BG Start Date <span className="text-red-500">*</span>
                     </div>
                   </label>
                   <input
                     type="date"
                     required
-                    className="w-full p-2.5 shadow-input border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all bg-gray-50/50 cursor-pointer"
+                    className="w-full p-2.5 shadow-input border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all bg-gray-50/50 cursor-pointer"
                     value={formData.startDate}
                     onChange={e => setFormData({ ...formData, startDate: e.target.value })}
                     disabled={isSubmitting}
@@ -288,14 +288,14 @@ const AddBG: React.FC<AddBGProps> = ({ isOpen, onClose }) => {
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">
                     <div className="flex items-center gap-2">
-                      <Calendar size={14} className="text-indigo-600" />
+                      <Calendar size={14} className="text-red-600" />
                       BG End Date <span className="text-red-500">*</span>
                     </div>
                   </label>
                   <input
                     type="date"
                     required
-                    className="w-full p-2.5 shadow-input border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all bg-gray-50/50 cursor-pointer"
+                    className="w-full p-2.5 shadow-input border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all bg-gray-50/50 cursor-pointer"
                     value={formData.endDate}
                     onChange={e => setFormData({ ...formData, endDate: e.target.value })}
                     disabled={isSubmitting}
@@ -306,13 +306,13 @@ const AddBG: React.FC<AddBGProps> = ({ isOpen, onClose }) => {
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">
                   <div className="flex items-center gap-2">
-                    <Calendar size={14} className="text-indigo-600" />
+                    <Calendar size={14} className="text-red-600" />
                     BG Extend Expiry Date <span className="text-gray-400 text-xs">(Optional)</span>
                   </div>
                 </label>
                 <input
                   type="date"
-                  className="w-full p-2.5 shadow-input border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all bg-gray-50/50 cursor-pointer"
+                  className="w-full p-2.5 shadow-input border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all bg-gray-50/50 cursor-pointer"
                   value={formData.extendExpiryDate}
                   onChange={e => setFormData({ ...formData, extendExpiryDate: e.target.value })}
                   disabled={isSubmitting}
@@ -327,7 +327,7 @@ const AddBG: React.FC<AddBGProps> = ({ isOpen, onClose }) => {
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">Remarks <span className="text-gray-400 text-xs">(Optional)</span></label>
                 <input
                   type="text"
-                  className="w-full p-2.5 shadow-input border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all bg-gray-50/50"
+                  className="w-full p-2.5 shadow-input border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all bg-gray-50/50"
                   value={formData.remarks}
                   onChange={e => setFormData({ ...formData, remarks: e.target.value })}
                   placeholder="Any additional remarks or notes"
@@ -338,11 +338,11 @@ const AddBG: React.FC<AddBGProps> = ({ isOpen, onClose }) => {
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">
                   <div className="flex items-center gap-2">
-                    <FileText size={14} className="text-indigo-600" />
+                    <FileText size={14} className="text-red-600" />
                     Upload Document <span className="text-gray-400 text-xs">(Optional, Max 50MB)</span>
                   </div>
                 </label>
-                <div className="border-2 border-dashed border-gray-200 rounded-xl p-4 hover:border-indigo-400 transition-colors bg-gray-50/50">
+                <div className="border-2 border-dashed border-gray-200 rounded-xl p-4 hover:border-red-400 transition-colors bg-gray-50/50">
                   <input
                     type="file"
                     className="w-full"
@@ -376,7 +376,7 @@ const AddBG: React.FC<AddBGProps> = ({ isOpen, onClose }) => {
             type="submit"
             form="add-bg-form"
             disabled={isSubmitting}
-            className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-semibold hover:from-indigo-700 hover:to-blue-700 transition-all shadow-lg shadow-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-r from-red-600 to-red-600 text-white font-semibold hover:from-red-700 hover:to-red-700 transition-all shadow-lg shadow-red-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? (
               <>

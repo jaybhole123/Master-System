@@ -44,7 +44,7 @@ const AddMaster: React.FC<AddMasterProps> = ({ isOpen, onClose }) => {
                  {/* Modal Header */}
                  <div className="flex items-center justify-between p-6 border-b border-gray-100">
                     <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                        <Building2 className="text-indigo-600" size={24} />
+                        <Building2 className="text-red-600" size={24} />
                         Add Master Record
                     </h2>
                     <button 
@@ -63,7 +63,7 @@ const AddMaster: React.FC<AddMasterProps> = ({ isOpen, onClose }) => {
                             <input
                                 type="text"
                                 required
-                                className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all placeholder:text-gray-400"
+                                className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition-all placeholder:text-gray-400"
                                 value={formData.companyName}
                                 onChange={e => setFormData({...formData, companyName: e.target.value})}
                                 placeholder="e.g. Acme Corp"
@@ -74,7 +74,7 @@ const AddMaster: React.FC<AddMasterProps> = ({ isOpen, onClose }) => {
                             <input
                                 type="text"
                                 required
-                                className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all placeholder:text-gray-400"
+                                className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition-all placeholder:text-gray-400"
                                 value={formData.documentType}
                                 onChange={e => setFormData({...formData, documentType: e.target.value})}
                                 placeholder="e.g. Invoice"
@@ -106,7 +106,7 @@ const AddMaster: React.FC<AddMasterProps> = ({ isOpen, onClose }) => {
                     <button
                         type="submit"
                         form="add-master-form"
-                        className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200"
+                        className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-red-600 text-white font-medium hover:bg-red-700 transition-all shadow-lg shadow-red-200"
                     >
                         <Save size={18} />
                         Save Record

@@ -1075,7 +1075,7 @@ const AllTasks = () => {
                     placeholder={showHistory ? "Search history..." : "Search..."}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-9 pr-4 py-1.5 border border-gray-200/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 text-xs bg-white/80"
+                    className="w-full pl-9 pr-4 py-1.5 border border-gray-200/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-400 text-xs bg-white/80"
                   />
                 </div>
 
@@ -1087,7 +1087,7 @@ const AllTasks = () => {
                       setStartDate("");
                       setEndDate("");
                     }}
-                    className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-gray-600 bg-white border border-gray-200/80 rounded-xl hover:bg-gray-50 hover:text-purple-600 transition-all shadow-sm"
+                    className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-gray-600 bg-white border border-gray-200/80 rounded-xl hover:bg-gray-50 hover:text-red-600 transition-all shadow-sm"
                   >
                     {showHistory ? (
                       <><ArrowLeft className="h-4 w-4" /><span>Live</span></>
@@ -1100,7 +1100,7 @@ const AllTasks = () => {
                   <div className="relative">
                     <button
                       onClick={() => setDropdownOpen(prev => ({ ...prev, userFilter: !prev.userFilter }))}
-                      className={`flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-xl border transition-all shadow-sm ${userFilter !== 'all' ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-600 border-gray-200'}`}
+                      className={`flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-xl border transition-all shadow-sm ${userFilter !== 'all' ? 'bg-red-600 text-white border-red-600' : 'bg-white text-gray-600 border-gray-200'}`}
                     >
                       <Users className="h-3.5 w-3.5" />
                       <span className="capitalize">{userFilter === 'all' ? 'All Users' : userFilter}</span>
@@ -1114,7 +1114,7 @@ const AllTasks = () => {
                             setSelectedItems(new Set());
                             setDropdownOpen(prev => ({ ...prev, userFilter: false }));
                           }}
-                          className={`block w-full text-left px-4 py-2 text-xs font-bold transition-colors ${userFilter === "all" ? 'bg-purple-50 text-purple-700 border-l-2 border-purple-500' : 'text-gray-600 hover:bg-gray-50'}`}
+                          className={`block w-full text-left px-4 py-2 text-xs font-bold transition-colors ${userFilter === "all" ? 'bg-red-50 text-red-700 border-l-2 border-red-500' : 'text-gray-600 hover:bg-gray-50'}`}
                         >
                           All Users
                         </button>
@@ -1126,7 +1126,7 @@ const AllTasks = () => {
                               setSelectedItems(new Set());
                               setDropdownOpen(prev => ({ ...prev, userFilter: false }));
                             }}
-                            className={`block w-full text-left px-4 py-2 text-xs font-bold transition-colors ${userFilter === name ? 'bg-purple-50 text-purple-700 border-l-2 border-purple-500' : 'text-gray-600 hover:bg-gray-50'}`}
+                            className={`block w-full text-left px-4 py-2 text-xs font-bold transition-colors ${userFilter === name ? 'bg-red-50 text-red-700 border-l-2 border-red-500' : 'text-gray-600 hover:bg-gray-50'}`}
                           >
                             {name}
                           </button>
@@ -1140,7 +1140,7 @@ const AllTasks = () => {
                       <div className="relative">
                         <button
                           onClick={() => setDropdownOpen(prev => ({ ...prev, dateFilter: !prev.dateFilter }))}
-                          className={`flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-xl border transition-all shadow-sm ${dateFilter !== 'all' ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-600 border-gray-200'}`}
+                          className={`flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-xl border transition-all shadow-sm ${dateFilter !== 'all' ? 'bg-red-600 text-white border-red-600' : 'bg-white text-gray-600 border-gray-200'}`}
                         >
                           <Filter className="h-3 w-3" />
                           <span className="capitalize">{dateFilter}</span>
@@ -1161,7 +1161,7 @@ const AllTasks = () => {
                                   setSelectedItems(new Set());
                                   setDropdownOpen(prev => ({ ...prev, dateFilter: false }));
                                 }}
-                                className={`block w-full text-left px-4 py-2 text-xs font-bold transition-colors ${dateFilter === filter.id ? 'bg-purple-50 text-purple-700 border-l-2 border-purple-500' : 'text-gray-600 hover:bg-gray-50'}`}
+                                className={`block w-full text-left px-4 py-2 text-xs font-bold transition-colors ${dateFilter === filter.id ? 'bg-red-50 text-red-700 border-l-2 border-red-500' : 'text-gray-600 hover:bg-gray-50'}`}
                               >
                                 {filter.label}
                               </button>
@@ -1183,7 +1183,7 @@ const AllTasks = () => {
                         <button
                           onClick={handleSubmit}
                           disabled={selectedItems.size === 0 || isSubmitting}
-                          className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-white bg-purple-600 rounded-xl hover:bg-purple-700 disabled:opacity-40 shadow-md shadow-purple-600/10 transition-all"
+                          className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-white bg-red-600 rounded-xl hover:bg-red-700 disabled:opacity-40 shadow-md shadow-red-600/10 transition-all"
                         >
                           {isSubmitting ? "..." : `Submit (${selectedItems.size})`}
                         </button>
@@ -1217,8 +1217,8 @@ const AllTasks = () => {
         <div className="rounded-xl border border-gray-200 shadow-sm bg-white overflow-hidden">
 
           {showHistory && (
-            <div className="p-3 sm:p-4 border-b border-purple-100 bg-gray-50 flex flex-col sm:flex-row gap-3 items-center">
-              <span className="text-xs sm:text-sm font-medium text-purple-700 whitespace-nowrap">Filter by Range:</span>
+            <div className="p-3 sm:p-4 border-b border-red-100 bg-gray-50 flex flex-col sm:flex-row gap-3 items-center">
+              <span className="text-xs sm:text-sm font-medium text-red-700 whitespace-nowrap">Filter by Range:</span>
               <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                 <div className="flex items-center gap-1">
                   <span className="text-xs text-gray-500">From</span>
@@ -1226,7 +1226,7 @@ const AllTasks = () => {
                     type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="text-xs sm:text-sm border border-gray-200 rounded-md p-1 focus:ring-1 focus:ring-purple-400 outline-none"
+                    className="text-xs sm:text-sm border border-gray-200 rounded-md p-1 focus:ring-1 focus:ring-red-400 outline-none"
                   />
                 </div>
                 <div className="flex items-center gap-1">
@@ -1235,7 +1235,7 @@ const AllTasks = () => {
                     type="date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className="text-xs sm:text-sm border border-gray-200 rounded-md p-1 focus:ring-1 focus:ring-purple-400 outline-none"
+                    className="text-xs sm:text-sm border border-gray-200 rounded-md p-1 focus:ring-1 focus:ring-red-400 outline-none"
                   />
                 </div>
                 {(startDate || endDate) && (
@@ -1248,13 +1248,13 @@ const AllTasks = () => {
           <div className="min-h-[300px]">
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-20">
-                <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-purple-500 mb-2"></div>
-                <p className="text-purple-600 text-sm font-bold uppercase tracking-wider">Loading data...</p>
+                <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-red-500 mb-2"></div>
+                <p className="text-red-600 text-sm font-bold uppercase tracking-wider">Loading data...</p>
               </div>
             ) : error ? (
               <div className="py-20 text-center">
                 <p className="text-red-500 mb-2 font-medium">{error}</p>
-                <button onClick={fetchData} className="text-sm text-purple-600 underline">Try again</button>
+                <button onClick={fetchData} className="text-sm text-red-600 underline">Try again</button>
               </div>
             ) : (
               <>
@@ -1273,7 +1273,7 @@ const AllTasks = () => {
                                 return submittableTasks.length > 0 && submittableTasks.every(t => selectedItems.has(t.id));
                               })()}
                               onChange={handleSelectAll}
-                              className="h-4 w-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500 disabled:opacity-30"
+                              className="h-4 w-4 text-red-600 border-gray-300 rounded focus:ring-red-500 disabled:opacity-30"
                             />
                           </th>
                         )}
@@ -1328,7 +1328,7 @@ const AllTasks = () => {
                                   checked={selectedItems.has(task.id)}
                                   onChange={(e) => handleSelectItem(task.id, e.target.checked)}
                                   disabled={getTimeStatus(task[statusDateColumn], task.status) === "Upcoming"}
-                                  className="h-4 w-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500 disabled:opacity-30 disabled:cursor-not-allowed"
+                                  className="h-4 w-4 text-red-600 border-gray-300 rounded focus:ring-red-500 disabled:opacity-30 disabled:cursor-not-allowed"
                                 />
                               </td>
                             )}
@@ -1393,12 +1393,12 @@ const AllTasks = () => {
                                       {task.work_photo_url || task.bill_copy_url ? (
                                         <div className="flex flex-col gap-1">
                                           {task.work_photo_url && (
-                                            <a href={task.work_photo_url} target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:underline text-xs">
+                                            <a href={task.work_photo_url} target="_blank" rel="noopener noreferrer" className="text-red-600 hover:underline text-xs">
                                               View Work Photo
                                             </a>
                                           )}
                                           {task.bill_copy_url && (
-                                            <a href={task.bill_copy_url} target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:underline text-xs">
+                                            <a href={task.bill_copy_url} target="_blank" rel="noopener noreferrer" className="text-red-600 hover:underline text-xs">
                                               View Bill
                                             </a>
                                           )}
@@ -1452,7 +1452,7 @@ const AllTasks = () => {
                                                   value={statusData[task.id] || task.status || ""}
                                                   onChange={(e) => setStatusData(prev => ({ ...prev, [task.id]: e.target.value }))}
                                                   disabled={!selectedItems.has(task.id)}
-                                                  className="block w-full py-1.5 pl-3 pr-8 text-xs sm:text-sm text-gray-700 bg-white border border-gray-200 rounded-md focus:border-purple-500 focus:outline-none disabled:bg-gray-50/50 disabled:text-gray-400 appearance-none shadow-sm cursor-pointer hover:border-gray-300 transition-colors"
+                                                  className="block w-full py-1.5 pl-3 pr-8 text-xs sm:text-sm text-gray-700 bg-white border border-gray-200 rounded-md focus:border-red-500 focus:outline-none disabled:bg-gray-50/50 disabled:text-gray-400 appearance-none shadow-sm cursor-pointer hover:border-gray-300 transition-colors"
                                                   style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: `right 0.5rem center`, backgroundRepeat: `no-repeat`, backgroundSize: `1.5em 1.5em` }}
                                                 >
                                                   <option value="">Select Status</option>
@@ -1505,7 +1505,7 @@ const AllTasks = () => {
                                                                 key={idx}
                                                                 src={match.image_url}
                                                                 alt={part}
-                                                                className="w-10 h-10 object-cover rounded shadow-sm border border-gray-200 bg-gray-50 flex-shrink-0 cursor-zoom-in hover:ring-2 hover:ring-purple-400 hover:scale-105 transition-all"
+                                                                className="w-10 h-10 object-cover rounded shadow-sm border border-gray-200 bg-gray-50 flex-shrink-0 cursor-zoom-in hover:ring-2 hover:ring-red-400 hover:scale-105 transition-all"
                                                                 title={`Click to enlarge: ${part}`}
                                                                 onClick={() => setLightboxImage({ url: match.image_url, name: part })}
                                                               />
@@ -1519,7 +1519,7 @@ const AllTasks = () => {
                                                       : isAudioUrl(task[header.id])
                                                         ? <AudioPlayer url={task[header.id]} />
                                                         : header.id === 'work_photo_url' || header.id === 'bill_copy_url'
-                                                          ? task[header.id] ? <a href={task[header.id]} target="_blank" rel="noopener noreferrer" className="text-purple-600 underline">View</a> : "—"
+                                                          ? task[header.id] ? <a href={task[header.id]} target="_blank" rel="noopener noreferrer" className="text-red-600 underline">View</a> : "—"
                                                           : task[header.id] || "—"}</td>
                                 ))}
                                 {!showHistory && activeTab === "ea" && (
@@ -1529,7 +1529,7 @@ const AllTasks = () => {
                                       placeholder="Extended Date"
                                       value={extendedDateData[task.id] || ""}
                                       onChange={(e) => setExtendedDateData((prev) => ({ ...prev, [task.id]: e.target.value }))}
-                                      className="w-full min-w-[140px] px-3 py-2 bg-gray-50 border border-gray-200 rounded-md focus:border-purple-400 outline-none text-xs text-gray-700 disabled:opacity-50"
+                                      className="w-full min-w-[140px] px-3 py-2 bg-gray-50 border border-gray-200 rounded-md focus:border-red-400 outline-none text-xs text-gray-700 disabled:opacity-50"
                                       disabled={!selectedItems.has(task.id) || statusData[task.id] !== 'extended'}
                                     />
                                   </td>
@@ -1542,13 +1542,13 @@ const AllTasks = () => {
                                         placeholder="Enter remarks"
                                         value={remarksData[task.id] || ""}
                                         onChange={(e) => setRemarksData((prev) => ({ ...prev, [task.id]: e.target.value }))}
-                                        className="w-full min-w-[140px] px-3 py-2 bg-gray-50 border border-gray-200 rounded-md focus:border-purple-400 outline-none text-xs text-gray-700 disabled:opacity-50"
+                                        className="w-full min-w-[140px] px-3 py-2 bg-gray-50 border border-gray-200 rounded-md focus:border-red-400 outline-none text-xs text-gray-700 disabled:opacity-50"
                                         disabled={!selectedItems.has(task.id)}
                                       />
                                     </td>
                                     <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-800 bg-emerald-50/30">
                                       <div className="flex flex-col gap-2">
-                                        <label className={`flex items-center gap-2 cursor-pointer text-xs font-medium transition-colors ${selectedItems.has(task.id) ? "text-purple-600 hover:text-purple-800" : "text-gray-400 cursor-not-allowed"}`}>
+                                        <label className={`flex items-center gap-2 cursor-pointer text-xs font-medium transition-colors ${selectedItems.has(task.id) ? "text-red-600 hover:text-red-800" : "text-gray-400 cursor-not-allowed"}`}>
                                           <Upload className="h-3.5 w-3.5" />
                                           <span>
                                             {uploadedImages[task.id] ? "File Selected" : (task.require_attachment || task.attachment) ? <span>Upload Proof <span className="text-red-500 font-bold">*</span></span> : "Upload Proof"}
@@ -1584,7 +1584,7 @@ const AllTasks = () => {
                                     </td>
                                     <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-800">
                                       {task.image || task.uploaded_image_url || task.image_url ? (
-                                        <a href={task.image || task.uploaded_image_url || task.image_url} target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:underline">View</a>
+                                        <a href={task.image || task.uploaded_image_url || task.image_url} target="_blank" rel="noopener noreferrer" className="text-red-600 hover:underline">View</a>
                                       ) : "—"}
                                     </td>
                                   </>
@@ -1623,7 +1623,7 @@ const AllTasks = () => {
                               return submittableTasks.length > 0 && submittableTasks.every(t => selectedItems.has(t.id));
                             })()}
                             onChange={handleSelectAll}
-                            className="h-5 w-5 text-purple-600 border-gray-300 rounded focus:ring-purple-500 transition-all cursor-pointer"
+                            className="h-5 w-5 text-red-600 border-gray-300 rounded focus:ring-red-500 transition-all cursor-pointer"
                           />
                         </div>
                         <span className="text-sm font-black text-gray-700 uppercase tracking-tight">Select All Tasks</span>
@@ -1659,9 +1659,9 @@ const AllTasks = () => {
                               </span>
                             </div>
                           )}
-                          <div className="bg-white rounded-xl border border-purple-100 shadow-sm overflow-hidden animate-fade-in">
+                          <div className="bg-white rounded-xl border border-red-100 shadow-sm overflow-hidden animate-fade-in">
                         {/* Card Header */}
-                        <div className="bg-purple-50/50 px-4 py-3 border-b border-purple-100 flex justify-between items-center">
+                        <div className="bg-red-50/50 px-4 py-3 border-b border-red-100 flex justify-between items-center">
                           <div className="flex items-center gap-2">
                             {!showHistory && (
                               <input
@@ -1669,10 +1669,10 @@ const AllTasks = () => {
                                 checked={selectedItems.has(task.id)}
                                 onChange={(e) => handleSelectItem(task.id, e.target.checked)}
                                 disabled={getTimeStatus(task[statusDateColumn], task.status) === "Upcoming"}
-                                className="h-4 w-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                                className="h-4 w-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
                               />
                             )}
-                            <span className="text-xs font-bold text-purple-800 uppercase tracking-wider">#{task.id}</span>
+                            <span className="text-xs font-bold text-red-800 uppercase tracking-wider">#{task.id}</span>
                             {(task.status?.toLowerCase() === "extended" || task.status?.toLowerCase() === "extend") && (
                               <span className="px-1.5 py-0.5 bg-amber-100 text-amber-800 text-[9px] font-black rounded uppercase tracking-tighter border border-amber-200 animate-pulse">Extended</span>
                             )}
@@ -1707,7 +1707,7 @@ const AllTasks = () => {
                                     value={statusData[task.id] || task.status || ""}
                                     onChange={(e) => setStatusData(prev => ({ ...prev, [task.id]: e.target.value }))}
                                     disabled={!selectedItems.has(task.id)}
-                                    className="w-full text-xs border-gray-200 rounded-md py-1 focus:ring-purple-400"
+                                    className="w-full text-xs border-gray-200 rounded-md py-1 focus:ring-red-400"
                                   >
                                     <option value="">Status</option>
                                     {activeTab === "ea" ? (
@@ -1739,7 +1739,7 @@ const AllTasks = () => {
                           <div className="grid grid-cols-2 gap-4 pt-1 border-t border-gray-50">
                             <div className="space-y-1">
                               <p className="text-[10px] text-gray-400 uppercase font-semibold">Planned Date</p>
-                              <p className="text-sm font-bold text-purple-700">{formatDate(task.planned_date || task.task_start_date || task.created_at)}</p>
+                              <p className="text-sm font-bold text-red-700">{formatDate(task.planned_date || task.task_start_date || task.created_at)}</p>
                             </div>
                             {task.department && (
                               <div className="space-y-1">
@@ -1770,7 +1770,7 @@ const AllTasks = () => {
                                         key={idx}
                                         src={match.image_url}
                                         alt={part}
-                                        className="w-24 h-24 object-cover rounded-lg shadow-md border-2 border-purple-100 bg-gray-50 flex-shrink-0 cursor-zoom-in transition-all active:scale-95"
+                                        className="w-24 h-24 object-cover rounded-lg shadow-md border-2 border-red-100 bg-gray-50 flex-shrink-0 cursor-zoom-in transition-all active:scale-95"
                                         title={`Click to enlarge: ${part}`}
                                         onClick={() => setLightboxImage({ url: match.image_url, name: part })}
                                       />
@@ -1811,11 +1811,11 @@ const AllTasks = () => {
                                   value={remarksData[task.id] || ""}
                                   onChange={(e) => setRemarksData((prev) => ({ ...prev, [task.id]: e.target.value }))}
                                   disabled={!selectedItems.has(task.id)}
-                                  className="w-full text-xs border-gray-200 rounded-md py-1.5 px-3 focus:outline-none focus:ring-1 focus:ring-purple-400"
+                                  className="w-full text-xs border-gray-200 rounded-md py-1.5 px-3 focus:outline-none focus:ring-1 focus:ring-red-400"
                                 />
                               </div>
                               <div className="flex gap-2">
-                                <label className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md border text-xs font-medium transition-all ${selectedItems.has(task.id) ? "border-purple-200 bg-purple-50 text-purple-600 active:scale-95" : "border-gray-100 bg-gray-50 text-gray-400 grayscale"}`}>
+                                <label className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md border text-xs font-medium transition-all ${selectedItems.has(task.id) ? "border-red-200 bg-red-50 text-red-600 active:scale-95" : "border-gray-100 bg-gray-50 text-gray-400 grayscale"}`}>
                                   <Upload className="h-3.5 w-3.5" />
                                   <span>{uploadedImages[task.id] ? "Selected" : "Upload"}</span>
                                   <input type="file" className="hidden" onChange={(e) => handleImageUpload(task.id, e)} disabled={!selectedItems.has(task.id)} />
@@ -1852,7 +1852,7 @@ const AllTasks = () => {
                                     <img
                                       src={task.work_photo_url || task.image_url || task.uploaded_image_url}
                                       alt="Work"
-                                      className="w-24 h-24 object-cover rounded-lg border-2 border-purple-100 shadow-sm cursor-zoom-in"
+                                      className="w-24 h-24 object-cover rounded-lg border-2 border-red-100 shadow-sm cursor-zoom-in"
                                       onClick={() => setLightboxImage({ url: task.work_photo_url || task.image_url || task.uploaded_image_url, name: "Work Photo" })}
                                     />
                                   </div>
@@ -1887,16 +1887,16 @@ const AllTasks = () => {
                 {/* Mobile Floating Submit Bar */}
                 {!showHistory && selectedItems.size > 0 && (
                   <div className="md:hidden fixed bottom-6 left-4 right-4 z-40 animate-in slide-in-from-bottom-8 duration-500">
-                    <div className="bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-purple-100 p-2 overflow-hidden">
+                    <div className="bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-red-100 p-2 overflow-hidden">
                       <div className="flex items-center justify-between">
                         <div className="pl-4">
-                          <p className="text-[10px] font-black text-purple-600 uppercase tracking-[0.2em] mb-0.5">Ready to Submit</p>
+                          <p className="text-[10px] font-black text-red-600 uppercase tracking-[0.2em] mb-0.5">Ready to Submit</p>
                           <p className="text-xs font-bold text-gray-500">{selectedItems.size} task{selectedItems.size !== 1 ? 's' : ''} selected</p>
                         </div>
                         <button
                           onClick={handleSubmit}
                           disabled={isSubmitting}
-                          className="px-8 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-sm font-black rounded-xl shadow-lg shadow-purple-200 transition-all active:scale-95 flex items-center gap-2"
+                          className="px-8 py-3 bg-gradient-to-r from-red-600 to-indigo-600 hover:from-red-700 hover:to-indigo-700 text-white text-sm font-black rounded-xl shadow-lg shadow-red-200 transition-all active:scale-95 flex items-center gap-2"
                         >
                           {isSubmitting ? (
                             <><Loader2 className="w-4 h-4 animate-spin" /> Submitting</>
@@ -1914,7 +1914,7 @@ const AllTasks = () => {
                   <div ref={loadingRef} className="flex flex-col items-center justify-center py-8 text-gray-500 text-sm w-full">
                     {totalItemsRendered < exactTotalAvailable ? (
                       <div className="flex items-center space-x-3 bg-white px-6 py-3 rounded-full shadow-sm border border-gray-100">
-                        <div className="w-5 h-5 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+                        <div className="w-5 h-5 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
                         <span className="font-medium text-gray-600">Loading more tasks...</span>
                       </div>
                     ) : (
@@ -1930,19 +1930,19 @@ const AllTasks = () => {
         {/* Repair Update Modal */}
         {isModalOpen && selectedUpdateTask && (
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-lg overflow-hidden animate-fade-in border border-purple-100">
-              <div className="bg-gradient-to-r from-purple-50 to-pink-50 px-6 py-4 border-b border-purple-100 flex justify-between items-center">
-                <h3 className="text-sm font-bold text-purple-800 uppercase">Update Ticket #{selectedUpdateTask.id}</h3>
-                <button onClick={() => setIsModalOpen(false)} className="text-purple-400 hover:text-purple-600"><X className="w-5 h-5" /></button>
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-lg overflow-hidden animate-fade-in border border-red-100">
+              <div className="bg-gradient-to-r from-red-50 to-pink-50 px-6 py-4 border-b border-red-100 flex justify-between items-center">
+                <h3 className="text-sm font-bold text-red-800 uppercase">Update Ticket #{selectedUpdateTask.id}</h3>
+                <button onClick={() => setIsModalOpen(false)} className="text-red-400 hover:text-red-600"><X className="w-5 h-5" /></button>
               </div>
               <form onSubmit={handleRepairUpdateSubmit} className="p-6">
-                <div className="bg-purple-50 rounded border border-purple-200 p-3 mb-6 flex gap-4 text-sm">
+                <div className="bg-red-50 rounded border border-red-200 p-3 mb-6 flex gap-4 text-sm">
                   <div className="flex-1">
-                    <span className="block text-xs font-bold text-purple-500 uppercase mb-1">Machine</span>
+                    <span className="block text-xs font-bold text-red-500 uppercase mb-1">Machine</span>
                     <span className="text-gray-800 font-medium">{selectedUpdateTask.machine_name}</span>
                   </div>
                   <div className="flex-[2]">
-                    <span className="block text-xs font-bold text-purple-500 uppercase mb-1">Issue</span>
+                    <span className="block text-xs font-bold text-red-500 uppercase mb-1">Issue</span>
                     {isAudioUrl(selectedUpdateTask.issue_description) ? (
                       <AudioPlayer url={selectedUpdateTask.issue_description} />
                     ) : (
@@ -1953,7 +1953,7 @@ const AllTasks = () => {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Status <span className="text-red-500">*</span></label>
-                    <select className="w-full p-2 text-sm border border-gray-300 rounded focus:border-purple-500 outline-none" value={updateForm.status} onChange={(e) => setUpdateForm({ ...updateForm, status: e.target.value })}>
+                    <select className="w-full p-2 text-sm border border-gray-300 rounded focus:border-red-500 outline-none" value={updateForm.status} onChange={(e) => setUpdateForm({ ...updateForm, status: e.target.value })}>
                       <option value="">Select Status...</option>
                       <option value="Completed">✅ Completed (कार्य पूर्ण)</option>
                       <option value="Pending">⏳ Pending (लंबित कार्य)</option>
@@ -1970,7 +1970,7 @@ const AllTasks = () => {
                         <div>
                           <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Part Replaced</label>
                           <select
-                            className="w-full p-2 text-sm border border-gray-300 rounded outline-none focus:border-purple-500"
+                            className="w-full p-2 text-sm border border-gray-300 rounded outline-none focus:border-red-500"
                             value={updateForm.partReplaced}
                             onChange={(e) => setUpdateForm({ ...updateForm, partReplaced: e.target.value })}
                           >
@@ -1985,7 +1985,7 @@ const AllTasks = () => {
                         <div>
                           <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Vendor Name</label>
                           <input
-                            className="w-full p-2 text-sm border border-gray-300 rounded outline-none focus:border-purple-500"
+                            className="w-full p-2 text-sm border border-gray-300 rounded outline-none focus:border-red-500"
                             value={updateForm.vendorName}
                             onChange={(e) => setUpdateForm({ ...updateForm, vendorName: e.target.value })}
                             placeholder="Enter vendor name..."
@@ -1996,7 +1996,7 @@ const AllTasks = () => {
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Bill Amount (₹)</label>
                         <input
                           type="number"
-                          className="w-full p-2 text-sm border border-gray-300 rounded outline-none focus:border-purple-500"
+                          className="w-full p-2 text-sm border border-gray-300 rounded outline-none focus:border-red-500"
                           value={updateForm.billAmount}
                           onChange={(e) => setUpdateForm({ ...updateForm, billAmount: e.target.value })}
                           placeholder="Enter bill amount..."
@@ -2005,7 +2005,7 @@ const AllTasks = () => {
                       <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Remarks</label>
                         <textarea
-                          className="w-full p-2 text-sm border border-gray-300 rounded outline-none focus:border-purple-500"
+                          className="w-full p-2 text-sm border border-gray-300 rounded outline-none focus:border-red-500"
                           rows="2"
                           value={updateForm.remarks}
                           onChange={(e) => setUpdateForm({ ...updateForm, remarks: e.target.value })}
@@ -2036,7 +2036,7 @@ const AllTasks = () => {
                     <div>
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Remarks</label>
                       <textarea
-                        className="w-full p-2 text-sm border border-gray-300 rounded outline-none focus:border-purple-500"
+                        className="w-full p-2 text-sm border border-gray-300 rounded outline-none focus:border-red-500"
                         rows="3"
                         value={updateForm.remarks}
                         onChange={(e) => setUpdateForm({ ...updateForm, remarks: e.target.value })}
@@ -2047,7 +2047,7 @@ const AllTasks = () => {
                 </div>
                 <div className="flex justify-end gap-3 pt-6 mt-2 border-t border-gray-100">
                   <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded hover:bg-gray-50 text-sm">Cancel</button>
-                  <button type="submit" disabled={isSubmitting} className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded text-sm flex items-center gap-2">{isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save Changes</button>
+                  <button type="submit" disabled={isSubmitting} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded text-sm flex items-center gap-2">{isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save Changes</button>
                 </div>
               </form>
             </div>

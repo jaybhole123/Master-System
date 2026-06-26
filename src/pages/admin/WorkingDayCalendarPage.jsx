@@ -323,7 +323,7 @@ const WorkingDayCalendarPage = () => {
                 {/* Header Section - Professional & Clean */}
                 <div className="flex flex-col md:flex-row justify-between items-center gap-4 py-6 border-b border-gray-200">
                     <div className="flex items-center gap-3">
-                        <div className="p-2 bg-blue-600 rounded text-white font-semibold shadow-sm">
+                        <div className="p-2 bg-red-600 rounded text-white font-semibold shadow-sm">
                             <List size={22} />
                         </div>
                         <div>
@@ -337,7 +337,7 @@ const WorkingDayCalendarPage = () => {
                     <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
                         <button
                             onClick={handleExtendClick}
-                            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg shadow-sm transition-all w-full sm:w-auto justify-center"
+                            className="flex items-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white text-sm font-bold rounded-lg shadow-sm transition-all w-full sm:w-auto justify-center"
                         >
                             <Plus size={16} />
                             Extend Year
@@ -368,7 +368,7 @@ const WorkingDayCalendarPage = () => {
                         <h2 className="text-base font-semibold text-gray-800">
                             Schedule for {monthName} {year}
                         </h2>
-                        <span className="text-xs font-bold px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full border border-blue-100 uppercase">
+                        <span className="text-xs font-bold px-2.5 py-1 bg-red-50 text-red-700 rounded-full border border-red-100 uppercase">
                             {workingDays.length} Working Days
                         </span>
                     </div>
@@ -389,7 +389,7 @@ const WorkingDayCalendarPage = () => {
                                     <tr>
                                         <td colSpan="5" className="px-6 py-12 text-center text-gray-400">
                                             <div className="flex flex-col items-center gap-2">
-                                                <Loader2 className="animate-spin text-blue-500" size={24} />
+                                                <Loader2 className="animate-spin text-red-500" size={24} />
                                                 <span className="text-xs font-medium uppercase tracking-widest">Fetching Data...</span>
                                             </div>
                                         </td>
@@ -422,7 +422,7 @@ const WorkingDayCalendarPage = () => {
                                             </td>
                                             <td className="px-6 py-4 text-center">
                                                 {dayInfo.taskCount > 0 ? (
-                                                    <span className="inline-flex items-center justify-center w-6 h-6 rounded bg-blue-600 text-white font-bold text-[10px] shadow-sm">
+                                                    <span className="inline-flex items-center justify-center w-6 h-6 rounded bg-red-600 text-white font-bold text-[10px] shadow-sm">
                                                         {dayInfo.taskCount}
                                                     </span>
                                                 ) : (
@@ -455,13 +455,13 @@ const WorkingDayCalendarPage = () => {
                 </div>
 
                 {/* Info Card - Professional Tip */}
-                <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl flex items-start gap-3">
-                    <div className="p-1.5 bg-blue-100 rounded text-blue-600">
+                <div className="bg-red-50 border border-red-100 p-4 rounded-xl flex items-start gap-3">
+                    <div className="p-1.5 bg-red-100 rounded text-red-600">
                         <ShieldAlert size={18} />
                     </div>
                     <div>
-                        <h3 className="text-xs font-bold text-blue-900 uppercase tracking-wide">Operational Guidelines</h3>
-                        <p className="text-xs text-blue-700 mt-1 leading-relaxed">
+                        <h3 className="text-xs font-bold text-red-900 uppercase tracking-wide">Operational Guidelines</h3>
+                        <p className="text-xs text-red-700 mt-1 leading-relaxed">
                             Working days represent scheduled availability. Off days will automatically restrict new task assignments for that date.
                             Holidays override manual working day configurations.
                         </p>
@@ -482,7 +482,7 @@ const WorkingDayCalendarPage = () => {
                             {/* Modal Header */}
                             <div className="px-6 py-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+                                    <div className="p-2 bg-red-100 text-red-600 rounded-lg">
                                         <CalendarIcon size={18} />
                                     </div>
                                     <div>
@@ -515,7 +515,7 @@ const WorkingDayCalendarPage = () => {
                                         type="date"
                                         value={extendEndDate}
                                         onChange={(e) => setExtendEndDate(e.target.value)}
-                                        className="w-full px-3 py-2 bg-gray-50/50 border border-gray-200 rounded-lg text-sm font-medium focus:border-blue-400 outline-none transition-all"
+                                        className="w-full px-3 py-2 bg-gray-50/50 border border-gray-200 rounded-lg text-sm font-medium focus:border-red-400 outline-none transition-all"
                                     />
                                 </div>
                             </div>
@@ -537,7 +537,7 @@ const WorkingDayCalendarPage = () => {
                                     <button
                                         onClick={handleExtendSubmit}
                                         disabled={isExtending || !extendEndDate || (new Date(extendEndDate) <= new Date(extendStartDate))}
-                                        className="flex-grow flex justify-center items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-blue-700 disabled:opacity-50 transition-all shadow-lg shadow-blue-100"
+                                        className="flex-grow flex justify-center items-center gap-2 px-6 py-2 bg-red-600 text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-red-700 disabled:opacity-50 transition-all shadow-lg shadow-red-100"
                                     >
                                         {isExtending ? <Loader2 className="animate-spin" size={16} /> : <CheckCircle2 size={16} />}
                                         {isExtending ? 'Extending...' : 'Extend Calendar'}

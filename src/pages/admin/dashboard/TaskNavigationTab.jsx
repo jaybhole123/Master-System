@@ -483,13 +483,13 @@ export default function TaskNavigationTabs({
               onClick={() => setTaskView(view)}
               className={`
                 relative flex items-center justify-center gap-2 py-2 px-6 rounded-lg text-xs font-bold transition-all duration-500 whitespace-nowrap min-w-[110px] z-10
-                ${taskView === view ? "text-white" : "text-gray-500 hover:text-purple-600"}
+                ${taskView === view ? "text-white" : "text-gray-500 hover:text-red-600"}
               `}
             >
               {taskView === view && (
                 <motion.div
                   layoutId="dashboardInnerTabMinimal"
-                  className="absolute inset-0 bg-purple-600 rounded-lg shadow-md"
+                  className="absolute inset-0 bg-red-600 rounded-lg shadow-md"
                   transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                 />
               )}
@@ -515,10 +515,10 @@ export default function TaskNavigationTabs({
               className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 transition-colors rounded-t-lg"
             >
               <div className="flex items-center gap-2">
-                <Filter className="h-4 w-4 text-purple-600" />
-                <span className="font-medium text-purple-700">Filters</span>
+                <Filter className="h-4 w-4 text-red-600" />
+                <span className="font-medium text-red-700">Filters</span>
                 {(searchQuery || dashboardStaffFilter !== "all" || departmentFilter !== "all") && (
-                  <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs">
+                  <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs">
                     Active
                   </span>
                 )}
@@ -542,7 +542,7 @@ export default function TaskNavigationTabs({
                       placeholder="Search by task title or ID"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full rounded-md border border-gray-300 p-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                      className="w-full rounded-md border border-gray-300 p-2 focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500"
                     />
                   </div>
 
@@ -563,7 +563,7 @@ export default function TaskNavigationTabs({
                         </span>
                       )}
                       {searchQuery && (
-                        <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs">
+                        <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs">
                           Search: {searchQuery}
                         </span>
                       )}
@@ -621,10 +621,10 @@ export default function TaskNavigationTabs({
                     {displayedTasks.map((task, index) => (
                       <tr
                         key={`${task.id}-${task.taskStartDate}`}
-                        className="hover:bg-purple-50/30 transition-colors border-b last:border-0 cursor-pointer"
+                        className="hover:bg-red-50/30 transition-colors border-b last:border-0 cursor-pointer"
                         onDoubleClick={() => handleEditClick(task)}
                       >
-                        <td className="px-3 py-2 whitespace-nowrap text-xs font-bold text-purple-700">{task.id}</td>
+                        <td className="px-3 py-2 whitespace-nowrap text-xs font-bold text-red-700">{task.id}</td>
                         {dashboardType === "delegation" && (
                           <td className="px-3 py-2 whitespace-nowrap text-[10px] font-bold">
                             <span className={`px-2 py-0.5 rounded-full ${task.timeStatus === "Overdue" ? "bg-red-100 text-red-700" :
@@ -678,7 +678,7 @@ export default function TaskNavigationTabs({
                                           <button
                                             type="button"
                                             onClick={startRecording}
-                                            className="absolute bottom-1.5 right-1.5 p-1 bg-purple-100 text-purple-600 rounded-full hover:bg-purple-200 transition-all shadow-sm"
+                                            className="absolute bottom-1.5 right-1.5 p-1 bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition-all shadow-sm"
                                             title="Record Voice Note"
                                           >
                                             <Mic size={14} />
@@ -702,9 +702,9 @@ export default function TaskNavigationTabs({
                                   )}
 
                                   {recordedAudio && status !== 'recording' && (
-                                    <div className="bg-purple-50 border border-purple-100 rounded-lg p-2">
+                                    <div className="bg-red-50 border border-red-100 rounded-lg p-2">
                                       <div className="flex items-center justify-between mb-1">
-                                        <span className="text-[10px] font-bold text-purple-600 uppercase">Voice Note Attached</span>
+                                        <span className="text-[10px] font-bold text-red-600 uppercase">Voice Note Attached</span>
                                         <div className="flex gap-2">
                                           <button
                                             type="button"
@@ -713,7 +713,7 @@ export default function TaskNavigationTabs({
                                               setRecordedAudio(null);
                                               startRecording();
                                             }}
-                                            className="text-[10px] text-purple-600 hover:text-purple-800 font-bold flex items-center gap-1"
+                                            className="text-[10px] text-red-600 hover:text-red-800 font-bold flex items-center gap-1"
                                           >
                                             <Mic size={10} /> Give Again
                                           </button>
@@ -855,7 +855,7 @@ export default function TaskNavigationTabs({
               {displayedTasks.map((task) => (
                 <div key={`${task.id}-${task.taskStartDate}`} className="bg-white p-4 rounded-xl shadow-md border border-gray-100 relative overflow-hidden group active:scale-[0.98] transition-all">
                   <div className="flex justify-between items-start mb-2">
-                    <span className="text-[10px] font-bold text-purple-600 bg-purple-50 px-2 py-1 rounded uppercase">#{task.id}</span>
+                    <span className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-1 rounded uppercase">#{task.id}</span>
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${getFrequencyColor(task.frequency)}`}>
                       {task.frequency}
                     </span>
@@ -895,15 +895,15 @@ export default function TaskNavigationTabs({
                       </div>
                     )}
                   </div>
-                  <div className="absolute right-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  <div className="absolute right-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-red-600 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 </div>
               ))}
             </div>
 
             {isLoadingMore && (
               <div className="flex flex-col items-center justify-center py-8">
-                <div className="h-8 w-8 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin"></div>
-                <p className="text-xs font-bold text-purple-600 mt-3 uppercase tracking-widest">Loading Tasks...</p>
+                <div className="h-8 w-8 border-4 border-red-200 border-t-red-600 rounded-full animate-spin"></div>
+                <p className="text-xs font-bold text-red-600 mt-3 uppercase tracking-widest">Loading Tasks...</p>
               </div>
             )}
 

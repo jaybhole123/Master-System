@@ -321,7 +321,7 @@ const EditDocument: React.FC<EditDocumentProps> = ({ isOpen, onClose, documentId
                                     <input
                                         type="text"
                                         required
-                                        className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-indigo-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
+                                        className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
                                         value={formData.documentName || ''}
                                         onChange={e => handleChange('documentName', e.target.value)}
                                     />
@@ -357,7 +357,7 @@ const EditDocument: React.FC<EditDocumentProps> = ({ isOpen, onClose, documentId
                                     <input
                                         type="text"
                                         required
-                                        className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-indigo-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
+                                        className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
                                         value={formData.companyName || ''}
                                         onChange={e => handleChange('companyName', e.target.value)}
                                         placeholder={`Enter ${getNameLabel(formData.category)}...`}
@@ -369,7 +369,7 @@ const EditDocument: React.FC<EditDocumentProps> = ({ isOpen, onClose, documentId
                                     <label className="flex items-center gap-2 cursor-pointer select-none">
                                         <input
                                             type="checkbox"
-                                            className="w-3.5 h-3.5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                                            className="w-3.5 h-3.5 text-red-600 rounded border-gray-300 focus:ring-red-500"
                                             checked={formData.needsRenewal || false}
                                             onChange={e => handleChange('needsRenewal', e.target.checked)}
                                         />
@@ -379,7 +379,7 @@ const EditDocument: React.FC<EditDocumentProps> = ({ isOpen, onClose, documentId
                                         <div className="flex-1">
                                             <input
                                                 type="date"
-                                                className="w-full p-1.5 text-xs border border-gray-200 rounded focus:ring-1 focus:ring-indigo-500 outline-none bg-white"
+                                                className="w-full p-1.5 text-xs border border-gray-200 rounded focus:ring-1 focus:ring-red-500 outline-none bg-white"
                                                 value={formData.renewalDate || ''}
                                                 onChange={e => handleChange('renewalDate', e.target.value)}
                                                 required
@@ -400,7 +400,7 @@ const EditDocument: React.FC<EditDocumentProps> = ({ isOpen, onClose, documentId
                                         />
                                         <label
                                             htmlFor="edit-file-upload"
-                                            className="flex items-center justify-center gap-2 w-full p-2 border border-dashed border-gray-300 rounded-lg text-gray-600 cursor-pointer hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600 transition-all bg-white"
+                                            className="flex items-center justify-center gap-2 w-full p-2 border border-dashed border-gray-300 rounded-lg text-gray-600 cursor-pointer hover:bg-red-50 hover:border-red-300 hover:text-red-600 transition-all bg-white"
                                         >
                                             <Upload size={14} />
                                             <span className="text-xs font-medium truncate max-w-[180px]">{fileName || "Change File"}</span>
@@ -413,7 +413,7 @@ const EditDocument: React.FC<EditDocumentProps> = ({ isOpen, onClose, documentId
                                     <label className="block text-xs font-semibold text-gray-600 mb-1">Issue Date</label>
                                     <input
                                         type="date"
-                                        className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-indigo-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
+                                        className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
                                         value={formData.issueDate || ''}
                                         onChange={e => handleChange('issueDate', e.target.value)}
                                     />
@@ -424,7 +424,7 @@ const EditDocument: React.FC<EditDocumentProps> = ({ isOpen, onClose, documentId
                                     <label className="block text-xs font-semibold text-gray-600 mb-1">Concern Person Name</label>
                                     <input
                                         type="text"
-                                        className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-indigo-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
+                                        className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
                                         value={formData.concernPersonName || ''}
                                         onChange={e => handleChange('concernPersonName', e.target.value)}
                                         placeholder="Name"
@@ -436,7 +436,7 @@ const EditDocument: React.FC<EditDocumentProps> = ({ isOpen, onClose, documentId
                                     <label className="block text-xs font-semibold text-gray-600 mb-1">Concern Person Mobile</label>
                                     <input
                                         type="text"
-                                        className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-indigo-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
+                                        className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
                                         value={formData.concernPersonMobile || ''}
                                         onChange={e => handleChange('concernPersonMobile', e.target.value)}
                                         placeholder="Mobile"
@@ -448,7 +448,7 @@ const EditDocument: React.FC<EditDocumentProps> = ({ isOpen, onClose, documentId
                                     <label className="block text-xs font-semibold text-gray-600 mb-1">Concern Person Dept</label>
                                     <input
                                         type="text"
-                                        className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-indigo-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
+                                        className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
                                         value={formData.concernPersonDepartment || ''}
                                         onChange={e => handleChange('concernPersonDepartment', e.target.value)}
                                         placeholder="Department"
@@ -472,7 +472,7 @@ const EditDocument: React.FC<EditDocumentProps> = ({ isOpen, onClose, documentId
                         type="submit"
                         form="edit-doc-form"
                         disabled={isSubmitting}
-                        className={`flex-[2] flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-white text-sm font-bold transition-all shadow-md shadow-indigo-100 ${isSubmitting ? 'bg-indigo-400' : 'bg-indigo-600 hover:bg-indigo-700'}`}
+                        className={`flex-[2] flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-white text-sm font-bold transition-all shadow-md shadow-red-100 ${isSubmitting ? 'bg-red-400' : 'bg-red-600 hover:bg-red-700'}`}
                     >
                         {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                         {isSubmitting ? 'Updating...' : 'Save Changes'}

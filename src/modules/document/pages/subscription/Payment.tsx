@@ -294,7 +294,7 @@ const SubscriptionPayment = () => {
                         <input
                             type="text"
                             placeholder="Search subscriptions..."
-                            className="pl-10 pr-4 py-2.5 w-full border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-gray-50"
+                            className="pl-10 pr-4 py-2.5 w-full border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent bg-gray-50"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
@@ -305,7 +305,7 @@ const SubscriptionPayment = () => {
                         disabled={isLoading}
                         className="flex items-center justify-center p-2.5 bg-gray-50 text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50"
                     >
-                        {isLoading ? <Loader2 className="h-5 w-5 animate-spin text-indigo-600" /> : <RefreshCw className="h-5 w-5" />}
+                        {isLoading ? <Loader2 className="h-5 w-5 animate-spin text-red-600" /> : <RefreshCw className="h-5 w-5" />}
                     </button>
 
                     {/* Tabs & Sync */}
@@ -314,7 +314,7 @@ const SubscriptionPayment = () => {
                             <button
                                 onClick={() => setActiveTab('pending')}
                                 className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'pending'
-                                    ? 'bg-white text-indigo-600 shadow-sm'
+                                    ? 'bg-white text-red-600 shadow-sm'
                                     : 'text-gray-500 hover:text-gray-700'
                                     }`}
                             >
@@ -323,7 +323,7 @@ const SubscriptionPayment = () => {
                             <button
                                 onClick={() => setActiveTab('history')}
                                 className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'history'
-                                    ? 'bg-white text-indigo-600 shadow-sm'
+                                    ? 'bg-white text-red-600 shadow-sm'
                                     : 'text-gray-500 hover:text-gray-700'
                                     }`}
                             >
@@ -334,7 +334,7 @@ const SubscriptionPayment = () => {
                         <button
                             onClick={refreshData}
                             disabled={isLoading}
-                            className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-white rounded-md transition-all disabled:opacity-50"
+                            className="p-2 text-gray-500 hover:text-red-600 hover:bg-white rounded-md transition-all disabled:opacity-50"
                             title="Sync with Google Sheets"
                         >
                             <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} />
@@ -390,7 +390,7 @@ const SubscriptionPayment = () => {
                                     <td className="p-4 font-medium text-gray-900">{item.companyName}</td>
                                     <td className="p-4 text-gray-700">{item.subscriberName}</td>
                                     <td className="p-4">
-                                        <div className="text-indigo-600 font-medium">{item.subscriptionName}</div>
+                                        <div className="text-red-600 font-medium">{item.subscriptionName}</div>
                                         {activeTab === 'pending' && (
                                             <div className="text-orange-500 font-semibold mt-0.5 text-[10px] uppercase tracking-tight">
                                                 pending payment waiting for approval
@@ -409,7 +409,7 @@ const SubscriptionPayment = () => {
                                                 {item.paymentFile ? (
                                                     <button
                                                         onClick={() => handleViewFile(item)}
-                                                        className="flex items-center gap-1 text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+                                                        className="flex items-center gap-1 text-red-600 hover:text-red-800 text-sm font-medium"
                                                     >
                                                         <FileText size={14} /> View
                                                     </button>
@@ -469,7 +469,7 @@ const SubscriptionPayment = () => {
                             {activeTab === 'history' && item.paymentFile && (
                                 <button
                                     onClick={() => handleViewFile(item)}
-                                    className="p-2 bg-indigo-50 text-indigo-600 rounded-lg"
+                                    className="p-2 bg-red-50 text-red-600 rounded-lg"
                                 >
                                     <Download size={18} />
                                 </button>
@@ -553,7 +553,7 @@ const SubscriptionPayment = () => {
                                 </div>
                                 <div className="col-span-2">
                                     <span className="block text-xs text-gray-500 uppercase font-semibold">Subscription</span>
-                                    <span className="font-medium text-indigo-600">{selectedSub.subscriptionName}</span>
+                                    <span className="font-medium text-red-600">{selectedSub.subscriptionName}</span>
                                 </div>
                                 <div>
                                     <span className="block text-xs text-gray-500 uppercase font-semibold">Frequency</span>
@@ -567,7 +567,7 @@ const SubscriptionPayment = () => {
                                     <label className="block text-sm font-bold text-gray-700 mb-1.5">Start Date</label>
                                     <input
                                         type="date"
-                                        className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                                        className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none transition-all"
                                         value={startDate}
                                         onChange={(e) => setStartDate(e.target.value)}
                                     />
@@ -576,7 +576,7 @@ const SubscriptionPayment = () => {
                                     <label className="block text-sm font-bold text-gray-700 mb-1.5">End Date</label>
                                     <input
                                         type="date"
-                                        className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                                        className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none transition-all"
                                         value={endDate}
                                         onChange={(e) => setEndDate(e.target.value)}
                                     />
@@ -584,7 +584,7 @@ const SubscriptionPayment = () => {
                                 <div className="col-span-2 sm:col-span-1">
                                     <label className="block text-sm font-bold text-gray-700 mb-1.5">Payment Method</label>
                                     <select
-                                        className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white font-medium"
+                                        className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none bg-white font-medium"
                                         value={paymentMethod}
                                         onChange={(e) => setPaymentMethod(e.target.value)}
                                     >
@@ -598,7 +598,7 @@ const SubscriptionPayment = () => {
                                     <input
                                         type="text"
                                         placeholder="TID-123456"
-                                        className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                                        className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none transition-all"
                                         value={transactionId}
                                         onChange={(e) => setTransactionId(e.target.value)}
                                         disabled={isSubmitting}
@@ -625,7 +625,7 @@ const SubscriptionPayment = () => {
                                         <input
                                             type="text"
                                             placeholder="Enter updated price"
-                                            className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                                            className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none transition-all"
                                             value={updatedPrice}
                                             onChange={(e) => setUpdatedPrice(e.target.value)}
                                             disabled={isSubmitting}

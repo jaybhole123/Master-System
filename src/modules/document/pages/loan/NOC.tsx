@@ -126,7 +126,7 @@ const LoanNOC = () => {
                         <input
                             type="text"
                             placeholder="Search loans..."
-                            className="pl-10 pr-4 py-2.5 w-full border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50"
+                            className="pl-10 pr-4 py-2.5 w-full border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 bg-gray-50"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
@@ -137,7 +137,7 @@ const LoanNOC = () => {
                         <button
                             onClick={() => setActiveTab('pending')}
                             className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-medium transition-all ${activeTab === 'pending'
-                                ? 'bg-white text-indigo-600 shadow-sm'
+                                ? 'bg-white text-red-600 shadow-sm'
                                 : 'text-gray-500 hover:text-gray-700'
                                 }`}
                         >
@@ -146,7 +146,7 @@ const LoanNOC = () => {
                         <button
                             onClick={() => setActiveTab('history')}
                             className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-medium transition-all ${activeTab === 'history'
-                                ? 'bg-white text-indigo-600 shadow-sm'
+                                ? 'bg-white text-red-600 shadow-sm'
                                 : 'text-gray-500 hover:text-gray-700'
                                 }`}
                         >
@@ -159,7 +159,7 @@ const LoanNOC = () => {
             {/* Content */}
             {isLoading ? (
                 <div className="flex flex-col items-center justify-center py-20 bg-white rounded-xl border border-gray-100 shadow-sm">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
                     <p className="mt-4 text-gray-500 font-medium text-sm">Loading NOC data...</p>
                 </div>
             ) : activeTab === 'pending' ? (
@@ -186,7 +186,7 @@ const LoanNOC = () => {
                                             <td className="p-4">
                                                 <button
                                                     onClick={() => handleActionClick(item)}
-                                                    className="px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition-colors"
+                                                    className="px-3 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg shadow-sm transition-colors"
                                                 >
                                                     Action
                                                 </button>
@@ -223,7 +223,7 @@ const LoanNOC = () => {
                             <div key={item.id} className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
                                 <div className="flex justify-between items-start mb-4">
                                     <div className="flex items-center gap-3">
-                                        <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
+                                        <div className="p-2.5 bg-red-50 text-red-600 rounded-xl">
                                             <FileCheck size={24} />
                                         </div>
                                         <div>
@@ -233,7 +233,7 @@ const LoanNOC = () => {
                                     </div>
                                     <button
                                         onClick={() => handleActionClick(item)}
-                                        className="px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition-colors"
+                                        className="px-3 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg shadow-sm transition-colors"
                                     >
                                         Action
                                     </button>
@@ -404,7 +404,7 @@ const LoanNOC = () => {
                                 <input
                                     type="date"
                                     required
-                                    className="w-full p-2.5 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                                    className="w-full p-2.5 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-red-500 bg-white"
                                     value={nocDate}
                                     onChange={e => setNocDate(e.target.value)}
                                     disabled={isSaving}
@@ -414,7 +414,7 @@ const LoanNOC = () => {
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">Collect NOC</label>
                                 <select
-                                    className="w-full p-2.5 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                                    className="w-full p-2.5 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-red-500 bg-white"
                                     value={collectNoc}
                                     onChange={e => setCollectNoc(e.target.value)}
                                     disabled={isSaving}
@@ -436,7 +436,7 @@ const LoanNOC = () => {
                                 <button
                                     type="submit"
                                     disabled={isSaving}
-                                    className="flex-1 py-2.5 flex items-center justify-center gap-2 rounded-xl bg-indigo-600 text-white font-medium hover:bg-indigo-700 shadow-md disabled:opacity-50"
+                                    className="flex-1 py-2.5 flex items-center justify-center gap-2 rounded-xl bg-red-600 text-white font-medium hover:bg-red-700 shadow-md disabled:opacity-50"
                                 >
                                     {isSaving ? (
                                         <>

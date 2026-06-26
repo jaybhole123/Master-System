@@ -67,13 +67,13 @@ export default function DashboardHeader({
     return (
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
             <div className="flex items-center gap-3">
-                <h1 className="text-xl font-bold tracking-tight text-purple-500">Dashboard</h1>
+                <h1 className="text-xl font-bold tracking-tight text-red-500">Dashboard</h1>
                 {isAdmin && mainTab === "default" && (
                     <div className="flex items-center gap-2 ml-auto mr-5">
                         <div className="text-sm text-gray-600">
                             {departmentFilter !== "all" ? `Users in ${departmentFilter}` : "Total Users"}
                         </div>
-                        <div className="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center">
+                        <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center">
                             <span className="text-white font-bold text-sm">
                                 {totalUsersCount}
                             </span>
@@ -92,16 +92,16 @@ export default function DashboardHeader({
                                 <div className="relative">
                                     <button
                                         onClick={() => setShowDateRangePicker(!showDateRangePicker)}
-                                        className="w-full flex items-center justify-between rounded-lg border border-purple-200 p-3 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200 text-sm font-medium bg-white shadow-sm"
+                                        className="w-full flex items-center justify-between rounded-lg border border-red-200 p-3 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-200 text-sm font-medium bg-white shadow-sm"
                                     >
                                         <span>{startDate && endDate ? `${startDate.split('-').reverse().slice(0, 2).join('/')} to ${endDate.split('-').reverse().slice(0, 2).join('/')}` : "Date Range"}</span>
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                         </svg>
                                     </button>
 
                                     {showDateRangePicker && (
-                                        <div className="fixed inset-x-4 top-[20%] mt-1 bg-white border border-purple-200 rounded-xl shadow-2xl z-[100] p-5">
+                                        <div className="fixed inset-x-4 top-[20%] mt-1 bg-white border border-red-200 rounded-xl shadow-2xl z-[100] p-5">
                                             <div className="flex justify-between items-center mb-4">
                                                 <h3 className="font-bold text-gray-800">Select Date Range</h3>
                                                 <button onClick={() => setShowDateRangePicker(false)} className="text-gray-400 p-1">
@@ -118,7 +118,7 @@ export default function DashboardHeader({
                                                         value={startDate}
                                                         onChange={(e) => setStartDate(e.target.value)}
                                                         max={endDate || getTodayDate()}
-                                                        className="w-full rounded-lg border border-gray-200 p-3 text-sm focus:ring-2 focus:ring-purple-500 outline-none"
+                                                        className="w-full rounded-lg border border-gray-200 p-3 text-sm focus:ring-2 focus:ring-red-500 outline-none"
                                                     />
                                                 </div>
                                                 <div>
@@ -129,7 +129,7 @@ export default function DashboardHeader({
                                                         onChange={(e) => setEndDate(e.target.value)}
                                                         min={startDate}
                                                         max={getTodayDate()}
-                                                        className="w-full rounded-lg border border-gray-200 p-3 text-sm focus:ring-2 focus:ring-purple-500 outline-none"
+                                                        className="w-full rounded-lg border border-gray-200 p-3 text-sm focus:ring-2 focus:ring-red-500 outline-none"
                                                     />
                                                 </div>
                                                 <div className="flex gap-3 pt-2">
@@ -142,7 +142,7 @@ export default function DashboardHeader({
                                                     <button
                                                         onClick={applyDateRange}
                                                         disabled={!startDate || !endDate}
-                                                        className="flex-1 bg-purple-600 text-white py-3 px-4 rounded-lg text-sm font-bold shadow-md shadow-purple-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        className="flex-1 bg-red-600 text-white py-3 px-4 rounded-lg text-sm font-bold shadow-md shadow-red-200 disabled:opacity-50 disabled:cursor-not-allowed"
                                                     >
                                                         Apply Filter
                                                     </button>
@@ -157,12 +157,12 @@ export default function DashboardHeader({
                                 <select
                                     value={dashboardType}
                                     onChange={(e) => setDashboardType(e.target.value)}
-                                    className="w-full appearance-none rounded-lg border border-purple-200 p-3 pr-8 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200 text-sm font-medium bg-white shadow-sm"
+                                    className="w-full appearance-none rounded-lg border border-red-200 p-3 pr-8 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-200 text-sm font-medium bg-white shadow-sm"
                                 >
                                     <option value="checklist">Checklist View</option>
                                     <option value="delegation">Delegation View</option>
                                 </select>
-                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-purple-400">
+                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-red-400">
                                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                                 </div>
                             </div>
@@ -173,7 +173,7 @@ export default function DashboardHeader({
                                     <select
                                         value={departmentFilter}
                                         onChange={(e) => setDepartmentFilter(e.target.value)}
-                                        className="w-full appearance-none rounded-lg border border-purple-200 p-3 pr-8 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200 text-sm font-medium bg-white shadow-sm"
+                                        className="w-full appearance-none rounded-lg border border-red-200 p-3 pr-8 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-200 text-sm font-medium bg-white shadow-sm"
                                     >
                                         <option value="all">All Departments</option>
                                         {availableDepartments.map((dept) => (
@@ -182,7 +182,7 @@ export default function DashboardHeader({
                                             </option>
                                         ))}
                                     </select>
-                                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-purple-400">
+                                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-red-400">
                                         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                                     </div>
                                 </div>
@@ -193,7 +193,7 @@ export default function DashboardHeader({
                                      <select
                                          value={dashboardStaffFilter}
                                          onChange={(e) => setDashboardStaffFilter(e.target.value)}
-                                         className="w-full appearance-none rounded-lg border border-purple-200 p-3 pr-8 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200 text-sm font-medium bg-white shadow-sm"
+                                         className="w-full appearance-none rounded-lg border border-red-200 p-3 pr-8 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-200 text-sm font-medium bg-white shadow-sm"
                                      >
                                          <option value="all"> {isHOD ? "My Group" : "All Staff"} </option>
                                          {availableStaff.map((staffName) => (
@@ -212,7 +212,7 @@ export default function DashboardHeader({
                                     </select>
                                 )}
                                 {isAdmin && (
-                                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-purple-400">
+                                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-red-400">
                                         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                                     </div>
                                 )}
@@ -227,13 +227,13 @@ export default function DashboardHeader({
                             <div className="relative">
                                 <button
                                     onClick={() => setShowDateRangePicker(!showDateRangePicker)}
-                                    className="w-[140px] sm:w-[180px] rounded-md border border-purple-200 p-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 text-left bg-white hover:bg-gray-50"
+                                    className="w-[140px] sm:w-[180px] rounded-md border border-red-200 p-2 focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500 text-left bg-white hover:bg-gray-50"
                                 >
                                     {startDate && endDate ? `${startDate} to ${endDate}` : "Date Range"}
                                 </button>
 
                                 {showDateRangePicker && (
-                                    <div className="absolute top-full left-0 mt-1 bg-white border border-purple-200 rounded-md shadow-lg z-10 p-4 w-80">
+                                    <div className="absolute top-full left-0 mt-1 bg-white border border-red-200 rounded-md shadow-lg z-10 p-4 w-80">
                                         <div className="space-y-3">
                                             <div className="flex items-center justify-between">
                                                 <h3 className="text-sm font-medium text-gray-700">Select Date Range</h3>
@@ -272,7 +272,7 @@ export default function DashboardHeader({
                                             <button
                                                 onClick={applyDateRange}
                                                 disabled={!startDate || !endDate}
-                                                className="w-full bg-purple-500 text-white py-2 px-4 rounded text-sm hover:bg-purple-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                                                className="w-full bg-red-500 text-white py-2 px-4 rounded text-sm hover:bg-red-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
                                             >
                                                 Apply Date Range
                                             </button>
@@ -285,7 +285,7 @@ export default function DashboardHeader({
                         <select
                             value={dashboardType}
                             onChange={(e) => setDashboardType(e.target.value)}
-                            className="w-[110px] sm:w-[140px] rounded-md border border-purple-200 p-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                            className="w-[110px] sm:w-[140px] rounded-md border border-red-200 p-2 focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500"
                         >
                             <option value="checklist">Checklist</option>
                             <option value="delegation">Delegation</option>
@@ -296,7 +296,7 @@ export default function DashboardHeader({
                             <select
                                 value={departmentFilter}
                                 onChange={(e) => setDepartmentFilter(e.target.value)}
-                                className="w-[110px] sm:w-[160px] rounded-md border border-purple-200 p-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                                className="w-[110px] sm:w-[160px] rounded-md border border-red-200 p-2 focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500"
                             >
                                 <option value="all">All Departments</option>
                                 {availableDepartments.map((dept) => (
@@ -312,7 +312,7 @@ export default function DashboardHeader({
                             <select
                                 value={dashboardStaffFilter}
                                 onChange={(e) => setDashboardStaffFilter(e.target.value)}
-                                className="w-[140px] sm:w-[180px] rounded-md border border-purple-200 p-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                                className="w-[140px] sm:w-[180px] rounded-md border border-red-200 p-2 focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500"
                             >
                                 <option value="all">{isHOD ? "My Group" : "All Staff Members"}</option>
                                 {availableStaff.map((staffName) => (

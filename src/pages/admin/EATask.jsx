@@ -110,14 +110,14 @@ function TaskCard({ task, index, total, allDoers, givenBy, onUpdate, onRemove })
     return (
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-visible transition-all duration-300 hover:shadow-md">
             {/* Card Header */}
-            <div className="flex items-center justify-between px-5 py-3.5 bg-gradient-to-r from-purple-50 to-indigo-50 border-b border-purple-100 rounded-t-2xl">
+            <div className="flex items-center justify-between px-5 py-3.5 bg-gradient-to-r from-red-50 to-indigo-50 border-b border-red-100 rounded-t-2xl">
                 <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-full bg-purple-600 text-white flex items-center justify-center text-xs font-black shadow-sm">
+                    <div className="w-7 h-7 rounded-full bg-red-600 text-white flex items-center justify-center text-xs font-black shadow-sm">
                         {index + 1}
                     </div>
-                    <span className="text-sm font-bold text-purple-800">Task {index + 1}</span>
+                    <span className="text-sm font-bold text-red-800">Task {index + 1}</span>
                     {task.doer_name && (
-                        <span className="text-xs text-purple-500 font-medium">— {task.doer_name}</span>
+                        <span className="text-xs text-red-500 font-medium">— {task.doer_name}</span>
                     )}
                 </div>
                 {total > 1 && (
@@ -141,7 +141,7 @@ function TaskCard({ task, index, total, allDoers, givenBy, onUpdate, onRemove })
                         value={task.given_by}
                         onChange={(e) => onUpdate(task.id, { given_by: e.target.value })}
                         disabled={localStorage.getItem("role")?.toUpperCase() === "HOD"}
-                        className={`w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none bg-gray-50 focus:bg-white transition-all text-sm ${localStorage.getItem("role")?.toUpperCase() === "HOD" ? 'opacity-70 cursor-not-allowed' : ''}`}
+                        className={`w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 outline-none bg-gray-50 focus:bg-white transition-all text-sm ${localStorage.getItem("role")?.toUpperCase() === "HOD" ? 'opacity-70 cursor-not-allowed' : ''}`}
                     >
                         <option value="">Select Assign From</option>
                         {givenBy && givenBy.map((g, i) => {
@@ -169,7 +169,7 @@ function TaskCard({ task, index, total, allDoers, givenBy, onUpdate, onRemove })
                             }}
                             onBlur={() => setTimeout(() => onUpdate(task.id, { showSuggestions: false }), 200)}
                             placeholder="Enter or select doer name"
-                            className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none bg-gray-50 focus:bg-white transition-all text-sm"
+                            className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none bg-gray-50 focus:bg-white transition-all text-sm"
                             autoComplete="off"
                         />
                     </div>
@@ -179,7 +179,7 @@ function TaskCard({ task, index, total, allDoers, givenBy, onUpdate, onRemove })
                                 <div
                                     key={i}
                                     onMouseDown={() => selectDoer(doer)}
-                                    className="px-4 py-2.5 hover:bg-purple-50 cursor-pointer flex justify-between items-center border-b border-gray-50 last:border-0"
+                                    className="px-4 py-2.5 hover:bg-red-50 cursor-pointer flex justify-between items-center border-b border-gray-50 last:border-0"
                                 >
                                     <span className="font-semibold text-gray-800 text-sm">{doer.name}</span>
                                     {doer.phone && (
@@ -202,7 +202,7 @@ function TaskCard({ task, index, total, allDoers, givenBy, onUpdate, onRemove })
                         <button
                             type="button"
                             onClick={() => !task.dateLocked && onUpdate(task.id, { showCalendar: !task.showCalendar })}
-                            className={`w-full px-3 py-2.5 text-left border border-gray-200 rounded-lg bg-gray-50 hover:bg-white focus:ring-2 focus:ring-purple-500 transition-all flex items-center justify-between text-sm ${task.dateLocked ? 'opacity-70 cursor-not-allowed' : ''}`}
+                            className={`w-full px-3 py-2.5 text-left border border-gray-200 rounded-lg bg-gray-50 hover:bg-white focus:ring-2 focus:ring-red-500 transition-all flex items-center justify-between text-sm ${task.dateLocked ? 'opacity-70 cursor-not-allowed' : ''}`}
                             disabled={task.dateLocked}
                         >
                             <span className={task.planned_date ? "text-gray-800" : "text-gray-400"}>
@@ -228,7 +228,7 @@ function TaskCard({ task, index, total, allDoers, givenBy, onUpdate, onRemove })
                             name="planned_time"
                             value={task.planned_time}
                             onChange={handleInputChange}
-                            className="w-full px-3 py-2.5 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all text-sm"
+                            className="w-full px-3 py-2.5 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all text-sm"
                         />
                     </div>
                     <div className="col-span-2">
@@ -246,7 +246,7 @@ function TaskCard({ task, index, total, allDoers, givenBy, onUpdate, onRemove })
                                     onUpdate(task.id, { duration: val ? `${val} MIN` : '' });
                                 }}
                                 placeholder="e.g. 30"
-                                className="w-full pl-3 pr-12 p-2.5 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none transition-all text-sm"
+                                className="w-full pl-3 pr-12 p-2.5 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-red-500 outline-none transition-all text-sm"
                             />
                             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">MIN</span>
                         </div>
@@ -271,12 +271,12 @@ function TaskCard({ task, index, total, allDoers, givenBy, onUpdate, onRemove })
                                             onChange={handleInputChange}
                                             rows="3"
                                             placeholder="Describe the task..."
-                                            className="w-full p-3 pr-11 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none resize-none bg-gray-50 focus:bg-white transition-all text-sm"
+                                            className="w-full p-3 pr-11 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none resize-none bg-gray-50 focus:bg-white transition-all text-sm"
                                         />
                                         <button
                                             type="button"
                                             onClick={startRecording}
-                                            className="absolute bottom-2.5 right-2.5 p-1.5 bg-purple-100 text-purple-600 rounded-full hover:bg-purple-200 transition-all"
+                                            className="absolute bottom-2.5 right-2.5 p-1.5 bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition-all"
                                             title="Record Voice Note"
                                         >
                                             <Mic className="w-4 h-4" />
@@ -295,9 +295,9 @@ function TaskCard({ task, index, total, allDoers, givenBy, onUpdate, onRemove })
                                     </div>
                                 )}
                                 {task.recordedAudio && status !== 'recording' && (
-                                    <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
                                         <div className="flex items-center justify-between mb-2">
-                                            <span className="text-xs font-bold text-purple-700 flex items-center gap-1.5">
+                                            <span className="text-xs font-bold text-red-700 flex items-center gap-1.5">
                                                 <Mic className="w-3 h-3" /> Voice Note Attached
                                             </span>
                                             <button
@@ -321,18 +321,18 @@ function TaskCard({ task, index, total, allDoers, givenBy, onUpdate, onRemove })
                     <button
                         type="button"
                         onClick={() => onUpdate(task.id, { attachment: !task.attachment })}
-                        className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl border text-xs font-bold transition-all duration-200 ${task.attachment ? 'bg-purple-50 border-purple-200 text-purple-700 shadow-sm' : 'bg-gray-50 border-gray-200 text-gray-400 group-hover:border-gray-300'}`}
+                        className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl border text-xs font-bold transition-all duration-200 ${task.attachment ? 'bg-red-50 border-red-200 text-red-700 shadow-sm' : 'bg-gray-50 border-gray-200 text-gray-400 group-hover:border-gray-300'}`}
                     >
                         <div className="flex items-center gap-2">
                             <Plus className={`w-3.5 h-3.5 transition-transform ${task.attachment ? 'rotate-45' : ''}`} />
                             <span>Require Attachment / Proof</span>
                         </div>
-                        <div className={`w-9 h-5 flex items-center rounded-full p-1 transition-colors ${task.attachment ? 'bg-purple-600' : 'bg-gray-300'}`}>
+                        <div className={`w-9 h-5 flex items-center rounded-full p-1 transition-colors ${task.attachment ? 'bg-red-600' : 'bg-gray-300'}`}>
                             <div className={`bg-white w-3 h-3 rounded-full shadow-sm transform transition-transform ${task.attachment ? 'translate-x-4' : ''}`} />
                         </div>
                     </button>
                     {task.attachment && (
-                        <p className="mt-1.5 px-1 text-[10px] text-purple-500 font-medium">
+                        <p className="mt-1.5 px-1 text-[10px] text-red-500 font-medium">
                             The doer will be required to upload a photo to complete this task.
                         </p>
                     )}
@@ -575,7 +575,7 @@ export default function EATask() {
                 {/* Header */}
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
-                        <div className="p-2.5 bg-purple-600 rounded-xl text-white shadow-md">
+                        <div className="p-2.5 bg-red-600 rounded-xl text-white shadow-md">
                             <Users size={20} />
                         </div>
                         <div>
@@ -619,7 +619,7 @@ export default function EATask() {
                 <button
                     type="button"
                     onClick={addTask}
-                    className="mt-4 w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-purple-300 text-purple-600 font-bold rounded-2xl hover:border-purple-500 hover:bg-purple-50 transition-all duration-200 group"
+                    className="mt-4 w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-red-300 text-red-600 font-bold rounded-2xl hover:border-red-500 hover:bg-red-50 transition-all duration-200 group"
                 >
                     <Plus className="w-5 h-5 group-hover:scale-110 transition-transform" />
                     Add Another Task
@@ -633,7 +633,7 @@ export default function EATask() {
                             <p className="text-xs text-gray-400 mt-0.5">All tasks will be submitted at once</p>
                         </div>
                         <div className="text-right">
-                            <span className="text-2xl font-black text-purple-600">{tasks.length}</span>
+                            <span className="text-2xl font-black text-red-600">{tasks.length}</span>
                             <p className="text-xs text-gray-400">Total</p>
                         </div>
                     </div>
@@ -649,7 +649,7 @@ export default function EATask() {
                             type="button"
                             onClick={handleSubmitAll}
                             disabled={isSubmitting}
-                            className="flex-2 flex-grow py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl shadow-md transform transition-all active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            className="flex-2 flex-grow py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-md transform transition-all active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
                             {isSubmitting ? (
                                 <><Loader2 size={18} className="animate-spin" /> Submitting...</>

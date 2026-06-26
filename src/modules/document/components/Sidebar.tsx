@@ -182,8 +182,8 @@ interface SidebarProps {
                         onClick={(e) => toggleSection(item.label, e)}
                         className={`w-full flex items-center justify-between py-3 pr-4 rounded-xl transition-all duration-200 ${
                             isOpen || isSectionActive(item, location.pathname) 
-                            ? 'text-indigo-600 bg-indigo-50 font-medium' 
-                            : 'text-gray-600 hover:bg-gray-100 hover:text-indigo-600'
+                            ? 'text-red-600 bg-red-50 font-medium' 
+                            : 'text-gray-600 hover:bg-gray-100 hover:text-red-600'
                         }`}
                         style={{ paddingLeft: depth === 0 ? '1rem' : paddingLeft }}
                     >
@@ -209,8 +209,8 @@ interface SidebarProps {
                         onClick={() => handleNavigation(item.path!)}
                         className={`w-full flex items-center gap-3 py-2.5 pr-4 rounded-xl transition-all duration-200 ${
                             isActiveLink
-                            ? "bg-indigo-600 text-white shadow-md shadow-indigo-200 font-medium"
-                            : "text-gray-600 hover:text-indigo-600 hover:bg-gray-100"
+                            ? "bg-red-600 text-white shadow-md shadow-red-200 font-medium"
+                            : "text-gray-600 hover:text-red-600 hover:bg-gray-100"
                         }`}
                         style={{ paddingLeft: depth === 0 ? '1rem' : paddingLeft }}
                     >
@@ -231,7 +231,7 @@ interface SidebarProps {
             <span className="font-bold text-lg tracking-wide text-gray-900">Document & Subscription</span>
           </div>
           {onClose && (
-            <button onClick={onClose} className="lg:hidden text-gray-500 hover:text-indigo-600">
+            <button onClick={onClose} className="lg:hidden text-gray-500 hover:text-red-600">
               <X size={24} />
             </button>
           )}

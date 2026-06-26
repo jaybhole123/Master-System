@@ -1028,7 +1028,7 @@ const Setting = () => {
     switch (role) {
       case 'admin': return 'bg-blue-100 text-blue-800';
       case 'HOD': return 'bg-orange-100 text-orange-800';
-      case 'manager': return 'bg-purple-100 text-purple-800';
+      case 'manager': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -1056,7 +1056,7 @@ const Setting = () => {
     <AdminLayout>
       <div className="space-y-8">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 py-6">
-          <h1 className="text-2xl font-bold text-purple-600">User Management System</h1>
+          <h1 className="text-2xl font-bold text-red-600">User Management System</h1>
 
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex bg-gray-100/80 p-1 rounded-xl border border-gray-200/30 relative overflow-x-auto no-scrollbar max-w-max xscrol">
@@ -1068,7 +1068,7 @@ const Setting = () => {
               ].map((tab) => (
                 <button
                   key={tab.id}
-                  className={`relative flex items-center justify-center gap-2 py-2 px-6 rounded-lg text-xs font-bold transition-all duration-500 whitespace-nowrap min-w-[110px] z-10 ${activeTab === tab.id ? 'text-white' : 'text-gray-500 hover:text-purple-600'}`}
+                  className={`relative flex items-center justify-center gap-2 py-2 px-6 rounded-lg text-xs font-bold transition-all duration-500 whitespace-nowrap min-w-[110px] z-10 ${activeTab === tab.id ? 'text-white' : 'text-gray-500 hover:text-red-600'}`}
                   onClick={() => {
                     handleTabChange(tab.id);
                     if (tab.id === 'users') dispatch(userDetails());
@@ -1078,7 +1078,7 @@ const Setting = () => {
                   {activeTab === tab.id && (
                     <motion.div
                       layoutId="settingsTabPillMinimal"
-                      className="absolute inset-0 bg-purple-600 rounded-lg shadow-md"
+                      className="absolute inset-0 bg-red-600 rounded-lg shadow-md"
                       transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                     />
                   )}
@@ -1108,7 +1108,7 @@ const Setting = () => {
                       handleAddButtonClick();
                     }
                   }}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-purple-600 text-white rounded-lg font-bold shadow-md hover:bg-purple-700 transition-all text-sm"
+                  className="flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white rounded-lg font-bold shadow-md hover:bg-red-700 transition-all text-sm"
                 >
                   <Plus size={18} />
                   <span className="hidden sm:inline">
@@ -1140,14 +1140,14 @@ const Setting = () => {
         {activeTab === 'leave' && (
           <div className="space-y-5">
             {/* Step 1: Leave Form */}
-            <div className="bg-white shadow rounded-xl border border-purple-200 overflow-hidden">
-              <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-b border-purple-100 px-6 py-4 flex items-center justify-between">
+            <div className="bg-white shadow rounded-xl border border-red-200 overflow-hidden">
+              <div className="bg-gradient-to-r from-red-50 to-pink-50 border-b border-red-100 px-6 py-4 flex items-center justify-between">
                 <div>
-                  <h2 className="text-lg font-bold text-purple-700">Leave Management</h2>
-                  <p className="text-xs text-purple-500 mt-0.5">Reassign tasks to a substitute during leave period</p>
+                  <h2 className="text-lg font-bold text-red-700">Leave Management</h2>
+                  <p className="text-xs text-red-500 mt-0.5">Reassign tasks to a substitute during leave period</p>
                 </div>
                 {(leaveTasks.length > 0 || leaveSuccess) && (
-                  <button onClick={handleResetLeave} className="text-xs text-purple-600 border border-purple-200 rounded-lg px-3 py-1.5 hover:bg-purple-50 font-semibold transition-all">
+                  <button onClick={handleResetLeave} className="text-xs text-red-600 border border-red-200 rounded-lg px-3 py-1.5 hover:bg-red-50 font-semibold transition-all">
                     ↺ Start Over
                   </button>
                 )}
@@ -1167,7 +1167,7 @@ const Setting = () => {
                         setLeavePersonName(user ? user.user_name : '');
                         setLeaveTasks([]);
                       }}
-                      className="w-full border border-gray-200 rounded-lg py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 bg-gray-50"
+                      className="w-full border border-gray-200 rounded-lg py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 bg-gray-50"
                     >
                       <option value="">Select person...</option>
                       {userData && [...userData].filter(u => u && u.user_name).sort((a, b) => a.user_name.localeCompare(b.user_name)).map(user => (
@@ -1184,7 +1184,7 @@ const Setting = () => {
                       value={leaveRemark}
                       onChange={e => setLeaveRemark(e.target.value)}
                       placeholder="e.g. Family function, Sick leave..."
-                      className="w-full border border-gray-200 rounded-lg py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 bg-gray-50"
+                      className="w-full border border-gray-200 rounded-lg py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 bg-gray-50"
                     />
                   </div>
 
@@ -1216,7 +1216,7 @@ const Setting = () => {
                         setShowStartCalendar(!showStartCalendar);
                         setShowEndCalendar(false);
                       }}
-                      className="w-full border border-gray-200 rounded-lg py-2.5 px-3 text-sm text-left flex justify-between items-center bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                      className="w-full border border-gray-200 rounded-lg py-2.5 px-3 text-sm text-left flex justify-between items-center bg-gray-50 focus:outline-none focus:ring-2 focus:ring-red-400"
                     >
                       <span className={leaveStartDate ? 'text-gray-800' : 'text-gray-400'}>
                         {leaveStartDate ? formatDateLong(new Date(leaveStartDate)) : 'Select date'}
@@ -1262,7 +1262,7 @@ const Setting = () => {
                         setShowEndCalendar(!showEndCalendar);
                         setShowStartCalendar(false);
                       }}
-                      className="w-full border border-gray-200 rounded-lg py-2.5 px-3 text-sm text-left flex justify-between items-center bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                      className="w-full border border-gray-200 rounded-lg py-2.5 px-3 text-sm text-left flex justify-between items-center bg-gray-50 focus:outline-none focus:ring-2 focus:ring-red-400"
                     >
                       <span className={leaveEndDate ? 'text-gray-800' : 'text-gray-400'}>
                         {leaveEndDate ? formatDateLong(new Date(leaveEndDate)) : 'Select date'}
@@ -1286,7 +1286,7 @@ const Setting = () => {
                     <button
                       onClick={handleFetchLeaveTasks}
                       disabled={leaveTasksLoading || !leavePersonName || !leaveStartDate || !leaveEndDate}
-                      className="w-full py-2.5 px-4 bg-purple-600 text-white text-sm font-bold rounded-lg hover:bg-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      className="w-full py-2.5 px-4 bg-red-600 text-white text-sm font-bold rounded-lg hover:bg-red-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
                       {leaveTasksLoading ? (
                         <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Fetching...</>
@@ -1310,7 +1310,7 @@ const Setting = () => {
 
             {/* Step 2: Tasks Preview + Shift */}
             {leaveTasks.length > 0 && !leaveSuccess && (
-              <div className="bg-white shadow rounded-xl border border-purple-200 overflow-hidden">
+              <div className="bg-white shadow rounded-xl border border-red-200 overflow-hidden">
                 <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100 px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
                     <h3 className="text-base font-bold text-blue-800">Tasks During Leave Period</h3>
@@ -1360,7 +1360,7 @@ const Setting = () => {
                                 setSelectedLeaveTaskIds([]);
                               }
                             }}
-                            className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                            className="w-4 h-4 rounded border-gray-300 text-red-600 focus:ring-red-500"
                           />
                         </th>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">#</th>
@@ -1373,7 +1373,7 @@ const Setting = () => {
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-100">
                       {leaveTasks.map((task, idx) => (
-                        <tr key={task._uniqueId} className={`hover:bg-gray-50 transition-colors ${selectedLeaveTaskIds.includes(task._uniqueId) ? 'bg-purple-50/50' : ''}`}>
+                        <tr key={task._uniqueId} className={`hover:bg-gray-50 transition-colors ${selectedLeaveTaskIds.includes(task._uniqueId) ? 'bg-red-50/50' : ''}`}>
                           <td className="px-4 py-3">
                             <input
                               type="checkbox"
@@ -1385,7 +1385,7 @@ const Setting = () => {
                                   setSelectedLeaveTaskIds(prev => prev.filter(id => id !== task._uniqueId));
                                 }
                               }}
-                              className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 cursor-pointer"
+                              className="w-4 h-4 rounded border-gray-300 text-red-600 focus:ring-red-500 cursor-pointer"
                             />
                           </td>
                           <td className="px-4 py-3 text-xs text-gray-400 font-medium">{idx + 1}</td>
@@ -1404,7 +1404,7 @@ const Setting = () => {
                           </td>
                           <td className="px-4 py-3">
                             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${task._table === 'checklist' ? 'bg-blue-100 text-blue-700' :
-                              task._table === 'delegation' ? 'bg-purple-100 text-purple-700' :
+                              task._table === 'delegation' ? 'bg-red-100 text-red-700' :
                                 task._table === 'maintenance_tasks' ? 'bg-orange-100 text-orange-700' :
                                   task._table === 'repair_tasks' ? 'bg-red-100 text-red-700' :
                                     'bg-green-100 text-green-700'
@@ -1448,9 +1448,9 @@ const Setting = () => {
 
         {/* Users Tab */}
         {activeTab === 'users' && (
-          <div className="bg-white shadow rounded-lg overflow-hidden border border-purple-200">
-            <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-b border-purple px-4 py-4 md:px-6 flex flex-col md:flex-row gap-4 md:items-center justify-between">
-              <h2 className="text-lg font-bold text-purple-700">User List</h2>
+          <div className="bg-white shadow rounded-lg overflow-hidden border border-red-200">
+            <div className="bg-gradient-to-r from-red-50 to-pink-50 border-b border-red px-4 py-4 md:px-6 flex flex-col md:flex-row gap-4 md:items-center justify-between">
+              <h2 className="text-lg font-bold text-red-700">User List</h2>
 
               <div className="flex flex-wrap items-center gap-3">
                 {/* Bulk Cleanup Feature */}
@@ -1475,7 +1475,7 @@ const Setting = () => {
                     placeholder="Search users..."
                     value={usernameFilter}
                     onChange={(e) => setUsernameFilter(e.target.value)}
-                    className="w-full sm:w-48 pl-10 pr-8 py-2 border border-purple-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm shadow-sm"
+                    className="w-full sm:w-48 pl-10 pr-8 py-2 border border-red-200 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 text-sm shadow-sm"
                   />
                   <datalist id="usernameOptions">
                     {(userData || []).filter(u => u && u.user_name).map(user => (
@@ -1562,7 +1562,7 @@ const Setting = () => {
                             <div className="text-sm text-gray-900">{user?.department || '—'}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-purple-700 font-bold">{user?.Designation || '—'}</div>
+                            <div className="text-sm text-red-700 font-bold">{user?.Designation || '—'}</div>
                           </td>
 
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -1643,9 +1643,9 @@ const Setting = () => {
                         !usernameFilter || user.user_name.toLowerCase().includes(usernameFilter.toLowerCase()))
                     )
                     .map((user, index) => (
-                      <div key={`user-card-${user?.id || index}`} className="bg-white rounded-xl border border-purple-100 shadow-sm overflow-hidden animate-fade-in">
-                        <div className="bg-purple-50/50 px-4 py-3 border-b border-purple-100 flex justify-between items-center">
-                          <span className="text-sm font-bold text-purple-900">{user?.user_name}</span>
+                      <div key={`user-card-${user?.id || index}`} className="bg-white rounded-xl border border-red-100 shadow-sm overflow-hidden animate-fade-in">
+                        <div className="bg-red-50/50 px-4 py-3 border-b border-red-100 flex justify-between items-center">
+                          <span className="text-sm font-bold text-red-900">{user?.user_name}</span>
                           <div className="flex items-center gap-2">
                             <span className={`px-2 py-0.5 inline-flex text-[10px] leading-5 font-bold rounded-full uppercase ${getStatusColor(user?.status)}`}>
                               {user?.status === 'on_leave' ? 'On Leave' : user?.status}
@@ -1682,7 +1682,7 @@ const Setting = () => {
                             {user?.Designation && (
                               <div className="space-y-1">
                                 <p className="text-[10px] text-gray-400 uppercase font-semibold">Designation</p>
-                                <p className="text-xs text-purple-700 font-bold">{user.Designation}</p>
+                                <p className="text-xs text-red-700 font-bold">{user.Designation}</p>
                               </div>
                             )}
                           </div>
@@ -1726,14 +1726,14 @@ const Setting = () => {
 
         {/* Departments Tab */}
         {activeTab === 'departments' && (
-          <div className="bg-white shadow rounded-lg overflow-hidden border border-purple-200">
-            <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-b border-purple px-4 py-4 md:px-6">
+          <div className="bg-white shadow rounded-lg overflow-hidden border border-red-200">
+            <div className="bg-gradient-to-r from-red-50 to-pink-50 border-b border-red px-4 py-4 md:px-6">
               <div className="flex flex-col sm:flex-row gap-4 justify-between items-center text-center sm:text-left">
-                <h2 className="text-lg font-bold text-purple-700">Department Management</h2>
+                <h2 className="text-lg font-bold text-red-700">Department Management</h2>
 
-                <div className="flex border border-purple-200 rounded-lg overflow-hidden bg-white shadow-sm">
+                <div className="flex border border-red-200 rounded-lg overflow-hidden bg-white shadow-sm">
                   <button
-                    className={`px-4 py-2 text-xs font-bold transition-all ${activeDeptSubTab === 'departments' ? 'bg-purple-600 text-white' : 'bg-white text-purple-600 hover:bg-purple-50'}`}
+                    className={`px-4 py-2 text-xs font-bold transition-all ${activeDeptSubTab === 'departments' ? 'bg-red-600 text-white' : 'bg-white text-red-600 hover:bg-red-50'}`}
                     onClick={() => {
                       setActiveDeptSubTab('departments');
                       dispatch(departmentDetails());
@@ -1742,7 +1742,7 @@ const Setting = () => {
                     Main Departments
                   </button>
                   <button
-                    className={`px-4 py-2 text-xs font-bold border-l border-purple-100 transition-all ${activeDeptSubTab === 'givenBy' ? 'bg-purple-600 text-white' : 'bg-white text-purple-600 hover:bg-purple-50'}`}
+                    className={`px-4 py-2 text-xs font-bold border-l border-red-100 transition-all ${activeDeptSubTab === 'givenBy' ? 'bg-red-600 text-white' : 'bg-white text-red-600 hover:bg-red-50'}`}
                     onClick={() => {
                       setActiveDeptSubTab('givenBy');
                       dispatch(givenByDetails());
@@ -1757,7 +1757,7 @@ const Setting = () => {
             {/* Loading State */}
             {loading && (
               <div className="p-8 text-center">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
                 <p className="mt-2 text-gray-600">Loading...</p>
               </div>
             )}
@@ -1873,8 +1873,8 @@ const Setting = () => {
 
         {/* Machines Tab (Machine Management) */}
         {activeTab === 'categories' && (
-          <div className="bg-white shadow-xl rounded-2xl overflow-hidden border border-purple-100">
-            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 px-8 py-6 flex justify-between items-center border-b border-purple-100">
+          <div className="bg-white shadow-xl rounded-2xl overflow-hidden border border-red-100">
+            <div className="bg-gradient-to-r from-indigo-50 to-red-50 px-8 py-6 flex justify-between items-center border-b border-red-100">
               <div>
                 <h2 className="text-xl font-bold text-indigo-900">Machine Manager</h2>
                 <p className="text-sm text-indigo-600">Add and manage machines for tasks</p>
@@ -2140,7 +2140,7 @@ const Setting = () => {
 
             <div className="relative bg-white rounded-[2.5rem] shadow-2xl max-w-2xl w-full overflow-hidden animate-in zoom-in-95 duration-300 border border-white/50 flex flex-col max-h-[95vh]">
               {/* Premium Header */}
-              <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 px-10 py-8 relative">
+              <div className="bg-gradient-to-br from-indigo-600 via-red-600 to-pink-500 px-10 py-8 relative">
                 <div className="absolute inset-0 bg-white/5 backdrop-blur-[2px]"></div>
                 <div className="relative z-10 flex justify-between items-center">
                   <div>
@@ -2165,8 +2165,8 @@ const Setting = () => {
                   {/* Profile Image Section */}
                   <div className="flex flex-col items-center mb-8">
                     <div className="relative group">
-                      <div className="h-28 w-28 rounded-full bg-white p-1.5 shadow-2xl ring-4 ring-purple-100/50">
-                        <div className="h-full w-full rounded-full bg-gradient-to-tr from-indigo-50 to-purple-50 border-2 border-dashed border-purple-200 flex items-center justify-center overflow-hidden transition-all group-hover:border-purple-400 group-hover:bg-purple-50/50">
+                      <div className="h-28 w-28 rounded-full bg-white p-1.5 shadow-2xl ring-4 ring-red-100/50">
+                        <div className="h-full w-full rounded-full bg-gradient-to-tr from-indigo-50 to-red-50 border-2 border-dashed border-red-200 flex items-center justify-center overflow-hidden transition-all group-hover:border-red-400 group-hover:bg-red-50/50">
                           {profilePreview || userForm.profile_image ? (
                             <img
                               src={profilePreview || userForm.profile_image}
@@ -2174,7 +2174,7 @@ const Setting = () => {
                               className="h-full w-full object-cover transform transition-transform duration-500 group-hover:scale-110"
                             />
                           ) : (
-                            <User size={40} className="text-purple-200 group-hover:text-purple-400 transition-colors" />
+                            <User size={40} className="text-red-200 group-hover:text-red-400 transition-colors" />
                           )}
                         </div>
                       </div>
@@ -2208,7 +2208,7 @@ const Setting = () => {
                         id="username"
                         value={userForm.username}
                         onChange={handleUserInputChange}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all"
                         placeholder="Enter username"
                       />
                     </div>
@@ -2221,7 +2221,7 @@ const Setting = () => {
                         id="email"
                         value={userForm.email}
                         onChange={handleUserInputChange}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all"
                         placeholder="Enter email address"
                       />
                     </div>
@@ -2235,7 +2235,7 @@ const Setting = () => {
                           id="password"
                           value={userForm.password}
                           onChange={handleUserInputChange}
-                          className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                          className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all"
                           placeholder="••••••••"
                         />
                       </div>
@@ -2249,7 +2249,7 @@ const Setting = () => {
                         id="phone"
                         value={userForm.phone}
                         onChange={handleUserInputChange}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all"
                         placeholder="+91 00000 00000"
                       />
                     </div>
@@ -2267,7 +2267,7 @@ const Setting = () => {
                           className={`w-full px-4 py-3 border border-gray-200 rounded-xl outline-none ${
                             (userForm.employee_id && userForm.employee_id.trim())
                               ? "bg-gray-100 text-gray-500 cursor-not-allowed"
-                              : "bg-gray-50 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                              : "bg-gray-50 focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
                           }`}
                           placeholder="Leave blank to auto-generate"
                         />
@@ -2281,7 +2281,7 @@ const Setting = () => {
                         name="role"
                         value={userForm.role}
                         onChange={handleUserInputChange}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all"
                       >
                         <option value="admin">Admin</option>
                         <option value="HOD">HOD</option>
@@ -2296,7 +2296,7 @@ const Setting = () => {
                         name="reported_by"
                         value={userForm.reported_by}
                         onChange={handleUserInputChange}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all"
                       >
                         <option value="">No Supervisor (Direct Admin)</option>
                         {userData && userData.length > 0 && userData
@@ -2315,7 +2315,7 @@ const Setting = () => {
                         name="department"
                         value={userForm.department}
                         onChange={handleUserInputChange}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all"
                       >
                         <option value="">Choose a department...</option>
                         {department && department.length > 0 ? (
@@ -2337,7 +2337,7 @@ const Setting = () => {
                         id="Designation"
                         value={userForm.Designation}
                         onChange={handleUserInputChange}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all"
                         placeholder="e.g. Senior Technician, Supervisor..."
                       />
                     </div>
@@ -2355,7 +2355,7 @@ const Setting = () => {
                             name="status"
                             value={userForm.status}
                             onChange={handleUserInputChange}
-                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all"
                           >
                             <option value="active">Active</option>
                             <option value="inactive">Inactive</option>
@@ -2371,7 +2371,7 @@ const Setting = () => {
                             name="leave_date"
                             value={userForm.leave_date}
                             onChange={handleUserInputChange}
-                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all"
                           />
                         </div>
 
@@ -2383,7 +2383,7 @@ const Setting = () => {
                             name="leave_end_date"
                             value={userForm.leave_end_date}
                             onChange={handleUserInputChange}
-                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all"
                           />
                         </div>
 
@@ -2395,7 +2395,7 @@ const Setting = () => {
                             value={userForm.remark}
                             onChange={handleUserInputChange}
                             rows="2"
-                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all resize-none"
+                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all resize-none"
                             placeholder="Enter any remarks or leave reason..."
                           ></textarea>
                         </div>
@@ -2404,13 +2404,13 @@ const Setting = () => {
 
                   </div>
                   
-                  <div className="mt-8 bg-gradient-to-br from-purple-50 to-indigo-50 p-6 rounded-[2rem] border border-purple-100/50 flex items-center justify-between group transition-all hover:shadow-xl hover:shadow-purple-100/30">
+                  <div className="mt-8 bg-gradient-to-br from-red-50 to-indigo-50 p-6 rounded-[2rem] border border-red-100/50 flex items-center justify-between group transition-all hover:shadow-xl hover:shadow-red-100/30">
                     <div className="flex items-center gap-4">
-                      <div className="h-12 w-12 rounded-2xl bg-white flex items-center justify-center text-purple-600 shadow-sm border border-purple-100 group-hover:scale-110 transition-transform">
+                      <div className="h-12 w-12 rounded-2xl bg-white flex items-center justify-center text-red-600 shadow-sm border border-red-100 group-hover:scale-110 transition-transform">
                         <User size={20} strokeWidth={2.5} />
                       </div>
                       <div>
-                        <h4 className="text-sm font-black text-purple-900 uppercase tracking-widest mb-0.5 group-hover:text-indigo-600 transition-colors">Self-Assign Rights</h4>
+                        <h4 className="text-sm font-black text-red-900 uppercase tracking-widest mb-0.5 group-hover:text-indigo-600 transition-colors">Self-Assign Rights</h4>
                         <p className="text-[10px] text-gray-400 font-bold max-w-[200px]">Allow this user to assign tasks to themselves</p>
                       </div>
                     </div>
@@ -2422,7 +2422,7 @@ const Setting = () => {
                         onChange={(e) => setUserForm(prev => ({ ...prev, can_self_assign: e.target.checked }))}
                         className="sr-only peer" 
                       />
-                      <div className="w-12 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-purple-600 peer-checked:to-indigo-600"></div>
+                      <div className="w-12 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-red-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-red-600 peer-checked:to-indigo-600"></div>
                     </label>
                   </div>
 
@@ -2436,7 +2436,7 @@ const Setting = () => {
                     </button>
                     <button
                       type="submit"
-                      className="px-10 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-black rounded-2xl hover:from-indigo-700 hover:to-purple-700 shadow-[0_10px_20px_-5px_rgba(79,70,229,0.4)] hover:shadow-indigo-200 transition-all active:scale-95 flex items-center gap-2 uppercase tracking-widest"
+                      className="px-10 py-3 bg-gradient-to-r from-indigo-600 to-red-600 text-white text-xs font-black rounded-2xl hover:from-indigo-700 hover:to-red-700 shadow-[0_10px_20px_-5px_rgba(79,70,229,0.4)] hover:shadow-indigo-200 transition-all active:scale-95 flex items-center gap-2 uppercase tracking-widest"
                     >
                       <Save size={16} strokeWidth={3} />
                       {isEditing ? 'Save Changes' : 'Create User'}
@@ -2458,7 +2458,7 @@ const Setting = () => {
 
             <div className="relative bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] max-w-lg w-full overflow-hidden animate-in zoom-in-95 duration-200 border border-white/50 max-h-[90vh] flex flex-col">
               {/* Premium Header */}
-              <div className="bg-gradient-to-br from-purple-600 via-pink-600 to-rose-500 px-10 py-8 relative">
+              <div className="bg-gradient-to-br from-red-600 via-pink-600 to-rose-500 px-10 py-8 relative">
                 <div className="absolute inset-0 bg-white/5 backdrop-blur-[2px]"></div>
                 <div className="relative z-10 flex justify-between items-center">
                   <div>
@@ -2496,7 +2496,7 @@ const Setting = () => {
                         id="givenBy"
                         value={deptForm.givenBy}
                         onChange={handleDeptInputChange}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none transition-all"
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition-all"
                         placeholder="Enter machine name..."
                       />
                     ) : activeDeptSubTab === 'givenBy' ? (
@@ -2505,7 +2505,7 @@ const Setting = () => {
                         id="name"
                         value={deptForm.name}
                         onChange={handleDeptInputChange}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none transition-all bg-gray-50"
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition-all bg-gray-50"
                       >
                         <option value="">Select Assign From...</option>
                         {(userData || [])
@@ -2524,7 +2524,7 @@ const Setting = () => {
                         id="name"
                         value={deptForm.name}
                         onChange={handleDeptInputChange}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none transition-all"
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition-all"
                         placeholder="e.g. Marketing"
                       />
                     )}
@@ -2551,7 +2551,7 @@ const Setting = () => {
                                   type="text"
                                   value={part.name}
                                   onChange={(e) => handlePartInputChange(index, e.target.value)}
-                                  className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-sm transition-all"
+                                  className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 outline-none text-sm transition-all"
                                   placeholder={`Part #${index + 1} name`}
                                 />
                                 {inputParts.length > 1 && (
@@ -2569,7 +2569,7 @@ const Setting = () => {
                               <div className="flex items-center gap-3">
                                 <label
                                   htmlFor={`part-img-${index}`}
-                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-dashed border-purple-300 text-purple-600 text-xs font-bold rounded-lg cursor-pointer hover:bg-purple-50 transition-all"
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-dashed border-red-300 text-red-600 text-xs font-bold rounded-lg cursor-pointer hover:bg-red-50 transition-all"
                                 >
                                   <Image size={14} />
                                   {part.preview ? 'Change Image' : 'Add Image'}
@@ -2607,7 +2607,7 @@ const Setting = () => {
                         <button
                           type="button"
                           onClick={handleAddPartInput}
-                          className="mt-1 text-sm text-purple-600 font-bold hover:text-purple-800 flex items-center gap-1"
+                          className="mt-1 text-sm text-red-600 font-bold hover:text-red-800 flex items-center gap-1"
                         >
                           <Plus size={16} /> Add Another Part
                         </button>
@@ -2623,7 +2623,7 @@ const Setting = () => {
                           id="machineArea"
                           value={deptForm.machineArea}
                           onChange={handleDeptInputChange}
-                          className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none transition-all"
+                          className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition-all"
                           placeholder="Enter machine area..."
                         />
                       </div>
@@ -2643,7 +2643,7 @@ const Setting = () => {
                     </button>
                     <button
                       type="submit"
-                      className="px-10 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-black rounded-2xl hover:from-purple-700 hover:to-pink-700 shadow-[0_10px_20px_-5px_rgba(192,38,211,0.4)] hover:shadow-pink-200 transition-all active:scale-95 flex items-center gap-2 uppercase tracking-widest"
+                      className="px-10 py-3 bg-gradient-to-r from-red-600 to-pink-600 text-white text-xs font-black rounded-2xl hover:from-red-700 hover:to-pink-700 shadow-[0_10px_20px_-5px_rgba(192,38,211,0.4)] hover:shadow-pink-200 transition-all active:scale-95 flex items-center gap-2 uppercase tracking-widest"
                     >
                       <Save size={16} strokeWidth={3} />
                       {activeTab === 'categories'
@@ -2755,7 +2755,7 @@ const Setting = () => {
                           fetchCleanupPreview(days);
                         }}
                         className={`flex-1 py-2 rounded-md text-xs font-bold transition-all ${cleanupDays === days
-                          ? 'bg-white text-purple-600 shadow-sm border border-slate-200'
+                          ? 'bg-white text-red-600 shadow-sm border border-slate-200'
                           : 'text-slate-500 hover:text-slate-700'
                           }`}
                       >
@@ -2775,7 +2775,7 @@ const Setting = () => {
                   <div className="max-h-48 overflow-y-auto divide-y divide-slate-100">
                     {cleanupLoading ? (
                       <div className="flex items-center justify-center py-10 gap-2">
-                        <RefreshCw size={16} className="animate-spin text-purple-500" />
+                        <RefreshCw size={16} className="animate-spin text-red-500" />
                         <span className="text-xs text-slate-500 font-medium">Scanning records...</span>
                       </div>
                     ) : cleanupItems.length > 0 ? (
@@ -2805,7 +2805,7 @@ const Setting = () => {
                       setShowCleanupModal(false);
                       setShowDangerPopup(true);
                     }}
-                    className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold text-xs uppercase tracking-wider transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-xs uppercase tracking-wider transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Proceed to Cleanup
                   </button>

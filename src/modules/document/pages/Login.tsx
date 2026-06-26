@@ -116,13 +116,13 @@ const Login = () => {
   };
 
   return (
-    <div className="h-screen bg-gradient-to-br from-indigo-50 to-indigo-50 flex items-center justify-center p-4">
+    <div className="h-screen bg-gradient-to-br from-red-50 to-red-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full space-y-8">
         <div className="bg-white/90 backdrop-blur-sm p-6 rounded-2xl shadow-input">
           <div className="text-center mb-4">
             <div className="flex justify-center mb-4">
               <div className="h-40 w-40 flex items-center justify-center rounded-full bg-white shadow-md">
-                <FileText className="h-20 w-20 text-indigo-600" />
+                <FileText className="h-20 w-20 text-red-600" />
               </div>
             </div>
             <h2 className="text-3xl font-bold text-gray-900">
@@ -140,7 +140,7 @@ const Login = () => {
                 <User
                   className={`absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 ${
                     focusedField === "username"
-                      ? "text-indigo-600"
+                      ? "text-red-600"
                       : "text-gray-400"
                   }`}
                 />
@@ -150,7 +150,7 @@ const Login = () => {
                   onChange={(e) => setUsername(e.target.value)}
                   onFocus={() => setFocusedField("username")}
                   onBlur={() => setFocusedField(null)}
-                  className="w-full pl-12 pr-4 py-3 rounded-xl shadow-input focus:ring-2 focus:ring-indigo-500 outline-none"
+                  className="w-full pl-12 pr-4 py-3 rounded-xl shadow-input focus:ring-2 focus:ring-red-500 outline-none"
                   placeholder="Enter your username"
                   required
                 />
@@ -166,7 +166,7 @@ const Login = () => {
                 <Lock
                   className={`absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 ${
                     focusedField === "password"
-                      ? "text-indigo-600"
+                      ? "text-red-600"
                       : "text-gray-400"
                   }`}
                 />
@@ -176,7 +176,7 @@ const Login = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   onFocus={() => setFocusedField("password")}
                   onBlur={() => setFocusedField(null)}
-                  className="w-full pl-12 pr-12 py-3 rounded-xl shadow-input focus:ring-2 focus:ring-indigo-500 outline-none"
+                  className="w-full pl-12 pr-12 py-3 rounded-xl shadow-input focus:ring-2 focus:ring-red-500 outline-none"
                   placeholder="Enter your password"
                   required
                 />
@@ -200,8 +200,8 @@ const Login = () => {
               disabled={isLoading}
               className={`w-full py-3 rounded-xl font-semibold text-white transition ${
                 isLoading
-                  ? "bg-indigo-400 cursor-not-allowed"
-                  : "bg-indigo-600 hover:bg-indigo-700"
+                  ? "bg-red-400 cursor-not-allowed"
+                  : "bg-red-600 hover:bg-red-700"
               }`}
             >
               {isLoading ? "Signing in..." : "Sign in"}
@@ -215,7 +215,7 @@ const Login = () => {
             href="https://www.botivate.com"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-indigo-600 font-medium"
+            className="text-red-600 font-medium"
           >
             Botivate
           </a>

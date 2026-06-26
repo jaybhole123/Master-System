@@ -1128,10 +1128,10 @@ export default function QuickTask() {
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div className="flex items-center gap-4 flex-wrap">
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-purple-700">
+                <h1 className="text-2xl font-bold tracking-tight text-red-700">
                   {CONFIG.PAGE_CONFIG.title}
                 </h1>
-                <p className="text-purple-600 text-[11px] font-bold uppercase tracking-wider opacity-80">
+                <p className="text-red-600 text-[11px] font-bold uppercase tracking-wider opacity-80">
                   {activeTab === 'checklist'
                     ? `Showing ${quickTask.length} checklist tasks`
                     : activeTab === 'maintenance'
@@ -1154,7 +1154,7 @@ export default function QuickTask() {
               {selectedTasks.length === 1 && activeTab === 'checklist' && (
                 <button
                   onClick={handleRegenerateClick}
-                  className="flex items-center gap-2 px-4 py-1.5 bg-purple-600 text-white text-xs font-black rounded-full hover:bg-purple-700 transition-all shadow-md animate-in fade-in zoom-in duration-300 transform active:scale-95 flex-shrink-0"
+                  className="flex items-center gap-2 px-4 py-1.5 bg-red-600 text-white text-xs font-black rounded-full hover:bg-red-700 transition-all shadow-md animate-in fade-in zoom-in duration-300 transform active:scale-95 flex-shrink-0"
                 >
                   <RefreshCw size={14} className="stroke-[3]" />
                   Regenerate
@@ -1171,8 +1171,8 @@ export default function QuickTask() {
                 <button
                   key={tab.id}
                   className={`flex-1 sm:flex-none px-6 py-2 text-xs font-black uppercase tracking-widest rounded-lg transition-all ${activeTab === tab.id
-                    ? 'bg-purple-600 text-white shadow-sm'
-                    : 'text-gray-500 hover:text-purple-600 hover:bg-white/50'
+                    ? 'bg-red-600 text-white shadow-sm'
+                    : 'text-gray-500 hover:text-red-600 hover:bg-white/50'
                     }`}
                   onClick={() => {
                     setActiveTab(tab.id);
@@ -1202,7 +1202,7 @@ export default function QuickTask() {
               <input
                 type="text"
                 placeholder="Search by task or name..."
-                className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500 outline-none transition-all"
+                className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-red-500 outline-none transition-all"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -1219,24 +1219,24 @@ export default function QuickTask() {
 
       {loading && activeTab === 'delegation' && (
         <div className="mt-8 text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-500 mb-2"></div>
-          <p className="text-purple-600">Loading delegation data...</p>
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-red-500 mb-2"></div>
+          <p className="text-red-600">Loading delegation data...</p>
         </div>
       )}
 
       {!error && (
         <>
           {activeTab === 'checklist' ? (
-            <div className="mt-4 rounded-lg border border-purple-200 shadow-md bg-white overflow-hidden">
-              <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-b border-purple-100 p-4 flex justify-between items-center">
+            <div className="mt-4 rounded-lg border border-red-200 shadow-md bg-white overflow-hidden">
+              <div className="bg-gradient-to-r from-red-50 to-pink-50 border-b border-red-100 p-4 flex justify-between items-center">
                 <div>
-                  <h2 className="text-purple-700 font-medium">Checklist Tasks</h2>
-                  <p className="text-purple-600 text-sm">
+                  <h2 className="text-red-700 font-medium">Checklist Tasks</h2>
+                  <p className="text-red-600 text-sm">
                     {CONFIG.PAGE_CONFIG.description}
                   </p>
                 </div>
                 {selectedTasks.length > 0 && (
-                  <span className="text-sm text-purple-600">
+                  <span className="text-sm text-red-600">
                     {selectedTasks.length} task(s) selected
                   </span>
                 )}
@@ -1254,7 +1254,7 @@ export default function QuickTask() {
                           type="checkbox"
                           checked={filteredChecklistTasks.length > 0 && filteredChecklistTasks.every(t => selectedTasks.find(s => s.id === t.id))}
                           onChange={handleSelectAll}
-                          className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                          className="rounded border-gray-300 text-red-600 focus:ring-red-500"
                         />
                       </th>
                       {[
@@ -1299,7 +1299,7 @@ export default function QuickTask() {
                               type="checkbox"
                               checked={!!selectedTasks.find(t => t.id === task.id)}
                               onChange={() => handleCheckboxChange(task)}
-                              className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                              className="rounded border-gray-300 text-red-600 focus:ring-red-500"
                             />
                           </td>
 
@@ -1355,7 +1355,7 @@ export default function QuickTask() {
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             <span className={`px-2 py-1 rounded-full text-xs ${task.frequency?.toLowerCase() === 'daily' ? 'bg-blue-100 text-blue-800' :
                               task.frequency?.toLowerCase() === 'weekly' ? 'bg-green-100 text-green-800' :
-                                task.frequency?.toLowerCase() === 'monthly' ? 'bg-purple-100 text-purple-800' :
+                                task.frequency?.toLowerCase() === 'monthly' ? 'bg-red-100 text-red-800' :
                                   'bg-gray-100 text-gray-800'
                               }`}>
                               {task.frequency}
@@ -1403,20 +1403,20 @@ export default function QuickTask() {
                 <div className="md:hidden divide-y divide-gray-100">
                   {filteredChecklistTasks.length > 0 ? (
                     filteredChecklistTasks.map((task, index) => (
-                      <div key={index} className={`p-4 bg-white space-y-3 ${selectedTasks.find(t => t.id === task.id) ? 'bg-purple-50/50' : ''}`}>
+                      <div key={index} className={`p-4 bg-white space-y-3 ${selectedTasks.find(t => t.id === task.id) ? 'bg-red-50/50' : ''}`}>
                         <div className="flex justify-between items-start gap-3">
                           <input
                             type="checkbox"
                             checked={!!selectedTasks.find(t => t.id === task.id)}
                             onChange={() => handleCheckboxChange(task)}
-                            className="mt-1 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                            className="mt-1 rounded border-gray-300 text-red-600 focus:ring-red-500"
                           />
                           <div className="flex-grow min-w-0">
                             <div className="flex justify-between items-center mb-1">
-                              <span className="text-[10px] font-black text-purple-500 uppercase tracking-wider">#{task.id}</span>
+                              <span className="text-[10px] font-black text-red-500 uppercase tracking-wider">#{task.id}</span>
                               <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tight ${task.frequency?.toLowerCase() === 'daily' ? 'bg-blue-100 text-blue-800' :
                                 task.frequency?.toLowerCase() === 'weekly' ? 'bg-green-100 text-green-800' :
-                                  'bg-purple-100 text-purple-800'
+                                  'bg-red-100 text-red-800'
                                 }`}>
                                 {task.frequency || 'Manual'}
                               </span>
@@ -1431,7 +1431,7 @@ export default function QuickTask() {
                                 />
                               </div>
                               <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] font-bold text-gray-500">
-                                <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>{task.department}</span>
+                                <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-red-400"></span>{task.department}</span>
                                 <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>{task.name}</span>
                                 <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>{formatTimestampToDDMMYYYY(task.task_start_date)}</span>
                                 <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-red-400"></span>{formatTimestampToDDMMYYYY(task.planned_date)}</span>
@@ -1460,19 +1460,19 @@ export default function QuickTask() {
 
                 {loading && checklistHasMore && (
                   <div className="text-center py-4">
-                    <div className="inline-block animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-purple-500"></div>
-                    <p className="text-purple-600 text-sm mt-2">Loading more tasks...</p>
+                    <div className="inline-block animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-red-500"></div>
+                    <p className="text-red-600 text-sm mt-2">Loading more tasks...</p>
                   </div>
                 )}
               </div>
             </div>
           ) : activeTab === 'maintenance' ? (
-            <div className="mt-4 rounded-lg border border-purple-200 shadow-md bg-white overflow-hidden">
-              <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-b border-purple-100 p-4">
-                <h2 className="text-purple-700 font-medium">Maintenance Tasks</h2>
+            <div className="mt-4 rounded-lg border border-red-200 shadow-md bg-white overflow-hidden">
+              <div className="bg-gradient-to-r from-red-50 to-pink-50 border-b border-red-100 p-4">
+                <h2 className="text-red-700 font-medium">Maintenance Tasks</h2>
                 <div className="flex items-center gap-2">
-                  {maintenanceLoading && <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-purple-600"></div>}
-                  <p className="text-purple-600 text-sm">Showing all maintenance tasks from database</p>
+                  {maintenanceLoading && <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-red-600"></div>}
+                  <p className="text-red-600 text-sm">Showing all maintenance tasks from database</p>
                 </div>
               </div>
               <div className="overflow-x-auto">
@@ -1485,7 +1485,7 @@ export default function QuickTask() {
                           type="checkbox"
                           checked={filteredMaintenance.length > 0 && filteredMaintenance.every(t => selectedTasks.find(s => s.id === t.id))}
                           onChange={handleSelectAll}
-                          className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                          className="rounded border-gray-300 text-red-600 focus:ring-red-500"
                         />
                       </th>
                       {[
@@ -1515,13 +1515,13 @@ export default function QuickTask() {
                   <tbody className="bg-white divide-y divide-gray-200">
                     {filteredMaintenance.length > 0 ? (
                       filteredMaintenance.map((task, index) => (
-                        <tr key={index} className={`hover:bg-gray-50 ${selectedTasks.find(t => t.id === task.id) ? "bg-purple-50" : ""}`}>
+                        <tr key={index} className={`hover:bg-gray-50 ${selectedTasks.find(t => t.id === task.id) ? "bg-red-50" : ""}`}>
                           <td className="px-4 py-4 whitespace-nowrap">
                             <input
                               type="checkbox"
                               checked={!!selectedTasks.find(t => t.id === task.id)}
                               onChange={() => handleCheckboxChange(task)}
-                              className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                              className="rounded border-gray-300 text-red-600 focus:ring-red-500"
                             />
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -1564,7 +1564,7 @@ export default function QuickTask() {
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             <span className={`px-2 py-1 rounded-full text-xs ${task.freq?.toLowerCase() === 'daily' ? 'bg-blue-100 text-blue-800' :
                               task.freq?.toLowerCase() === 'weekly' ? 'bg-green-100 text-green-800' :
-                                task.freq?.toLowerCase() === 'monthly' ? 'bg-purple-100 text-purple-800' :
+                                task.freq?.toLowerCase() === 'monthly' ? 'bg-red-100 text-red-800' :
                                   'bg-gray-100 text-gray-800'
                               }`}>
                               <span className="capitalize">{task.freq}</span>
@@ -1605,17 +1605,17 @@ export default function QuickTask() {
                 <div className="md:hidden divide-y divide-gray-100">
                   {filteredMaintenance.length > 0 ? (
                     filteredMaintenance.map((task, index) => (
-                      <div key={index} className={`p-5 bg-white space-y-4 ${selectedTasks.find(t => t.id === task.id) ? "bg-purple-50/50" : ""}`}>
+                      <div key={index} className={`p-5 bg-white space-y-4 ${selectedTasks.find(t => t.id === task.id) ? "bg-red-50/50" : ""}`}>
                         <div className="flex justify-between items-start gap-4">
                           <input
                             type="checkbox"
                             checked={!!selectedTasks.find(t => t.id === task.id)}
                             onChange={() => handleCheckboxChange(task)}
-                            className="mt-1 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                            className="mt-1 rounded border-gray-300 text-red-600 focus:ring-red-500"
                           />
                           <div className="flex-grow min-w-0">
                             <div className="flex justify-between items-center mb-1">
-                              <span className="text-[10px] font-black text-purple-500 uppercase tracking-wider">#{task.id}</span>
+                              <span className="text-[10px] font-black text-red-500 uppercase tracking-wider">#{task.id}</span>
                               <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tight ${task.status === 'Done' ? 'bg-green-100 text-green-800' :
                                 task.status === 'Issue' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'
                                 }`}>
@@ -1702,7 +1702,7 @@ export default function QuickTask() {
               {/* Modal Header */}
               <div className="px-6 py-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-purple-100 text-purple-600 rounded-lg">
+                  <div className="p-2 bg-red-100 text-red-600 rounded-lg">
                     <Edit size={18} />
                   </div>
                   <div>
@@ -1727,7 +1727,7 @@ export default function QuickTask() {
                     <textarea
                       value={editFormData.task_description || ''}
                       onChange={(e) => handleInputChange('task_description', e.target.value)}
-                      className="w-full px-4 py-3 bg-gray-50/50 border border-gray-200 rounded-xl text-sm font-medium focus:border-purple-400 focus:bg-white focus:ring-4 focus:ring-purple-50 outline-none transition-all min-h-[100px] resize-none"
+                      className="w-full px-4 py-3 bg-gray-50/50 border border-gray-200 rounded-xl text-sm font-medium focus:border-red-400 focus:bg-white focus:ring-4 focus:ring-red-50 outline-none transition-all min-h-[100px] resize-none"
                       placeholder="Describe the task..."
                     />
                     
@@ -1750,7 +1750,7 @@ export default function QuickTask() {
                               <button
                                 type="button"
                                 onClick={startRecording}
-                                className="p-2.5 bg-purple-100 text-purple-600 rounded-xl hover:bg-purple-600 hover:text-white transition-all shadow-sm shadow-purple-100"
+                                className="p-2.5 bg-red-100 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-sm shadow-red-100"
                                 title="Record Voice Note"
                               >
                                 <Mic size={18} />
@@ -1808,7 +1808,7 @@ export default function QuickTask() {
                         <select
                           value={editFormData.machine_name || ''}
                           onChange={(e) => handleInputChange('machine_name', e.target.value)}
-                          className="w-full px-3 py-2 bg-gray-50/50 border border-gray-200 rounded-lg text-sm font-medium focus:border-purple-400 outline-none transition-all"
+                          className="w-full px-3 py-2 bg-gray-50/50 border border-gray-200 rounded-lg text-sm font-medium focus:border-red-400 outline-none transition-all"
                         >
                           <option value="">Select Machine</option>
                           {machineOptions.map(m => <option key={m} value={m}>{m}</option>)}
@@ -1819,7 +1819,7 @@ export default function QuickTask() {
                         <select
                           value={editFormData.part_name || ''}
                           onChange={(e) => handleInputChange('part_name', e.target.value)}
-                          className="w-full px-3 py-2 bg-gray-50/50 border border-gray-200 rounded-lg text-sm font-medium focus:border-purple-400 outline-none transition-all"
+                          className="w-full px-3 py-2 bg-gray-50/50 border border-gray-200 rounded-lg text-sm font-medium focus:border-red-400 outline-none transition-all"
                         >
                           <option value="">Select Part</option>
                           {partOptions.map(p => <option key={p} value={p}>{p}</option>)}
@@ -1830,7 +1830,7 @@ export default function QuickTask() {
                         <select
                           value={editFormData.name || ''}
                           onChange={(e) => handleInputChange('name', e.target.value)}
-                          className="w-full px-3 py-2 bg-gray-50/50 border border-gray-200 rounded-lg text-sm font-medium focus:border-purple-400 outline-none transition-all"
+                          className="w-full px-3 py-2 bg-gray-50/50 border border-gray-200 rounded-lg text-sm font-medium focus:border-red-400 outline-none transition-all"
                         >
                           <option value="">Select User</option>
                           {doersList.map(u => <option key={u.user_name || u} value={u.user_name || u}>{u.user_name || u}</option>)}
@@ -1858,7 +1858,7 @@ export default function QuickTask() {
                         <select
                           value={editFormData.department || ''}
                           onChange={(e) => handleInputChange('department', e.target.value)}
-                          className="w-full px-3 py-2 bg-gray-50/50 border border-gray-200 rounded-lg text-sm font-medium focus:border-purple-400 outline-none transition-all"
+                          className="w-full px-3 py-2 bg-gray-50/50 border border-gray-200 rounded-lg text-sm font-medium focus:border-red-400 outline-none transition-all"
                         >
                           <option value="">Select Dept</option>
                           {departments.map(d => <option key={d} value={d}>{d}</option>)}
@@ -1869,7 +1869,7 @@ export default function QuickTask() {
                         <select
                           value={editFormData.name || ''}
                           onChange={(e) => handleInputChange('name', e.target.value)}
-                          className="w-full px-3 py-2 bg-gray-50/50 border border-gray-200 rounded-lg text-sm font-medium focus:border-purple-400 outline-none transition-all"
+                          className="w-full px-3 py-2 bg-gray-50/50 border border-gray-200 rounded-lg text-sm font-medium focus:border-red-400 outline-none transition-all"
                         >
                           <option value="">Select User</option>
                           {doersList.map(u => <option key={u.user_name || u} value={u.user_name || u}>{u.user_name || u}</option>)}
@@ -1914,7 +1914,7 @@ export default function QuickTask() {
                           value={editFormData.duration || ''}
                           onChange={(e) => handleInputChange('duration', e.target.value)}
                           placeholder="e.g., 01:30"
-                          className="w-full px-3 py-2 bg-gray-50/50 border border-gray-200 rounded-lg text-sm font-medium focus:border-purple-400 outline-none transition-all"
+                          className="w-full px-3 py-2 bg-gray-50/50 border border-gray-200 rounded-lg text-sm font-medium focus:border-red-400 outline-none transition-all"
                         />
                       </div>
                       <div className="grid grid-cols-2 gap-3">
@@ -1992,7 +1992,7 @@ export default function QuickTask() {
                             />
                             <label
                               htmlFor={`ref-file-${idx}`}
-                              className="px-3 py-1.5 bg-purple-50 text-purple-600 rounded-lg text-[10px] font-bold uppercase cursor-pointer hover:bg-purple-600 hover:text-white transition-all whitespace-nowrap"
+                              className="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-[10px] font-bold uppercase cursor-pointer hover:bg-red-600 hover:text-white transition-all whitespace-nowrap"
                             >
                               Choose
                             </label>
@@ -2003,7 +2003,7 @@ export default function QuickTask() {
                             value={url instanceof File ? '' : (url || '')}
                             onChange={(e) => handleAttachmentChange(idx, 'url', e.target.value)}
                             placeholder="https://..."
-                            className="flex-grow px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-[10px] font-medium outline-none focus:ring-4 focus:ring-purple-50"
+                            className="flex-grow px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-[10px] font-medium outline-none focus:ring-4 focus:ring-red-50"
                           />
                         )}
                         <button
@@ -2035,7 +2035,7 @@ export default function QuickTask() {
                 <button
                   onClick={handleSaveEdit}
                   disabled={isSaving || isUploading}
-                  className="flex-grow flex justify-center items-center gap-2 px-6 py-2 bg-purple-600 text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-purple-700 disabled:opacity-50 transition-all shadow-lg shadow-purple-100"
+                  className="flex-grow flex justify-center items-center gap-2 px-6 py-2 bg-red-600 text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-red-700 disabled:opacity-50 transition-all shadow-lg shadow-red-100"
                 >
                   {isSaving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
                   {isSaving ? 'Saving...' : 'Save Changes'}
@@ -2059,7 +2059,7 @@ export default function QuickTask() {
               {/* Modal Header */}
               <div className="px-6 py-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-purple-100 text-purple-600 rounded-lg">
+                  <div className="p-2 bg-red-100 text-red-600 rounded-lg">
                     <RefreshCw size={18} />
                   </div>
                   <div>
@@ -2084,7 +2084,7 @@ export default function QuickTask() {
                     <textarea
                       value={regenerateFormData.task_description || ''}
                       onChange={(e) => handleRegenerateInputChange('task_description', e.target.value)}
-                      className="w-full px-4 py-3 bg-gray-50/50 border border-gray-200 rounded-xl text-sm font-medium focus:border-purple-400 focus:bg-white focus:ring-4 focus:ring-purple-50 outline-none transition-all min-h-[100px] resize-none"
+                      className="w-full px-4 py-3 bg-gray-50/50 border border-gray-200 rounded-xl text-sm font-medium focus:border-red-400 focus:bg-white focus:ring-4 focus:ring-red-50 outline-none transition-all min-h-[100px] resize-none"
                       placeholder="Describe the task..."
                     />
                     
@@ -2107,7 +2107,7 @@ export default function QuickTask() {
                               <button
                                 type="button"
                                 onClick={startRecording}
-                                className="p-2.5 bg-purple-100 text-purple-600 rounded-xl hover:bg-purple-600 hover:text-white transition-all shadow-sm shadow-purple-100"
+                                className="p-2.5 bg-red-100 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-sm shadow-red-100"
                                 title="Record Voice Note"
                               >
                                 <Mic size={18} />
@@ -2163,7 +2163,7 @@ export default function QuickTask() {
                     <select
                       value={regenerateFormData.department || ''}
                       onChange={(e) => handleRegenerateInputChange('department', e.target.value)}
-                      className="w-full px-3 py-2 bg-gray-50/50 border border-gray-200 rounded-lg text-sm font-medium focus:border-purple-400 outline-none transition-all"
+                      className="w-full px-3 py-2 bg-gray-50/50 border border-gray-200 rounded-lg text-sm font-medium focus:border-red-400 outline-none transition-all"
                     >
                       <option value="">Select Dept</option>
                       {departments.map(d => <option key={d} value={d}>{d}</option>)}
@@ -2174,7 +2174,7 @@ export default function QuickTask() {
                     <select
                       value={regenerateFormData.name || ''}
                       onChange={(e) => handleRegenerateInputChange('name', e.target.value)}
-                      className="w-full px-3 py-2 bg-gray-50/50 border border-gray-200 rounded-lg text-sm font-medium focus:border-purple-400 outline-none transition-all"
+                      className="w-full px-3 py-2 bg-gray-50/50 border border-gray-200 rounded-lg text-sm font-medium focus:border-red-400 outline-none transition-all"
                     >
                       <option value="">Select User</option>
                       {doersList.map(u => <option key={u.user_name || u} value={u.user_name || u}>{u.user_name || u}</option>)}
@@ -2185,7 +2185,7 @@ export default function QuickTask() {
                     <select
                       value={regenerateFormData.frequency || ''}
                       onChange={(e) => handleRegenerateInputChange('frequency', e.target.value)}
-                      className="w-full px-3 py-2 bg-gray-50/50 border border-gray-200 rounded-lg text-sm font-medium focus:border-purple-400 outline-none transition-all"
+                      className="w-full px-3 py-2 bg-gray-50/50 border border-gray-200 rounded-lg text-sm font-medium focus:border-red-400 outline-none transition-all"
                     >
                       <option value="One Time (No Recurrence)">One Time (No Recurrence)</option>
                       <option value="Alternate Day">Alternate Day</option>
@@ -2208,7 +2208,7 @@ export default function QuickTask() {
                       type="date"
                       value={regenerateFormData.task_start_date ? regenerateFormData.task_start_date.split('T')[0] : ''}
                       onChange={(e) => handleRegenerateInputChange('task_start_date', e.target.value)}
-                      className="w-full px-3 py-2 bg-gray-50/50 border border-gray-200 rounded-lg text-sm font-medium focus:border-purple-400 outline-none transition-all"
+                      className="w-full px-3 py-2 bg-gray-50/50 border border-gray-200 rounded-lg text-sm font-medium focus:border-red-400 outline-none transition-all"
                     />
                   </div>
                   <div className="space-y-1.5 text-gray-400">
@@ -2227,7 +2227,7 @@ export default function QuickTask() {
                       value={regenerateFormData.duration || ''}
                       onChange={(e) => handleRegenerateInputChange('duration', e.target.value)}
                       placeholder="e.g., 01:30"
-                      className="w-full px-3 py-2 bg-gray-50/50 border border-gray-200 rounded-lg text-sm font-medium focus:border-purple-400 outline-none transition-all"
+                      className="w-full px-3 py-2 bg-gray-50/50 border border-gray-200 rounded-lg text-sm font-medium focus:border-red-400 outline-none transition-all"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
@@ -2303,7 +2303,7 @@ export default function QuickTask() {
                             />
                             <label
                               htmlFor={`regen-ref-file-${idx}`}
-                              className="px-3 py-1.5 bg-purple-50 text-purple-600 rounded-lg text-[10px] font-bold uppercase cursor-pointer hover:bg-purple-600 hover:text-white transition-all whitespace-nowrap"
+                              className="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-[10px] font-bold uppercase cursor-pointer hover:bg-red-600 hover:text-white transition-all whitespace-nowrap"
                             >
                               Choose
                             </label>
@@ -2314,7 +2314,7 @@ export default function QuickTask() {
                             value={url instanceof File ? '' : (url || '')}
                             onChange={(e) => handleRegenerateAttachmentChange(idx, 'url', e.target.value)}
                             placeholder="https://..."
-                            className="flex-grow px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-[10px] font-medium outline-none focus:ring-4 focus:ring-purple-50"
+                            className="flex-grow px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-[10px] font-medium outline-none focus:ring-4 focus:ring-red-50"
                           />
                         )}
                         <button
@@ -2352,7 +2352,7 @@ export default function QuickTask() {
                   <button
                     onClick={handleRegenerateSubmit}
                     disabled={isRegenerating || isUploading || (regenerateFormData.planned_date && regenerateFormData.task_start_date && (new Date(regenerateFormData.planned_date) <= new Date(regenerateFormData.task_start_date)))}
-                    className="flex-grow flex justify-center items-center gap-2 px-6 py-2 bg-purple-600 text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-purple-700 disabled:opacity-50 transition-all shadow-lg shadow-purple-100"
+                    className="flex-grow flex justify-center items-center gap-2 px-6 py-2 bg-red-600 text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-red-700 disabled:opacity-50 transition-all shadow-lg shadow-red-100"
                   >
                     {isRegenerating ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
                     {isRegenerating ? 'Regenerating...' : 'Regenerate Task'}

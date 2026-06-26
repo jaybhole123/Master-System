@@ -77,13 +77,13 @@ export default function Notifications() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 border-b border-gray-100 pb-8">
           <div>
             <div className="flex items-center gap-4 mb-3">
-              <div className="w-12 h-12 bg-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-purple-200">
+              <div className="w-12 h-12 bg-red-600 rounded-2xl flex items-center justify-center shadow-lg shadow-red-200">
                 <Bell className="text-white" size={24} />
               </div>
               <div className="h-10 w-px bg-gray-100" />
               <div>
                 <h1 className="text-4xl font-black text-gray-900 tracking-tighter">
-                  Updates <span className="text-purple-600">Feed</span>
+                  Updates <span className="text-red-600">Feed</span>
                 </h1>
               </div>
             </div>
@@ -102,7 +102,7 @@ export default function Notifications() {
              {isAdmin && (
               <button
                 onClick={() => setIsModalOpen(true)}
-                className="group flex items-center justify-center gap-2 bg-gray-900 hover:bg-purple-600 text-white px-8 py-4 rounded-2xl font-bold transition-all active:scale-95 shadow-xl shadow-gray-200 hover:shadow-purple-200"
+                className="group flex items-center justify-center gap-2 bg-gray-900 hover:bg-red-600 text-white px-8 py-4 rounded-2xl font-bold transition-all active:scale-95 shadow-xl shadow-gray-200 hover:shadow-red-200"
               >
                 <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" /> 
                 <span className="tracking-tight">New Broadcast</span>
@@ -115,12 +115,12 @@ export default function Notifications() {
         <div className="max-w-4xl mx-auto">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20">
-              <Loader2 className="animate-spin text-purple-600 mb-4" size={40} />
+              <Loader2 className="animate-spin text-red-600 mb-4" size={40} />
               <p className="font-semibold text-gray-500 text-sm">Fetching notifications...</p>
             </div>
           ) : list.length === 0 ? (
             <div className="bg-white rounded-2xl p-16 border border-gray-100 text-center shadow-sm">
-              <div className="w-20 h-20 bg-purple-50 rounded-full flex items-center justify-center mx-auto mb-6 text-purple-600">
+              <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6 text-red-600">
                 <Bell size={40} />
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-2">No notifications yet</h3>
@@ -139,7 +139,7 @@ export default function Notifications() {
                     <div className={`w-12 h-12 md:w-14 md:h-14 rounded-xl md:rounded-2xl flex-shrink-0 flex items-center justify-center border-2 shadow-sm transition-transform duration-300 ${
                       noti.isRead 
                         ? 'bg-white border-gray-100 text-gray-400' 
-                        : 'bg-purple-600 border-purple-600 text-white'
+                        : 'bg-red-600 border-red-600 text-white'
                     }`}>
                       {noti.creator?.profile_image ? (
                         <img src={noti.creator.profile_image} alt="" className="w-full h-full object-cover rounded-[inherit]" />
@@ -168,7 +168,7 @@ export default function Notifications() {
                       <div className="ml-auto flex items-center gap-3">
                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border ${
                           noti.role_target === 'all' ? 'bg-blue-50 text-blue-600 border-blue-100' : 
-                          noti.role_target === 'admin' ? 'bg-purple-50 text-purple-600 border-purple-100' :
+                          noti.role_target === 'admin' ? 'bg-red-50 text-red-600 border-red-100' :
                           noti.role_target === 'superadmin' ? 'bg-red-50 text-red-600 border-red-100' :
                           'bg-orange-50 text-orange-600 border-orange-100'
                         }`}>
@@ -177,7 +177,7 @@ export default function Notifications() {
                         {noti.isRead ? (
                           <CheckCheck size={16} className="text-blue-500" />
                         ) : (
-                          <div className="w-2.5 h-2.5 bg-purple-600 rounded-full shadow-sm" />
+                          <div className="w-2.5 h-2.5 bg-red-600 rounded-full shadow-sm" />
                         )}
                       </div>
                     </div>
@@ -185,15 +185,15 @@ export default function Notifications() {
                     <div className={`relative p-5 md:p-6 rounded-2xl transition-all duration-300 border ${
                       noti.isRead 
                         ? 'bg-white border-gray-100 shadow-sm' 
-                        : 'bg-white border-purple-100 shadow-md ring-1 ring-purple-50'
+                        : 'bg-white border-red-100 shadow-md ring-1 ring-red-50'
                     }`}>
                       {/* Chat Bubble Tail */}
                       <div className={`absolute top-4 -left-2 w-4 h-4 rotate-45 border-l border-b transition-all duration-300 ${
-                        noti.isRead ? 'bg-white border-gray-100' : 'bg-white border-purple-100'
+                        noti.isRead ? 'bg-white border-gray-100' : 'bg-white border-red-100'
                       }`} />
 
                       <h3 className={`text-lg font-bold mb-1 transition-colors ${
-                        noti.isRead ? 'text-gray-700' : 'text-purple-700'
+                        noti.isRead ? 'text-gray-700' : 'text-red-700'
                       }`}>
                         {noti.title}
                       </h3>
@@ -245,7 +245,7 @@ export default function Notifications() {
                       value={formData.title}
                       onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                       placeholder="Title of notification"
-                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-600 focus:bg-white outline-none transition-all text-gray-900"
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-600 focus:bg-white outline-none transition-all text-gray-900"
                     />
                   </div>
 
@@ -257,7 +257,7 @@ export default function Notifications() {
                       onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                       rows="4"
                       placeholder="Details of the announcement..."
-                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-600 focus:bg-white outline-none transition-all text-gray-900 resize-none"
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-600 focus:bg-white outline-none transition-all text-gray-900 resize-none"
                     />
                   </div>
 
@@ -266,7 +266,7 @@ export default function Notifications() {
                     <select
                       value={formData.roleTarget}
                       onChange={(e) => setFormData({ ...formData, roleTarget: e.target.value })}
-                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-600 focus:bg-white outline-none transition-all text-gray-900 cursor-pointer"
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-600 focus:bg-white outline-none transition-all text-gray-900 cursor-pointer"
                     >
                       <option value="all">Everyone</option>
                       <option value="superadmin">Super-Admins</option>
@@ -280,7 +280,7 @@ export default function Notifications() {
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-xl font-bold transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                      className="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl font-bold transition-all active:scale-[0.98] flex items-center justify-center gap-2"
                     >
                       {isSubmitting ? (
                         <Loader2 className="animate-spin" size={20} />

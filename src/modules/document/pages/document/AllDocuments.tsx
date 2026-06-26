@@ -369,14 +369,14 @@ const AllDocuments = () => {
           <div className="min-h-[38px] flex items-center">
             {selectedIds.size > 0 ? (
               <div className="flex flex-wrap items-center gap-3 animate-fade-in-right w-full sm:w-auto">
-                <span className="text-sm text-indigo-600 font-semibold bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100 whitespace-nowrap">
+                <span className="text-sm text-red-600 font-semibold bg-red-50 px-3 py-1 rounded-full border border-red-100 whitespace-nowrap">
                   {selectedIds.size} Selected
                 </span>
                 <div className="hidden sm:block h-4 w-px bg-gray-200 mx-1"></div>
                 <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
                   <button
                     onClick={() => handleBatchShare("email")}
-                    className="flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-100"
+                    className="flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-100"
                     title="Share via Email"
                   >
                     <Mail size={14} />
@@ -409,7 +409,7 @@ const AllDocuments = () => {
               <input
                 type="text"
                 placeholder="Search documents..."
-                className="pl-10 pr-4 py-2.5 w-full shadow-input border-none rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-gray-50"
+                className="pl-10 pr-4 py-2.5 w-full shadow-input border-none rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent bg-gray-50"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -420,7 +420,7 @@ const AllDocuments = () => {
               <select
                 value={filterCategory}
                 onChange={(e) => setFilterCategory(e.target.value)}
-                className="appearance-none pl-4 pr-10 py-2.5 shadow-input border-none rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50 text-gray-700 text-sm font-medium cursor-pointer hover:bg-gray-100 transition-colors"
+                className="appearance-none pl-4 pr-10 py-2.5 shadow-input border-none rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 bg-gray-50 text-gray-700 text-sm font-medium cursor-pointer hover:bg-gray-100 transition-colors"
               >
                 <option value="">All Categories</option>
                 {Array.from(new Set(documents.map((d) => d.category)))
@@ -450,7 +450,7 @@ const AllDocuments = () => {
             </div>
             <button
               onClick={() => setIsAddModalOpen(true)}
-              className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg transition-all shadow-md hover:shadow-lg whitespace-nowrap"
+              className="flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-lg transition-all shadow-md hover:shadow-lg whitespace-nowrap"
             >
               <Plus className="h-5 w-5" />
               <span>Add New</span>
@@ -462,7 +462,7 @@ const AllDocuments = () => {
         {isLoading && (
           <div className="flex justify-center items-center py-12 bg-white rounded-xl shadow-input">
             <div className="flex flex-col items-center gap-3">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
               <p className="text-gray-500 text-sm">Loading documents...</p>
             </div>
           </div>
@@ -511,7 +511,7 @@ const AllDocuments = () => {
                     <th className="px-3 py-2 w-10 text-center bg-gray-50">
                       <input
                         type="checkbox"
-                        className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                        className="w-4 h-4 text-red-600 rounded border-gray-300 focus:ring-red-500"
                         checked={
                           filteredData.length > 0 &&
                           selectedIds.size === filteredData.length
@@ -570,13 +570,13 @@ const AllDocuments = () => {
                   {filteredData.map((item) => (
                     <tr
                       key={item.id}
-                      className={`hover:bg-gray-50/80 transition-colors ${selectedIds.has(item.id) ? "bg-indigo-50/30" : ""
+                      className={`hover:bg-gray-50/80 transition-colors ${selectedIds.has(item.id) ? "bg-red-50/30" : ""
                         }`}
                     >
                       <td className="px-3 py-2 text-center">
                         <input
                           type="checkbox"
-                          className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                          className="w-4 h-4 text-red-600 rounded border-gray-300 focus:ring-red-500"
                           checked={selectedIds.has(item.id)}
                           onChange={() => toggleSelection(item.id)}
                         />
@@ -584,7 +584,7 @@ const AllDocuments = () => {
                       <td className="px-3 py-2 text-center">
                         <DropdownMenu.Root>
                           <DropdownMenu.Trigger asChild>
-                            <button className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors outline-none">
+                            <button className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors outline-none">
                               <MoreHorizontal size={20} />
                             </button>
                           </DropdownMenu.Trigger>
@@ -595,7 +595,7 @@ const AllDocuments = () => {
                               align="start"
                             >
                               <DropdownMenu.Item
-                                className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 rounded-md cursor-pointer outline-none"
+                                className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 rounded-md cursor-pointer outline-none"
                                 onClick={() =>
                                   openShare("email", {
                                     id: item.id,
@@ -606,11 +606,11 @@ const AllDocuments = () => {
                                   })
                                 }
                               >
-                                <Mail size={16} className="text-blue-500" />
+                                <Mail size={16} className="text-red-500" />
                                 Email
                               </DropdownMenu.Item>
                               <DropdownMenu.Item
-                                className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 rounded-md cursor-pointer outline-none"
+                                className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 rounded-md cursor-pointer outline-none"
                                 onClick={() =>
                                   openShare("whatsapp", {
                                     id: item.id,
@@ -629,7 +629,7 @@ const AllDocuments = () => {
                               </DropdownMenu.Item>
                               <DropdownMenu.Separator className="h-px bg-gray-100 my-1" />
                               <DropdownMenu.Item
-                                className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 rounded-md cursor-pointer outline-none"
+                                className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 rounded-md cursor-pointer outline-none"
                                 onClick={() =>
                                   openShare("both", {
                                     id: item.id,
@@ -640,7 +640,7 @@ const AllDocuments = () => {
                                   })
                                 }
                               >
-                                <Share2 size={16} className="text-purple-500" />
+                                <Share2 size={16} className="text-red-500" />
                                 Share Both
                               </DropdownMenu.Item>
                             </DropdownMenu.Content>
@@ -651,7 +651,7 @@ const AllDocuments = () => {
                         <div className="flex justify-center items-center gap-2">
                           <button
                             onClick={() => handleEdit(item.id)}
-                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                             title="Edit"
                           >
                             <Edit size={16} />
@@ -677,7 +677,7 @@ const AllDocuments = () => {
                         {item.documentType}
                       </td>
                       <td className="px-3 py-2 text-gray-600 text-center">
-                        <span className="px-2 py-1 bg-indigo-50 text-indigo-700 rounded text-xs font-medium">
+                        <span className="px-2 py-1 bg-red-50 text-red-700 rounded text-xs font-medium">
                           {item.category}
                         </span>
                       </td>
@@ -705,7 +705,7 @@ const AllDocuments = () => {
                         {item.file ? (
                           <div
                             onClick={() => handleDownload(item.fileContent)}
-                            className="flex items-center justify-center gap-2 text-indigo-600 text-xs cursor-pointer hover:underline"
+                            className="flex items-center justify-center gap-2 text-red-600 text-xs cursor-pointer hover:underline"
                           >
                             <Download size={14} />
                             <span className="truncate max-w-[100px]">View</span>
@@ -768,7 +768,7 @@ const AllDocuments = () => {
                       Company: {item.companyBranch || "-"}
                     </p>
                   </div>
-                  <span className="px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded text-[10px] font-medium border border-indigo-100">
+                  <span className="px-2 py-0.5 bg-red-50 text-red-700 rounded text-[10px] font-medium border border-red-100">
                     {item.category}
                   </span>
                 </div>
@@ -827,7 +827,7 @@ const AllDocuments = () => {
                     {item.file ? (
                       <button
                         onClick={() => handleDownload(item.fileContent)}
-                        className="flex items-center gap-1.5 text-indigo-600 text-xs font-medium"
+                        className="flex items-center gap-1.5 text-red-600 text-xs font-medium"
                       >
                         <Download size={14} />
                         Download
@@ -838,7 +838,7 @@ const AllDocuments = () => {
                     <div className="flex gap-2">
                       <DropdownMenu.Root>
                         <DropdownMenu.Trigger asChild>
-                          <button className="p-1.5 text-indigo-600 bg-indigo-50 rounded-lg">
+                          <button className="p-1.5 text-red-600 bg-red-50 rounded-lg">
                             <Share2 size={14} />
                           </button>
                         </DropdownMenu.Trigger>
@@ -849,7 +849,7 @@ const AllDocuments = () => {
                             align="end"
                           >
                             <DropdownMenu.Item
-                              className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 rounded-md cursor-pointer outline-none"
+                              className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 rounded-md cursor-pointer outline-none"
                               onClick={() =>
                                 openShare("email", {
                                   id: item.id,
@@ -860,11 +860,11 @@ const AllDocuments = () => {
                                 })
                               }
                             >
-                              <Mail size={16} className="text-blue-500" />
+                              <Mail size={16} className="text-red-500" />
                               Email
                             </DropdownMenu.Item>
                             <DropdownMenu.Item
-                              className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 rounded-md cursor-pointer outline-none"
+                              className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 rounded-md cursor-pointer outline-none"
                               onClick={() =>
                                 openShare("whatsapp", {
                                   id: item.id,
@@ -883,7 +883,7 @@ const AllDocuments = () => {
                             </DropdownMenu.Item>
                             <DropdownMenu.Separator className="h-px bg-gray-100 my-1" />
                             <DropdownMenu.Item
-                              className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 rounded-md cursor-pointer outline-none"
+                              className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 rounded-md cursor-pointer outline-none"
                               onClick={() =>
                                 openShare("both", {
                                   id: item.id,
@@ -894,7 +894,7 @@ const AllDocuments = () => {
                                 })
                               }
                             >
-                              <Share2 size={16} className="text-purple-500" />
+                              <Share2 size={16} className="text-red-500" />
                               Share Both
                             </DropdownMenu.Item>
                           </DropdownMenu.Content>
@@ -903,7 +903,7 @@ const AllDocuments = () => {
 
                       <button
                         onClick={() => handleEdit(item.id)}
-                        className="p-1.5 text-blue-600 bg-blue-50 rounded-lg"
+                        className="p-1.5 text-red-600 bg-red-50 rounded-lg"
                       >
                         <Edit size={14} />
                       </button>

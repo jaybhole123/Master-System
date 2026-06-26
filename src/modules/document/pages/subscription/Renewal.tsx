@@ -261,7 +261,7 @@ const SubscriptionRenewal = () => {
                         <input
                             type="text"
                             placeholder="Search subscriptions..."
-                            className="pl-10 pr-4 py-2.5 w-full border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-gray-50"
+                            className="pl-10 pr-4 py-2.5 w-full border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent bg-gray-50"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
@@ -273,7 +273,7 @@ const SubscriptionRenewal = () => {
                             <button
                                 onClick={() => setActiveTab('pending')}
                                 className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'pending'
-                                    ? 'bg-white text-indigo-600 shadow-sm'
+                                    ? 'bg-white text-red-600 shadow-sm'
                                     : 'text-gray-500 hover:text-gray-700'
                                     }`}
                             >
@@ -282,7 +282,7 @@ const SubscriptionRenewal = () => {
                             <button
                                 onClick={() => setActiveTab('history')}
                                 className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'history'
-                                    ? 'bg-white text-indigo-600 shadow-sm'
+                                    ? 'bg-white text-red-600 shadow-sm'
                                     : 'text-gray-500 hover:text-gray-700'
                                     }`}
                             >
@@ -293,7 +293,7 @@ const SubscriptionRenewal = () => {
                         <button
                             onClick={refreshData}
                             disabled={isLoading}
-                            className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-white rounded-md transition-all disabled:opacity-50"
+                            className="p-2 text-gray-500 hover:text-red-600 hover:bg-white rounded-md transition-all disabled:opacity-50"
                             title="Sync with Google Sheets"
                         >
                             <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} />
@@ -342,7 +342,7 @@ const SubscriptionRenewal = () => {
                                             <td className="p-3 text-center">
                                                 <button
                                                     onClick={() => handleAction(sub)}
-                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-200"
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white text-xs font-semibold rounded-lg hover:bg-red-700 transition-colors shadow-sm shadow-red-200"
                                                 >
                                                     <RotateCcw size={14} />
                                                     Action
@@ -353,7 +353,7 @@ const SubscriptionRenewal = () => {
                                             <td className="p-3 text-gray-600">{sub.subscriberName}</td>
                                             <td className="p-3 text-gray-900">{sub.subscriptionName}</td>
                                             <td className="p-3">
-                                                <span className="px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded text-xs font-medium">{sub.frequency}</span>
+                                                <span className="px-2 py-0.5 bg-red-50 text-red-700 rounded text-xs font-medium">{sub.frequency}</span>
                                             </td>
                                             <td className="p-3 font-medium text-gray-900">{sub.price}</td>
                                             <td className="p-3 text-center">
@@ -384,13 +384,13 @@ const SubscriptionRenewal = () => {
                                 historySubscriptions.length > 0 ? (
                                     historySubscriptions.map((item) => (
                                         <tr key={item.id} className="hover:bg-gray-50/80 transition-colors">
-                                            <td className="p-3 font-mono font-bold text-xs text-indigo-600">{item.renewalCount || 1}</td>
+                                            <td className="p-3 font-mono font-bold text-xs text-red-600">{item.renewalCount || 1}</td>
                                             <td className="p-3 font-mono text-xs text-gray-700">{item.sn}</td>
                                             <td className="p-3 font-medium text-gray-900">{item.companyName}</td>
                                             <td className="p-3 text-gray-600">{item.subscriberName}</td>
                                             <td className="p-3 text-gray-900">{item.subscriptionName}</td>
                                             <td className="p-3">
-                                                <span className="px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded text-xs font-medium">{item.frequency}</span>
+                                                <span className="px-2 py-0.5 bg-red-50 text-red-700 rounded text-xs font-medium">{item.frequency}</span>
                                             </td>
                                             <td className="p-3 font-medium text-gray-900">{item.price}</td>
                                             <td className="p-3 text-gray-500 font-mono text-xs">{formatDate(item.endDate)}</td>
@@ -444,7 +444,7 @@ const SubscriptionRenewal = () => {
                                     </div>
                                     <button
                                         onClick={() => handleAction(sub)}
-                                        className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg shadow-sm shadow-indigo-200"
+                                        className="px-3 py-1.5 bg-red-600 text-white text-xs font-bold rounded-lg shadow-sm shadow-red-200"
                                     >
                                         Action
                                     </button>
@@ -485,7 +485,7 @@ const SubscriptionRenewal = () => {
                             <div key={item.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 space-y-3">
                                 <div className="flex justify-between items-start">
                                     <div className="flex gap-3 items-start">
-                                        <div className="h-10 w-10 flex items-center justify-center bg-indigo-50 text-indigo-600 rounded-lg shrink-0 mt-0.5">
+                                        <div className="h-10 w-10 flex items-center justify-center bg-red-50 text-red-600 rounded-lg shrink-0 mt-0.5">
                                             <RotateCcw size={20} />
                                         </div>
                                         <div>
@@ -513,7 +513,7 @@ const SubscriptionRenewal = () => {
                                     </div>
                                     <div>
                                         <span className="block text-gray-400 mb-0.5 text-[10px] uppercase font-semibold">Renewal Count</span>
-                                        <span className="font-mono text-indigo-600 font-medium">{item.renewalCount || 1}</span>
+                                        <span className="font-mono text-red-600 font-medium">{item.renewalCount || 1}</span>
                                     </div>
                                 </div>
 
@@ -586,7 +586,7 @@ const SubscriptionRenewal = () => {
                                     <select
                                         value={renewalAction}
                                         onChange={(e) => setRenewalAction(e.target.value as 'Renewed' | 'Rejected')}
-                                        className="w-full appearance-none bg-white border border-gray-200 text-gray-700 text-sm rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                        className="w-full appearance-none bg-white border border-gray-200 text-gray-700 text-sm rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
                                     >
                                         <option value="" disabled>Select Action</option>
                                         <option value="Renewed">Renewed</option>
@@ -611,8 +611,8 @@ const SubscriptionRenewal = () => {
                                     disabled={isLoading}
                                     className={`flex-1 py-2.5 px-4 rounded-xl text-white font-bold text-sm transition-all shadow-lg flex items-center justify-center gap-2 ${
                                         isLoading 
-                                        ? 'bg-indigo-400 cursor-not-allowed shadow-none' 
-                                        : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200'
+                                        ? 'bg-red-400 cursor-not-allowed shadow-none' 
+                                        : 'bg-red-600 hover:bg-red-700 shadow-red-200'
                                     }`}
                                 >
                                     {isLoading ? (

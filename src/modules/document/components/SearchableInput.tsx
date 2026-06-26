@@ -88,8 +88,8 @@ const SearchableInput: React.FC<SearchableInputProps> = ({
     };
 
     const inputClasses = compact
-        ? "w-full p-2 pr-8 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
-        : "w-full p-3 pr-10 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all";
+        ? "w-full p-2 pr-8 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none transition-all"
+        : "w-full p-3 pr-10 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition-all";
 
     const labelClasses = compact
         ? "block text-xs font-semibold text-gray-600 mb-1"
@@ -145,11 +145,11 @@ const SearchableInput: React.FC<SearchableInputProps> = ({
                             <button
                                 key={index}
                                 type="button"
-                                className={`w-full text-left px-4 py-2.5 hover:bg-indigo-50 text-gray-700 hover:text-indigo-700 flex items-center justify-between transition-colors ${compact ? 'text-xs' : 'text-sm'}`}
+                                className={`w-full text-left px-4 py-2.5 hover:bg-red-50 text-gray-700 hover:text-red-700 flex items-center justify-between transition-colors ${compact ? 'text-xs' : 'text-sm'}`}
                                 onClick={() => handleSelect(option)}
                             >
                                 <span>{option}</span>
-                                {value === option && <Check size={16} className="text-indigo-600" />}
+                                {value === option && <Check size={16} className="text-red-600" />}
                             </button>
                         ))
                     ) : (
