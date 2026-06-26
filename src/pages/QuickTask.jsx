@@ -1165,8 +1165,7 @@ export default function QuickTask() {
             <div className="flex bg-gray-100 p-1 rounded-xl shadow-inner w-full sm:w-auto overflow-x-auto no-scrollbar">
               {[
                 { id: 'checklist', label: 'Checklist' },
-                { id: 'delegation', label: 'Delegation' },
-                { id: 'maintenance', label: 'Maintenance' }
+                { id: 'delegation', label: 'Delegation' }
               ].map(tab => (
                 <button
                   key={tab.id}

@@ -7,6 +7,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchNotifications } from "../../redux/slice/notificationSlice";
 import supabase from "../../SupabaseClient";
 import jbtLogo from "../../assets/jbt.png";
+import useDataStore from "../../modules/document/store/dataStore";
 import {
   CheckSquare,
   ClipboardList,
@@ -53,9 +54,25 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
   const [userRole, setUserRole] = useState("");
   const [userEmail, setUserEmail] = useState("");
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [profileImage, setProfileImage] = useState("");
   const [systemAccess, setSystemAccess] = useState([]);
   const [pageAccess, setPageAccess] = useState([]);
+  const [pageCounts, setPageCounts] = useState({});
+
+  // Get data from Document Store
+  const { documents, subscriptions, loans, bgs, shareHistory } = useDataStore();
+
+  const docRenewalCount = documents.filter(doc => doc.needsRenewal).length || null;
+  const subRenewalCount = subscriptions.filter(sub => sub.planned1 && sub.planned1.trim() !== '' && (!sub.actual1 || sub.actual1.trim() === '')).length || null;
+  const subApprovalCount = subscriptions.filter(sub => sub.planned2 && sub.planned2.trim() !== '' && (!sub.actual2 || sub.actual2.trim() === '')).length || null;
+  const subPaymentCount = subscriptions.filter(sub => sub.planned3 && sub.planned3.trim() !== '' && (!sub.actual3 || sub.actual3.trim() === '')).length || null;
+
+  const loanForeclosureCount = loans.filter(loan => loan.planned1 && loan.planned1.trim() !== '' && (!loan.actual1 || loan.actual1.trim() === '') && loan.sn?.startsWith('SN-')).length || null;
+  const loanNocCount = loans.filter(loan => loan.planned2 && loan.planned2.trim() !== '' && (!loan.actual2 || loan.actual2.trim() === '')).length || null;
+
+  const resourceManagerBadge = ((docRenewalCount || 0) + (subRenewalCount || 0) + (subApprovalCount || 0) + (subPaymentCount || 0)) || null;
+  const loanBadge = ((loanForeclosureCount || 0) + (loanNocCount || 0)) || null;
 
   const [isUserPopupOpen, setIsUserPopupOpen] = useState(false);
 
@@ -213,6 +230,59 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
     setIsSuperAdmin(normalizedUsername === "admin");
   }, [navigate, location.pathname]);
 
+  // Fetch page counts for sidebar badges
+  useEffect(() => {
+    const fetchCounts = async () => {
+      if (!username) return;
+      const role = (userRole || "").toLowerCase();
+      const isAdmin = role === "admin" || username.toLowerCase() === "admin";
+      
+      // Checklist Count
+      let chkQuery = supabase.from('checklist').select('*', { count: 'exact', head: true })
+          .is('submission_date', null)
+          .is('status', null);
+      if (!isAdmin) chkQuery = chkQuery.ilike('name', username);
+      const { count: checklistCount } = await chkQuery;
+
+      // Delegation Count
+      let delQuery = supabase.from('delegation').select('*', { count: 'exact', head: true })
+          .or('submission_date.is.null,status.neq.done');
+      if (!isAdmin) delQuery = delQuery.ilike('name', username);
+      const { count: delegationCount } = await delQuery;
+
+      // Admin Approval Count
+      let approvalCount = 0;
+      if (isAdmin || role === 'hod') {
+          let eaAppQuery = supabase.from('ea_tasks_done').select('*', { count: 'exact', head: true }).eq('status', 'pending');
+          if (!isAdmin) eaAppQuery = eaAppQuery.ilike('given_by', username);
+          const { count: eaCount } = await eaAppQuery;
+
+          let chkAppQuery = supabase.from('checklist').select('*', { count: 'exact', head: true })
+              .not('submission_date', 'is', null)
+              .or('admin_done.is.null,admin_done.eq.false');
+          if (!isAdmin) chkAppQuery = chkAppQuery.ilike('given_by', username);
+          const { count: chkAppCount } = await chkAppQuery;
+
+          let delAppQuery = supabase.from('delegation_done').select('*', { count: 'exact', head: true }).in('status', ['pending', 'extend']);
+          if (!isAdmin) delAppQuery = delAppQuery.ilike('given_by', username);
+          const { count: delAppCount } = await delAppQuery;
+
+          approvalCount = (eaCount || 0) + (chkAppCount || 0) + (delAppCount || 0);
+      }
+
+      setPageCounts({
+          checklist: checklistCount || null,
+          delegation: delegationCount || null,
+          taskManager: (checklistCount || 0) + (delegationCount || 0) || null,
+          adminApproval: approvalCount || null
+      });
+    };
+    
+    fetchCounts();
+    const interval = setInterval(fetchCounts, 60000); // refresh every minute
+    return () => clearInterval(interval);
+  }, [username, userRole]);
+
   // Fetch notifications globally for badge count
   useEffect(() => {
     const role = localStorage.getItem("role");
@@ -290,6 +360,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/dashboard/quick-task",
       // Show for super admin OR anyone with 'admin' role
       showFor: (isSuperAdmin || userRole.toLowerCase() === "admin") ? ["admin"] : [],
+      badge: pageCounts.taskManager,
     },
     {
       href: "/dashboard/assign-task",
@@ -304,6 +375,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       icon: ClipboardList,
       active: location.pathname === "/dashboard/delegation",
       showFor: ["admin", "user", "HOD"],
+      badge: pageCounts.delegation,
     },
     {
       href: "/dashboard/task",
@@ -311,6 +383,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       icon: CalendarCheck,
       active: location.pathname === "/dashboard/task",
       showFor: ["admin", "HOD", "user"],
+      badge: pageCounts.checklist,
     },
     {
       href: "/dashboard/calendar",
@@ -348,6 +421,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       icon: BookmarkCheck,
       active: location.pathname === "/dashboard/admin-approval",
       showFor: ["admin", "HOD"],
+      badge: pageCounts.adminApproval,
     },
     {
       href: "/dashboard/training-video",
@@ -369,6 +443,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
     {
       label: "Resource Manager",
       icon: FileText,
+      badge: resourceManagerBadge,
       showFor: ["admin", "user", "HOD"],
       isSubmenu: true,
       isOpen: isResourceMenuOpen,
@@ -376,17 +451,18 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname.includes("/resource-manager") || location.pathname.includes("/document/") || location.pathname.includes("/subscription/"),
       module: "Document & Substruction",
       subItems: [
-        { href: "/resource-manager", label: "All Resources", active: location.pathname === "/resource-manager", showFor: ["admin", "user", "HOD"] },
-        { href: "/document/renewal", label: "Document Renewal", active: location.pathname === "/document/renewal", showFor: ["admin", "user", "HOD"] },
-        { href: "/subscription/renewal", label: "Subscription Renewal", active: location.pathname === "/subscription/renewal", showFor: ["admin", "user", "HOD"] },
-        { href: "/document/shared", label: "Document Shared", active: location.pathname === "/document/shared", showFor: ["admin", "user", "HOD"] },
-        { href: "/subscription/approval", label: "Subscription Approval", active: location.pathname === "/subscription/approval", showFor: ["admin", "user", "HOD"] },
-        { href: "/subscription/payment", label: "Subscription Payment", active: location.pathname === "/subscription/payment", showFor: ["admin", "user", "HOD"] },
+        { href: "/resource-manager", label: "All Resources", badge: documents?.length || null, active: location.pathname === "/resource-manager", showFor: ["admin", "user", "HOD"] },
+        { href: "/document/renewal", label: "Document Renewal", badge: docRenewalCount, active: location.pathname === "/document/renewal", showFor: ["admin", "user", "HOD"] },
+        { href: "/subscription/renewal", label: "Subscription Renewal", badge: subRenewalCount, active: location.pathname === "/subscription/renewal", showFor: ["admin", "user", "HOD"] },
+        { href: "/document/shared", label: "Document Shared", badge: shareHistory?.length || null, active: location.pathname === "/document/shared", showFor: ["admin", "user", "HOD"] },
+        { href: "/subscription/approval", label: "Subscription Approval", badge: subApprovalCount, active: location.pathname === "/subscription/approval", showFor: ["admin", "user", "HOD"] },
+        { href: "/subscription/payment", label: "Subscription Payment", badge: subPaymentCount, active: location.pathname === "/subscription/payment", showFor: ["admin", "user", "HOD"] },
       ]
     },
     {
       label: "Loan",
       icon: Banknote,
+      badge: (loanForeclosureCount || 0) + (loanNocCount || 0) || null,
       showFor: ["admin", "user", "HOD"],
       isSubmenu: true,
       isOpen: isLoanMenuOpen,
@@ -394,15 +470,16 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname.includes("/loan/"),
       module: "Document & Substruction",
       subItems: [
-         { href: "/loan/all", label: "All Loan", active: location.pathname === "/loan/all", showFor: ["admin", "user", "HOD"] },
-         { href: "/loan/foreclosure", label: "Request Forecloser", active: location.pathname === "/loan/foreclosure", showFor: ["admin", "user", "HOD"] },
-         { href: "/loan/noc", label: "Collect NOC", active: location.pathname === "/loan/noc", showFor: ["admin", "user", "HOD"] }
+         { href: "/loan/all", label: "All Loan", badge: loans?.length || null, active: location.pathname === "/loan/all", showFor: ["admin", "user", "HOD"] },
+         { href: "/loan/foreclosure", label: "Request Forecloser", badge: loanForeclosureCount, active: location.pathname === "/loan/foreclosure", showFor: ["admin", "user", "HOD"] },
+         { href: "/loan/noc", label: "Collect NOC", badge: loanNocCount, active: location.pathname === "/loan/noc", showFor: ["admin", "user", "HOD"] }
       ]
     },
     {
       href: "/bg/all",
       label: "Bank Guarantee",
       icon: List,
+      badge: bgs?.length || null,
       active: location.pathname === "/bg/all",
       showFor: ["admin", "user", "HOD"],
       module: "Document & Substruction",
@@ -503,7 +580,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
             to="/master-dashboard"
             className="flex items-center gap-3 hover:opacity-90 transition-opacity"
           >
-            <img src={jbtLogo} alt="JBT Logo" className="h-9 w-auto object-contain rounded-lg border border-slate-200 bg-white p-1 shadow-sm shrink-0" />
+            <img src={jbtLogo} alt="JBT Logo" className="h-9 w-auto object-contain shrink-0" />
             <span className="text-sm font-bold tracking-tight leading-tight text-slate-800 whitespace-nowrap">
               Jay Bhole
             </span>
@@ -547,11 +624,31 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                       {moduleName === "Document & Substruction" && <Database className="h-5 w-5 shrink-0" />}
                       <span className="text-left leading-tight truncate">{moduleName}</span>
                     </div>
-                    {openModules[moduleName] ? (
-                      <ChevronDown className="h-4 w-4 shrink-0" />
-                    ) : (
-                      <ChevronRight className="h-4 w-4 shrink-0" />
-                    )}
+                    <div className="flex items-center gap-2">
+                      {!openModules[moduleName] && (() => {
+                        const moduleBadgeTotal = moduleRoutes.reduce((total, route) => {
+                          if (route.href === "/dashboard/quick-task") return total;
+                          let sum = parseInt(route.badge) || 0;
+                          if (route.subItems) {
+                            sum += route.subItems.reduce((subTotal, sub) => subTotal + (parseInt(sub.badge) || 0), 0);
+                          }
+                          return total + sum;
+                        }, 0);
+                        if (moduleBadgeTotal > 0) {
+                          return (
+                            <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                              {moduleBadgeTotal}
+                            </span>
+                          );
+                        }
+                        return null;
+                      })()}
+                      {openModules[moduleName] ? (
+                        <ChevronDown className="h-4 w-4 shrink-0" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 shrink-0" />
+                      )}
+                    </div>
                   </button>
                 )}
                 {moduleName !== "Profile" && openModules[moduleName] && moduleRoutes.map((route) => (
@@ -595,7 +692,14 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                                 : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
                                 }`}
                             >
-                              {sub.label}
+                              <div className="flex items-center justify-between w-full">
+                                <span>{sub.label}</span>
+                                {sub.badge && (
+                                  <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                                    {sub.badge}
+                                  </span>
+                                )}
+                              </div>
                             </Link>
                           </li>
                         ))}
@@ -629,10 +733,10 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
             ))}
           </ul>
         </nav>
-      <div className="border-t border-slate-200 p-4 bg-white">
-          <div className="flex flex-col">
-            {/* User info section */}
-            <div className="flex items-center justify-between">
+      <div className="border-t border-slate-200 p-3 bg-white">
+        <div className="flex flex-col">
+          {/* User info section */}
+          <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="h-9 w-9 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200 shrink-0">
                   {profileImage ? (
@@ -704,12 +808,12 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
               )}
             </div>
 
-            {/* Logout button positioned below user info */}
-            <div className="mt-4 flex justify-center">
-              <button
-                onClick={handleLogout}
-                className="flex items-center justify-center gap-2 w-full text-slate-600 hover:text-red-600 px-3 py-2 rounded-lg hover:bg-red-50 text-sm font-medium transition-colors border border-transparent hover:border-red-100"
-              >
+          {/* Logout button positioned below user info */}
+          <div className="mt-2 flex justify-center">
+            <button
+              onClick={handleLogout}
+              className="flex items-center justify-center gap-2 w-full text-slate-600 hover:text-red-600 px-2 py-1.5 rounded-lg hover:bg-red-50 text-sm font-medium transition-colors border border-transparent hover:border-red-100"
+            >
                 <LogOut className="h-4 w-4" />
                 <span>Logout</span>
               </button>
@@ -734,14 +838,14 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
             className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
             onClick={() => setIsMobileMenuOpen(false)}
           ></div>
-          <div className="fixed inset-y-0 left-0 w-56 bg-white shadow-[4px_0_24px_rgba(0,0,0,0.1)]">
-            <div className="flex h-16 items-center border-b border-slate-100 px-4 bg-white">
+          <div className="fixed inset-y-0 left-0 w-56 bg-white shadow-[4px_0_24px_rgba(0,0,0,0.1)] flex flex-col">
+            <div className="flex h-16 items-center border-b border-slate-100 px-4 bg-white justify-end">
               <Link
                 to="/master-dashboard"
                 className="flex items-center gap-3 hover:opacity-90 transition-opacity"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                <img src={jbtLogo} alt="JBT Logo" className="h-9 w-auto object-contain rounded-lg border border-slate-200 bg-white p-1 shadow-sm shrink-0" />
+                <img src={jbtLogo} alt="JBT Logo" className="h-9 w-auto object-contain shrink-0" />
                 <span className="text-sm font-bold tracking-tight leading-tight text-slate-800 whitespace-nowrap">
                   Jay Bhole
                 </span>
@@ -863,7 +967,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                 ))}
               </ul>
             </nav>
-            <div className="border-t border-slate-200 p-4 bg-white">
+            <div className="border-t border-slate-200 p-3 bg-white">
               <div className="flex flex-col">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -936,10 +1040,10 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                     )}
                   </div>
                 </div>
-                <div className="mt-4 flex justify-center">
+                <div className="mt-2 flex justify-center">
                   <button
                     onClick={handleLogout}
-                    className="flex items-center justify-center gap-2 w-full text-slate-600 hover:text-red-600 px-3 py-2 rounded-lg hover:bg-red-50 text-sm font-medium transition-colors border border-transparent hover:border-red-100"
+                    className="flex items-center justify-center gap-2 w-full text-slate-600 hover:text-red-600 px-2 py-1.5 rounded-lg hover:bg-red-50 text-sm font-medium transition-colors border border-transparent hover:border-red-100"
                   >
                     <LogOut className="h-4 w-4" />
                     <span>Logout</span>
@@ -1001,62 +1105,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
           </a>
         </div>
 
-        {/* Premium Bottom Navigation for Mobile */}
-        <div className="md:hidden fixed bottom-6 left-4 right-4 h-16 bg-white/80 backdrop-blur-xl border border-white/20 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.12)] z-50 flex items-center justify-around px-2">
-          <Link
-            to="/dashboard/admin"
-            className={`flex flex-col items-center justify-center w-12 h-12 rounded-xl transition-all duration-300 ${location.pathname === "/dashboard/admin"
-              ? "text-red-600 bg-red-50"
-              : "text-gray-400 hover:text-red-400"
-              }`}
-          >
-            <Home size={22} strokeWidth={location.pathname === "/dashboard/admin" ? 2.5 : 2} />
-            <span className="text-[10px] mt-1 font-bold">Home</span>
-          </Link>
 
-
-
-          <Link
-            to="/dashboard/task"
-            className={`flex flex-col items-center justify-center w-12 h-12 rounded-xl transition-all duration-300 ${location.pathname === "/dashboard/task"
-              ? "text-red-600 bg-red-50"
-              : "text-gray-400 hover:text-red-400"
-              }`}
-          >
-            <CalendarCheck size={22} strokeWidth={location.pathname === "/dashboard/task" ? 2.5 : 2} />
-            <span className="text-[10px] mt-1 font-bold">Checklist</span>
-          </Link>
-
-          {(userRole?.toUpperCase() === "ADMIN" || userRole?.toUpperCase() === "HOD") && (
-            <div className="relative -mt-12">
-              <Link
-                to="/dashboard/assign-task"
-                className="flex items-center justify-center w-14 h-14 bg-gradient-to-tr from-red-600 to-red-700 rounded-2xl shadow-lg shadow-red-200 text-white transform active:scale-90 transition-all duration-300 border-4 border-red-50"
-              >
-                <CirclePlus size={28} strokeWidth={2.5} />
-              </Link>
-            </div>
-          )}
-
-          <Link
-            to="/dashboard/delegation"
-            className={`flex flex-col items-center justify-center w-12 h-12 rounded-xl transition-all duration-300 ${location.pathname === "/dashboard/delegation"
-              ? "text-red-600 bg-red-50"
-              : "text-gray-400 hover:text-red-400"
-              }`}
-          >
-            <BookmarkCheck size={22} strokeWidth={location.pathname === "/dashboard/delegation" ? 2.5 : 2} />
-            <span className="text-[10px] mt-1 font-bold">Status</span>
-          </Link>
-
-          <button
-            onClick={() => setIsUserPopupOpen(true)}
-            className="flex flex-col items-center justify-center w-12 h-12 rounded-xl text-gray-400 hover:text-red-400 transition-all"
-          >
-            <UserRound size={22} strokeWidth={2} />
-            <span className="text-[10px] mt-1 font-bold">Profile</span>
-          </button>
-        </div>
 
         {/* User Popup */}
         {isUserPopupOpen && (

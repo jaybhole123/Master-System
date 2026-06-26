@@ -42,7 +42,8 @@ const defaultTask = () => ({
     requireAttachment: false,
     skipSunday: false,
     date: new Date(),
-    time: "09:00",
+    endDate: null,
+    showEndDateCalendar: false,
     recordedAudio: null,
     showCalendar: false,
     references: [],
@@ -353,15 +354,28 @@ function TaskCard({ task, index, total, department, doerName, givenBy, dispatch,
                                 </div>
                             )}
                         </div>
-                    <div>
-                        <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Time</label>
-                        <input
-                            type="time"
-                            name="time"
-                            value={task.time}
-                            onChange={handleChange}
-                            className="w-full px-3 py-2.5 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-red-500 outline-none transition-all text-sm"
-                        />
+                    <div className="relative">
+                        <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">End Date</label>
+                        <button
+                            type="button"
+                            onClick={() => onUpdate(task.id, { showEndDateCalendar: !task.showEndDateCalendar })}
+                            className="w-full px-3 py-2.5 text-left border border-gray-200 rounded-lg bg-gray-50 hover:bg-white focus:ring-2 focus:ring-red-500 transition-all flex items-center justify-between text-xs"
+                        >
+                            <span className={task.endDate ? "text-gray-800" : "text-gray-400"}>
+                                {task.endDate ? formatDate(task.endDate) : "Select End Date (Optional)"}
+                            </span>
+                            <Calendar className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                        </button>
+                        {task.showEndDateCalendar && (
+                            <div className="absolute top-full left-0 mt-1 z-50">
+                                <CalendarComponent
+                                    date={task.endDate || task.date}
+                                    onChange={(d) => onUpdate(task.id, { endDate: d, showEndDateCalendar: false })}
+                                    onClose={() => onUpdate(task.id, { showEndDateCalendar: false })}
+                                    disableBeforeMinWorkingDate={true}
+                                />
+                            </div>
+                        )}
                     </div>                    <div>
                         <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Frequency</label>
                         <select
@@ -529,12 +543,12 @@ export default function ChecklistTask() {
         const freqKey = freqMap[task.frequency] || "one-time";
         const dates = [];
         const startDate = task.date;
-        const time = task.time;
+        const time = "09:00"; // Defaulting time since it was removed from UI
 
-        const endDate = new Date(startDate);
+        const endDate = task.endDate ? new Date(task.endDate) : new Date(startDate);
         if (freqKey === "one-time") {
             // Just check the start date
-        } else {
+        } else if (!task.endDate) {
             endDate.setFullYear(endDate.getFullYear() + 1);
         }
 

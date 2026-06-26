@@ -1063,8 +1063,7 @@ const Setting = () => {
               {[
                 { id: 'users', label: 'Users', icon: User },
                 { id: 'departments', label: 'Departments', icon: Building, action: () => { dispatch(departmentDetails()); dispatch(givenByDetails()); } },
-                { id: 'leave', label: 'Leave', icon: Calendar },
-                { id: 'categories', label: 'Machines', icon: Settings },
+                { id: 'leave', label: 'Leave', icon: Calendar }
               ].map((tab) => (
                 <button
                   key={tab.id}
