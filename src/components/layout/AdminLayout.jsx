@@ -42,6 +42,33 @@ import {
   Settings2
 } from "lucide-react";
 
+// Helper: get module & page title from current pathname
+const getHeaderTitle = (pathname, routes) => {
+  // Check Profile
+  if (pathname.includes("/dashboard/profile")) return { module: "Profile", page: "My Profile" };
+  // Check Global Settings
+  if (pathname.includes("/dashboard/global-settings")) return { module: "Global Settings", page: "Global Settings" };
+  // Check Document & Substruction routes
+  if (
+    pathname.includes("/doc-dashboard") ||
+    pathname.includes("/resource-manager") ||
+    pathname.includes("/document/") ||
+    pathname.includes("/subscription/") ||
+    pathname.includes("/loan/") ||
+    pathname.includes("/bg/")
+  ) {
+    // Find exact page label
+    const flat = routes.flatMap(r => r.subItems ? r.subItems : [r]);
+    const match = flat.find(r => r.href && pathname.startsWith(r.href));
+    return { module: "Document & Substruction", page: match?.label || "Document & Substruction" };
+  }
+  // Checklist & Delegation — find specific page label
+  const flat = routes.flatMap(r => r.subItems ? r.subItems : [r]);
+  const match = flat.find(r => r.href && pathname === r.href);
+  if (match) return { module: "Checklist & Delegation", page: match.label };
+  return { module: "Checklist & Delegation", page: "Checklist & Delegation" };
+};
+
 export default function AdminLayout({ children, darkMode, toggleDarkMode, showLayout = true }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -1074,12 +1101,19 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
         <header className="flex h-16 items-center justify-between border-b border-purple-100 bg-white px-4 md:px-6 shadow-sm z-30">
           <div className="flex md:hidden w-8"></div>
           <div className="flex flex-col items-center">
-            <h1 className="text-lg font-bold bg-gradient-to-r from-red-600 to-red-800 bg-clip-text text-transparent">
-              Checklist & Delegation
-            </h1>
-            <p className="text-[10px] text-gray-400 font-medium uppercase tracking-[0.2em] -mt-1 hidden xs:block">
-              Checklist & Delegation
-            </p>
+            {(() => {
+              const { module: activeModule, page: activePage } = getHeaderTitle(location.pathname, routes);
+              return (
+                <>
+                  <h1 className="text-lg font-bold bg-gradient-to-r from-red-600 to-red-800 bg-clip-text text-transparent">
+                    {activePage}
+                  </h1>
+                  <p className="text-[10px] text-gray-400 font-medium uppercase tracking-[0.2em] -mt-1 hidden xs:block">
+                    {activeModule}
+                  </p>
+                </>
+              );
+            })()}
           </div>
           <div className="flex items-center gap-3">
             <div className="hidden sm:flex flex-col items-end mr-1">
