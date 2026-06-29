@@ -32,6 +32,7 @@ import WorkingDayCalendarPage from "./pages/admin/WorkingDayCalendarPage" // New
 import AdminApprovalPage from "./pages/admin/AdminApprovalPage" // New
 import NotificationsPage from "./pages/admin/Notifications"
 import TrainingVideo from "./pages/admin/TrainingVideo"
+import InsuranceManagement from "./pages/admin/InsuranceManagement"
 
 // --- Components ---
 import RealtimeLogoutListener from "./components/RealtimeLogoutListener"
@@ -281,6 +282,14 @@ function App() {
                         element={
                             <ProtectedRoute>
                                 <TrainingVideo />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/dashboard/insurance"
+                        element={
+                            <ProtectedRoute>
+                                <InsuranceManagement />
                             </ProtectedRoute>
                         }
                     />

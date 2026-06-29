@@ -69,10 +69,16 @@ const DocumentRenewal = () => {
                         category: matchingDoc.category,
                         companyName: matchingDoc.companyName,
                         documentId: matchingDoc.id,
-                        issueDate: matchingDoc.issueDate,
-                        concernPersonName: matchingDoc.concernPersonName,
-                        concernPersonMobile: matchingDoc.concernPersonMobile,
-                        concernPersonDepartment: matchingDoc.concernPersonDepartment
+                        dueDate: matchingDoc.dueDate,
+                        dateOfProposal: matchingDoc.dateOfProposal,
+                        sumAssured: matchingDoc.sumAssured,
+                        premium: matchingDoc.premium,
+                        premiumPayingTerm: matchingDoc.premiumPayingTerm,
+                        policyTerm: matchingDoc.policyTerm,
+                        firstPremiumDate: matchingDoc.firstPremiumDate,
+                        dueDateOfLastPremium: matchingDoc.dueDateOfLastPremium,
+                        coverageTill: matchingDoc.coverageTill,
+                        docRemarks: matchingDoc.docRemarks
                     };
                 }
                 return historyItem;
@@ -497,10 +503,16 @@ const DocumentRenewal = () => {
                                     <th className="p-3 whitespace-nowrap bg-gray-50">Document Type</th>
                                     <th className="p-3 whitespace-nowrap bg-gray-50">Category</th>
                                     <th className="p-3 whitespace-nowrap bg-gray-50">Name</th>
-                                    <th className="p-3 whitespace-nowrap bg-gray-50">Issue Date</th>
-                                    <th className="p-3 whitespace-nowrap bg-gray-50">Concern Name</th>
-                                    <th className="p-3 whitespace-nowrap bg-gray-50">Concern Mobile</th>
-                                    <th className="p-3 whitespace-nowrap bg-gray-50">Concern Dept</th>
+                                    <th className="p-3 whitespace-nowrap bg-gray-50">Due Date</th>
+                                    <th className="p-3 whitespace-nowrap bg-gray-50">Proposal Date</th>
+                                    <th className="p-3 whitespace-nowrap bg-gray-50">Sum Assured</th>
+                                    <th className="p-3 whitespace-nowrap bg-gray-50">Premium</th>
+                                    <th className="p-3 whitespace-nowrap bg-gray-50">PPT</th>
+                                    <th className="p-3 whitespace-nowrap bg-gray-50">Policy Term</th>
+                                    <th className="p-3 whitespace-nowrap bg-gray-50">First Premium Date</th>
+                                    <th className="p-3 whitespace-nowrap bg-gray-50">Last Premium Date</th>
+                                    <th className="p-3 whitespace-nowrap bg-gray-50">Coverage Till</th>
+                                    <th className="p-3 whitespace-nowrap bg-gray-50">Remarks</th>
                                     <th className="p-3 whitespace-nowrap bg-gray-50">Entry Date</th>
                                     <th className="p-3 whitespace-nowrap bg-gray-50">Renewal</th>
                                     <th className="p-3 whitespace-nowrap bg-gray-50">Document File</th>
@@ -527,10 +539,16 @@ const DocumentRenewal = () => {
                                             </span>
                                         </td>
                                         <td className="p-3 text-gray-900">{doc.companyName}</td>
-                                        <td className="p-3 text-gray-500 font-mono text-xs">{formatDate(doc.issueDate)}</td>
-                                        <td className="p-3 text-gray-500 text-xs">{doc.concernPersonName || '-'}</td>
-                                        <td className="p-3 text-gray-500 text-xs">{doc.concernPersonMobile || '-'}</td>
-                                        <td className="p-3 text-gray-500 text-xs">{doc.concernPersonDepartment || '-'}</td>
+                                        <td className="p-3 text-gray-500 font-mono text-xs whitespace-nowrap">{formatDate(doc.dueDate) || '-'}</td>
+                                        <td className="p-3 text-gray-500 font-mono text-xs whitespace-nowrap">{formatDate(doc.dateOfProposal) || '-'}</td>
+                                        <td className="p-3 text-gray-500 text-xs whitespace-nowrap">{doc.sumAssured ? `₹${doc.sumAssured}` : '-'}</td>
+                                        <td className="p-3 text-gray-500 text-xs whitespace-nowrap">{doc.premium ? `₹${doc.premium}/yr` : '-'}</td>
+                                        <td className="p-3 text-gray-500 text-xs whitespace-nowrap">{doc.premiumPayingTerm ? `${doc.premiumPayingTerm} Years` : '-'}</td>
+                                        <td className="p-3 text-gray-500 text-xs whitespace-nowrap">{doc.policyTerm ? `${doc.policyTerm} Years` : '-'}</td>
+                                        <td className="p-3 text-gray-500 font-mono text-xs whitespace-nowrap">{formatDate(doc.firstPremiumDate) || '-'}</td>
+                                        <td className="p-3 text-gray-500 font-mono text-xs whitespace-nowrap">{formatDate(doc.dueDateOfLastPremium) || '-'}</td>
+                                        <td className="p-3 text-gray-500 text-xs whitespace-nowrap">{doc.coverageTill ? `${doc.coverageTill} Years` : '-'}</td>
+                                        <td className="p-3 text-gray-500 text-xs max-w-[150px] truncate" title={doc.docRemarks}>{doc.docRemarks || '-'}</td>
                                         <td className="p-3 text-gray-500 font-mono text-xs">{formatDate(doc.date)}</td>
                                         <td className="p-3 text-center">
                                             <span className="inline-flex items-center justify-center px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-100 rounded text-xs font-medium">
@@ -577,10 +595,16 @@ const DocumentRenewal = () => {
                                     <th className="p-3 whitespace-nowrap bg-gray-50">Document Type</th>
                                     <th className="p-3 whitespace-nowrap bg-gray-50">Category</th>
                                     <th className="p-3 whitespace-nowrap bg-gray-50">Name</th>
-                                    <th className="p-3 whitespace-nowrap bg-gray-50">Issue Date</th>
-                                    <th className="p-3 whitespace-nowrap bg-gray-50">Concern Name</th>
-                                    <th className="p-3 whitespace-nowrap bg-gray-50">Concern Mobile</th>
-                                    <th className="p-3 whitespace-nowrap bg-gray-50">Concern Dept</th>
+                                    <th className="p-3 whitespace-nowrap bg-gray-50">Due Date</th>
+                                    <th className="p-3 whitespace-nowrap bg-gray-50">Proposal Date</th>
+                                    <th className="p-3 whitespace-nowrap bg-gray-50">Sum Assured</th>
+                                    <th className="p-3 whitespace-nowrap bg-gray-50">Premium</th>
+                                    <th className="p-3 whitespace-nowrap bg-gray-50">PPT</th>
+                                    <th className="p-3 whitespace-nowrap bg-gray-50">Policy Term</th>
+                                    <th className="p-3 whitespace-nowrap bg-gray-50">First Premium Date</th>
+                                    <th className="p-3 whitespace-nowrap bg-gray-50">Last Premium Date</th>
+                                    <th className="p-3 whitespace-nowrap bg-gray-50">Coverage Till</th>
+                                    <th className="p-3 whitespace-nowrap bg-gray-50">Remarks</th>
                                     <th className="p-3 whitespace-nowrap bg-gray-50">Entry Date</th>
                                     <th className="p-3 whitespace-nowrap bg-gray-50">Renewal</th>
                                     <th className="p-3 whitespace-nowrap bg-gray-50">Document File</th>
@@ -601,10 +625,16 @@ const DocumentRenewal = () => {
                                             </span>
                                         </td>
                                         <td className="p-3 text-gray-900">{item.companyName}</td>
-                                        <td className="p-3 text-gray-500 font-mono text-xs">{formatDate(item.issueDate)}</td>
-                                        <td className="p-3 text-gray-500 text-xs">{item.concernPersonName || '-'}</td>
-                                        <td className="p-3 text-gray-500 text-xs">{item.concernPersonMobile || '-'}</td>
-                                        <td className="p-3 text-gray-500 text-xs">{item.concernPersonDepartment || '-'}</td>
+                                        <td className="p-3 text-gray-500 font-mono text-xs whitespace-nowrap">{formatDate(item.dueDate) || '-'}</td>
+                                        <td className="p-3 text-gray-500 font-mono text-xs whitespace-nowrap">{formatDate(item.dateOfProposal) || '-'}</td>
+                                        <td className="p-3 text-gray-500 text-xs whitespace-nowrap">{item.sumAssured ? `₹${item.sumAssured}` : '-'}</td>
+                                        <td className="p-3 text-gray-500 text-xs whitespace-nowrap">{item.premium ? `₹${item.premium}/yr` : '-'}</td>
+                                        <td className="p-3 text-gray-500 text-xs whitespace-nowrap">{item.premiumPayingTerm ? `${item.premiumPayingTerm} Years` : '-'}</td>
+                                        <td className="p-3 text-gray-500 text-xs whitespace-nowrap">{item.policyTerm ? `${item.policyTerm} Years` : '-'}</td>
+                                        <td className="p-3 text-gray-500 font-mono text-xs whitespace-nowrap">{formatDate(item.firstPremiumDate) || '-'}</td>
+                                        <td className="p-3 text-gray-500 font-mono text-xs whitespace-nowrap">{formatDate(item.dueDateOfLastPremium) || '-'}</td>
+                                        <td className="p-3 text-gray-500 text-xs whitespace-nowrap">{item.coverageTill ? `${item.coverageTill} Years` : '-'}</td>
+                                        <td className="p-3 text-gray-500 text-xs max-w-[150px] truncate" title={item.docRemarks}>{item.docRemarks || '-'}</td>
                                         <td className="p-3 text-gray-500 font-mono text-xs">{formatDate(item.entryDate)}</td>
                                         <td className="p-3 text-gray-500 font-mono text-xs line-through decoration-red-400">
                                             {formatDate(item.oldRenewalDate)}
@@ -753,12 +783,12 @@ const DocumentRenewal = () => {
                                 </div>
                                 <div className="col-span-2 grid grid-cols-2 gap-2">
                                     <div>
-                                        <span className="block text-gray-400 text-[10px] uppercase">Issue Date</span>
-                                        <span className="text-gray-700">{formatDate(item.issueDate)}</span>
+                                        <span className="block text-gray-400 text-[10px] uppercase">Proposal Date</span>
+                                        <span className="text-gray-700">{formatDate(item.dateOfProposal) || '-'}</span>
                                     </div>
                                     <div>
-                                        <span className="block text-gray-400 text-[10px] uppercase">Concern</span>
-                                        <span className="text-gray-700">{item.concernPersonName || '-'}</span>
+                                        <span className="block text-gray-400 text-[10px] uppercase">Sum Assured</span>
+                                        <span className="text-gray-700">{item.sumAssured ? `₹${item.sumAssured}` : '-'}</span>
                                     </div>
                                 </div>
                             </div>

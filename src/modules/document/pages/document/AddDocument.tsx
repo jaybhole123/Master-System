@@ -24,6 +24,17 @@ interface DocumentEntry {
   concernPersonName: string;
   concernPersonMobile: string;
   concernPersonDepartment: string;
+  autoDebited: string;
+  dueDate: string;
+  dateOfProposal: string;
+  sumAssured: string;
+  premium: string;
+  premiumPayingTerm: string;
+  policyTerm: string;
+  firstPremiumDate: string;
+  dueDateOfLastPremium: string;
+  coverageTill: string;
+  docRemarks: string;
 }
 
 interface AddDocumentProps {
@@ -53,6 +64,17 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
       concernPersonName: "",
       concernPersonMobile: "",
       concernPersonDepartment: "",
+      autoDebited: "",
+      dueDate: "",
+      dateOfProposal: "",
+      sumAssured: "",
+      premium: "",
+      premiumPayingTerm: "",
+      policyTerm: "",
+      firstPremiumDate: "",
+      dueDateOfLastPremium: "",
+      coverageTill: "",
+      docRemarks: "",
     },
   ]);
 
@@ -179,6 +201,17 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
       concernPersonName: lastEntry.concernPersonName || "", // Copy concern person name
       concernPersonMobile: lastEntry.concernPersonMobile || "", // Copy concern person mobile
       concernPersonDepartment: lastEntry.concernPersonDepartment || "", // Copy concern person department
+      autoDebited: lastEntry.autoDebited || "", // Copy auto debited
+      dueDate: lastEntry.dueDate || "",
+      dateOfProposal: lastEntry.dateOfProposal || "",
+      sumAssured: lastEntry.sumAssured || "",
+      premium: lastEntry.premium || "",
+      premiumPayingTerm: lastEntry.premiumPayingTerm || "",
+      policyTerm: lastEntry.policyTerm || "",
+      firstPremiumDate: lastEntry.firstPremiumDate || "",
+      dueDateOfLastPremium: lastEntry.dueDateOfLastPremium || "",
+      coverageTill: lastEntry.coverageTill || "",
+      docRemarks: lastEntry.docRemarks || "",
     };
 
     setEntries((prev) => [...prev, newEntry]);
@@ -333,6 +366,17 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
           concernPersonMobile: entry.concernPersonMobile || "", // Empty if not filled
           concernPersonDepartment: entry.concernPersonDepartment || "", // Empty if not filled
           CompanyName: entry.companyName || "", // Empty if not filled
+          autoDebited: entry.autoDebited || "", // Empty if not filled
+          dueDate: entry.dueDate || "",
+          dateOfProposal: entry.dateOfProposal || "",
+          sumAssured: entry.sumAssured || "",
+          premium: entry.premium || "",
+          premiumPayingTerm: entry.premiumPayingTerm || "",
+          policyTerm: entry.policyTerm || "",
+          firstPremiumDate: entry.firstPremiumDate || "",
+          dueDateOfLastPremium: entry.dueDateOfLastPremium || "",
+          coverageTill: entry.coverageTill || "",
+          docRemarks: entry.docRemarks || "",
         };
 
         // 3. Submit Document
@@ -359,6 +403,17 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
               sheetData.concernPersonMobile, // O
               sheetData.concernPersonDepartment, // P
               sheetData.CompanyName, // Q: Company Name (from dropdown)
+              sheetData.autoDebited, // R: Auto Debited
+              sheetData.dueDate, // S: Due Date
+              sheetData.dateOfProposal, // T: Date of Proposal
+              sheetData.sumAssured, // U: Sum Assured
+              sheetData.premium, // V: Premium
+              sheetData.premiumPayingTerm, // W: Premium Paying Term
+              sheetData.policyTerm, // X: Policy Term
+              sheetData.firstPremiumDate, // Y: First Premium Date
+              sheetData.dueDateOfLastPremium, // Z: Due Date of Last Premium
+              sheetData.coverageTill, // AA: Coverage Till
+              sheetData.docRemarks, // AB: Remarks
             ],
           });
 
@@ -391,6 +446,17 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
           concernPersonMobile: entry.concernPersonMobile,
           concernPersonDepartment: entry.concernPersonDepartment,
           companyBranch: entry.companyName || "", // Empty if not filled
+          autoDebited: entry.autoDebited || "",
+          dueDate: entry.dueDate || "",
+          dateOfProposal: entry.dateOfProposal || "",
+          sumAssured: entry.sumAssured || "",
+          premium: entry.premium || "",
+          premiumPayingTerm: entry.premiumPayingTerm || "",
+          policyTerm: entry.policyTerm || "",
+          firstPremiumDate: entry.firstPremiumDate || "",
+          dueDateOfLastPremium: entry.dueDateOfLastPremium || "",
+          coverageTill: entry.coverageTill || "",
+          docRemarks: entry.docRemarks || "",
           sharedExpiryDate: undefined,
           lastSharedAt: "",
         };
@@ -419,6 +485,17 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
           concernPersonName: "",
           concernPersonMobile: "",
           concernPersonDepartment: "",
+          autoDebited: "",
+          dueDate: "",
+          dateOfProposal: "",
+          sumAssured: "",
+          premium: "",
+          premiumPayingTerm: "",
+          policyTerm: "",
+          firstPremiumDate: "",
+          dueDateOfLastPremium: "",
+          coverageTill: "",
+          docRemarks: "",
         },
       ]);
     } catch (error) {
@@ -541,7 +618,7 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
 
                   {/* 5. Company Name (Dropdown Field) - OPTIONAL */}
 
-                  <div>
+                  <div className="hidden">
                     <label className="block mb-1 text-xs font-semibold text-gray-600">
                       Company Name
                     </label>
@@ -616,7 +693,7 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
                   </div>
 
                   {/* 7. Issue Date - OPTIONAL */}
-                  <div>
+                  <div className="hidden">
                     <label className="block mb-1 text-xs font-semibold text-gray-600">
                       Issue Date
                     </label>
@@ -631,7 +708,7 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
                   </div>
 
                   {/* 8. Concern Person Name - OPTIONAL */}
-                  <div>
+                  <div className="hidden">
                     <label className="block mb-1 text-xs font-semibold text-gray-600">
                       Conser Person Name
                     </label>
@@ -651,7 +728,7 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
                   </div>
 
                   {/* 9. Concern Person Mobile - OPTIONAL */}
-                  <div>
+                  <div className="hidden">
                     <label className="block mb-1 text-xs font-semibold text-gray-600">
                       Conser Mobile
                     </label>
@@ -671,7 +748,7 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
                   </div>
 
                   {/* 10. Concern Person Department - OPTIONAL */}
-                  <div>
+                  <div className="hidden">
                     <label className="block mb-1 text-xs font-semibold text-gray-600">
                       Issue By
                     </label>
@@ -689,7 +766,99 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
                     />
                   </div>
 
-                  {/* 11. File Upload - OPTIONAL */}
+
+
+                  {/* 12. Due Date - OPTIONAL */}
+                  <div>
+                    <label className="block mb-1 text-xs font-semibold text-gray-600">DUE DATE</label>
+                    <input type="date" className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
+                      value={entry.dueDate} onChange={(e) => handleChange(entry.id, "dueDate", e.target.value)} />
+                  </div>
+
+                  {/* 13. Date of Proposal - OPTIONAL */}
+                  <div>
+                    <label className="block mb-1 text-xs font-semibold text-gray-600">DATE OF THE PROPOSAL</label>
+                    <input type="date" className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
+                      value={entry.dateOfProposal} onChange={(e) => handleChange(entry.id, "dateOfProposal", e.target.value)} />
+                  </div>
+
+                  {/* 14. Sum Assured - OPTIONAL */}
+                  <div>
+                    <label className="block mb-1 text-xs font-semibold text-gray-600">Sum Assured (₹)</label>
+                    <input type="number" placeholder="e.g. 1000000" className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
+                      value={entry.sumAssured} onChange={(e) => handleChange(entry.id, "sumAssured", e.target.value)} />
+                  </div>
+
+                  {/* 15. Premium - OPTIONAL */}
+                  <div>
+                    <label className="block mb-1 text-xs font-semibold text-gray-600">Premium (₹ / year)</label>
+                    <input type="number" placeholder="e.g. 25000" className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
+                      value={entry.premium} onChange={(e) => handleChange(entry.id, "premium", e.target.value)} />
+                  </div>
+
+                  {/* 16. Premium Paying Term - OPTIONAL */}
+                  <div>
+                    <label className="block mb-1 text-xs font-semibold text-gray-600">Premium Paying Term</label>
+                    <input type="text" placeholder="e.g. 20 years" className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
+                      value={entry.premiumPayingTerm} onChange={(e) => handleChange(entry.id, "premiumPayingTerm", e.target.value)} />
+                  </div>
+
+                  {/* 17. Policy Term - OPTIONAL */}
+                  <div>
+                    <label className="block mb-1 text-xs font-semibold text-gray-600">Policy Term</label>
+                    <input type="text" placeholder="e.g. 25 years" className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
+                      value={entry.policyTerm} onChange={(e) => handleChange(entry.id, "policyTerm", e.target.value)} />
+                  </div>
+
+                  {/* 18. First Premium Date - OPTIONAL */}
+                  <div>
+                    <label className="block mb-1 text-xs font-semibold text-gray-600">First Premium Date</label>
+                    <input type="date" className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
+                      value={entry.firstPremiumDate} onChange={(e) => handleChange(entry.id, "firstPremiumDate", e.target.value)} />
+                  </div>
+
+                  {/* 19. Due Date of Last Premium - OPTIONAL */}
+                  <div>
+                    <label className="block mb-1 text-xs font-semibold text-gray-600">Due Date of Last Premium</label>
+                    <input type="date" className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
+                      value={entry.dueDateOfLastPremium} onChange={(e) => handleChange(entry.id, "dueDateOfLastPremium", e.target.value)} />
+                  </div>
+
+                  {/* 20. Coverage Till (years) - OPTIONAL */}
+                  <div>
+                    <label className="block mb-1 text-xs font-semibold text-gray-600">Coverage Till (years)</label>
+                    <input type="number" placeholder="e.g. 25" className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
+                      value={entry.coverageTill} onChange={(e) => handleChange(entry.id, "coverageTill", e.target.value)} />
+                  </div>
+
+                  {/* 21. Remarks - OPTIONAL */}
+                  <div className="md:col-span-2">
+                    <label className="block mb-1 text-xs font-semibold text-gray-600">Remarks</label>
+                    <textarea rows={2} placeholder="Any additional notes..." className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white resize-none"
+                      value={entry.docRemarks} onChange={(e) => handleChange(entry.id, "docRemarks", e.target.value)} />
+                  </div>
+
+                  {/* 22. File Upload - OPTIONAL */}
+                  <div>
+                    <label className="block mb-1 text-xs font-semibold text-gray-600">
+                      Auto Debited
+                    </label>
+                    <input
+                      type="text"
+                      className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
+                      value={entry.autoDebited}
+                      onChange={(e) =>
+                        handleChange(
+                          entry.id,
+                          "autoDebited",
+                          e.target.value,
+                        )
+                      }
+                      placeholder="e.g. Yes / No"
+                    />
+                  </div>
+
+                  {/* 23. File Upload - OPTIONAL */}
                   <div>
                     <div className="relative">
                       <label className="block mb-1 text-xs font-semibold text-gray-600">

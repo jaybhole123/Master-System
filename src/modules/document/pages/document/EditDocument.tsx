@@ -265,7 +265,19 @@ const EditDocument: React.FC<EditDocumentProps> = ({ isOpen, onClose, documentId
                 formattedIssueDate,                           // 12: Issue Date (DD/MM/YYYY)
                 formData.concernPersonName || "",             // 13: Concern Name (Col N)
                 formData.concernPersonMobile || "",           // 14: Concern Mobile (Col O)
-                formData.concernPersonDepartment || ""        // 15: Concern Dept (Col P)
+                formData.concernPersonDepartment || "",       // 15: Concern Dept (Col P)
+                formData.companyBranch || "",                 // 16: Company Name (Col Q)
+                formData.autoDebited || "",                   // 17: Auto Debited (Col R)
+                formData.dueDate || "",                       // 18: Due Date (Col S)
+                formData.dateOfProposal || "",                // 19: Date of Proposal (Col T)
+                formData.sumAssured || "",                    // 20: Sum Assured (Col U)
+                formData.premium || "",                       // 21: Premium (Col V)
+                formData.premiumPayingTerm || "",             // 22: Premium Paying Term (Col W)
+                formData.policyTerm || "",                    // 23: Policy Term (Col X)
+                formData.firstPremiumDate || "",              // 24: First Premium Date (Col Y)
+                formData.dueDateOfLastPremium || "",          // 25: Due Date of Last Premium (Col Z)
+                formData.coverageTill || "",                  // 26: Coverage Till (Col AA)
+                formData.docRemarks || "",                    // 27: Remarks (Col AB)
             ];
 
             // Submit Update with rowIndex if available
@@ -409,7 +421,7 @@ const EditDocument: React.FC<EditDocumentProps> = ({ isOpen, onClose, documentId
                                 </div>
 
                                 {/* 7. Issue Date */}
-                                <div>
+                                <div className="hidden">
                                     <label className="block text-xs font-semibold text-gray-600 mb-1">Issue Date</label>
                                     <input
                                         type="date"
@@ -420,7 +432,7 @@ const EditDocument: React.FC<EditDocumentProps> = ({ isOpen, onClose, documentId
                                 </div>
 
                                 {/* 8. Concern Person Name */}
-                                <div>
+                                <div className="hidden">
                                     <label className="block text-xs font-semibold text-gray-600 mb-1">Concern Person Name</label>
                                     <input
                                         type="text"
@@ -432,7 +444,7 @@ const EditDocument: React.FC<EditDocumentProps> = ({ isOpen, onClose, documentId
                                 </div>
 
                                 {/* 9. Concern Person Mobile */}
-                                <div>
+                                <div className="hidden">
                                     <label className="block text-xs font-semibold text-gray-600 mb-1">Concern Person Mobile</label>
                                     <input
                                         type="text"
@@ -444,7 +456,7 @@ const EditDocument: React.FC<EditDocumentProps> = ({ isOpen, onClose, documentId
                                 </div>
 
                                 {/* 10. Concern Person Department */}
-                                <div>
+                                <div className="hidden">
                                     <label className="block text-xs font-semibold text-gray-600 mb-1">Concern Person Dept</label>
                                     <input
                                         type="text"
@@ -456,6 +468,91 @@ const EditDocument: React.FC<EditDocumentProps> = ({ isOpen, onClose, documentId
                                 </div>
 
                             </div>
+
+
+
+                        </div>
+
+                        {/* 12. Due Date */}
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-600 mb-1">DUE DATE</label>
+                            <input type="date" className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
+                                value={formData.dueDate || ''} onChange={e => handleChange('dueDate', e.target.value)} />
+                        </div>
+
+                        {/* 13. Date of Proposal */}
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-600 mb-1">DATE OF THE PROPOSAL</label>
+                            <input type="date" className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
+                                value={formData.dateOfProposal || ''} onChange={e => handleChange('dateOfProposal', e.target.value)} />
+                        </div>
+
+                        {/* 14. Sum Assured */}
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-600 mb-1">Sum Assured (₹)</label>
+                            <input type="number" className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
+                                value={formData.sumAssured || ''} onChange={e => handleChange('sumAssured', e.target.value)} placeholder="e.g. 1000000" />
+                        </div>
+
+                        {/* 15. Premium */}
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-600 mb-1">Premium (₹ / year)</label>
+                            <input type="number" className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
+                                value={formData.premium || ''} onChange={e => handleChange('premium', e.target.value)} placeholder="e.g. 25000" />
+                        </div>
+
+                        {/* 16. Premium Paying Term */}
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-600 mb-1">Premium Paying Term</label>
+                            <input type="text" className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
+                                value={formData.premiumPayingTerm || ''} onChange={e => handleChange('premiumPayingTerm', e.target.value)} placeholder="e.g. 20 years" />
+                        </div>
+
+                        {/* 17. Policy Term */}
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-600 mb-1">Policy Term</label>
+                            <input type="text" className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
+                                value={formData.policyTerm || ''} onChange={e => handleChange('policyTerm', e.target.value)} placeholder="e.g. 25 years" />
+                        </div>
+
+                        {/* 18. First Premium Date */}
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-600 mb-1">First Premium Date</label>
+                            <input type="date" className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
+                                value={formData.firstPremiumDate || ''} onChange={e => handleChange('firstPremiumDate', e.target.value)} />
+                        </div>
+
+                        {/* 19. Due Date of Last Premium */}
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-600 mb-1">Due Date of Last Premium</label>
+                            <input type="date" className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
+                                value={formData.dueDateOfLastPremium || ''} onChange={e => handleChange('dueDateOfLastPremium', e.target.value)} />
+                        </div>
+
+                        {/* 20. Coverage Till (years) */}
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-600 mb-1">Coverage Till (years)</label>
+                            <input type="number" className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
+                                value={formData.coverageTill || ''} onChange={e => handleChange('coverageTill', e.target.value)} placeholder="e.g. 25" />
+                        </div>
+
+                        {/* 21. Remarks */}
+                        <div className="md:col-span-2">
+                            <label className="block text-xs font-semibold text-gray-600 mb-1">Remarks</label>
+                            <textarea className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors resize-none"
+                                value={formData.docRemarks || ''} onChange={e => handleChange('docRemarks', e.target.value)} rows={2} placeholder="Any additional notes..." />
+                        </div>
+
+                        {/* 22. Auto Debited */}
+                        <div className="md:col-span-2">
+                            <label className="block text-xs font-semibold text-gray-600 mb-1">Auto Debited</label>
+                            <input
+                                type="text"
+                                className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
+                                value={formData.autoDebited || ''}
+                                onChange={e => handleChange('autoDebited', e.target.value)}
+                                placeholder="e.g. Yes / No"
+                            />
                         </div>
                     </form>
                 </div>

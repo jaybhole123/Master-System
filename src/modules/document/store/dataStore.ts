@@ -25,6 +25,17 @@ export interface DocumentItem {
   concernPersonName?: string; // Column N
   concernPersonMobile?: string; // Column O
   concernPersonDepartment?: string; // Column P
+  autoDebited?: string; // Column R
+  dueDate?: string; // Column S
+  dateOfProposal?: string; // Column T
+  sumAssured?: string; // Column U
+  premium?: string; // Column V
+  premiumPayingTerm?: string; // Column W
+  policyTerm?: string; // Column X
+  firstPremiumDate?: string; // Column Y
+  dueDateOfLastPremium?: string; // Column Z
+  coverageTill?: string; // Column AA
+  docRemarks?: string; // Column AB
   // Note: companyBranch is stored in column Q
 }
 
@@ -140,10 +151,16 @@ export interface RenewalItem {
   newFile: string | null; // "New Document file"
   newFileContent?: string;
   oldFileContent?: string;
-  issueDate?: string;
-  concernPersonName?: string;
-  concernPersonMobile?: string;
-  concernPersonDepartment?: string;
+  dueDate?: string;
+  dateOfProposal?: string;
+  sumAssured?: string;
+  premium?: string;
+  premiumPayingTerm?: string;
+  policyTerm?: string;
+  firstPremiumDate?: string;
+  dueDateOfLastPremium?: string;
+  coverageTill?: string;
+  docRemarks?: string;
 }
 
 export interface SubscriptionRenewalItem {

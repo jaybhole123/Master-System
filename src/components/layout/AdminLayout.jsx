@@ -39,7 +39,8 @@ import {
   ShieldCheck,
   Ban,
   CreditCard,
-  Settings2
+  Settings2,
+  Shield
 } from "lucide-react";
 
 // Helper: get module & page title from current pathname
@@ -472,6 +473,16 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       showFor: ["admin", "user", "HOD"],
       module: "Checklist & Delegation",
     },
+    /*
+    {
+      href: "/dashboard/insurance",
+      label: "Insurance",
+      icon: ShieldCheck,
+      active: location.pathname === "/dashboard/insurance",
+      showFor: ["admin", "user", "HOD"],
+      module: "Checklist & Delegation",
+    },
+    */
     // Document & Substruction Routes
     {
       href: "/doc-dashboard",

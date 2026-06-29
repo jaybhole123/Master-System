@@ -218,6 +218,17 @@ const AllDocuments = () => {
           doc.concernPersonMobile || "", // Column O
           doc.concernPersonDepartment || "", // Column P
           doc.companyName || "", // Column Q: Company Name
+          doc.autoDebited || "", // Column R: Auto Debited
+          doc.dueDate || "", // Column S
+          doc.dateOfProposal || "", // Column T
+          doc.sumAssured || "", // Column U
+          doc.premium || "", // Column V
+          doc.premiumPayingTerm || "", // Column W
+          doc.policyTerm || "", // Column X
+          doc.firstPremiumDate || "", // Column Y
+          doc.dueDateOfLastPremium || "", // Column Z
+          doc.coverageTill || "", // Column AA
+          doc.docRemarks || "", // Column AB
         ];
 
         await submitToGoogleSheets({
@@ -540,9 +551,6 @@ const AllDocuments = () => {
                     <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
                       Name
                     </th>
-                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
-                      Issue Date
-                    </th>
                     <th className="px-3 py-2 whitespace-nowrap text-center bg-gray-50">
                       Renewal
                     </th>
@@ -553,16 +561,37 @@ const AllDocuments = () => {
                       File
                     </th>
                     <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
-                      Concern Person Name
+                      Auto Debited
                     </th>
                     <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
-                      Concern Mobile Number
+                      Due Date
                     </th>
                     <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
-                      Issued by
+                      Proposal Date
                     </th>
                     <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
-                      Company Name
+                      Sum Assured
+                    </th>
+                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
+                      Premium
+                    </th>
+                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
+                      PPT
+                    </th>
+                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
+                      Policy Term
+                    </th>
+                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
+                      First Premium Date
+                    </th>
+                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
+                      Last Premium Date
+                    </th>
+                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
+                      Coverage Till
+                    </th>
+                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
+                      Remarks
                     </th>
                   </tr>
                 </thead>
@@ -684,9 +713,6 @@ const AllDocuments = () => {
                       <td className="px-3 py-2 font-medium text-gray-900 text-center">
                         {item.pName || "-"}
                       </td>
-                      <td className="px-3 py-2 text-gray-700 font-mono text-xs text-center">
-                        {formatDate(item.issueDate)}
-                      </td>
                       <td className="px-3 py-2 text-center">
                         {item.needsRenewal ? (
                           <span className="inline-flex items-center justify-center px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-100 rounded text-xs font-medium">
@@ -715,23 +741,44 @@ const AllDocuments = () => {
                         )}
                       </td>
                       <td className="px-3 py-2 text-gray-700 text-center">
-                        {item.concernPersonName || "-"}
+                        {item.autoDebited || "-"}
+                      </td>
+                      <td className="px-3 py-2 text-gray-700 font-mono text-xs text-center">
+                        {formatDate(item.dueDate) || "-"}
+                      </td>
+                      <td className="px-3 py-2 text-gray-700 font-mono text-xs text-center">
+                        {formatDate(item.dateOfProposal) || "-"}
                       </td>
                       <td className="px-3 py-2 text-gray-700 text-center">
-                        {item.concernPersonMobile || "-"}
+                        {item.sumAssured || "-"}
                       </td>
                       <td className="px-3 py-2 text-gray-700 text-center">
-                        {item.concernPersonDepartment || "-"}
+                        {item.premium || "-"}
                       </td>
                       <td className="px-3 py-2 text-gray-700 text-center">
-                        {item.companyName || "-"}
+                        {item.premiumPayingTerm ? `${item.premiumPayingTerm} Years` : "-"}
+                      </td>
+                      <td className="px-3 py-2 text-gray-700 text-center">
+                        {item.policyTerm ? `${item.policyTerm} Years` : "-"}
+                      </td>
+                      <td className="px-3 py-2 text-gray-700 font-mono text-xs text-center">
+                        {formatDate(item.firstPremiumDate) || "-"}
+                      </td>
+                      <td className="px-3 py-2 text-gray-700 font-mono text-xs text-center">
+                        {formatDate(item.dueDateOfLastPremium) || "-"}
+                      </td>
+                      <td className="px-3 py-2 text-gray-700 text-center">
+                        {item.coverageTill ? `${item.coverageTill} Years` : "-"}
+                      </td>
+                      <td className="px-3 py-2 text-gray-700 text-center max-w-[150px] truncate" title={item.docRemarks}>
+                        {item.docRemarks || "-"}
                       </td>
                     </tr>
                   ))}
                   {filteredData.length === 0 && (
                     <tr>
                       <td
-                        colSpan={16}
+                        colSpan={21}
                         className="p-12 text-center text-gray-500"
                       >
                         <div className="flex flex-col items-center gap-2">
@@ -761,11 +808,11 @@ const AllDocuments = () => {
                       {item.sn}
                     </span>
                     <h3 className="font-semibold text-gray-900 mt-1">
-                      {item.companyName || "-"}
+                      {item.pName || "-"}
                     </h3>
                     <p className="text-xs text-gray-500">{item.documentType}</p>
                     <p className="text-xs text-gray-400 mt-1">
-                      Company: {item.companyBranch || "-"}
+                      Due: {formatDate(item.dueDate) || "-"}
                     </p>
                   </div>
                   <span className="px-2 py-0.5 bg-red-50 text-red-700 rounded text-[10px] font-medium border border-red-100">
@@ -806,20 +853,20 @@ const AllDocuments = () => {
 
                   <div className="grid grid-cols-2 gap-2 mt-2 text-xs text-gray-600 bg-gray-50 p-2 rounded">
                     <div>
-                      <span className="text-gray-400 block">Issue Date:</span>
-                      {formatDate(item.issueDate)}
+                      <span className="text-gray-400 block">Proposal Date:</span>
+                      {formatDate(item.dateOfProposal) || "-"}
                     </div>
                     <div>
-                      <span className="text-gray-400 block">Concern Name:</span>
-                      {item.concernPersonName || "-"}
+                      <span className="text-gray-400 block">Sum Assured:</span>
+                      {item.sumAssured ? `₹${item.sumAssured}` : "-"}
                     </div>
                     <div>
-                      <span className="text-gray-400 block">Mobile:</span>
-                      {item.concernPersonMobile || "-"}
+                      <span className="text-gray-400 block">Premium:</span>
+                      {item.premium ? `₹${item.premium}/yr` : "-"}
                     </div>
                     <div>
-                      <span className="text-gray-400 block">Dept:</span>
-                      {item.concernPersonDepartment || "-"}
+                      <span className="text-gray-400 block">Coverage Till:</span>
+                      {item.coverageTill ? `${item.coverageTill} yrs` : "-"}
                     </div>
                   </div>
 
