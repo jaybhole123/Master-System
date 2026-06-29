@@ -151,9 +151,25 @@ export default function GlobalSettings() {
         fetchUsers();
       }
     } else {
-      const { error } = await supabase.from('users').insert([payload]);
-      if (error) showToast(error.message, 'error');
-      else {
+      // Loop to automatically advance the broken PostgreSQL sequence
+      let finalError = null;
+      let success = false;
+      
+      for (let i = 0; i < 50; i++) { // Try up to 50 times to bypass duplicate IDs
+        const { error } = await supabase.from('users').insert([payload]);
+        if (!error) {
+          success = true;
+          break;
+        }
+        if (error.code !== '23505') { // If it's not a duplicate key error, stop trying
+          finalError = error;
+          break;
+        }
+      }
+
+      if (!success) {
+        showToast(finalError ? finalError.message : 'Database sequence error. Please contact support.', 'error');
+      } else {
         showToast('User created successfully', 'success');
         handleCloseModal();
         fetchUsers();
