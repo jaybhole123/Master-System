@@ -24,6 +24,8 @@ import {
 } from "../../utils/googleSheetsService";
 import { toast } from "react-hot-toast";
 import type { DocumentItem } from "../../store/dataStore";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 const AllDocuments = () => {
   const {
@@ -372,6 +374,82 @@ const AllDocuments = () => {
     loadDocuments();
   };
 
+  const exportToPDF = () => {
+    try {
+      const doc = new jsPDF("landscape", "pt", "a3"); // Using A3 to fit all columns
+      
+      doc.setFontSize(18);
+      doc.text("All Documents Report", 14, 25);
+      doc.setFontSize(11);
+      doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 45);
+      
+      const tableColumn = [
+        "Serial No",
+        "Document Name",
+        "Document Type",
+        "Category",
+        "Name",
+        "Renewal",
+        "Renewal Date",
+        "File",
+        "Auto Debited",
+        "Due Date",
+        "Proposal Date",
+        "Sum Assured",
+        "Premium",
+        "PPT",
+        "Policy Term",
+        "First Premium Date",
+        "Last Premium Date",
+        "Coverage Till",
+        "Remarks"
+      ];
+      
+      const tableRows: any[] = [];
+      
+      filteredData.forEach(item => {
+        const rowData = [
+          item.sn || "-",
+          item.documentName || "-",
+          item.documentType || "-",
+          item.category || "-",
+          item.pName || "-",
+          item.needsRenewal ? "Yes" : "No",
+          item.renewalDate ? formatDate(item.renewalDate) : "-",
+          item.file ? "Attached" : "-",
+          item.autoDebited || "-",
+          item.dueDate ? formatDate(item.dueDate) : "-",
+          item.dateOfProposal ? formatDate(item.dateOfProposal) : "-",
+          item.sumAssured || "-",
+          item.premium || "-",
+          item.premiumPayingTerm ? `${item.premiumPayingTerm} Yrs` : "-",
+          item.policyTerm ? `${item.policyTerm} Yrs` : "-",
+          item.firstPremiumDate ? formatDate(item.firstPremiumDate) : "-",
+          item.dueDateOfLastPremium ? formatDate(item.dueDateOfLastPremium) : "-",
+          item.coverageTill ? `${item.coverageTill} Yrs` : "-",
+          item.docRemarks || "-"
+        ];
+        tableRows.push(rowData);
+      });
+
+      autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY: 60,
+        styles: { fontSize: 7, cellPadding: 2, overflow: 'linebreak' },
+        headStyles: { fillColor: [220, 38, 38], textColor: 255 },
+        alternateRowStyles: { fillColor: [249, 250, 251] },
+        margin: { top: 60, right: 10, bottom: 10, left: 10 }
+      });
+      
+      doc.save("documents_report.pdf");
+      toast.success("PDF Downloaded successfully!");
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      toast.error("Failed to generate PDF");
+    }
+  };
+
   return (
     <>
       <div className="space-y-3">
@@ -459,6 +537,14 @@ const AllDocuments = () => {
                 </svg>
               </div>
             </div>
+            <button
+              onClick={exportToPDF}
+              className="flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-4 py-2.5 rounded-lg transition-all shadow-sm whitespace-nowrap"
+              title="Export to PDF"
+            >
+              <FileText className="h-5 w-5 text-red-600" />
+              <span className="hidden sm:inline">Export PDF</span>
+            </button>
             <button
               onClick={() => setIsAddModalOpen(true)}
               className="flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-lg transition-all shadow-md hover:shadow-lg whitespace-nowrap"

@@ -16,7 +16,7 @@ const WHATSAPP_WABA_ID = import.meta.env.VITE_WHATSAPP_WABA_ID;
 // Toggle to enable/disable WhatsApp service
 const ENABLE_WHATSAPP = false; // Set to true to enable WhatsApp notifications
 
-const APP_LINK = "https://checklist-delegation-supabase-five.vercel.app/login";
+const APP_LINK = "https://master-system-weld.vercel.app";
 
 
 /**
