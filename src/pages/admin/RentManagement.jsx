@@ -16,7 +16,9 @@ import {
   X,
   FileText,
   Printer,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Check,
+  History
 } from 'lucide-react';
 
 const months = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
@@ -29,6 +31,8 @@ const RentManagement = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [activeTab, setActiveTab] = useState('LIVE');
+  const [activeActionId, setActiveActionId] = useState(null);
   const [formData, setFormData] = useState({
     place: '',
     name: '',
@@ -61,7 +65,8 @@ const RentManagement = () => {
   const filteredData = rentData.filter(item => 
     (selectedMonth === 'ALL' || item.month === selectedMonth) && 
     (item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-     item.place.toLowerCase().includes(searchQuery.toLowerCase()))
+     item.place.toLowerCase().includes(searchQuery.toLowerCase())) &&
+    (activeTab === 'HISTORY' ? item.status === 'Done' : item.status !== 'Done')
   );
 
   const handleSaveRecord = (e) => {
@@ -115,6 +120,12 @@ const RentManagement = () => {
     }
   };
 
+  const handleMarkAsDone = (id) => {
+    setRentData(rentData.map(record => 
+      record.id === id ? { ...record, status: 'Done' } : record
+    ));
+  };
+
   const exportToExcel = () => {
     const headers = ['Place', 'Name', 'Phone No.', 'Date', 'Payment Method', 'Month'];
     const dataRows = filteredData.map(row => [
@@ -149,7 +160,8 @@ const RentManagement = () => {
         record.phone,
         record.date,
         record.method,
-        record.month
+        record.month,
+        record.status === 'Done' ? 'Done' : 'Pending'
       ];
       tableRows.push(recordData);
     });
@@ -167,24 +179,24 @@ const RentManagement = () => {
   return (
     <AdminLayout>
       <div className="flex-1 flex flex-col h-screen overflow-hidden bg-slate-50">
-        <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between z-10 shrink-0">
+        <header className="bg-white border-b border-slate-200 px-4 sm:px-6 py-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 z-10 shrink-0">
           <div>
-            <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-              <Banknote className="h-6 w-6 text-red-600" />
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-800 flex items-center gap-2">
+              <Banknote className="h-5 w-5 sm:h-6 sm:w-6 text-red-600" />
               Rent Management
             </h1>
-            <p className="text-sm text-slate-500 mt-1">Manage monthly property rentals and payments</p>
+            <p className="text-xs sm:text-sm text-slate-500 mt-1">Manage monthly property rentals and payments</p>
           </div>
           
-          <div className="flex items-center gap-4">
-            <div className="relative">
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 w-full md:w-auto">
+            <div className="relative w-full sm:w-auto">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <input 
                 type="text"
                 placeholder="Search by name or place..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 w-64 transition-all"
+                className="pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 w-full sm:w-64 transition-all"
               />
             </div>
             <button 
@@ -193,7 +205,7 @@ const RentManagement = () => {
                 setFormData({ place: '', name: '', phone: '', date: '', method: 'CASH', month: selectedMonth === 'ALL' ? currentMonth : selectedMonth, document: null });
                 setIsModalOpen(true);
               }}
-              className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium shadow-sm shadow-red-600/20"
+              className="w-full sm:w-auto justify-center flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium shadow-sm shadow-red-600/20"
             >
               <Plus className="h-4 w-4" />
               Add Record
@@ -205,8 +217,8 @@ const RentManagement = () => {
           <div className="max-w-7xl mx-auto space-y-6">
             
             {/* Controls Bar */}
-            <div className="flex items-center justify-between bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-              <div className="flex items-center gap-4">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-4 w-full lg:w-auto">
                 <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
                   <CalendarIcon className="h-4 w-4 text-slate-500" />
                   <select 
@@ -220,9 +232,24 @@ const RentManagement = () => {
                     ))}
                   </select>
                 </div>
+                
+                <div className="flex items-center bg-slate-100 p-1 rounded-lg">
+                  <button 
+                    onClick={() => setActiveTab('LIVE')}
+                    className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${activeTab === 'LIVE' ? 'bg-white text-red-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                  >
+                    Pending
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('HISTORY')}
+                    className={`flex items-center gap-1.5 px-3 py-1 text-sm font-medium rounded-md transition-colors ${activeTab === 'HISTORY' ? 'bg-white text-red-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                  >
+                    <History className="h-3.5 w-3.5" /> History
+                  </button>
+                </div>
               </div>
               
-              <div className="flex gap-2">
+              <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
                 <button className="flex items-center gap-2 px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">
                   <Filter className="h-4 w-4" />
                   Filter
@@ -265,9 +292,84 @@ const RentManagement = () => {
               </div>
             </div>
 
-            {/* Table Container */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-              <div className="overflow-x-auto">
+            {/* Mobile Card View */}
+            <div className="md:hidden flex flex-col gap-4">
+              {filteredData.length > 0 ? (
+                filteredData.map((record) => (
+                  <div key={record.id} className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-bold text-slate-800 text-lg">{record.place}</h3>
+                        <p className="text-slate-600 font-medium">{record.name}</p>
+                      </div>
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${
+                        record.status === 'Done' ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-orange-100 text-orange-800 border border-orange-200'
+                      }`}>
+                        {record.status === 'Done' ? 'Done' : 'Pending'}
+                      </span>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-2 text-sm bg-slate-50 p-3 rounded-lg border border-slate-100">
+                      <div>
+                        <p className="text-slate-400 text-[10px] uppercase tracking-wider font-bold mb-0.5">Phone No.</p>
+                        <p className="font-mono text-slate-700">{record.phone}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-400 text-[10px] uppercase tracking-wider font-bold mb-0.5">Date</p>
+                        <p className="text-slate-700 font-medium">{record.date}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-400 text-[10px] uppercase tracking-wider font-bold mb-0.5">Method</p>
+                        <p className="text-slate-700 font-medium">{record.method || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-400 text-[10px] uppercase tracking-wider font-bold mb-0.5">Document</p>
+                        {record.document ? (
+                          <a href={record.document} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-red-600 hover:text-red-800 font-medium">
+                            <FileText className="h-3.5 w-3.5" /> View
+                          </a>
+                        ) : (
+                          <span className="text-slate-400 italic">No doc</span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="pt-2 flex items-center justify-end gap-2">
+                      {record.status !== 'Done' && (
+                        <button 
+                          onClick={() => handleMarkAsDone(record.id)}
+                          className="flex-1 sm:flex-none px-3 py-2 text-xs font-bold text-green-700 bg-green-50 hover:bg-green-100 rounded-lg flex items-center justify-center gap-1.5 transition-colors border border-green-200/50"
+                        >
+                          <Check className="h-3.5 w-3.5" /> Done
+                        </button>
+                      )}
+                      <button 
+                        onClick={() => handleEditClick(record)}
+                        className="flex-1 sm:flex-none px-3 py-2 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg flex items-center justify-center gap-1.5 transition-colors border border-blue-200/50"
+                      >
+                        <Edit2 className="h-3.5 w-3.5" /> Edit
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteRecord(record.id)}
+                        className="flex-1 sm:flex-none px-3 py-2 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 rounded-lg flex items-center justify-center gap-1.5 transition-colors border border-red-200/50"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" /> Delete
+                      </button>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="py-12 text-center bg-white rounded-xl shadow-sm border border-slate-200">
+                  <Banknote className="h-12 w-12 mx-auto mb-4 text-slate-300" />
+                  <p className="text-lg font-medium text-slate-600">No rent records found</p>
+                  <p className="text-sm text-slate-400">Try adjusting your search or filter criteria.</p>
+                </div>
+              )}
+            </div>
+
+            {/* Desktop Table Container */}
+            <div className="hidden md:block bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+              <div className="overflow-x-auto pb-32">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200">
@@ -277,6 +379,7 @@ const RentManagement = () => {
                       <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Date</th>
                       <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Document</th>
                       <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Payment Method</th>
+                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
                       <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Actions</th>
                     </tr>
                   </thead>
@@ -321,24 +424,45 @@ const RentManagement = () => {
                               <span className="text-slate-400 text-xs italic">N/A</span>
                             )}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button 
-                                onClick={() => handleEditClick(record)}
-                                className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                              >
-                                <Edit2 className="h-4 w-4" />
-                              </button>
-                              <button 
-                                onClick={() => handleDeleteRecord(record.id)}
-                                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
-                              <button className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
-                                <MoreVertical className="h-4 w-4" />
-                              </button>
-                            </div>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                              record.status === 'Done' ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-orange-100 text-orange-800 border border-orange-200'
+                            }`}>
+                              {record.status === 'Done' ? 'Done' : 'Pending'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium relative">
+                            <button 
+                              onClick={() => setActiveActionId(activeActionId === record.id ? null : record.id)}
+                              className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </button>
+
+                            {activeActionId === record.id && (
+                              <div className="absolute right-8 top-12 w-36 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-20">
+                                {record.status !== 'Done' && (
+                                  <button 
+                                    onClick={() => { handleMarkAsDone(record.id); setActiveActionId(null); }}
+                                    className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                                  >
+                                    <Check className="h-4 w-4 text-green-600" /> Done
+                                  </button>
+                                )}
+                                <button 
+                                  onClick={() => { handleEditClick(record); setActiveActionId(null); }}
+                                  className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                                >
+                                  <Edit2 className="h-4 w-4 text-blue-600" /> Edit
+                                </button>
+                                <button 
+                                  onClick={() => { handleDeleteRecord(record.id); setActiveActionId(null); }}
+                                  className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                                >
+                                  <Trash2 className="h-4 w-4 text-red-600" /> Delete
+                                </button>
+                              </div>
+                            )}
                           </td>
                         </tr>
                       ))

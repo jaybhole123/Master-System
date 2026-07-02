@@ -1088,8 +1088,8 @@ const AllTasks = () => {
                 }} />
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 flex-grow justify-end">
-                <div className="relative flex-grow max-w-sm">
+              <div className="flex flex-col xl:flex-row items-center gap-3 flex-grow justify-end w-full">
+                <div className="relative flex-grow w-full xl:max-w-sm">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
                   <input
                     type="text"
@@ -1100,7 +1100,7 @@ const AllTasks = () => {
                   />
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center justify-start sm:justify-end gap-2 w-full xl:w-auto">
                   <button
                     onClick={() => {
                       setShowHistory(!showHistory);

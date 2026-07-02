@@ -1321,13 +1321,13 @@ function DelegationDataPage() {
                   />
                 </div>
 
-                <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                <div className="flex flex-col xl:flex-row gap-2 w-full sm:w-auto">
                   {!showHistory && (
-                    <div className="flex flex-wrap items-center gap-2 flex-1 sm:flex-none">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 xl:flex items-center gap-2 w-full xl:w-auto">
                       <select
                         value={doerFilter}
                         onChange={(e) => setDoerFilter(e.target.value)}
-                        className="w-full sm:w-auto border border-red-200 rounded-md px-3 py-2 text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500 h-10"
+                        className="w-full border border-red-200 rounded-md px-3 py-2 text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500 h-10"
                       >
                         <option value="all">All Doers</option>
                         {uniqueDoers.map((doer) => (
@@ -1340,7 +1340,7 @@ function DelegationDataPage() {
                       <select
                         value={givenByFilter}
                         onChange={(e) => setGivenByFilter(e.target.value)}
-                        className="w-full sm:w-auto border border-red-200 rounded-md px-3 py-2 text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500 h-10"
+                        className="w-full border border-red-200 rounded-md px-3 py-2 text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500 h-10"
                       >
                         <option value="all">All Given By</option>
                         {uniqueGivenBy.map((givenBy) => (
@@ -1353,7 +1353,7 @@ function DelegationDataPage() {
                       <select
                         value={dateFilter}
                         onChange={(e) => setDateFilter(e.target.value)}
-                        className="w-full sm:w-auto border border-red-200 rounded-md px-3 py-2 text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500 h-10"
+                        className="w-full border border-red-200 rounded-md px-3 py-2 text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500 h-10"
                       >
                         {filterOptions.map((option) => (
                           <option key={option.value} value={option.value}>
@@ -1363,53 +1363,55 @@ function DelegationDataPage() {
                       </select>
                     </div>
                   )}
-                  <button
-                    onClick={toggleHistory}
-                    className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 sm:px-4 py-2 text-sm font-medium text-red-700 bg-white border border-red-200 rounded-md hover:bg-red-50 transition-colors shadow-sm h-10"
-                  >
-                    {showHistory ? (
+                  
+                  <div className={`grid ${showHistory ? 'grid-cols-1' : 'grid-cols-3'} xl:flex gap-2 w-full xl:w-auto`}>
+                    <button
+                      onClick={toggleHistory}
+                      className="w-full xl:w-auto flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-red-700 bg-white border border-red-200 rounded-md hover:bg-red-50 transition-colors shadow-sm h-10"
+                    >
+                      {showHistory ? (
+                        <>
+                          <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4" />
+                          <span>Back</span>
+                        </>
+                      ) : (
+                        <>
+                          <History className="h-3 w-3 sm:h-4 sm:w-4" />
+                          <span>History</span>
+                        </>
+                      )}
+                    </button>
+
+                    {!showHistory && (
                       <>
-                        <ArrowLeft className="h-4 w-4 mr-1" />
-                        <span>Back</span>
-                      </>
-                    ) : (
-                      <>
-                        <History className="h-4 w-4 mr-1" />
-                        <span>History</span>
+                        <button
+                          onClick={handleSendUrgentWhatsApp}
+                          disabled={selectedItems.size === 0 || isSubmitting}
+                          className="w-full xl:w-auto flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-all h-10"
+                          title="Send Urgent WhatsApp"
+                        >
+                          <BellRing className="h-3 w-3 sm:h-4 sm:w-4" />
+                          <span className="hidden sm:inline">Urgent WhatsApp</span>
+                          <span className="sm:hidden">Urgent</span>
+                        </button>
+
+                        <button
+                          onClick={handleSubmit}
+                          disabled={selectedItemsCount === 0 || isSubmitting}
+                          className="w-full xl:w-auto flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-colors h-10"
+                        >
+                          {isSubmitting
+                            ? "..."
+                            : (
+                              <>
+                                <span className="hidden sm:inline">Submit ({selectedItemsCount})</span>
+                                <span className="sm:hidden">Submit</span>
+                              </>
+                            )}
+                        </button>
                       </>
                     )}
-                  </button>
-
-                  {!showHistory && (
-                    <>
-
-                      <button
-                        onClick={handleSendUrgentWhatsApp}
-                        disabled={selectedItems.size === 0 || isSubmitting}
-                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 sm:px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-all h-10"
-                        title="Send Urgent WhatsApp"
-                      >
-                        <BellRing className="h-4 w-4" />
-                        <span className="hidden sm:inline">Urgent WhatsApp</span>
-                        <span className="sm:hidden">Urgent</span>
-                      </button>
-
-                      <button
-                        onClick={handleSubmit}
-                        disabled={selectedItemsCount === 0 || isSubmitting}
-                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 sm:px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-colors h-10"
-                      >
-                        {isSubmitting
-                          ? "..."
-                          : (
-                            <>
-                              <span className="hidden sm:inline">Submit Selected ({selectedItemsCount})</span>
-                              <span className="sm:hidden">Submit ({selectedItemsCount})</span>
-                            </>
-                          )}
-                      </button>
-                    </>
-                  )}
+                  </div>
                 </div>
               </div>
             </div>
