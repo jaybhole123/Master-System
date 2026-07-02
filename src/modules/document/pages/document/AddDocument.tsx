@@ -6,6 +6,8 @@ import SearchableInput from "../../components/SearchableInput";
 import {
   fetchMasterFromGoogleSheets,
   submitToGoogleSheets,
+  fetchDocumentTypesOnly,
+  fetchRenewalFilterNames
 } from "../../utils/googleSheetsService";
 
 interface DocumentEntry {
@@ -48,6 +50,7 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [remoteDocTypes, setRemoteDocTypes] = useState<string[]>([]);
   const [remoteCategories, setRemoteCategories] = useState<string[]>([]);
+  const [remotePersonNames, setRemotePersonNames] = useState<string[]>([]);
   const [entries, setEntries] = useState<DocumentEntry[]>([
     {
       id: Math.random().toString(),
@@ -104,10 +107,14 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
     let mounted = true;
     (async () => {
       try {
-        const rows = await fetchMasterFromGoogleSheets();
+        const [rows, docTypesOnly, personNames] = await Promise.all([
+          fetchMasterFromGoogleSheets(),
+          fetchDocumentTypesOnly(),
+          fetchRenewalFilterNames()
+        ]);
         if (!mounted) return;
 
-        const docTypes = rows
+        const masterDocTypes = rows
           .map(
             (r: {
               documentType: string;
@@ -116,6 +123,7 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
             }) => r.documentType,
           )
           .filter((v: string) => typeof v === "string" && v.trim().length > 0);
+          
         const cats = rows
           .map(
             (r: {
@@ -126,8 +134,9 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
           )
           .filter((v: string) => typeof v === "string" && v.trim().length > 0);
 
-        setRemoteDocTypes(Array.from(new Set(docTypes)));
+        setRemoteDocTypes(Array.from(new Set([...masterDocTypes, ...docTypesOnly])));
         setRemoteCategories(Array.from(new Set(cats)));
+        setRemotePersonNames(Array.from(new Set(personNames)));
       } catch (err) {
         console.error(err);
       }
@@ -600,18 +609,16 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
                     />
                   </div>
 
-                  {/* 4. Name (Input - user entered name) - OPTIONAL */}
+                  {/* 4. Name (SearchableInput) - OPTIONAL */}
                   <div>
-                    <label className="block mb-1 text-xs font-semibold text-gray-600">
-                      {getNameLabel(entry.category)}
-                    </label>
-                    <input
-                      type="text"
-                      className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
+                    <SearchableInput
+                      compact
+                      label={getNameLabel(entry.category)}
                       value={entry.name}
-                      onChange={(e) =>
-                        handleChange(entry.id, "name", e.target.value)
+                      onChange={(val) =>
+                        handleChange(entry.id, "name", val)
                       }
+                      options={remotePersonNames}
                       placeholder={`Enter ${getNameLabel(entry.category)}...`}
                     />
                   </div>

@@ -83,6 +83,7 @@ function DelegationDataPage() {
   const [username, setUsername] = useState("");
   const [dateFilter, setDateFilter] = useState("all");
   const [doerFilter, setDoerFilter] = useState("all");
+  const [givenByFilter, setGivenByFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerMedia, setViewerMedia] = useState({ url: '', type: 'image' });
@@ -100,6 +101,16 @@ function DelegationDataPage() {
       if (name) doers.add(name);
     });
     return Array.from(doers).sort();
+  }, [delegation]);
+
+  const uniqueGivenBy = useMemo(() => {
+    if (!delegation) return [];
+    const givens = new Set();
+    delegation.forEach(task => {
+      const given = task.given_by;
+      if (given) givens.add(given);
+    });
+    return Array.from(givens).sort();
   }, [delegation]);
 
   const itemsPerPage = 50;
@@ -268,6 +279,7 @@ function DelegationDataPage() {
     setEndDate("");
     setDateFilter("all");
     setDoerFilter("all");
+    setGivenByFilter("all");
   }, []);
 
 
@@ -289,8 +301,9 @@ function DelegationDataPage() {
         (assignedUser && assignedUser.trim().toLowerCase() === (username || "").trim().toLowerCase());
 
       const matchesDoer = doerFilter === "all" || assignedUser === doerFilter;
+      const matchesGivenBy = givenByFilter === "all" || task.given_by === givenByFilter;
 
-      if (!userMatch || !matchesDoer) return false;
+      if (!userMatch || !matchesDoer || !matchesGivenBy) return false;
 
       const matchesSearch = debouncedSearchTerm
         ? Object.values(task).some(
@@ -361,7 +374,7 @@ function DelegationDataPage() {
       const priority = { "Overdue": 0, "Today": 1, "Upcoming": 2 };
       return (priority[a.timeStatus] ?? 3) - (priority[b.timeStatus] ?? 3);
     });
-  }, [delegation, debouncedSearchTerm, dateFilter, userRole, username]);
+  }, [delegation, debouncedSearchTerm, dateFilter, doerFilter, givenByFilter, userRole, username]);
 
   const filteredHistoryData = useMemo(() => {
     if (!delegation_done) return [];
@@ -428,7 +441,7 @@ function DelegationDataPage() {
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [showHistory, debouncedSearchTerm, dateFilter, doerFilter, startDate, endDate]);
+  }, [showHistory, debouncedSearchTerm, dateFilter, doerFilter, givenByFilter, startDate, endDate]);
 
   const paginatedTasks = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
@@ -1325,6 +1338,19 @@ function DelegationDataPage() {
                       </select>
 
                       <select
+                        value={givenByFilter}
+                        onChange={(e) => setGivenByFilter(e.target.value)}
+                        className="w-full sm:w-auto border border-red-200 rounded-md px-3 py-2 text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500 h-10"
+                      >
+                        <option value="all">All Given By</option>
+                        {uniqueGivenBy.map((givenBy) => (
+                          <option key={givenBy} value={givenBy}>
+                            {givenBy}
+                          </option>
+                        ))}
+                      </select>
+
+                      <select
                         value={dateFilter}
                         onChange={(e) => setDateFilter(e.target.value)}
                         className="w-full sm:w-auto border border-red-200 rounded-md px-3 py-2 text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500 h-10"
@@ -1356,15 +1382,6 @@ function DelegationDataPage() {
 
                   {!showHistory && (
                     <>
-                      <button
-                        onClick={handlePrintOverdue}
-                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 sm:px-4 py-2 text-sm font-medium text-red-700 bg-white border border-red-200 rounded-md hover:bg-red-50 transition-colors shadow-sm h-10"
-                        title="Print Overdue Tasks"
-                      >
-                        <Printer className="h-4 w-4" />
-                        <span className="hidden sm:inline">Print Overdue</span>
-                        <span className="sm:hidden">Print</span>
-                      </button>
 
                       <button
                         onClick={handleSendUrgentWhatsApp}

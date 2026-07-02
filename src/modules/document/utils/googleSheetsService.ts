@@ -172,6 +172,70 @@ export const fetchMasterFromGoogleSheets = async () => {
   }
 };
 
+export const fetchDocumentTypesOnly = async () => {
+  const url = new URL(import.meta.env.VITE_GOOGLE_SCRIPT_URL || "");
+  url.searchParams.set("sheet", "Document Type");
+  url.searchParams.set("_t", new Date().getTime().toString());
+
+  try {
+    const res = await fetch(url.toString(), { method: "GET", mode: "cors" });
+    if (!res.ok) throw new Error("Failed to fetch Document Type sheet");
+
+    const json = (await res.json()) as any;
+    const rows = json.data;
+    
+    let headerIndex = -1;
+    let colIndex = 0;
+    if (rows && rows.length > 0) {
+      for (let i = 0; i < 5; i++) {
+        if (!rows[i]) continue;
+        const cIdx = rows[i].findIndex((c: any) => String(c).trim().toLowerCase() === 'document type');
+        if (cIdx !== -1) {
+          headerIndex = i;
+          colIndex = cIdx;
+          break;
+        }
+      }
+    }
+    
+    const startObjIndex = headerIndex !== -1 ? headerIndex + 1 : 1;
+    const body = rows.length > startObjIndex ? rows.slice(startObjIndex) : [];
+
+    return body
+      .map((r: any) => (r?.[colIndex] || "").toString().trim())
+      .filter((r: string) => r.length > 0);
+  } catch (error) {
+    console.error("Fetch Document Type Error:", error);
+    return [];
+  }
+};
+
+export const fetchRenewalFilterNames = async () => {
+  const url = new URL(import.meta.env.VITE_GOOGLE_SCRIPT_URL || "");
+  url.searchParams.set("sheet", "Document Type");
+  url.searchParams.set("_t", new Date().getTime().toString());
+
+  try {
+    const res = await fetch(url.toString(), { method: "GET", mode: "cors" });
+    if (!res.ok) throw new Error("Failed to fetch from Document Type sheet");
+
+    const json = (await res.json()) as any;
+    const rows = json.data;
+    
+    // The headers are ["Document Type", "Category", "Renewal Filter", "Renewal Filter", "Company Name"]
+    // The names are in the second "Renewal Filter" column, which is index 3
+    const startObjIndex = 1; // skip header
+    const body = rows.length > startObjIndex ? rows.slice(startObjIndex) : [];
+
+    return body
+      .map((r: any) => (r?.[3] || "").toString().trim())
+      .filter((r: string) => r.length > 0);
+  } catch (error) {
+    console.error("Fetch Renewal Filter Names Error:", error);
+    return [];
+  }
+};
+
 export const fetchDocumentsFromGoogleSheets = async (): Promise<DocumentItem[]> => {
   const GOOGLE_SCRIPT_URL = import.meta.env.VITE_GOOGLE_SCRIPT_URL || "";
 

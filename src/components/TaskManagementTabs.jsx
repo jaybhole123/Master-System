@@ -1,9 +1,11 @@
 "use client"
 import React from 'react'
-import { ClipboardCheck, Hammer, Wrench, Activity, Users } from 'lucide-react'
+import { ClipboardCheck, Hammer, Wrench, Activity, Users, PlusCircle } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 
 export default function TaskManagementTabs({ activeTab, setActiveTab }) {
+    const navigate = useNavigate();
     const role = (localStorage.getItem("role") || "").toLowerCase();
     const designation = (localStorage.getItem("designation") || "").toLowerCase();
     const isMachineOperator = designation.includes("machin") || designation.includes("operat") || designation.includes("oprat");
@@ -58,6 +60,14 @@ export default function TaskManagementTabs({ activeTab, setActiveTab }) {
                                 </button>
                             )
                         })}
+                        {/* Assign Task Button */}
+                        <button
+                            onClick={() => navigate('/dashboard/assign-task')}
+                            className="relative flex items-center justify-center gap-2.5 py-2 px-6 rounded-lg text-xs font-bold transition-all duration-500 whitespace-nowrap min-w-[100px] md:min-w-[120px] z-10 text-gray-500 hover:text-purple-600 hover:bg-purple-50/50"
+                        >
+                            <PlusCircle size={20} className="text-purple-600 transition-colors duration-300" />
+                            <span className="relative">Assign Task</span>
+                        </button>
                     </div>
                 </div>
             </div>

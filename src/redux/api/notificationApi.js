@@ -12,7 +12,8 @@ export const fetchNotificationsApi = async (role, userId) => {
 
     // Hierarchy filter
     if (roleLower !== "admin" && localStorage.getItem("user-name")?.toLowerCase() !== "admin") {
-      query = query.in("role_target", ["all", roleLower]);
+      const currentUserName = localStorage.getItem("user-name");
+      query = query.in("role_target", ["all", roleLower, `person:${currentUserName}`]);
     }
 
     const { data: notifications, error: nError } = await query;

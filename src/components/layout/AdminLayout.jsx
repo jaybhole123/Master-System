@@ -388,6 +388,14 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       module: "Checklist & Delegation",
     },
     {
+      href: "/dashboard/rent-management",
+      label: "Rent Management",
+      icon: Banknote,
+      active: location.pathname === "/dashboard/rent-management",
+      showFor: ["admin", "HOD"],
+      module: "Checklist & Delegation",
+    },
+    {
       href: "/dashboard/notifications",
       label: "Notifications",
       icon: Bell,

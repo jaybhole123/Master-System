@@ -67,7 +67,8 @@ const AllTasks = () => {
   const [error, setError] = useState(null);
   const [dateFilter, setDateFilter] = useState("all"); // all, today, overdue, upcoming
   const [userFilter, setUserFilter] = useState("all");
-  const [dropdownOpen, setDropdownOpen] = useState({ dateFilter: false, userFilter: false });
+  const [givenByFilter, setGivenByFilter] = useState("all");
+  const [dropdownOpen, setDropdownOpen] = useState({ dateFilter: false, userFilter: false, givenByFilter: false });
   const [lightboxImage, setLightboxImage] = useState(null); // { url, name }
   const [fetchingProgress, setFetchingProgress] = useState(0);
 
@@ -100,6 +101,16 @@ const AllTasks = () => {
   const [holidaysList, setHolidaysList] = useState([]);
   const [workingDaysList, setWorkingDaysList] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
+
+  const uniqueGivenBy = useMemo(() => {
+    const givens = new Set();
+    const source = showHistory ? historyData : tasks;
+    source.forEach(t => {
+      const given = t.given_by;
+      if (given) givens.add(given);
+    });
+    return Array.from(givens).sort();
+  }, [tasks, historyData, showHistory]);
 
   // Fetch holidays and users on mount
   useEffect(() => {
@@ -539,6 +550,11 @@ const AllTasks = () => {
         if (taskUser.toLowerCase() !== userFilter.toLowerCase()) return false;
       }
 
+      // Filter by Given By
+      if (givenByFilter !== "all") {
+        if (task.given_by !== givenByFilter) return false;
+      }
+
       const taskDateValue = task[statusDateColumn];
       const status = taskDateValue ? getTimeStatus(taskDateValue, task.status) : null;
 
@@ -578,7 +594,7 @@ const AllTasks = () => {
 
       return true;
     });
-  }, [tasks, searchTerm, activeTab, dateFilter, userFilter, sortDateColumn, statusDateColumn, getTimeStatus]);
+  }, [tasks, searchTerm, activeTab, dateFilter, userFilter, givenByFilter, sortDateColumn, statusDateColumn, getTimeStatus]);
 
   const filteredHistoryTasks = useMemo(() => {
     const completionField = "submission_date";
@@ -596,6 +612,11 @@ const AllTasks = () => {
       if (userFilter !== "all") {
         const taskUser = task.name || task.assigned_person || task.doer_name || "";
         if (taskUser.toLowerCase() !== userFilter.toLowerCase()) return false;
+      }
+
+      // Filter by Given By
+      if (givenByFilter !== "all") {
+        if (task.given_by !== givenByFilter) return false;
       }
 
       let matchesDateRange = true;
@@ -617,7 +638,7 @@ const AllTasks = () => {
 
       return matchesSearch && matchesDateRange;
     });
-  }, [historyData, searchTerm, startDate, endDate, activeTab, userFilter]);
+  }, [historyData, searchTerm, startDate, endDate, activeTab, userFilter, givenByFilter]);
 
   // Handle Selections
   const handleSelectItem = useCallback((id, isChecked) => {
@@ -1127,6 +1148,45 @@ const AllTasks = () => {
                               setDropdownOpen(prev => ({ ...prev, userFilter: false }));
                             }}
                             className={`block w-full text-left px-4 py-2 text-xs font-bold transition-colors ${userFilter === name ? 'bg-red-50 text-red-700 border-l-2 border-red-500' : 'text-gray-600 hover:bg-gray-50'}`}
+                          >
+                            {name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Given By Filter */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setDropdownOpen(prev => ({ ...prev, givenByFilter: !prev.givenByFilter }))}
+                      className={`flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-xl border transition-all shadow-sm ${givenByFilter !== 'all' ? 'bg-red-600 text-white border-red-600' : 'bg-white text-gray-600 border-gray-200'}`}
+                    >
+                      <Users className="h-3.5 w-3.5" />
+                      <span className="capitalize">{givenByFilter === 'all' ? 'Given By' : givenByFilter}</span>
+                      <ChevronDown size={14} className={`transition-transform ${dropdownOpen?.givenByFilter ? 'rotate-180' : ''}`} />
+                    </button>
+                    {dropdownOpen?.givenByFilter && (
+                      <div className="absolute z-50 mt-2 w-48 right-0 rounded-xl bg-white shadow-xl border border-gray-100 py-1 overflow-y-auto max-h-60 animate-in fade-in slide-in-from-top-2 duration-200">
+                        <button
+                          onClick={() => {
+                            setGivenByFilter("all");
+                            setSelectedItems(new Set());
+                            setDropdownOpen(prev => ({ ...prev, givenByFilter: false }));
+                          }}
+                          className={`block w-full text-left px-4 py-2 text-xs font-bold transition-colors ${givenByFilter === "all" ? 'bg-red-50 text-red-700 border-l-2 border-red-500' : 'text-gray-600 hover:bg-gray-50'}`}
+                        >
+                          All Given By
+                        </button>
+                        {uniqueGivenBy.map((name) => (
+                          <button
+                            key={name}
+                            onClick={() => {
+                              setGivenByFilter(name);
+                              setSelectedItems(new Set());
+                              setDropdownOpen(prev => ({ ...prev, givenByFilter: false }));
+                            }}
+                            className={`block w-full text-left px-4 py-2 text-xs font-bold transition-colors ${givenByFilter === name ? 'bg-red-50 text-red-700 border-l-2 border-red-500' : 'text-gray-600 hover:bg-gray-50'}`}
                           >
                             {name}
                           </button>

@@ -4,6 +4,7 @@ import { Bell, Plus, Trash2, Shield, User, Globe, Clock, Loader2, X, CheckCheck 
 import AdminLayout from "../../components/layout/AdminLayout";
 import { fetchNotifications, createNotification, removeNotification, markAsRead } from "../../redux/slice/notificationSlice";
 import { useMagicToast } from "../../context/MagicToastContext";
+import supabase from "../../SupabaseClient";
 
 export default function Notifications() {
   const dispatch = useDispatch();
@@ -20,8 +21,18 @@ export default function Notifications() {
     message: "",
     roleTarget: "all",
   });
+  const [allUsers, setAllUsers] = useState([]);
+  const [selectedUser, setSelectedUser] = useState("");
 
   const isAdmin = currentUserRole === "admin";
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      const { data } = await supabase.from('users').select('user_name').eq('status', 'active').order('user_name');
+      if (data) setAllUsers(data.map(u => u.user_name));
+    };
+    fetchUsers();
+  }, []);
 
   useEffect(() => {
     if (currentUserRole) {
@@ -38,9 +49,12 @@ export default function Notifications() {
 
     setIsSubmitting(true);
     try {
+      const target = formData.roleTarget === 'specific_user' ? `person:${selectedUser}` : formData.roleTarget;
+      
       await dispatch(
         createNotification({
           ...formData,
+          roleTarget: target,
           createdBy: currentUserId || null,
         })
       ).unwrap();
@@ -170,9 +184,10 @@ export default function Notifications() {
                           noti.role_target === 'all' ? 'bg-blue-50 text-blue-600 border-blue-100' : 
                           noti.role_target === 'admin' ? 'bg-red-50 text-red-600 border-red-100' :
                           noti.role_target === 'superadmin' ? 'bg-red-50 text-red-600 border-red-100' :
+                          noti.role_target.startsWith('person:') ? 'bg-purple-50 text-purple-600 border-purple-100' :
                           'bg-orange-50 text-orange-600 border-orange-100'
                         }`}>
-                          {noti.role_target}
+                          {noti.role_target.startsWith('person:') ? noti.role_target.replace('person:', 'User: ') : noti.role_target}
                         </span>
                         {noti.isRead ? (
                           <CheckCheck size={16} className="text-blue-500" />
@@ -273,8 +288,26 @@ export default function Notifications() {
                       <option value="admin">Admins</option>
                       <option value="hod">Department Heads</option>
                       <option value="user">Standard Users</option>
+                      <option value="specific_user">Specific Person</option>
                     </select>
                   </div>
+
+                  {formData.roleTarget === "specific_user" && (
+                    <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2">
+                      <label className="text-sm font-semibold text-gray-700">Select Person</label>
+                      <select
+                        value={selectedUser}
+                        onChange={(e) => setSelectedUser(e.target.value)}
+                        required
+                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-600 focus:bg-white outline-none transition-all text-gray-900 cursor-pointer"
+                      >
+                        <option value="">-- Choose a user --</option>
+                        {allUsers.map(u => (
+                          <option key={u} value={u}>{u}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
 
                   <div className="pt-2">
                     <button

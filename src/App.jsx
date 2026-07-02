@@ -33,6 +33,7 @@ import AdminApprovalPage from "./pages/admin/AdminApprovalPage" // New
 import NotificationsPage from "./pages/admin/Notifications"
 import TrainingVideo from "./pages/admin/TrainingVideo"
 import InsuranceManagement from "./pages/admin/InsuranceManagement"
+import RentManagement from "./pages/admin/RentManagement"
 
 // --- Components ---
 import RealtimeLogoutListener from "./components/RealtimeLogoutListener"
@@ -130,6 +131,16 @@ function App() {
                         element={
                             <ProtectedRoute allowedRoles={["admin", "HOD"]}>
                                 <AdminAssignTask />
+                            </ProtectedRoute>
+                        }
+                    />
+
+                    {/* --- Rent Management --- */}
+                    <Route
+                        path="/dashboard/rent-management"
+                        element={
+                            <ProtectedRoute allowedRoles={["admin", "HOD"]}>
+                                <RentManagement />
                             </ProtectedRoute>
                         }
                     />
