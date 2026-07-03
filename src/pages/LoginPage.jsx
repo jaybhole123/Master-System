@@ -122,7 +122,7 @@ const LoginPage = () => {
               className="h-10 w-auto object-contain"
             />
           </div>
-          <h2 className="text-[22px] font-bold text-slate-900 text-center leading-tight">Jay Bhole Traders and Enterprice</h2>
+          <h2 className="text-[22px] font-bold text-slate-900 text-center leading-tight">Jai Bhole Traders and Enterprice</h2>
           <p className="text-sm text-slate-500 mt-2 text-center">Welcome back! Please enter your details.</p>
         </div>
 
