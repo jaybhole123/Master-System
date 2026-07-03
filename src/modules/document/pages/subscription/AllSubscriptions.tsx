@@ -45,17 +45,17 @@ const AllSubscriptions = () => {
 
   const filteredData = useMemo(() => {
     return subscriptions.filter(item => {
-      const matchesSearch = (item.subscriptionName || '').toLowerCase().includes(deferredSearch.toLowerCase()) ||
-        (item.companyName || '').toLowerCase().includes(deferredSearch.toLowerCase()) ||
-        (item.subscriberName || '').toLowerCase().includes(deferredSearch.toLowerCase()) ||
-        (item.sn || '').toLowerCase().includes(deferredSearch.toLowerCase());
+      const matchesSearch = String(item.subscriptionName || '').toLowerCase().includes(deferredSearch.toLowerCase()) ||
+        String(item.companyName || '').toLowerCase().includes(deferredSearch.toLowerCase()) ||
+        String(item.subscriberName || '').toLowerCase().includes(deferredSearch.toLowerCase()) ||
+        String(item.sn || '').toLowerCase().includes(deferredSearch.toLowerCase());
 
       const matchesfreq = filterFrequency ? item.frequency === filterFrequency : true;
 
       return matchesSearch && matchesfreq;
     }).sort((a, b) => {
       const getSn = (s: string) => {
-        const match = (s || '').match(/SN-?(\d+)/i);
+        const match = String(s || '').match(/SN-?(\d+)/i);
         return match ? parseInt(match[1], 10) : 0;
       };
       return getSn(a.sn) - getSn(b.sn);
