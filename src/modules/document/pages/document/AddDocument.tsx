@@ -564,10 +564,10 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
 
                 {/* Compact Grid: Gaps reduced */}
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                  {/* 1. Document Name (Input) - ONLY MANDATORY */}
+                  {/* 1. Policy No (Input) - ONLY MANDATORY */}
                   <div>
                     <label className="block mb-1 text-xs font-semibold text-gray-600">
-                      Document Name <span className="text-red-500">*</span>
+                      Policy No <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -577,15 +577,15 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
                       onChange={(e) =>
                         handleChange(entry.id, "documentName", e.target.value)
                       }
-                      placeholder="e.g. Agreement"
+                      placeholder="e.g. Policy No"
                     />
                   </div>
 
-                  {/* 2. Document Type (Searchable) - OPTIONAL */}
+                  {/* 2. TYPE (Searchable) - OPTIONAL */}
                   <div>
                     <SearchableInput
                       compact
-                      label="Document Type"
+                      label="TYPE"
                       value={entry.documentType}
                       onChange={(val) =>
                         handleChange(entry.id, "documentType", val)
@@ -624,10 +624,9 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
                   </div>
 
                   {/* 5. Company Name (Dropdown Field) - OPTIONAL */}
-
-                  <div className="hidden">
+                  <div>
                     <label className="block mb-1 text-xs font-semibold text-gray-600">
-                      Company Name
+                      Company
                     </label>
 
                     <input
@@ -714,10 +713,10 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
                     />
                   </div>
 
-                  {/* 8. Concern Person Name - OPTIONAL */}
-                  <div className="hidden">
+                  {/* 8. BANK - OPTIONAL */}
+                  <div>
                     <label className="block mb-1 text-xs font-semibold text-gray-600">
-                      Conser Person Name
+                      BANK
                     </label>
                     <input
                       type="text"
@@ -730,7 +729,7 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
                           e.target.value,
                         )
                       }
-                      placeholder="Name (Optional)"
+                      placeholder="Bank Name"
                     />
                   </div>
 
@@ -845,10 +844,10 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
                       value={entry.docRemarks} onChange={(e) => handleChange(entry.id, "docRemarks", e.target.value)} />
                   </div>
 
-                  {/* 22. File Upload - OPTIONAL */}
+                  {/* 22. AUTO - OPTIONAL */}
                   <div>
                     <label className="block mb-1 text-xs font-semibold text-gray-600">
-                      Auto Debited
+                      AUTO
                     </label>
                     <input
                       type="text"

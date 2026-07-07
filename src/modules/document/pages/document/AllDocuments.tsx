@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import * as XLSX from "xlsx";
 import {
   Plus,
   Search,
@@ -10,6 +11,7 @@ import {
   Mail,
   MessageCircle,
   Share2,
+  Upload,
 } from "lucide-react";
 import useDataStore from "../../store/dataStore";
 import useHeaderStore from "../../store/headerStore";
@@ -42,6 +44,137 @@ const AllDocuments = () => {
   const [documents, setDocuments] = useState<DocumentItem[]>(() => storeDocuments || []);
   const [isLoading, setIsLoading] = useState(() => !storeDocuments || storeDocuments.length === 0);
   const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleExcelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      try {
+        const bstr = evt.target?.result;
+        const workbook = XLSX.read(bstr, { type: "binary" });
+        const wsname = workbook.SheetNames[0];
+        const ws = workbook.Sheets[wsname];
+        const data = XLSX.utils.sheet_to_json(ws);
+        
+        if (data.length === 0) {
+          toast.error("Excel file is empty");
+          return;
+        }
+
+        setIsLoading(true);
+        let successCount = 0;
+        
+        for (const rawRow of data as any[]) {
+          const row: any = {};
+          for (const key in rawRow) {
+            row[key.trim()] = rawRow[key];
+          }
+
+          const entry = {
+            name: row["Name"] || "",
+            policyNo: row["Policy No"] || "",
+            company: row["Company"] || "",
+            type: row["TYPE"] || "",
+            sumAssured: row["Sum Assured"] || "",
+            premium: row["Premium"] || "",
+            premiumPayingTerm: row["Premium Paying Term"] || "",
+            policyTerm: row["Policy Term"] || "",
+            firstPremiumDate: row["First Premium Date"] || "",
+            dueDateOfLastPremium: row["Due Date of Last Premium"] || "",
+            coverageTill: row["Coverasge Till"] || row["Coverage Till"] || "",
+            remarks: row["Remarks"] || "",
+            bank: row["BANK"] || "",
+            auto: row["AUTO"] || "",
+          };
+          
+          const now = new Date();
+          const formattedTimestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}:${String(now.getSeconds()).padStart(2, "0")}`;
+
+          const sheetData = {
+            Timestamp: formattedTimestamp,
+            "Serial No": "", 
+            "Document name": entry.policyNo || `Policy ${entry.name}`, 
+            "Document Type": entry.type,
+            Category: "Policy", 
+            Name: entry.name,
+            "Need Renewal": "No",
+            "Renewal Date": "",
+            Image: "",
+            issueDate: entry.firstPremiumDate,
+            concernPersonName: entry.bank,
+            concernPersonMobile: "",
+            concernPersonDepartment: "",
+            CompanyName: entry.company,
+            autoDebited: entry.auto,
+            dueDate: "",
+            dateOfProposal: "",
+            sumAssured: entry.sumAssured,
+            premium: entry.premium,
+            premiumPayingTerm: entry.premiumPayingTerm,
+            policyTerm: entry.policyTerm,
+            firstPremiumDate: entry.firstPremiumDate,
+            dueDateOfLastPremium: entry.dueDateOfLastPremium,
+            coverageTill: entry.coverageTill,
+            docRemarks: entry.remarks,
+          };
+
+          try {
+            const res = await submitToGoogleSheets({
+              action: "insert",
+              sheetName: "Documents",
+              data: [
+                sheetData.Timestamp,
+                sheetData["Serial No"],
+                sheetData["Document name"],
+                sheetData["Document Type"],
+                sheetData.Category,
+                sheetData.Name,
+                sheetData["Need Renewal"],
+                sheetData["Renewal Date"],
+                sheetData.Image,
+                null, null, null,
+                sheetData.issueDate,
+                sheetData.concernPersonName,
+                sheetData.concernPersonMobile,
+                sheetData.concernPersonDepartment,
+                sheetData.CompanyName,
+                sheetData.autoDebited,
+                sheetData.dueDate,
+                sheetData.dateOfProposal,
+                sheetData.sumAssured,
+                sheetData.premium,
+                sheetData.premiumPayingTerm,
+                sheetData.policyTerm,
+                sheetData.firstPremiumDate,
+                sheetData.dueDateOfLastPremium,
+                sheetData.coverageTill,
+                sheetData.docRemarks,
+              ],
+            });
+            
+            if (res && res.serialNo) {
+               successCount++;
+            }
+          } catch (e) {
+            console.error("Error inserting row", e);
+          }
+        }
+        
+        toast.success(`Successfully uploaded ${successCount} documents from Excel.`);
+        loadDocuments(true);
+      } catch (err) {
+        console.error("Excel upload error:", err);
+        toast.error("Failed to parse Excel file.");
+        setIsLoading(false);
+      } finally {
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }
+    };
+    reader.readAsBinaryString(file);
+  };
 
   useEffect(() => {
     setTitle("All Document");
@@ -545,6 +678,21 @@ const AllDocuments = () => {
               <FileText className="h-5 w-5 text-red-600" />
               <span className="hidden sm:inline">Export PDF</span>
             </button>
+            <input
+              type="file"
+              accept=".xlsx, .xls, .csv"
+              ref={fileInputRef}
+              onChange={handleExcelUpload}
+              className="hidden"
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-4 py-2.5 rounded-lg transition-all shadow-sm whitespace-nowrap"
+              title="Upload Excel"
+            >
+              <Upload className="h-5 w-5 text-green-600" />
+              <span className="hidden sm:inline">Upload Excel</span>
+            </button>
             <button
               onClick={() => setIsAddModalOpen(true)}
               className="flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-lg transition-all shadow-md hover:shadow-lg whitespace-nowrap"
@@ -619,41 +767,21 @@ const AllDocuments = () => {
                     <th className="px-3 py-2 w-12 text-center bg-gray-50">
                       Share
                     </th>
-                    <th className="px-3 py-2 w-20 text-center bg-gray-50">
-                      Action
-                    </th>
+
                     <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
                       Serial No
                     </th>
                     <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
-                      Document Name
-                    </th>
-                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
-                      Document Type
-                    </th>
-                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
-                      Category
-                    </th>
-                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
                       Name
                     </th>
-                    <th className="px-3 py-2 whitespace-nowrap text-center bg-gray-50">
-                      Renewal
+                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
+                      Policy No
                     </th>
                     <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
-                      Renewal Date
+                      Company
                     </th>
                     <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
-                      File
-                    </th>
-                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
-                      Auto Debited
-                    </th>
-                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
-                      Due Date
-                    </th>
-                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
-                      Proposal Date
+                      TYPE
                     </th>
                     <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
                       Sum Assured
@@ -662,7 +790,7 @@ const AllDocuments = () => {
                       Premium
                     </th>
                     <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
-                      PPT
+                      Premium Paying Term
                     </th>
                     <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
                       Policy Term
@@ -671,13 +799,36 @@ const AllDocuments = () => {
                       First Premium Date
                     </th>
                     <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
-                      Last Premium Date
+                      Due Date of Last Premium
                     </th>
                     <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
                       Coverage Till
                     </th>
                     <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
                       Remarks
+                    </th>
+
+                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
+                      Category
+                    </th>
+                    <th className="px-3 py-2 whitespace-nowrap text-center bg-gray-50">
+                      Renewal
+                    </th>
+                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
+                      Renewal Date
+                    </th>
+
+                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
+                      BANK
+                    </th>
+                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
+                      AUTO
+                    </th>
+                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
+                      File
+                    </th>
+                    <th className="px-3 py-2 w-20 text-center bg-gray-50">
+                      Action
                     </th>
                   </tr>
                 </thead>
@@ -762,78 +913,23 @@ const AllDocuments = () => {
                           </DropdownMenu.Portal>
                         </DropdownMenu.Root>
                       </td>
-                      <td className="px-3 py-2">
-                        <div className="flex justify-center items-center gap-2">
-                          <button
-                            onClick={() => handleEdit(item.id)}
-                            className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Edit"
-                          >
-                            <Edit size={16} />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(item.id)}
-                            className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Delete"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </td>
+
                       <td className="px-3 py-2 font-bold text-gray-700 text-xs text-center">
                         {item.sn}
+                      </td>
+                      <td className="px-3 py-2 font-medium text-gray-900 text-center">
+                        {item.pName || "-"}
                       </td>
                       <td className="px-3 py-2 text-gray-900">
                         <div className="flex items-center justify-center gap-2">
                           {item.documentName}
                         </div>
                       </td>
+                      <td className="px-3 py-2 font-medium text-gray-900 text-center">
+                        {item.companyName || "-"}
+                      </td>
                       <td className="px-3 py-2 text-gray-600 text-center">
                         {item.documentType}
-                      </td>
-                      <td className="px-3 py-2 text-gray-600 text-center">
-                        <span className="px-2 py-1 bg-red-50 text-red-700 rounded text-xs font-medium">
-                          {item.category}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2 font-medium text-gray-900 text-center">
-                        {item.pName || "-"}
-                      </td>
-                      <td className="px-3 py-2 text-center">
-                        {item.needsRenewal ? (
-                          <span className="inline-flex items-center justify-center px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-100 rounded text-xs font-medium">
-                            Yes
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center justify-center px-2.5 py-1 bg-gray-50 text-gray-500 border border-gray-100 rounded text-xs font-medium">
-                            No
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-3 py-2 text-gray-500 font-mono text-xs text-center">
-                        {formatDate(item.renewalDate)}
-                      </td>
-                      <td className="px-3 py-2">
-                        {item.file ? (
-                          <div
-                            onClick={() => handleDownload(item.fileContent)}
-                            className="flex items-center justify-center gap-2 text-red-600 text-xs cursor-pointer hover:underline"
-                          >
-                            <Download size={14} />
-                            <span className="truncate max-w-[100px]">View</span>
-                          </div>
-                        ) : (
-                          <span className="text-gray-400 text-xs">-</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-2 text-gray-700 text-center">
-                        {item.autoDebited || "-"}
-                      </td>
-                      <td className="px-3 py-2 text-gray-700 font-mono text-xs text-center">
-                        {formatDate(item.dueDate) || "-"}
-                      </td>
-                      <td className="px-3 py-2 text-gray-700 font-mono text-xs text-center">
-                        {formatDate(item.dateOfProposal) || "-"}
                       </td>
                       <td className="px-3 py-2 text-gray-700 text-center">
                         {item.sumAssured || "-"}
@@ -858,6 +954,64 @@ const AllDocuments = () => {
                       </td>
                       <td className="px-3 py-2 text-gray-700 text-center max-w-[150px] truncate" title={item.docRemarks}>
                         {item.docRemarks || "-"}
+                      </td>
+
+                      <td className="px-3 py-2 text-gray-600 text-center">
+                        <span className="px-2 py-1 bg-red-50 text-red-700 rounded text-xs font-medium">
+                          {item.category}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        {item.needsRenewal ? (
+                          <span className="inline-flex items-center justify-center px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-100 rounded text-xs font-medium">
+                            Yes
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center justify-center px-2.5 py-1 bg-gray-50 text-gray-500 border border-gray-100 rounded text-xs font-medium">
+                            No
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-gray-500 font-mono text-xs text-center">
+                        {formatDate(item.renewalDate)}
+                      </td>
+
+                      <td className="px-3 py-2 text-gray-700 text-center">
+                        {item.concernPersonName || "-"}
+                      </td>
+                      <td className="px-3 py-2 text-gray-700 text-center">
+                        {item.autoDebited || "-"}
+                      </td>
+                      <td className="px-3 py-2">
+                        {item.file ? (
+                          <div
+                            onClick={() => handleDownload(item.fileContent)}
+                            className="flex items-center justify-center gap-2 text-red-600 text-xs cursor-pointer hover:underline"
+                          >
+                            <Download size={14} />
+                            <span className="truncate max-w-[100px]">View</span>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-xs">-</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2">
+                        <div className="flex justify-center items-center gap-2">
+                          <button
+                            onClick={() => handleEdit(item.id)}
+                            className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Edit"
+                          >
+                            <Edit size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(item.id)}
+                            className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
