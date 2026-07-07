@@ -152,7 +152,8 @@ export default function ProfilePage() {
 
             </div>
 
-            <div className="grid md:grid-cols-2 gap-6 mt-6">
+            {user.role && user.role.toLowerCase().includes('admin') && (
+              <div className="grid md:grid-cols-2 gap-6 mt-6">
               {/* Assign Task */}
               <div 
                 onClick={() => navigate('/dashboard/assign-task')}
@@ -208,7 +209,8 @@ export default function ProfilePage() {
                   <p className="font-medium text-gray-900 capitalize">Delegation Task</p>
                 </div>
               </div>
-            </div>
+              </div>
+            )}
 
           </div>
         </div>

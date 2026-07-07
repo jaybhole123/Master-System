@@ -19,6 +19,7 @@ export default function TaskManagementTabs({ activeTab, setActiveTab }) {
 
     const tabs = allTabs.filter(tab => {
         if (tab.id === "maintenance" || tab.id === "repair") return false;
+        if (tab.id === 'ea' && !role.includes('admin')) return false;
         if (role === "hod") {
             if (tab.id === "checklist") return true;
             if (tab.id === "repair" && isMachineOperator) return true;
@@ -72,22 +73,26 @@ export default function TaskManagementTabs({ activeTab, setActiveTab }) {
                             )
                         })}
                         {/* Assign Task Button */}
-                        <button
-                            onClick={() => navigate('/dashboard/assign-task')}
-                            className="relative flex items-center justify-center gap-2.5 py-2 px-6 rounded-lg text-xs font-bold transition-all duration-500 whitespace-nowrap min-w-[100px] md:min-w-[120px] z-10 text-gray-500 hover:text-purple-600 hover:bg-purple-50/50"
-                        >
-                            <PlusCircle size={20} className="text-purple-600 transition-colors duration-300" />
-                            <span className="relative">Assign Task</span>
-                        </button>
+                        {role.includes('admin') && (
+                            <button
+                                onClick={() => navigate('/dashboard/assign-task')}
+                                className="relative flex items-center justify-center gap-2.5 py-2 px-6 rounded-lg text-xs font-bold transition-all duration-500 whitespace-nowrap min-w-[100px] md:min-w-[120px] z-10 text-gray-500 hover:text-purple-600 hover:bg-purple-50/50"
+                            >
+                                <PlusCircle size={20} className="text-purple-600 transition-colors duration-300" />
+                                <span className="relative">Assign Task</span>
+                            </button>
+                        )}
                         
                         {/* Admin Approval Button */}
-                        <button
-                            onClick={() => navigate('/dashboard/admin-approval')}
-                            className="relative flex items-center justify-center gap-2.5 py-2 px-6 rounded-lg text-xs font-bold transition-all duration-500 whitespace-nowrap min-w-[100px] md:min-w-[120px] z-10 text-gray-500 hover:text-amber-600 hover:bg-amber-50/50"
-                        >
-                            <ShieldCheck size={20} className="text-amber-600 transition-colors duration-300" />
-                            <span className="relative">Admin Approval</span>
-                        </button>
+                        {role.includes('admin') && (
+                            <button
+                                onClick={() => navigate('/dashboard/admin-approval')}
+                                className="relative flex items-center justify-center gap-2.5 py-2 px-6 rounded-lg text-xs font-bold transition-all duration-500 whitespace-nowrap min-w-[100px] md:min-w-[120px] z-10 text-gray-500 hover:text-amber-600 hover:bg-amber-50/50"
+                            >
+                                <ShieldCheck size={20} className="text-amber-600 transition-colors duration-300" />
+                                <span className="relative">Admin Approval</span>
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>
