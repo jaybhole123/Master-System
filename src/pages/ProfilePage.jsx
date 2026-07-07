@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import AdminLayout from "../components/layout/AdminLayout";
-import { UserCircle, Mail, Briefcase, Shield, Phone, Camera } from "lucide-react";
+import { UserCircle, Mail, Briefcase, Shield, Phone, Camera, CheckSquare, BookmarkCheck, CalendarCheck, ClipboardList } from "lucide-react";
 import supabase from "../SupabaseClient";
 
 export default function ProfilePage() {
+  const navigate = useNavigate();
   const [user, setUser] = useState({
     username: localStorage.getItem("user-name") || "N/A",
     email: localStorage.getItem("email_id") || "N/A",
@@ -149,6 +151,65 @@ export default function ProfilePage() {
               </div>
 
             </div>
+
+            <div className="grid md:grid-cols-2 gap-6 mt-6">
+              {/* Assign Task */}
+              <div 
+                onClick={() => navigate('/dashboard/assign-task')}
+                className="flex items-center gap-4 p-4 rounded-2xl bg-gray-50 border border-gray-100 hover:bg-gray-100 cursor-pointer transition-colors"
+              >
+                <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center text-red-600">
+                  <CheckSquare className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Module</p>
+                  <p className="font-medium text-gray-900 capitalize">Assign Task</p>
+                </div>
+              </div>
+
+              {/* Admin Approval */}
+              <div 
+                onClick={() => navigate('/dashboard/admin-approval')}
+                className="flex items-center gap-4 p-4 rounded-2xl bg-gray-50 border border-gray-100 hover:bg-gray-100 cursor-pointer transition-colors"
+              >
+                <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center text-red-600">
+                  <BookmarkCheck className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Module</p>
+                  <p className="font-medium text-gray-900 capitalize">Admin Approval</p>
+                </div>
+              </div>
+
+              {/* Checklist Task */}
+              <div 
+                onClick={() => navigate('/dashboard/task')}
+                className="flex items-center gap-4 p-4 rounded-2xl bg-gray-50 border border-gray-100 hover:bg-gray-100 cursor-pointer transition-colors"
+              >
+                <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center text-red-600">
+                  <CalendarCheck className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Module</p>
+                  <p className="font-medium text-gray-900 capitalize">Checklist Task</p>
+                </div>
+              </div>
+
+              {/* Delegation Task */}
+              <div 
+                onClick={() => navigate('/dashboard/delegation')}
+                className="flex items-center gap-4 p-4 rounded-2xl bg-gray-50 border border-gray-100 hover:bg-gray-100 cursor-pointer transition-colors"
+              >
+                <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center text-red-600">
+                  <ClipboardList className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Module</p>
+                  <p className="font-medium text-gray-900 capitalize">Delegation Task</p>
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
