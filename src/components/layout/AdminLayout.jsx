@@ -665,10 +665,10 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                     {location.pathname.includes(moduleRoutes[0].href) && (
                       <div className="absolute left-0 top-1/2 -translate-y-1/2 h-2/3 w-1.5 bg-red-600 rounded-r-full"></div>
                     )}
-                    <div className="flex items-center gap-3 overflow-hidden">
+                    <div className="flex items-center gap-3">
                       {moduleName === "Profile" && <UserRound className="h-5 w-5 shrink-0" />}
                       {moduleName === "Global Settings" && <Settings2 className="h-5 w-5 shrink-0" />}
-                      <span className="text-left leading-tight truncate">{moduleName}</span>
+                      <span className="text-left leading-tight">{moduleName}</span>
                     </div>
                   </Link>
                 ) : (
@@ -679,10 +679,10 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                     {openModules[moduleName] && (
                       <div className="absolute left-0 top-1/2 -translate-y-1/2 h-2/3 w-1.5 bg-red-600 rounded-r-full"></div>
                     )}
-                    <div className="flex items-center gap-3 overflow-hidden">
+                    <div className="flex items-center gap-3">
                       {moduleName === "Checklist & Delegation" && <ClipboardList className="h-5 w-5 shrink-0" />}
                       {moduleName === "Document & Substruction" && <Database className="h-5 w-5 shrink-0" />}
-                      <span className="text-left leading-tight truncate">{moduleName}</span>
+                      <span className="text-left leading-tight">{moduleName}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       {!openModules[moduleName] && (() => {
@@ -793,93 +793,65 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
             ))}
           </ul>
         </nav>
-      <div className="border-t border-slate-200 p-3 bg-white">
-        <div className="flex flex-col">
+      <div className="border-t border-slate-200 p-4 bg-white">
+        <div className="flex flex-col gap-3">
           {/* User info section */}
           <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200 shrink-0">
-                  {profileImage ? (
-                    <img src={profileImage} alt={username} className="h-full w-full object-cover" />
-                  ) : (
-                    <span className="text-sm font-bold text-slate-600">
-                      {username ? username.charAt(0).toUpperCase() : "U"}
-                    </span>
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-slate-800 truncate leading-tight mb-0.5">
-                    {username || "User"}{" "}
-                    {userRole.toLowerCase() === "admin"
-                      ? isSuperAdmin
-                        ? "(Super Admin)"
-                        : "(Admin)"
-                      : userRole.toLowerCase() === "hod"
-                        ? "(HOD)"
-                        : ""}
-                  </p>
-                  <p className="text-[11px] text-slate-500 truncate leading-tight">
-                    {userEmail || "user@example.com"}
-                  </p>
-                </div>
-              </div>
-
-              {/* Dark mode toggle (if available) */}
-              {toggleDarkMode && (
-                <button
-                  onClick={toggleDarkMode}
-                  className="text-blue-700 hover:text-blue-900 p-1 rounded-full hover:bg-blue-100"
-                >
-                  {darkMode ? (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
-                      />
-                    </svg>
-                  ) : (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
-                      />
-                    </svg>
-                  )}
-                  <span className="sr-only">
-                    {darkMode ? "Light mode" : "Dark mode"}
+            <div className="flex items-center gap-3 w-full">
+              <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200 shrink-0">
+                {profileImage ? (
+                  <img src={profileImage} alt={username} className="h-full w-full object-cover" />
+                ) : (
+                  <span className="text-sm font-bold text-slate-600">
+                    {username ? username.charAt(0).toUpperCase() : "U"}
                   </span>
-                </button>
-              )}
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] font-bold text-slate-800 truncate leading-tight mb-0.5">
+                  {username || "User"}
+                </p>
+                <p className="text-[11px] font-medium text-slate-500 truncate leading-tight">
+                  {userRole.toLowerCase() === "admin"
+                    ? isSuperAdmin
+                      ? "Super Admin"
+                      : "Admin"
+                    : userRole.toLowerCase() === "hod"
+                      ? "HOD"
+                      : userEmail || "user@example.com"}
+                </p>
+              </div>
             </div>
 
-          {/* Logout button positioned below user info */}
-          <div className="mt-2 flex justify-center">
-            <button
-              onClick={handleLogout}
-              className="flex items-center justify-center gap-2 w-full text-slate-600 hover:text-red-600 px-2 py-1.5 rounded-lg hover:bg-red-50 text-sm font-medium transition-colors border border-transparent hover:border-red-100"
-            >
-                <LogOut className="h-4 w-4" />
-                <span>Logout</span>
+            {/* Dark mode toggle (if available) */}
+            {toggleDarkMode && (
+              <button
+                onClick={toggleDarkMode}
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-full hover:bg-slate-100 shrink-0"
+              >
+                {darkMode ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                  </svg>
+                )}
               </button>
-            </div>
+            )}
           </div>
+
+          {/* Logout button */}
+          <button
+            onClick={handleLogout}
+            className="flex items-center justify-center gap-2 w-full bg-slate-50 hover:bg-red-50 text-slate-600 hover:text-red-600 border border-slate-200 hover:border-red-200 px-3 py-2 rounded-xl text-sm font-semibold transition-all"
+          >
+            <LogOut className="h-4 w-4" />
+            <span>Logout</span>
+          </button>
         </div>
+      </div>
       </aside>
 
       {/* Mobile menu button and sidebar - similar structure as desktop but with mobile classes */}

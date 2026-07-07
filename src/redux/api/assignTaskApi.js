@@ -53,8 +53,8 @@ export const fetchUniqueDoerNameDataApi = async (department) => {
       .order("user_name", { ascending: true });
 
     if (department) {
-      // Fetch users where user_access matches/contains the department, or is 'all'/'All'
-      query = query.or(`user_access.ilike.%${department}%,user_access.ilike.%all%`);
+      // Fetch users where department or user_access matches/contains the department, or is 'all'/'All'
+      query = query.or(`department.ilike.%${department}%,user_access.ilike.%${department}%,user_access.ilike.%all%`);
     }
 
     const { data, error } = await query;

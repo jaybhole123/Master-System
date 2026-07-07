@@ -20,10 +20,21 @@ export default function AssignTask() {
   const allModules = [
     {
       id: "checklist",
-      label: "Checklist & Delegation Operations",
+      label: "Checklist Operations",
       subLabel: "Daily Routine Tasks",
       icon: ClipboardList,
-      path: "/dashboard/checklist",
+      path: "/dashboard/checklist?type=checklist",
+      color: "text-red-600",
+      bg: "bg-red-50",
+      border: "hover:border-red-500",
+      ring: "hover:ring-red-200"
+    },
+    {
+      id: "delegation",
+      label: "Delegation Task",
+      subLabel: "One-Time Assignment",
+      icon: ClipboardList,
+      path: "/dashboard/checklist?type=delegation",
       color: "text-red-600",
       bg: "bg-red-50",
       border: "hover:border-red-500",
@@ -67,7 +78,7 @@ export default function AssignTask() {
   const modules = allModules.filter(mod => {
     if (mod.id === "maintenance" || mod.id === "repair") return false;
     if (role === "hod") {
-      if (mod.id === "checklist") return true;
+      if (mod.id === "checklist" || mod.id === "delegation") return true;
       if (mod.id === "repair" && isMachineOperator) return true;
       return false;
     }

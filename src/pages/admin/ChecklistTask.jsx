@@ -25,7 +25,7 @@ const formatDateISO = (date) => {
 };
 
 const FREQUENCY_OPTIONS = [
-    "One Time (No Recurrence)", "Alternate Day", "Daily", "Weekly",
+    "Alternate Day", "Daily", "Weekly",
     "Fortnight", "Monthly", "Quarterly", "Half Yearly", "Yearly",
     "End of 1st week", "End of 2nd week", "End of 3rd week", "End of 4rth week"
 ];
@@ -36,7 +36,7 @@ const defaultTask = () => ({
     givenBy: "",
     doer: "",
     description: "",
-    frequency: "One Time (No Recurrence)",
+    frequency: "Daily",
     duration: "",
     enableReminders: true,
     requireAttachment: false,
@@ -385,7 +385,7 @@ function TaskCard({ task, index, total, department, doerName, givenBy, dispatch,
                             disabled={task.frequencyLocked}
                             className={`w-full px-3 py-2.5 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-red-500 outline-none transition-all text-xs ${task.frequencyLocked ? 'opacity-70 cursor-not-allowed' : ''}`}
                         >
-                            {FREQUENCY_OPTIONS.map((opt, i) => <option key={i} value={opt}>{opt}</option>)}
+                            {(task.frequencyLocked ? ["One Time (No Recurrence)"] : FREQUENCY_OPTIONS).map((opt, i) => <option key={i} value={opt}>{opt}</option>)}
                         </select>
                     </div>
 
@@ -484,33 +484,36 @@ export default function ChecklistTask() {
         const dateParam = params.get('date');
         const typeParam = params.get('type');
 
-        if (dateParam) {
-            // Use T00:00:00 to ensure date is parsed as local time correctly
-            const parsedDate = new Date(dateParam + 'T00:00:00');
-            setTasks(prev => {
-                const newTasks = [...prev];
-                if (newTasks.length > 0) {
-                    newTasks[0] = {
-                        ...newTasks[0],
-                        date: isNaN(parsedDate.getTime()) ? null : parsedDate,
-                        frequency: typeParam === 'delegation' ? "One Time (No Recurrence)" : newTasks[0].frequency,
-                        dateLocked: true,
-                        frequencyLocked: typeParam === 'delegation' // Lock frequency only for delegation (one-time)
-                    };
+        setTasks(prev => {
+            const newTasks = [...prev];
+            if (newTasks.length > 0) {
+                if (dateParam) {
+                    const parsedDate = new Date(dateParam + 'T00:00:00');
+                    newTasks[0].date = isNaN(parsedDate.getTime()) ? null : parsedDate;
+                    newTasks[0].dateLocked = true;
                 }
-                return newTasks;
-            });
-        }
+                
+                if (typeParam === 'delegation') {
+                    newTasks[0].frequency = "One Time (No Recurrence)";
+                    newTasks[0].frequencyLocked = true;
+                }
+            }
+            return newTasks;
+        });
     }, [dispatch]);
 
     const updateTask = (id, updates) => setTasks(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
     const addTask = () => setTasks(prev => {
         const lastTask = prev[prev.length - 1];
+        const params = new URLSearchParams(window.location.search);
+        const typeParam = params.get('type');
         return [...prev, {
             ...defaultTask(),
             department: lastTask?.department || "",
             givenBy: (localStorage.getItem("role")?.toUpperCase() === "HOD" || (localStorage.getItem("role")?.toLowerCase() === "admin" && localStorage.getItem("user-name")?.toLowerCase() !== "admin")) ? localStorage.getItem("user-name") : (lastTask?.givenBy || ""),
-            doer: lastTask?.doer || ""
+            doer: lastTask?.doer || "",
+            frequency: typeParam === 'delegation' ? "One Time (No Recurrence)" : "Daily",
+            frequencyLocked: typeParam === 'delegation'
         }];
     });
     const removeTask = (id) => setTasks(prev => prev.filter(t => t.id !== id));
@@ -969,8 +972,12 @@ export default function ChecklistTask() {
                             <ClipboardList size={20} />
                         </div>
                         <div>
-                            <h1 className="text-xl font-black text-gray-900">Checklist Task Assignment</h1>
-                            <p className="text-sm text-gray-500 mt-0.5">Assign one or multiple checklist tasks at once</p>
+                            <h1 className="text-xl font-black text-gray-900">
+                                {new URLSearchParams(window.location.search).get('type') === 'delegation' ? 'Delegation Task Assignment' : 'Checklist Task Assignment'}
+                            </h1>
+                            <p className="text-sm text-gray-500 mt-0.5">
+                                {new URLSearchParams(window.location.search).get('type') === 'delegation' ? 'Assign one or multiple one-time delegation tasks' : 'Assign one or multiple checklist tasks at once'}
+                            </p>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">

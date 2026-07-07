@@ -14,7 +14,11 @@ const WHATSAPP_ACCESS_TOKEN = import.meta.env.VITE_WHATSAPP_ACCESS_TOKEN;
 const WHATSAPP_WABA_ID = import.meta.env.VITE_WHATSAPP_WABA_ID;
 
 // Toggle to enable/disable WhatsApp service
-const ENABLE_WHATSAPP = false; // Set to true to enable WhatsApp notifications
+const ENABLE_WHATSAPP = true; // Set to true to enable WhatsApp notifications
+
+if (ENABLE_WHATSAPP) {
+    console.log(`✅ WhatsApp Service Enabled for WABA ID: ${WHATSAPP_WABA_ID}`);
+}
 
 const APP_LINK = "https://master-system-weld.vercel.app";
 
@@ -83,7 +87,7 @@ const triggerWhatsAppToast = () => {
 };
 
 /**
- * Send WhatsApp message using Maytapi API
+ * Send WhatsApp message using Meta API
  * @param {string} phoneNumber - Recipient phone number
  * @param {string} message - Message text
  * @returns {Promise<boolean>} - Success status
@@ -93,8 +97,43 @@ const sendWhatsAppMessage = async (phoneNumber, message) => {
         console.log(`📱 [WhatsApp Disabled] To: +${phoneNumber}, Message: ${message}`);
         return true;
     }
-    triggerWhatsAppToast();
-    return true;
+
+    try {
+        const formattedPhone = formatPhoneNumber(phoneNumber);
+        if (!formattedPhone) return false;
+
+        const payload = {
+            messaging_product: "whatsapp",
+            to: formattedPhone,
+            type: "text",
+            text: {
+                preview_url: false,
+                body: message
+            }
+        };
+
+        const response = await fetch(`${WHATSAPP_API_URL}/${WHATSAPP_PHONE_NUMBER_ID}/messages`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${WHATSAPP_ACCESS_TOKEN}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            console.error('WhatsApp API Error:', data);
+            return false;
+        }
+
+        triggerWhatsAppToast();
+        return true;
+    } catch (error) {
+        console.error('Error sending WhatsApp message:', error);
+        return false;
+    }
 };
 
 /**
@@ -110,12 +149,58 @@ const sendWhatsAppTemplate = async (phoneNumber, templateName, parameters = [], 
         console.log(`📱 [WhatsApp Disabled] Template: ${templateName}, To: +${phoneNumber}, Params:`, parameters);
         return true;
     }
-    triggerWhatsAppToast();
-    return true;
+
+    try {
+        const formattedPhone = formatPhoneNumber(phoneNumber);
+        if (!formattedPhone) return false;
+
+        const payload = {
+            messaging_product: "whatsapp",
+            to: formattedPhone,
+            type: "template",
+            template: {
+                name: templateName,
+                language: {
+                    code: languageCode
+                },
+                components: parameters.length > 0 ? [
+                    {
+                        type: "body",
+                        parameters: parameters.map(param => ({
+                            type: "text",
+                            text: String(param)
+                        }))
+                    }
+                ] : []
+            }
+        };
+
+        const response = await fetch(`${WHATSAPP_API_URL}/${WHATSAPP_PHONE_NUMBER_ID}/messages`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${WHATSAPP_ACCESS_TOKEN}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+        
+        if (!response.ok) {
+            console.error('WhatsApp API Error:', data);
+            return false;
+        }
+
+        triggerWhatsAppToast();
+        return true;
+    } catch (error) {
+        console.error('Error sending WhatsApp template:', error);
+        return false;
+    }
 };
 
 /**
- * Send WhatsApp voice message (PTT/Audio) using Maytapi API
+ * Send WhatsApp voice message (PTT/Audio) using Meta API
  * @param {string} phoneNumber - Recipient phone number
  * @param {string} audioUrl - Public URL of the audio file
  * @returns {Promise<boolean>} - Success status
@@ -125,7 +210,40 @@ const sendWhatsAppVoiceMessage = async (phoneNumber, audioUrl) => {
         console.log(`🎤 [WhatsApp Disabled] Voice Message to +${phoneNumber}, Audio URL: ${audioUrl}`);
         return true;
     }
-    return true;
+
+    try {
+        const formattedPhone = formatPhoneNumber(phoneNumber);
+        if (!formattedPhone) return false;
+
+        const payload = {
+            messaging_product: "whatsapp",
+            to: formattedPhone,
+            type: "audio",
+            audio: {
+                link: audioUrl
+            }
+        };
+
+        const response = await fetch(`${WHATSAPP_API_URL}/${WHATSAPP_PHONE_NUMBER_ID}/messages`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${WHATSAPP_ACCESS_TOKEN}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            console.error('WhatsApp API Error:', data);
+            return false;
+        }
+        return true;
+    } catch (error) {
+        console.error('Error sending WhatsApp voice message:', error);
+        return false;
+    }
 };
 
 
@@ -178,7 +296,7 @@ export const sendUrgentTaskNotification = async (taskDetails) => {
  */
 export const sendChecklistTaskNotification = async (taskDetails) => {
     try {
-        const { doerName, taskId, description, startDate, givenBy, department, duration } = taskDetails;
+        const { doerName, taskId, description, startDate, givenBy, department, duration, frequency } = taskDetails;
         const phoneNumber = await getUserPhoneNumber(doerName);
         if (!phoneNumber) return false;
 
@@ -187,12 +305,13 @@ export const sendChecklistTaskNotification = async (taskDetails) => {
         const audioUrl = taskDetails.audioUrl || (match ? match[0] : null);
         const displayDescription = (audioUrl && description?.trim() === audioUrl) ? `🎤 Voice Note: ${audioUrl}` : description;
 
-        // Template: checklist_task_notification
-        // Variables: {{1}} doerName, {{2}} taskId, {{3}} department, {{4}} description, {{5}} startDate, {{6}} duration, {{7}} givenBy, {{8}} link
+        // Template: new_checklist_task_assign
+        // Variables: {{1}} doerName, {{2}} givenBy, {{3}} department, {{4}} description, {{5}} startDate, {{6}} frequency
         const sent = await sendWhatsAppTemplate(
             phoneNumber,
-            'checklist_task_notification',
-            [doerName, taskId, department || 'N/A', displayDescription, startDate, duration || 'N/A', givenBy, APP_LINK]
+            'new_checklist_task_assign',
+            [doerName, givenBy, department || 'N/A', displayDescription, startDate, frequency || duration || 'N/A'],
+            'en'
         );
 
         if (sent && audioUrl) {
@@ -310,7 +429,7 @@ export const sendEATaskNotification = async (taskDetails) => {
  */
 export const sendDelegationTaskNotification = async (taskDetails) => {
     try {
-        const { doerName, taskId, description, startDate, givenBy, department, duration } = taskDetails;
+        const { doerName, taskId, description, startDate, givenBy, department, duration, dueDate } = taskDetails;
         const phoneNumber = await getUserPhoneNumber(doerName);
         if (!phoneNumber) return false;
 
@@ -319,13 +438,13 @@ export const sendDelegationTaskNotification = async (taskDetails) => {
         const audioUrl = taskDetails.audioUrl || (match ? match[0] : null);
         const displayDescription = (audioUrl && description?.trim() === audioUrl) ? `🎤 Voice Note: ${audioUrl}` : description;
 
-        // Template: new_task_notification
-        // Variables: {{1}} doerName, {{2}} taskId, {{3}} department, {{4}} description, {{5}} startDate, {{6}} givenBy, {{7}} link
+        // Template: new_delegation_task_assign
+        // Variables: {{1}} doerName, {{2}} taskId, {{3}} givenBy, {{4}} description, {{5}} startDate, {{6}} dueDate
         const sent = await sendWhatsAppTemplate(
             phoneNumber,
-            'new_task_notification',
-            [doerName, taskId, department || 'N/A', displayDescription, startDate, givenBy, APP_LINK],
-            'en_US' // User specified en_US for this template
+            'new_delegation_task_assign',
+            [doerName, taskId, givenBy, displayDescription, startDate, dueDate || 'N/A'],
+            'en' 
         );
 
         if (sent && audioUrl) {
@@ -637,12 +756,13 @@ export const sendDailyTaskSummaryNotification = async (summaryDetails) => {
         const phoneNumber = await getUserPhoneNumber(doerName);
         if (!phoneNumber) return false;
 
-        // Template: daily_task_notification
-        // Variables: {{1}} doerName, {{2}} totalTasks, {{3}} pendingTasks, {{4}} todayTasks, {{5}} link
+        // Template: daily_summary
+        // Variables: {{1}} doerName, {{2}} totalTasks, {{3}} todayTasks, {{4}} pendingTasks
         return await sendWhatsAppTemplate(
             phoneNumber,
-            'daily_task_notification',
-            [doerName, totalTasks, pendingTasks, todayTasks, APP_LINK]
+            'daily_summary',
+            [doerName, totalTasks, todayTasks, pendingTasks],
+            'en'
         );
     } catch (error) {
         console.error('Error sending daily task summary:', error);
