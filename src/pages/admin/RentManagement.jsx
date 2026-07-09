@@ -3,6 +3,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import AdminLayout from '../../components/layout/AdminLayout';
+import supabase from '../../SupabaseClient';
 import { 
   Search, 
   Plus, 
@@ -43,24 +44,33 @@ const RentManagement = () => {
     document: null
   });
   
-  // Initialize data from local storage
-  const [rentData, setRentData] = useState(() => {
-    const savedData = localStorage.getItem('rentData');
-    if (savedData) {
-      try {
-        return JSON.parse(savedData);
-      } catch (e) {
-        console.error("Error parsing rent data from local storage", e);
-        return [];
-      }
-    }
-    return [];
-  });
+  // Initialize data from Supabase
+  const [rentData, setRentData] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Save data to local storage whenever it changes
+  const fetchRecords = async () => {
+    setIsLoading(true);
+    const { data, error } = await supabase
+      .from('rent_records')
+      .select('*')
+      .order('created_at', { ascending: false });
+      
+    if (error) {
+      console.error('Error fetching records:', error);
+    } else {
+      // Map document_url to document for UI compatibility
+      const formattedData = (data || []).map(record => ({
+        ...record,
+        document: record.document_url
+      }));
+      setRentData(formattedData);
+    }
+    setIsLoading(false);
+  };
+
   useEffect(() => {
-    localStorage.setItem('rentData', JSON.stringify(rentData));
-  }, [rentData]);
+    fetchRecords();
+  }, []);
 
   const filteredData = rentData.filter(item => 
     (selectedMonth === 'ALL' || item.month === selectedMonth) && 
@@ -69,19 +79,42 @@ const RentManagement = () => {
     (activeTab === 'HISTORY' ? item.status === 'Done' : item.status !== 'Done')
   );
 
-  const handleSaveRecord = (e) => {
+  const handleSaveRecord = async (e) => {
     e.preventDefault();
+    
+    const payload = {
+      place: formData.place,
+      name: formData.name,
+      phone: formData.phone,
+      date: formData.date,
+      method: formData.method,
+      month: formData.month,
+      document_url: formData.document
+    };
+
     if (editingId) {
-      setRentData(rentData.map(record => 
-        record.id === editingId ? { ...formData, id: editingId } : record
-      ));
+      const { error } = await supabase
+        .from('rent_records')
+        .update(payload)
+        .eq('id', editingId);
+        
+      if (!error) {
+        fetchRecords();
+      } else {
+        console.error("Error updating record:", error);
+      }
     } else {
-      const newRecord = {
-        id: Date.now(),
-        ...formData
-      };
-      setRentData([newRecord, ...rentData]);
+      const { error } = await supabase
+        .from('rent_records')
+        .insert([payload]);
+        
+      if (!error) {
+        fetchRecords();
+      } else {
+        console.error("Error saving record:", error);
+      }
     }
+    
     setIsModalOpen(false);
     setEditingId(null);
     setFormData({ place: '', name: '', phone: '', date: '', method: 'CASH', month: selectedMonth === 'ALL' ? currentMonth : selectedMonth, document: null });
@@ -114,16 +147,24 @@ const RentManagement = () => {
     setIsModalOpen(true);
   };
 
-  const handleDeleteRecord = (id) => {
+  const handleDeleteRecord = async (id) => {
     if (window.confirm("Are you sure you want to delete this record?")) {
-      setRentData(rentData.filter(record => record.id !== id));
+      const { error } = await supabase.from('rent_records').delete().eq('id', id);
+      if (!error) {
+        fetchRecords();
+      } else {
+        console.error("Error deleting record:", error);
+      }
     }
   };
 
-  const handleMarkAsDone = (id) => {
-    setRentData(rentData.map(record => 
-      record.id === id ? { ...record, status: 'Done' } : record
-    ));
+  const handleMarkAsDone = async (id) => {
+    const { error } = await supabase.from('rent_records').update({ status: 'Done' }).eq('id', id);
+    if (!error) {
+      fetchRecords();
+    } else {
+      console.error("Error updating status:", error);
+    }
   };
 
   const exportToExcel = () => {
