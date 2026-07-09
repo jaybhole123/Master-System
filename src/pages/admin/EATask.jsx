@@ -753,7 +753,6 @@ export default function EATask() {
 
             showToast(`${tasksToInsert.length} EA Task(s) assigned successfully!`, 'success');
             setTasks([defaultTask()]);
-            fetchUniqueDoers();
             setTimeout(() => navigate("/dashboard/assign-task"), 2000);
         } catch (err) {
             console.error("Error creating EA tasks:", err);
