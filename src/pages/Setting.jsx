@@ -889,18 +889,26 @@ const Setting = () => {
       role: user.role || 'user',
       status: user.status || 'active',
       Designation: user.Designation || '',
-      profile_image: user.profile_image || '',
+      profile_image: '',
       leave_date: user.leave_date ? user.leave_date.split('T')[0] : '',
       leave_end_date: user.leave_end_date ? user.leave_end_date.split('T')[0] : '',
       remark: user.remark || '',
       reported_by: user.reported_by || '',
       can_self_assign: user.can_self_assign || false
     });
-    setProfilePreview(user.profile_image || null);
+    setProfilePreview(null);
     setProfileFile(null);
     setCurrentUserId(userId);
     setIsEditing(true);
     setShowUserModal(true);
+
+    // Fetch profile_image asynchronously
+    supabase.from('users').select('profile_image').eq('id', userId).single().then(({ data }) => {
+        if (data && data.profile_image) {
+            setUserForm(prev => ({ ...prev, profile_image: data.profile_image }));
+            setProfilePreview(data.profile_image);
+        }
+    });
   };
 
   const handleEditDepartment = (deptId) => {

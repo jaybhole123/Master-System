@@ -91,6 +91,11 @@ const AllTasks = () => {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
+  // Forward Modal State
+  const [forwardModalOpen, setForwardModalOpen] = useState(false);
+  const [forwardTaskObj, setForwardTaskObj] = useState(null);
+  const [newDoer, setNewDoer] = useState("");
+
   // Infinite Scroll Tracking
   const [visibleCount, setVisibleCount] = useState(50);
   const loadingRef = useRef(null);
@@ -411,6 +416,10 @@ const AllTasks = () => {
       const currentUserRole = (userRole || "").toLowerCase();
       const isSuperAdmin = currentUsername.toLowerCase() === "admin";
       const isAdminRole = currentUserRole === "admin";
+
+      if (!showHistory && (isSuperAdmin || isAdminRole)) {
+        headers.push({ id: "action_forward", label: "Action" });
+      }
       
       if (!isSuperAdmin && !isAdminRole) {
         let reportingUsers = [currentUsername];
@@ -1480,6 +1489,19 @@ const AllTasks = () => {
                                           {getTimeStatus(task[statusDateColumn], task.status)}
                                         </span>
                                       )
+                                      : header.id === "action_forward"
+                                        ? (
+                                          <button
+                                            onClick={() => {
+                                              setForwardTaskObj(task);
+                                              setNewDoer("");
+                                              setForwardModalOpen(true);
+                                            }}
+                                            className="px-3 py-1.5 bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 rounded-md text-xs font-bold transition-colors shadow-sm"
+                                          >
+                                            Forward
+                                          </button>
+                                        )
                                       : header.id === "task_start_date" || header.id === "created_at" || header.id === "planned_date" || header.id === "updated_at"
                                         ? (
                                           <div className="flex flex-col">
@@ -1986,6 +2008,77 @@ const AllTasks = () => {
             )}
           </div>
         </div>
+
+        {/* Forward Task Modal */}
+        {forwardModalOpen && forwardTaskObj && (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-fade-in border border-blue-100">
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-blue-100 flex justify-between items-center">
+                <h3 className="text-sm font-bold text-blue-800 uppercase">Forward Task #{forwardTaskObj.id || forwardTaskObj.task_id}</h3>
+                <button onClick={() => setForwardModalOpen(false)} className="text-blue-400 hover:text-blue-600"><X className="w-5 h-5" /></button>
+              </div>
+              <div className="p-6">
+                <div className="bg-blue-50 rounded border border-blue-200 p-3 mb-6 text-sm">
+                  <span className="block text-xs font-bold text-blue-500 uppercase mb-1">Task Details</span>
+                  <p className="text-gray-700 font-medium">{forwardTaskObj.task_description || forwardTaskObj.issue_description || "No description"}</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Select New Assignee <span className="text-red-500">*</span></label>
+                  <select 
+                    className="w-full p-2.5 text-sm border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all"
+                    value={newDoer}
+                    onChange={(e) => setNewDoer(e.target.value)}
+                  >
+                    <option value="">Select a user...</option>
+                    {allUsers.map((u, i) => (
+                      <option key={i} value={u}>{u}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="mt-6 flex justify-end gap-3">
+                  <button onClick={() => setForwardModalOpen(false)} className="px-4 py-2 text-sm font-bold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">Cancel</button>
+                  <button 
+                    onClick={async () => {
+                      if (!newDoer) return alert("Please select a new person to forward this task to.");
+                      setIsSubmitting(true);
+                      try {
+                        let nameField = "name";
+                        if (activeTab === "repair") nameField = "assigned_person";
+                        else if (activeTab === "ea") nameField = "doer_name";
+
+                        let pkField = "id";
+                        if (activeTab === "checklist" || activeTab === "ea" || activeTab === "delegation") {
+                          pkField = "task_id";
+                        }
+
+                        const { error } = await supabase
+                          .from(forwardTaskObj._table)
+                          .update({ [nameField]: newDoer })
+                          .eq(pkField, forwardTaskObj.id || forwardTaskObj.task_id);
+
+                        if (error) throw error;
+                        showToast("Task forwarded successfully!", "success");
+                        setForwardModalOpen(false);
+                        setForwardTaskObj(null);
+                        setNewDoer("");
+                        fetchData();
+                      } catch (err) {
+                        console.error(err);
+                        showToast("Error forwarding task: " + err.message, "error");
+                      } finally {
+                        setIsSubmitting(false);
+                      }
+                    }}
+                    disabled={isSubmitting || !newDoer}
+                    className="px-4 py-2 text-sm font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center gap-2 shadow-md shadow-blue-500/20"
+                  >
+                    {isSubmitting ? <><Loader2 className="w-4 h-4 animate-spin" /> Forwarding...</> : 'Forward Task'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Repair Update Modal */}
         {isModalOpen && selectedUpdateTask && (

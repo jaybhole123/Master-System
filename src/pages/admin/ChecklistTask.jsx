@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-    ClipboardList, Calendar, X, Mic, Square, Trash2, Plus, Save, Loader2, CheckCircle2, Clock, FileCheck, Play, Pause, ExternalLink, Upload
+    ClipboardList, Calendar, X, Mic, Square, Trash2, Plus, Save, Loader2, CheckCircle2, Clock, FileCheck, Play, Pause, ExternalLink, Upload, Type
 } from "lucide-react";
 import { ReactMediaRecorder } from "react-media-recorder";
 import BulkImportModal from "../../components/BulkImportModal";
@@ -67,8 +67,52 @@ const getYouTubeId = (url) => {
 };
 
 
-// Single Task Card
 function TaskCard({ task, index, total, department, doerName, givenBy, dispatch, onUpdate, onRemove }) {
+    const [isListening, setIsListening] = useState(false);
+    const recognitionRef = useRef(null);
+
+    const toggleSpeechToText = () => {
+        if (isListening) {
+            if (recognitionRef.current) {
+                recognitionRef.current.stop();
+            }
+            setIsListening(false);
+            return;
+        }
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            alert("Your browser does not support Speech Recognition. Please use Chrome, Edge, or Safari.");
+            return;
+        }
+
+        const recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        
+        // Use Indian English for better Hindi/English mixed accent recognition
+        recognition.lang = 'en-IN'; 
+
+        recognition.onstart = () => setIsListening(true);
+        
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            const currentDesc = task.description || "";
+            const newDesc = currentDesc + (currentDesc.endsWith(" ") || currentDesc === "" ? "" : " ") + transcript;
+            onUpdate(task.id, { description: newDesc });
+        };
+        
+        recognition.onerror = (e) => {
+            console.error("Speech recognition error:", e);
+            setIsListening(false);
+        };
+        
+        recognition.onend = () => setIsListening(false);
+        
+        recognitionRef.current = recognition;
+        recognition.start();
+    };
+
     const handleChange = (e) => {
         onUpdate(task.id, { [e.target.name]: e.target.value });
     };
@@ -292,11 +336,21 @@ function TaskCard({ task, index, total, department, doerName, givenBy, dispatch,
                                             onChange={handleChange}
                                             rows="3"
                                             placeholder="Enter task description..."
-                                            className="w-full p-3 pr-11 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none resize-none bg-gray-50 focus:bg-white transition-all text-sm"
+                                            className="w-full p-3 pr-20 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none resize-none bg-gray-50 focus:bg-white transition-all text-sm"
                                         />
-                                        <button type="button" onClick={startRecording} className="absolute bottom-2.5 right-2.5 p-1.5 bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition-all" title="Record Voice Note">
-                                            <Mic className="w-4 h-4" />
-                                        </button>
+                                        <div className="absolute bottom-2.5 right-2.5 flex items-center gap-1">
+                                            <button 
+                                                type="button" 
+                                                onClick={toggleSpeechToText} 
+                                                className={`p-1.5 rounded-full transition-all flex items-center justify-center ${isListening ? 'bg-red-500 text-white animate-pulse' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`} 
+                                                title={isListening ? "Listening... (Click to stop)" : "Speak to Type"}
+                                            >
+                                                <Type className="w-4 h-4" />
+                                            </button>
+                                            <button type="button" onClick={startRecording} className="p-1.5 bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition-all" title="Record Voice Note">
+                                                <Mic className="w-4 h-4" />
+                                            </button>
+                                        </div>
                                     </div>
                                 )}
                                 {status === 'recording' && (
@@ -376,7 +430,7 @@ function TaskCard({ task, index, total, department, doerName, givenBy, dispatch,
                                 />
                             </div>
                         )}
-                    </div>                    <div>
+                    </div>                    <div className="col-span-2">
                         <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Frequency</label>
                         <select
                             name="frequency"
@@ -387,27 +441,6 @@ function TaskCard({ task, index, total, department, doerName, givenBy, dispatch,
                         >
                             {(task.frequencyLocked ? ["One Time (No Recurrence)"] : FREQUENCY_OPTIONS).map((opt, i) => <option key={i} value={opt}>{opt}</option>)}
                         </select>
-                    </div>
-
-                    <div>
-                        <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide flex items-center gap-1">
-                            <Clock className="w-3 h-3" /> Duration <span className="text-red-500">*</span>
-                        </label>
-                        <div className="relative">
-                            <input
-                                type="number"
-                                min="1"
-                                name="duration"
-                                value={task.duration ? task.duration.replace(' MIN', '') : ''}
-                                onChange={(e) => {
-                                    const val = e.target.value;
-                                    onUpdate(task.id, { duration: val ? `${val} MIN` : '' });
-                                }}
-                                placeholder="e.g. 30"
-                                className="w-full pl-3 pr-12 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:bg-white transition-all text-sm"
-                            />
-                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">MIN</span>
-                        </div>
                     </div>
                 </div>
 
@@ -689,9 +722,6 @@ export default function ChecklistTask() {
                 if (!t.doer || !t.date || (!t.description && !t.recordedAudio && (!t.references || t.references.length === 0))) {
                     return { success: false, message: `Task ${i + 1}: Please fill in Doer, Date, and at least one instructional detail (Desc, Voice Note, or Reference).` };
                 }
-                if (!t.duration) {
-                    return { success: false, message: `Task ${i + 1}: Please specify the task duration.` };
-                }
                 if (t.references && t.references.length > 0) {
                     for (const ref of t.references) {
                         if (ref.type === 'image' && !ref.file) {
@@ -761,10 +791,7 @@ export default function ChecklistTask() {
                 alert(`Task ${i + 1}: Please fill in Doer, Date, and at least one instructional detail (Desc, Voice Note, or Reference).`);
                 return;
             }
-            if (!t.duration) {
-                alert(`Task ${i + 1}: Please specify the task duration.`);
-                return;
-            }
+
             if (t.references && t.references.length > 0) {
                 for (const ref of t.references) {
                     if (ref.type === 'image' && !ref.file) {

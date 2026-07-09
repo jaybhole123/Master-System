@@ -47,8 +47,9 @@ import {
 const getHeaderTitle = (pathname, routes) => {
   // Check Profile
   if (pathname.includes("/dashboard/profile")) return { module: "Profile", page: "My Profile" };
-  // Check Global Settings
   if (pathname.includes("/dashboard/global-settings")) return { module: "Global Settings", page: "Global Settings" };
+  // Check Rent Management
+  if (pathname.includes("/dashboard/rent-management")) return { module: "Rent Management", page: "Rent Management" };
   // Check Document & Substruction routes
   if (
     pathname.includes("/doc-dashboard") ||
@@ -127,7 +128,8 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
     const path = location.pathname;
     return {
       "Profile": path.includes("/dashboard/profile"),
-      "Checklist & Delegation": path.includes("/dashboard") && !path.includes("/dashboard/profile") && !path.includes("/dashboard/global-settings"),
+      "Rent Management": path.includes("/dashboard/rent-management"),
+      "Checklist & Delegation": path.includes("/dashboard") && !path.includes("/dashboard/profile") && !path.includes("/dashboard/global-settings") && !path.includes("/dashboard/rent-management"),
       "Document & Substruction": path.includes("/document") || path.includes("/doc-dashboard") || path.includes("/resource-manager") || path.includes("/loan") || path.includes("/subscription") || path.includes("/bg") || path === "/",
     };
   });
@@ -393,7 +395,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       icon: Banknote,
       active: location.pathname === "/dashboard/rent-management",
       showFor: ["admin", "HOD"],
-      module: "Checklist & Delegation",
+      module: "Rent Management",
     },
     {
       href: "/dashboard/notifications",
@@ -657,7 +659,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
               }, {})
             ).map(([moduleName, moduleRoutes]) => (
               <div key={moduleName} className="mb-4">
-                {moduleName === "Profile" || moduleName === "Global Settings" ? (
+                {moduleName === "Profile" || moduleName === "Global Settings" || moduleName === "Rent Management" ? (
                   <Link
                     to={moduleRoutes[0].href}
                     className={`group w-full flex items-center justify-between px-4 py-3 text-[14px] font-semibold rounded-xl transition-all relative overflow-hidden ${location.pathname.includes(moduleRoutes[0].href) ? 'text-red-600 bg-slate-100' : 'text-slate-600 hover:text-red-600 hover:bg-slate-50'}`}
@@ -668,6 +670,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                     <div className="flex items-center gap-3">
                       {moduleName === "Profile" && <UserRound className="h-5 w-5 shrink-0" />}
                       {moduleName === "Global Settings" && <Settings2 className="h-5 w-5 shrink-0" />}
+                      {moduleName === "Rent Management" && <Banknote className="h-5 w-5 shrink-0" />}
                       <span className="text-left leading-tight">{moduleName}</span>
                     </div>
                   </Link>
@@ -711,7 +714,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                     </div>
                   </button>
                 )}
-                {moduleName !== "Profile" && openModules[moduleName] && moduleRoutes.map((route) => (
+                {moduleName !== "Profile" && moduleName !== "Global Settings" && moduleName !== "Rent Management" && openModules[moduleName] && moduleRoutes.map((route) => (
                   <li key={route.label}>
                 {route.isSubmenu ? (
                   <div className="flex flex-col">

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "../components/layout/AdminLayout";
-import { UserCircle, Mail, Briefcase, Shield, Phone, Camera, CheckSquare, BookmarkCheck, CalendarCheck, ClipboardList } from "lucide-react";
+import { UserCircle, Mail, Briefcase, Shield, Phone, Camera, CheckSquare, BookmarkCheck, CalendarCheck, ClipboardList, ListTodo } from "lucide-react";
 import supabase from "../SupabaseClient";
 
 export default function ProfilePage() {
@@ -109,7 +109,8 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-6 mt-10">
+            {!(user.role && user.role.toLowerCase().includes('admin')) && (
+              <div className="grid md:grid-cols-2 gap-6 mt-10">
               <div className="flex items-center gap-4 p-4 rounded-2xl bg-gray-50 border border-gray-100">
                 <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center text-red-600">
                   <UserCircle className="w-6 h-6" />
@@ -150,10 +151,25 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-            </div>
+              </div>
+            )}
 
             {user.role && user.role.toLowerCase().includes('admin') && (
               <div className="grid md:grid-cols-2 gap-6 mt-6">
+              {/* EA Task */}
+              <div 
+                onClick={() => navigate('/dashboard/ea-task')}
+                className="flex items-center gap-4 p-4 rounded-2xl bg-gray-50 border border-gray-100 hover:bg-gray-100 cursor-pointer transition-colors"
+              >
+                <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center text-red-600">
+                  <ListTodo className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Module</p>
+                  <p className="font-medium text-gray-900 capitalize">EA Task Assignment</p>
+                </div>
+              </div>
+
               {/* Assign Task */}
               <div 
                 onClick={() => navigate('/dashboard/assign-task')}

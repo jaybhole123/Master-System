@@ -22,7 +22,7 @@ export const fetchUserDetailsApi = async () => {
 
     const { data, error } = await supabase
       .from("users")
-      .select('*');
+      .select('id, created_at, user_name, password, employee_id, email_id, number, role, status, department, user_access, Designation, reported_by, can_self_assign, leave_date, leave_end_date, remark');
 
     if (error) {
       console.error("❌ Error fetching user details:", error);

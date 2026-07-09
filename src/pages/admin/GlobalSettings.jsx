@@ -26,6 +26,11 @@ const MODULES = [
       'Collect NOC', 
       'Bank Guarantee'
     ]
+  },
+  {
+    id: 'Rent Management',
+    name: 'Rent Management',
+    pages: ['Rent Management']
   }
 ];
 
@@ -61,7 +66,7 @@ export default function GlobalSettings() {
 
   const fetchUsers = async () => {
     setLoading(true);
-    const { data, error } = await supabase.from('users').select('*').order('created_at', { ascending: false });
+    const { data, error } = await supabase.from('users').select('id, created_at, user_name, password, employee_id, email_id, number, role, status, department, Designation, system_access, page_access').order('created_at', { ascending: false });
     if (error) {
       showToast('Error fetching users', 'error');
     } else {
@@ -101,7 +106,14 @@ export default function GlobalSettings() {
         Designation: user.Designation || '',
         system_access: parsedSystemAccess,
         page_access: parsedPageAccess,
-        profile_image: user.profile_image || ''
+        profile_image: '' // fetched asynchronously below
+      });
+
+      // Fetch profile image asynchronously to prevent blocking the modal
+      supabase.from('users').select('profile_image').eq('id', user.id).single().then(({ data }) => {
+          if (data && data.profile_image) {
+              setFormData(prev => ({ ...prev, profile_image: data.profile_image }));
+          }
       });
     } else {
       setEditingUser(null);

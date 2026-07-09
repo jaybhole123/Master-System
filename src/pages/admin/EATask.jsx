@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "../../components/layout/AdminLayout";
-import { Users, Calendar, Save, ArrowLeft, Loader2, Mic, Square, Trash2, Plus, CheckCircle2, X, Clock, Phone } from "lucide-react";
+import { Users, Calendar, Save, ArrowLeft, Loader2, Mic, Square, Trash2, Plus, CheckCircle2, X, Clock, Phone, Type, Play, ExternalLink } from "lucide-react";
 import { ReactMediaRecorder } from "react-media-recorder";
 import AudioPlayer from "../../components/AudioPlayer";
 import supabase from "../../SupabaseClient";
@@ -23,6 +23,13 @@ const formatDateISO = (date) => {
     return `${year}-${month}-${day}`;
 };
 
+const getYouTubeId = (url) => {
+    if (!url) return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+};
+
 const DEFAULT_DOER_NAME = "";
 
 const defaultTask = () => ({
@@ -31,6 +38,8 @@ const defaultTask = () => ({
     phone_number: "",
     given_by: (localStorage.getItem("role")?.toUpperCase() === "HOD" || (localStorage.getItem("role")?.toLowerCase() === "admin" && localStorage.getItem("user-name")?.toLowerCase() !== "admin")) ? localStorage.getItem("user-name") : "",
     planned_date: new Date().toISOString().split('T')[0],
+    end_date: null,
+    showEndDateCalendar: false,
     planned_time: "09:00",
     task_description: "",
     duration: "",
@@ -39,10 +48,56 @@ const defaultTask = () => ({
     showCalendar: false,
     showSuggestions: false,
     doerSuggestions: [],
+    references: [],
 });
 
 // Single Task Card Component
 function TaskCard({ task, index, total, allDoers, givenBy, onUpdate, onRemove }) {
+    const [isListening, setIsListening] = useState(false);
+    const recognitionRef = useRef(null);
+
+    const toggleSpeechToText = () => {
+        if (isListening) {
+            if (recognitionRef.current) {
+                recognitionRef.current.stop();
+            }
+            setIsListening(false);
+            return;
+        }
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            alert("Your browser does not support Speech Recognition. Please use Chrome, Edge, or Safari.");
+            return;
+        }
+
+        const recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        
+        // Use Indian English for better Hindi/English mixed accent recognition
+        recognition.lang = 'en-IN'; 
+
+        recognition.onstart = () => setIsListening(true);
+        
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            const currentDesc = task.task_description || "";
+            const newDesc = currentDesc + (currentDesc.endsWith(" ") || currentDesc === "" ? "" : " ") + transcript;
+            onUpdate(task.id, { task_description: newDesc });
+        };
+        
+        recognition.onerror = (e) => {
+            console.error("Speech recognition error:", e);
+            setIsListening(false);
+        };
+        
+        recognition.onend = () => setIsListening(false);
+        
+        recognitionRef.current = recognition;
+        recognition.start();
+    };
+
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         onUpdate(task.id, { [name]: value });
@@ -193,8 +248,8 @@ function TaskCard({ task, index, total, allDoers, givenBy, onUpdate, onRemove })
                     )}
                 </div>
 
-                {/* Date, Time & Duration */}
-                <div className="grid grid-cols-2 gap-3">
+                {/* Date, End Date, Time */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div className="relative">
                         <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
                             Planned Date <span className="text-red-500">*</span>
@@ -221,6 +276,31 @@ function TaskCard({ task, index, total, allDoers, givenBy, onUpdate, onRemove })
                             </div>
                         )}
                     </div>
+                    
+                    <div className="relative">
+                        <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">End Date</label>
+                        <button
+                            type="button"
+                            onClick={() => onUpdate(task.id, { showEndDateCalendar: !task.showEndDateCalendar })}
+                            className="w-full px-3 py-2.5 text-left border border-gray-200 rounded-lg bg-gray-50 hover:bg-white focus:ring-2 focus:ring-red-500 transition-all flex items-center justify-between text-sm"
+                        >
+                            <span className={task.end_date ? "text-gray-800" : "text-gray-400"}>
+                                {task.end_date ? formatDateLong(new Date(task.end_date + 'T00:00:00')) : "Optional"}
+                            </span>
+                            <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                        </button>
+                        {task.showEndDateCalendar && (
+                            <div className="absolute top-full left-0 mt-1 z-50">
+                                <CalendarComponent
+                                    date={task.end_date ? new Date(task.end_date + 'T00:00:00') : (task.planned_date ? new Date(task.planned_date + 'T00:00:00') : null)}
+                                    onChange={(d) => onUpdate(task.id, { end_date: formatDateISO(d), showEndDateCalendar: false })}
+                                    onClose={() => onUpdate(task.id, { showEndDateCalendar: false })}
+                                    disableBeforeMinWorkingDate={true}
+                                />
+                            </div>
+                        )}
+                    </div>
+
                     <div>
                         <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Time</label>
                         <input
@@ -231,33 +311,92 @@ function TaskCard({ task, index, total, allDoers, givenBy, onUpdate, onRemove })
                             className="w-full px-3 py-2.5 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all text-sm"
                         />
                     </div>
-                    <div className="col-span-2">
-                        <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide flex items-center gap-1">
-                            <Clock className="w-3 h-3" /> Duration <span className="text-red-500">*</span>
-                        </label>
-                        <div className="relative">
-                            <input
-                                type="number"
-                                min="1"
-                                name="duration"
-                                value={task.duration ? task.duration.replace(' MIN', '') : ''}
-                                onChange={(e) => {
-                                    const val = e.target.value;
-                                    onUpdate(task.id, { duration: val ? `${val} MIN` : '' });
-                                }}
-                                placeholder="e.g. 30"
-                                className="w-full pl-3 pr-12 p-2.5 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-red-500 outline-none transition-all text-sm"
-                            />
-                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">MIN</span>
-                        </div>
-                    </div>
                 </div>
 
-                {/* Task Description with Voice Note */}
-                <div>
-                    <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
-                        Task Description <span className="text-red-500">*</span>
-                    </label>
+                {/* Task Description with Voice Note and References */}
+                <div className="space-y-3">
+                    <div className="flex justify-between items-center -mb-1">
+                        <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide flex items-center gap-2">
+                            Task Description <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                            value="none"
+                            onChange={(e) => {
+                                if (e.target.value === 'none') return;
+                                const newRefs = [...(task.references || []), { id: Date.now() + Math.random(), type: e.target.value, link: "", file: null }];
+                                onUpdate(task.id, { references: newRefs });
+                            }}
+                            className="text-[10px] font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded px-2 py-1 outline-none cursor-pointer transition-colors"
+                        >
+                            <option value="none">+ Add Reference</option>
+                            <option value="image">Image (Upload)</option>
+                            <option value="video">Video (Link)</option>
+                            <option value="pdf">PDF (Link)</option>
+                            <option value="link">Web Link</option>
+                        </select>
+                    </div>
+                    {task.references && task.references.map((ref, i) => {
+                        const ytId = getYouTubeId(ref.link);
+                        return (
+                            <div key={ref.id} className={`p-2.5 border rounded-xl flex flex-col sm:flex-row gap-2 sm:items-center mt-2 group relative transition-all ${ytId ? 'bg-red-50 border-red-200 shadow-sm' : 'bg-blue-50 border-blue-200'}`}>
+                                <span className={`text-[10px] font-black flex-shrink-0 uppercase tracking-widest w-20 flex items-center gap-1.5 ${ytId ? 'text-red-700' : 'text-blue-700'}`}>
+                                    {(ytId || ref.type === 'video') && <Play size={10} fill="currentColor" />}
+                                    {ytId || ref.type === 'video' ? 'Video:' : `${ref.type}:`}
+                                </span>
+                                {ref.type === 'image' ? (
+                                    <div className="flex-1 flex items-center gap-2">
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={(e) => {
+                                                const newRefs = [...task.references];
+                                                newRefs[i].file = e.target.files[0];
+                                                onUpdate(task.id, { references: newRefs });
+                                            }}
+                                            className="text-[10px] w-full text-blue-700 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-black file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer uppercase tracking-wider"
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="flex-1 flex items-center gap-2">
+                                        <input
+                                            type="url"
+                                            placeholder="https://"
+                                            value={ref.link}
+                                            onChange={(e) => {
+                                                const newRefs = [...task.references];
+                                                newRefs[i].link = e.target.value;
+                                                onUpdate(task.id, { references: newRefs });
+                                            }}
+                                            className={`flex-1 w-full px-3 py-1.5 text-xs font-medium bg-white border rounded-lg outline-none transition-all ${ytId ? 'border-red-200 focus:ring-2 focus:ring-red-100 text-red-900' : 'border-blue-200 focus:ring-2 focus:ring-blue-100 text-blue-900'}`}
+                                        />
+                                    </div>
+                                )}
+                                <div className="flex items-center gap-1">
+                                    {ref.link && (
+                                        <button
+                                            type="button"
+                                            onClick={() => window.open(ref.link, '_blank')}
+                                            className={`p-1.5 rounded-lg transition-all ${ytId ? 'text-red-400 hover:bg-red-100 hover:text-red-600' : 'text-blue-400 hover:bg-blue-100 hover:text-blue-600'}`}
+                                            title="External Preview"
+                                        >
+                                            <ExternalLink size={14} />
+                                        </button>
+                                    )}
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const newRefs = task.references.filter(r => r.id !== ref.id);
+                                            onUpdate(task.id, { references: newRefs });
+                                        }}
+                                        className="text-red-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                                        title="Remove Reference"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        );
+                    })}
                     <ReactMediaRecorder
                         audio
                         onStop={(blobUrl, blob) => onUpdate(task.id, { recordedAudio: { blobUrl, blob } })}
@@ -271,16 +410,26 @@ function TaskCard({ task, index, total, allDoers, givenBy, onUpdate, onRemove })
                                             onChange={handleInputChange}
                                             rows="3"
                                             placeholder="Describe the task..."
-                                            className="w-full p-3 pr-11 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none resize-none bg-gray-50 focus:bg-white transition-all text-sm"
+                                            className="w-full p-3 pr-20 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none resize-none bg-gray-50 focus:bg-white transition-all text-sm"
                                         />
-                                        <button
-                                            type="button"
-                                            onClick={startRecording}
-                                            className="absolute bottom-2.5 right-2.5 p-1.5 bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition-all"
-                                            title="Record Voice Note"
-                                        >
-                                            <Mic className="w-4 h-4" />
-                                        </button>
+                                        <div className="absolute bottom-2.5 right-2.5 flex items-center gap-1">
+                                            <button 
+                                                type="button" 
+                                                onClick={toggleSpeechToText} 
+                                                className={`p-1.5 rounded-full transition-all flex items-center justify-center ${isListening ? 'bg-red-500 text-white animate-pulse' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`} 
+                                                title={isListening ? "Listening... (Click to stop)" : "Speak to Type"}
+                                            >
+                                                <Type className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={startRecording}
+                                                className="p-1.5 bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition-all"
+                                                title="Record Voice Note"
+                                            >
+                                                <Mic className="w-4 h-4" />
+                                            </button>
+                                        </div>
                                     </div>
                                 )}
                                 {status === 'recording' && (
@@ -361,7 +510,6 @@ export default function EATask() {
             if (data) setHolidays(data.map(h => h.holiday_date));
         };
         fetchHolidays();
-        fetchUniqueDoers();
         dispatch(userDetails());
         dispatch(uniqueGivenByData());
 
@@ -385,11 +533,12 @@ export default function EATask() {
     }, [dispatch]);
 
     useEffect(() => {
-        const combined = [...historicalDoers];
-        const existingNames = new Set(combined.map(d => d.name));
+        const combined = [];
+        const existingNames = new Set();
         if (userData && Array.isArray(userData)) {
             userData.forEach(user => {
-                if (user.user_name && !existingNames.has(user.user_name)) {
+                const dept = (user.department || "").toLowerCase();
+                if ((dept === "ea" || dept === "executive assistant") && user.user_name && !existingNames.has(user.user_name)) {
                     combined.push({
                         name: user.user_name,
                         phone: user.phone || user.number ? String(user.phone || user.number) : "",
@@ -415,17 +564,7 @@ export default function EATask() {
                 ));
             }
         }
-    }, [historicalDoers, userData]);
-
-    const fetchUniqueDoers = async () => {
-        try {
-            const { data, error } = await supabase.from('ea_tasks').select('doer_name, phone_number').order('created_at', { ascending: false });
-            if (error) throw error;
-            const doersMap = {};
-            data?.forEach(task => { if (task.doer_name && !doersMap[task.doer_name]) doersMap[task.doer_name] = task.phone_number || ""; });
-            setHistoricalDoers(Object.keys(doersMap).map(name => ({ name, phone: doersMap[name] })));
-        } catch (err) { console.error("Error fetching doers:", err); }
-    };
+    }, [userData]);
 
     const updateTask = (id, updates) => {
         setTasks(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
@@ -453,13 +592,22 @@ export default function EATask() {
                 showToast(`Task ${i + 1}: Please specify 'Assign From' (Given By).`, 'error');
                 return;
             }
-            if (!t.doer_name || !t.planned_date || (!t.task_description && !t.recordedAudio)) {
-                showToast(`Task ${i + 1}: Please fill in all required fields.`, 'error');
+            if (!t.doer_name || !t.planned_date || (!t.task_description && !t.recordedAudio && (!t.references || t.references.length === 0))) {
+                showToast(`Task ${i + 1}: Please fill in all required fields (Description, Voice Note, or Reference must be provided).`, 'error');
                 return;
             }
-            if (!t.duration) {
-                showToast(`Task ${i + 1}: Please specify the task duration.`, 'error');
-                return;
+
+            if (t.references && t.references.length > 0) {
+                for (const ref of t.references) {
+                    if (ref.type === 'image' && !ref.file) {
+                        showToast(`Task ${i + 1}: Please upload the Image file for the Reference.`, 'error');
+                        return;
+                    }
+                    if (['video', 'pdf', 'link'].includes(ref.type) && !ref.link) {
+                        showToast(`Task ${i + 1}: Please provide a valid web link for the ${ref.type.toUpperCase()} Reference.`, 'error');
+                        return;
+                    }
+                }
             }
 
             // Relaxed check for EA tasks: Allow dates even if missing from working calendar
@@ -511,16 +659,62 @@ export default function EATask() {
                 return map;
             }, {});
 
+            // 1.5 Parallelize Instruction Uploads
+            const instructionUploadPromises = tasks.map(async (task) => {
+                const resultsUrls = [];
+                const resultsTypes = [];
+
+                if (task.references && task.references.length > 0) {
+                    for (const ref of task.references) {
+                        if (ref.type === 'image' && ref.file) {
+                            const ext = ref.file.name.split('.').pop();
+                            const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
+                            const { error: uploadError } = await supabase.storage
+                                .from('task-instructions')
+                                .upload(fileName, ref.file, { upsert: false });
+                            if (uploadError) throw new Error(`Reference Upload Error: ${uploadError.message}`);
+                            const { data: publicUrlData } = supabase.storage.from('task-instructions').getPublicUrl(fileName);
+
+                            resultsUrls.push(publicUrlData.publicUrl);
+                            resultsTypes.push(ref.type);
+                        } else if (['video', 'pdf', 'link'].includes(ref.type) && ref.link) {
+                            resultsUrls.push(ref.link);
+                            resultsTypes.push(ref.type);
+                        }
+                    }
+                }
+
+                let finalUrl = null;
+                let finalType = null;
+                if (resultsUrls.length > 0) {
+                    finalUrl = JSON.stringify(resultsUrls);
+                    finalType = JSON.stringify(resultsTypes);
+                }
+
+                return { id: task.id, instructionUrl: finalUrl, instructionType: finalType };
+            });
+
+            const uploadedInstructionResults = await Promise.all(instructionUploadPromises);
+            const instructionUrlMap = uploadedInstructionResults.reduce((map, item) => {
+                map[item.id] = item;
+                return map;
+            }, {});
+
             // 2. Prepare tasks for insertion
             const tasksToInsert = tasks.map(task => {
                 const startDate = new Date(`${task.planned_date}T${task.planned_time || "00:00"}:00`);
+                const instructionData = instructionUrlMap[task.id] || {};
+                
                 return {
                     doer_name: task.doer_name,
                     phone_number: task.phone_number,
                     planned_date: startDate.toISOString(),
                     task_start_date: startDate.toISOString(),
+                    end_date: task.end_date ? new Date(`${task.end_date}T23:59:59`).toISOString() : null,
                     task_description: task.task_description,
                     audio_url: audioUrlMap[task.id],
+                    instruction_attachment_url: instructionData.instructionUrl || null,
+                    instruction_attachment_type: instructionData.instructionType || null,
                     duration: task.duration || null,
                     status: 'pending',
                     given_by: task.given_by,
