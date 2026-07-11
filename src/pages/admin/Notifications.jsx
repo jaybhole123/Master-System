@@ -26,7 +26,7 @@ export default function Notifications() {
   const [allUsers, setAllUsers] = useState([]);
   const [selectedUsers, setSelectedUsers] = useState([]);
 
-  const isAdmin = currentUserRole === "admin";
+  const isAdmin = currentUserRole === "admin" || currentUserRole === "superadmin";
 
   useEffect(() => {
     const fetchUsers = async () => {
