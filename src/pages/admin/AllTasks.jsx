@@ -1137,7 +1137,7 @@ const AllTasks = () => {
                       <ChevronDown size={14} className={`transition-transform ${dropdownOpen?.userFilter ? 'rotate-180' : ''}`} />
                     </button>
                     {dropdownOpen?.userFilter && (
-                      <div className="absolute z-50 mt-2 w-48 right-0 rounded-xl bg-white shadow-xl border border-gray-100 py-1 overflow-y-auto max-h-60 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="absolute z-50 mt-2 w-48 left-0 sm:left-auto sm:right-0 rounded-xl bg-white shadow-xl border border-gray-100 py-1 overflow-y-auto max-h-60 animate-in fade-in slide-in-from-top-2 duration-200">
                         <button
                           onClick={() => {
                             setUserFilter("all");
@@ -1176,7 +1176,7 @@ const AllTasks = () => {
                       <ChevronDown size={14} className={`transition-transform ${dropdownOpen?.givenByFilter ? 'rotate-180' : ''}`} />
                     </button>
                     {dropdownOpen?.givenByFilter && (
-                      <div className="absolute z-50 mt-2 w-48 right-0 rounded-xl bg-white shadow-xl border border-gray-100 py-1 overflow-y-auto max-h-60 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="absolute z-50 mt-2 w-48 left-0 sm:left-auto sm:right-0 rounded-xl bg-white shadow-xl border border-gray-100 py-1 overflow-y-auto max-h-60 animate-in fade-in slide-in-from-top-2 duration-200">
                         <button
                           onClick={() => {
                             setGivenByFilter("all");
@@ -1216,7 +1216,7 @@ const AllTasks = () => {
                           <ChevronDown size={14} className={`transition-transform ${dropdownOpen?.dateFilter ? 'rotate-180' : ''}`} />
                         </button>
                         {dropdownOpen?.dateFilter && (
-                          <div className="absolute z-50 mt-2 w-40 right-0 rounded-xl bg-white shadow-xl border border-gray-100 py-1 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                          <div className="absolute z-50 mt-2 w-40 left-0 sm:left-auto sm:right-0 rounded-xl bg-white shadow-xl border border-gray-100 py-1 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                             {[
                               { id: 'all', label: 'All Tasks' },
                               { id: 'overdue', label: 'Overdue' },

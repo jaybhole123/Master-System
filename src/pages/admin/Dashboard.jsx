@@ -238,7 +238,7 @@ export default function AdminDashboard() {
             if (!reportingUsers.includes(assignedUser) && createdByUser !== currentUserName) {
                 return null;
             }
-        } else if (userRole !== "admin") {
+        } else if (userRole !== "admin" && userRole !== "superadmin") {
           if (assignedUser !== currentUserName && createdByUser !== currentUserName) {
             return null;
           }
@@ -628,7 +628,7 @@ export default function AdminDashboard() {
       }
 
       // For non-admin users, always ensure current user appears in staff dropdown
-      if (userRole !== "admin" && username) {
+      if (userRole !== "admin" && userRole !== "superadmin" && username) {
         if (!uniqueStaff.some(staff => staff.toLowerCase() === username.toLowerCase())) {
           uniqueStaff.push(username)
         }
@@ -665,7 +665,7 @@ export default function AdminDashboard() {
           const assignedUser = (task.name || task.assigned_person || task.doer_name || "").toLowerCase();
           const createdByUser = (task.given_by || task.filled_by || "").toLowerCase();
 
-          if (roleNormalized !== "admin") {
+          if (roleNormalized !== "admin" && roleNormalized !== "superadmin") {
             if (roleNormalized === 'hod') {
                 if (!reportingUsers.includes(assignedUser) && createdByUser !== currentUserName) {
                     return null;

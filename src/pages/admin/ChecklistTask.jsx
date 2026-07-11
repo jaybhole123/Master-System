@@ -421,7 +421,7 @@ function TaskCard({ task, index, total, department, doerName, givenBy, dispatch,
                             <Calendar className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
                         </button>
                         {task.showEndDateCalendar && (
-                            <div className="absolute top-full left-0 mt-1 z-50">
+                            <div className="absolute top-full right-0 sm:right-auto sm:left-0 mt-1 z-50">
                                 <CalendarComponent
                                     date={task.endDate || task.date}
                                     onChange={(d) => onUpdate(task.id, { endDate: d, showEndDateCalendar: false })}
