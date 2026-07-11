@@ -4,6 +4,7 @@ import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import AdminLayout from '../../components/layout/AdminLayout';
 import supabase from '../../SupabaseClient';
+import { sendRentPaymentReminder } from '../../services/whatsappService';
 import { 
   Search, 
   Plus, 
@@ -39,6 +40,7 @@ const RentManagement = () => {
     name: '',
     phone: '',
     date: '',
+    due_date: '',
     method: 'CASH',
     month: currentMonth,
     document: null
@@ -64,6 +66,32 @@ const RentManagement = () => {
         document: record.document_url
       }));
       setRentData(formattedData);
+
+      // --- AUTOMATIC REMINDER LOGIC ---
+      const today = new Date().toISOString().split('T')[0];
+      const pendingReminders = formattedData.filter(record => 
+        record.status === 'Pending' && 
+        record.due_date === today && 
+        !record.reminder_sent
+      );
+
+      if (pendingReminders.length > 0) {
+        for (const record of pendingReminders) {
+          console.log(`Attempting to send auto-reminder to ${record.name} for ${record.due_date}`);
+          const sent = await sendRentPaymentReminder({
+            phone: record.phone,
+            name: record.name,
+            propertyAndMonth: `${record.place} - ${record.month}`,
+            dueDate: record.due_date,
+            message: ''
+          });
+
+          if (sent) {
+            await supabase.from('rent_records').update({ reminder_sent: true }).eq('id', record.id);
+          }
+        }
+      }
+      // --------------------------------
     }
     setIsLoading(false);
   };
@@ -87,6 +115,7 @@ const RentManagement = () => {
       name: formData.name,
       phone: formData.phone,
       date: formData.date,
+      due_date: formData.due_date,
       method: formData.method,
       month: formData.month,
       document_url: formData.document
@@ -117,7 +146,7 @@ const RentManagement = () => {
     
     setIsModalOpen(false);
     setEditingId(null);
-    setFormData({ place: '', name: '', phone: '', date: '', method: 'CASH', month: selectedMonth === 'ALL' ? currentMonth : selectedMonth, document: null });
+    setFormData({ place: '', name: '', phone: '', date: '', due_date: '', method: 'CASH', month: selectedMonth === 'ALL' ? currentMonth : selectedMonth, document: null });
   };
 
   const handleFileChange = (e) => {
@@ -140,6 +169,7 @@ const RentManagement = () => {
       name: record.name,
       phone: record.phone,
       date: record.date,
+      due_date: record.due_date || '',
       method: record.method,
       month: record.month,
       document: record.document || null
@@ -168,12 +198,13 @@ const RentManagement = () => {
   };
 
   const exportToExcel = () => {
-    const headers = ['Place', 'Name', 'Phone No.', 'Date', 'Payment Method', 'Month'];
+    const headers = ['Place', 'Name', 'Phone No.', 'Date', 'Due Date', 'Payment Method', 'Month'];
     const dataRows = filteredData.map(row => [
       row.place, 
       row.name, 
       row.phone, 
       row.date, 
+      row.due_date,
       row.method, 
       row.month
     ]);
@@ -191,7 +222,7 @@ const RentManagement = () => {
     const doc = new jsPDF();
     doc.text(`Rent Records - ${selectedMonth}`, 14, 15);
     
-    const tableColumn = ["Place", "Name", "Phone No.", "Date", "Payment Method", "Month"];
+    const tableColumn = ["Place", "Name", "Phone No.", "Date", "Due Date", "Payment Method", "Month", "Status"];
     const tableRows = [];
 
     filteredData.forEach(record => {
@@ -200,6 +231,7 @@ const RentManagement = () => {
         record.name,
         record.phone,
         record.date,
+        record.due_date || 'N/A',
         record.method,
         record.month,
         record.status === 'Done' ? 'Done' : 'Pending'
@@ -243,7 +275,7 @@ const RentManagement = () => {
             <button 
               onClick={() => {
                 setEditingId(null);
-                setFormData({ place: '', name: '', phone: '', date: '', method: 'CASH', month: selectedMonth === 'ALL' ? currentMonth : selectedMonth, document: null });
+                setFormData({ place: '', name: '', phone: '', date: '', due_date: '', method: 'CASH', month: selectedMonth === 'ALL' ? currentMonth : selectedMonth, document: null });
                 setIsModalOpen(true);
               }}
               className="w-full sm:w-auto justify-center flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium shadow-sm shadow-red-600/20"
@@ -360,6 +392,10 @@ const RentManagement = () => {
                         <p className="text-slate-700 font-medium">{record.date}</p>
                       </div>
                       <div>
+                        <p className="text-slate-400 text-[10px] uppercase tracking-wider font-bold mb-0.5">Due Date</p>
+                        <p className="text-slate-700 font-medium">{record.due_date || 'N/A'}</p>
+                      </div>
+                      <div>
                         <p className="text-slate-400 text-[10px] uppercase tracking-wider font-bold mb-0.5">Method</p>
                         <p className="text-slate-700 font-medium">{record.method || 'N/A'}</p>
                       </div>
@@ -418,6 +454,7 @@ const RentManagement = () => {
                       <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Name</th>
                       <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Phone No.</th>
                       <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Date</th>
+                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Due Date</th>
                       <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Document</th>
                       <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Payment Method</th>
                       <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
@@ -440,6 +477,11 @@ const RentManagement = () => {
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="inline-flex items-center px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 text-xs font-medium">
                               {record.date}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="inline-flex items-center px-2.5 py-1 rounded-md bg-orange-50 text-orange-700 border border-orange-200/50 text-xs font-medium">
+                              {record.due_date || 'N/A'}
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -540,7 +582,7 @@ const RentManagement = () => {
       {/* Add Record Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
               <h3 className="text-lg font-bold text-slate-800">{editingId ? 'Edit Rent Record' : 'Add Rent Record'}</h3>
               <button 
@@ -552,7 +594,7 @@ const RentManagement = () => {
             </div>
             
             <form onSubmit={handleSaveRecord} className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-slate-700">Month</label>
                   <select 
@@ -571,6 +613,16 @@ const RentManagement = () => {
                     required
                     value={formData.date}
                     onChange={(e) => setFormData({...formData, date: e.target.value})}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700">Due Date</label>
+                  <input 
+                    type="date" 
+                    required
+                    value={formData.due_date}
+                    onChange={(e) => setFormData({...formData, due_date: e.target.value})}
                     className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500"
                   />
                 </div>

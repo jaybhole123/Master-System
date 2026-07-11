@@ -15,6 +15,15 @@ export default function ProfilePage() {
     profile_image: localStorage.getItem("profile_image") || ""
   });
   const [uploading, setUploading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editForm, setEditForm] = useState({
+    username: "",
+    password: "",
+    email: "",
+    number: "",
+    designation: ""
+  });
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -69,6 +78,58 @@ export default function ProfilePage() {
     reader.readAsDataURL(file);
   };
 
+  const handleEditClick = () => {
+    setEditForm({
+      username: user.username === "N/A" ? "" : user.username,
+      password: "",
+      email: user.email === "N/A" ? "" : user.email,
+      number: user.number === "Fetching..." || user.number === "Not Provided" ? "" : user.number,
+      designation: user.designation === "N/A" ? "" : user.designation
+    });
+    setIsEditing(true);
+  };
+
+  const handleSaveProfile = async (e) => {
+    e.preventDefault();
+    setIsSaving(true);
+    
+    const updateData = {
+      user_name: editForm.username,
+      email_id: editForm.email,
+      number: editForm.number,
+      designation: editForm.designation
+    };
+    if (editForm.password) {
+      updateData.password = editForm.password;
+    }
+    
+    const { error } = await supabase
+      .from('users')
+      .update(updateData)
+      .ilike('user_name', user.username);
+      
+    if (!error) {
+      setUser(prev => ({
+        ...prev,
+        username: editForm.username || prev.username,
+        email: editForm.email || "N/A",
+        number: editForm.number || "Not Provided",
+        designation: editForm.designation || "N/A"
+      }));
+      if (editForm.username && editForm.username !== user.username) {
+        localStorage.setItem("user-name", editForm.username);
+        window.location.reload();
+      }
+      localStorage.setItem("email_id", editForm.email);
+      localStorage.setItem("designation", editForm.designation);
+      setIsEditing(false);
+    } else {
+      console.error("Error updating profile:", error);
+      alert("Failed to update profile.");
+    }
+    setIsSaving(false);
+  };
+
   return (
     <AdminLayout>
       <div className="max-w-4xl mx-auto p-6 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -110,7 +171,17 @@ export default function ProfilePage() {
             </div>
 
             {!(user.role && user.role.toLowerCase().includes('admin')) && (
-              <div className="grid md:grid-cols-2 gap-6 mt-10">
+              <>
+              <div className="flex justify-center sm:justify-end mt-4 sm:-mt-10 mb-6 relative z-10">
+                <button 
+                  onClick={handleEditClick}
+                  className="flex items-center gap-2 bg-red-50 text-red-600 hover:bg-red-100 px-5 py-2.5 rounded-xl font-bold transition-all shadow-sm active:scale-95"
+                >
+                  <UserCircle className="w-5 h-5" />
+                  Edit Profile
+                </button>
+              </div>
+              <div className="grid md:grid-cols-2 gap-6">
               <div className="flex items-center gap-4 p-4 rounded-2xl bg-gray-50 border border-gray-100">
                 <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center text-red-600">
                   <UserCircle className="w-6 h-6" />
@@ -152,6 +223,7 @@ export default function ProfilePage() {
               </div>
 
               </div>
+              </>
             )}
 
             {user.role && user.role.toLowerCase().includes('admin') && (
@@ -231,6 +303,89 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
+
+      {/* Edit Profile Modal */}
+      {isEditing && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => !isSaving && setIsEditing(false)} />
+          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200 p-6 md:p-8">
+            <h2 className="text-xl font-bold text-gray-900 mb-6">Edit Profile</h2>
+            
+            <form onSubmit={handleSaveProfile} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-gray-700">Username (ID)</label>
+                <input
+                  type="text"
+                  required
+                  value={editForm.username}
+                  onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-600 focus:bg-white outline-none transition-all text-gray-900"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-gray-700">New Password</label>
+                <input
+                  type="password"
+                  placeholder="Leave blank to keep unchanged"
+                  value={editForm.password}
+                  onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-600 focus:bg-white outline-none transition-all text-gray-900"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-gray-700">Email Address</label>
+                <input
+                  type="email"
+                  value={editForm.email}
+                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-600 focus:bg-white outline-none transition-all text-gray-900"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-gray-700">Mobile Number (For WhatsApp)</label>
+                <input
+                  type="text"
+                  value={editForm.number}
+                  onChange={(e) => setEditForm({ ...editForm, number: e.target.value })}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-600 focus:bg-white outline-none transition-all text-gray-900"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-gray-700">Designation</label>
+                <input
+                  type="text"
+                  value={editForm.designation}
+                  onChange={(e) => setEditForm({ ...editForm, designation: e.target.value })}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-600 focus:bg-white outline-none transition-all text-gray-900"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(false)}
+                  disabled={isSaving}
+                  className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-50 transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors disabled:opacity-50"
+                >
+                  {isSaving ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </AdminLayout>
   );
 }

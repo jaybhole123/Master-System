@@ -52,7 +52,9 @@ export const ProtectedRoute = ({ children, allowedRoles = [] }) => {
         return <Navigate to="/login" replace />
     }
 
-    if (!hasCustomPermissions && allowedRoles.length > 0 && !allowedRoles.map(r => r.toLowerCase()).includes(role)) {
+    const isSuperAdmin = role === 'superadmin';
+
+    if (!isSuperAdmin && !hasCustomPermissions && allowedRoles.length > 0 && !allowedRoles.map(r => r.toLowerCase()).includes(role)) {
         return <Navigate to="/dashboard/admin" replace />
     }
 

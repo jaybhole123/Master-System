@@ -227,7 +227,97 @@ export default function StaffTasksTable({
       ) : (
         <div className="bg-white rounded-2xl border border-blue-100 shadow-xl overflow-hidden relative group">
           <div className="staff-table-container overflow-auto" style={{ maxHeight: "550px" }}>
-            <table className="min-w-full divide-y divide-gray-100">
+            
+            {/* Mobile View: Cards */}
+            <div className="md:hidden flex flex-col gap-4 p-4 bg-gray-50/30">
+              {staffMembers.map((staff, index) => {
+                const score = staff.completion_score;
+                const scoreColor = score >= 80 ? 'bg-emerald-100 text-emerald-800 border-emerald-200' :
+                  score >= 50 ? 'bg-amber-100 text-amber-800 border-amber-200' :
+                    'bg-rose-100 text-rose-800 border-rose-200';
+
+                return (
+                  <div key={`${staff.name}-${index}-mobile`} className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-col gap-3">
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center gap-3">
+                        {staff.profile_image ? (
+                          <div className="w-10 h-10 rounded-full border-2 border-blue-100 shadow-sm overflow-hidden flex-shrink-0">
+                            <img
+                              src={staff.profile_image}
+                              alt={staff.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                e.target.nextSibling.style.display = 'flex';
+                              }}
+                            />
+                            <div
+                              style={{ display: 'none' }}
+                              className={`w-full h-full flex items-center justify-center font-black text-xs bg-gradient-to-br ${index === 0 ? 'from-yellow-400 to-amber-600 text-white' : index === 1 ? 'from-slate-300 to-slate-500 text-white' : index === 2 ? 'from-orange-400 to-orange-700 text-white' : 'from-blue-100 to-blue-200 text-blue-700'}`}
+                            >
+                              {staff.name.charAt(0)}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-xs shadow-sm bg-gradient-to-br flex-shrink-0 ${index === 0 ? 'from-yellow-400 to-amber-600 text-white' : index === 1 ? 'from-slate-300 to-slate-500 text-white' : index === 2 ? 'from-orange-400 to-orange-700 text-white' : 'from-blue-100 to-blue-200 text-blue-700'}`}>
+                            {staff.name.charAt(0)}
+                          </div>
+                        )}
+                        <div>
+                          <div className="text-sm font-bold text-gray-900 tracking-tight">{staff.name}</div>
+                          <div className="text-[10px] text-gray-400 font-medium">#{staff.id.split('-').pop()}</div>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-bold text-gray-400">#{(index + 1).toString().padStart(2, '0')}</span>
+                    </div>
+
+                    <div>
+                      <span className="px-2 py-1 bg-gray-100 text-gray-600 text-[10px] font-black uppercase rounded-md border border-gray-200">
+                        {staff.department}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2 bg-gray-50 p-2 rounded-lg border border-gray-100 mt-1">
+                      <div className="flex flex-col items-center">
+                        <span className="text-[10px] text-gray-500 font-bold uppercase">Total</span>
+                        <span className="text-sm font-black text-gray-700">{staff.total_tasks}</span>
+                      </div>
+                      <div className="flex flex-col items-center border-x border-gray-200">
+                        <span className="text-[10px] text-gray-500 font-bold uppercase">Done</span>
+                        <span className="text-sm font-black text-emerald-600">{staff.total_completed_tasks}</span>
+                      </div>
+                      <div className="flex flex-col items-center">
+                        <span className="text-[10px] text-gray-500 font-bold uppercase">On-Time</span>
+                        <span className="text-sm font-black text-indigo-600">{staff.total_done_on_time}</span>
+                      </div>
+                    </div>
+
+                    <div className="mt-1">
+                      <div className="flex justify-between items-center mb-1.5">
+                        <span className="text-[10px] font-bold text-gray-500 uppercase">Score</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-black border shadow-sm ${scoreColor}`}>
+                            {score}%
+                          </span>
+                          <span className="text-[10px] font-black text-gray-500 tracking-wide">
+                            {staff.total_completed_tasks}/{staff.total_tasks}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-1000 ${score >= 80 ? 'bg-emerald-500' : score >= 50 ? 'bg-amber-500' : 'bg-rose-500'}`}
+                          style={{ width: `${score}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop View: Table */}
+            <table className="hidden md:table min-w-full divide-y divide-gray-100">
               <thead className="bg-blue-50/80 backdrop-blur-md sticky top-0 z-10 border-b border-blue-100">
                 <tr>
                   {["Seq", "Staff Performance Detail", "Department", "Total", "Done", "On-Time", "Done Score"].map((header, i) => (

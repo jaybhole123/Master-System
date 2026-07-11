@@ -2291,7 +2291,7 @@ const Setting = () => {
                         className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all"
                       >
                         <option value="admin">Admin</option>
-                        <option value="HOD">HOD</option>
+                        <option value="superadmin">superadmin</option>
                         <option value="user">User</option>
                       </select>
                     </div>

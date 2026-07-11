@@ -13,7 +13,7 @@ export const fetchNotificationsApi = async (role, userId) => {
     // Hierarchy filter
     if (roleLower !== "admin" && localStorage.getItem("user-name")?.toLowerCase() !== "admin") {
       const currentUserName = localStorage.getItem("user-name");
-      query = query.in("role_target", ["all", roleLower, `person:${currentUserName}`]);
+      query = query.or(`role_target.in.("all", "${roleLower}", "person:${currentUserName}"),custom_targets.cs.[{"user":"${currentUserName}"}]`);
     }
 
     const { data: notifications, error: nError } = await query;
@@ -93,6 +93,8 @@ export const createNotificationApi = async (notificationData) => {
           message: notificationData.message,
           role_target: notificationData.roleTarget || "all",
           created_by: notificationData.createdBy ? parseInt(notificationData.createdBy) : null,
+          reminder_date: notificationData.reminderDate || null,
+          custom_targets: notificationData.customTargets ? notificationData.customTargets.map(u => ({ user: u })) : null
         },
       ])
       .select();

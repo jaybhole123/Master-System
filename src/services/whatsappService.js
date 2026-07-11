@@ -794,6 +794,54 @@ export const sendPurchaseDeliveredNotification = async (deliveryDetails) => {
     }
 };
 
+/**
+ * Send rent payment reminder notification
+ * @param {Object} reminderDetails - Rent details
+ * @returns {Promise<boolean>} - Success status
+ */
+export const sendRentPaymentReminder = async (reminderDetails) => {
+    try {
+        const { phone, name, propertyAndMonth, dueDate, message } = reminderDetails;
+        if (!phone) return false;
+
+        // Template: rent_payment_reminder
+        // Variables: {{1}} name, {{2}} propertyAndMonth, {{3}} dueDate, {{4}} message
+        return await sendWhatsAppTemplate(
+            phone,
+            'rent_payment_reminder',
+            [name, propertyAndMonth, dueDate, message || 'Please pay your rent on time.'],
+            'en'
+        );
+    } catch (error) {
+        console.error('Error sending rent payment reminder:', error);
+        return false;
+    }
+};
+
+/**
+ * Send custom scheduled notification reminder
+ * @param {Object} notificationDetails - Details of the notification
+ * @returns {Promise<boolean>} - Success status
+ */
+export const sendCustomNotificationReminder = async (notificationDetails) => {
+    try {
+        const { phone, name, subject, message, date } = notificationDetails;
+        if (!phone) return false;
+
+        // Template: custom_reminder_alert
+        // Variables: {{1}} Name, {{2}} Subject, {{3}} Date, {{4}} Message
+        return await sendWhatsAppTemplate(
+            phone,
+            'custom_reminder_alert',
+            [name, subject, date, message],
+            'en'
+        );
+    } catch (error) {
+        console.error('Error sending custom notification reminder:', error);
+        return false;
+    }
+};
+
 export default {
     sendUrgentTaskNotification,
     sendTaskExtensionNotification,
@@ -810,5 +858,7 @@ export default {
     sendPasswordResetOTP,
     sendAdminExtensionRemarkNotification,
     sendDailyTaskSummaryNotification,
-    sendPurchaseDeliveredNotification
+    sendPurchaseDeliveredNotification,
+    sendRentPaymentReminder,
+    sendCustomNotificationReminder
 };

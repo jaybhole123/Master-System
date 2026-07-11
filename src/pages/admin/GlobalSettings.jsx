@@ -558,7 +558,7 @@ export default function GlobalSettings() {
                                 >
                                     <option value="user">User (Doer)</option>
                                     <option value="admin">Admin</option>
-                                    <option value="hod">HOD</option>
+                                    <option value="superadmin">superadmin</option>
                                 </select>
                             </div>
                             <div className="space-y-1.5">

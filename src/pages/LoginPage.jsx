@@ -81,7 +81,11 @@ const LoginPage = () => {
         console.log("Stored email:", userData.email_id || userData.email); // Debug log
 
         showToast(`Welcome back, ${userData.user_name || userData.username}!`, "success");
-        navigate("/dashboard/profile");
+        if (userData.role === 'superadmin') {
+          navigate("/dashboard/admin");
+        } else {
+          navigate("/dashboard/profile");
+        }
       } else if (error) {
         showToast(error, "error");
         setIsLoginLoading(false);
@@ -122,7 +126,7 @@ const LoginPage = () => {
               className="h-10 w-auto object-contain"
             />
           </div>
-          <h2 className="text-[22px] font-bold text-slate-900 text-center leading-tight">Jai Bhole Traders and Enterprice</h2>
+          <h2 className="text-[22px] font-bold text-slate-900 text-center leading-tight">Jai Bhole Traders and Enterprises</h2>
           <p className="text-sm text-slate-500 mt-2 text-center">Welcome back! Please enter your details.</p>
         </div>
 

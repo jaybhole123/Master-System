@@ -5,6 +5,7 @@ import AdminLayout from "../../components/layout/AdminLayout";
 import { fetchNotifications, createNotification, removeNotification, markAsRead } from "../../redux/slice/notificationSlice";
 import { useMagicToast } from "../../context/MagicToastContext";
 import supabase from "../../SupabaseClient";
+import { sendCustomNotificationReminder } from "../../services/whatsappService";
 
 export default function Notifications() {
   const dispatch = useDispatch();
@@ -20,9 +21,10 @@ export default function Notifications() {
     title: "",
     message: "",
     roleTarget: "all",
+    reminderDate: "",
   });
   const [allUsers, setAllUsers] = useState([]);
-  const [selectedUser, setSelectedUser] = useState("");
+  const [selectedUsers, setSelectedUsers] = useState([]);
 
   const isAdmin = currentUserRole === "admin";
 
@@ -40,6 +42,52 @@ export default function Notifications() {
     }
   }, [dispatch, currentUserRole, currentUserId]);
 
+  // --- AUTOMATIC WHATSAPP REMINDER SENDER ---
+  useEffect(() => {
+    const autoSendReminders = async () => {
+      const today = new Date().toISOString().split('T')[0];
+      
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('reminder_date', today)
+        .eq('reminder_sent', false)
+        .not('custom_targets', 'is', null);
+
+      if (!error && data && data.length > 0) {
+        let anySent = false;
+        
+        for (const noti of data) {
+          if (!noti.custom_targets || noti.custom_targets.length === 0) continue;
+          
+          // Get phone numbers for all targets
+          const usernames = noti.custom_targets.map(t => t.user);
+          const { data: usersInfo } = await supabase
+            .from('users')
+            .select('user_name, number')
+            .in('user_name', usernames);
+
+          if (usersInfo && usersInfo.length > 0) {
+            for (const user of usersInfo) {
+              await sendCustomNotificationReminder({
+                phone: user.number,
+                name: user.user_name,
+                subject: noti.title,
+                message: noti.message,
+                date: noti.reminder_date
+              });
+            }
+            await supabase.from('notifications').update({ reminder_sent: true }).eq('id', noti.id);
+            anySent = true;
+          }
+        }
+      }
+    };
+    
+    autoSendReminders();
+  }, []);
+  // ------------------------------------------
+
   const handleCreate = async (e) => {
     e.preventDefault();
     if (!formData.title || !formData.message) {
@@ -49,18 +97,21 @@ export default function Notifications() {
 
     setIsSubmitting(true);
     try {
-      const target = formData.roleTarget === 'specific_user' ? `person:${selectedUser}` : formData.roleTarget;
+      const target = formData.roleTarget === 'custom_users' ? 'custom_users' : (formData.roleTarget === 'specific_user' ? `person:${selectedUsers[0]}` : formData.roleTarget);
       
       await dispatch(
         createNotification({
           ...formData,
           roleTarget: target,
           createdBy: currentUserId || null,
+          customTargets: formData.roleTarget === 'custom_users' ? selectedUsers : null,
+          reminderDate: formData.reminderDate || null
         })
       ).unwrap();
       showToast("Notification created successfully", "success");
       setIsModalOpen(false);
-      setFormData({ title: "", message: "", roleTarget: "all" });
+      setFormData({ title: "", message: "", roleTarget: "all", reminderDate: "" });
+      setSelectedUsers([]);
     } catch (err) {
       showToast(err || "Failed to create notification", "error");
     } finally {
@@ -184,10 +235,11 @@ export default function Notifications() {
                           noti.role_target === 'all' ? 'bg-blue-50 text-blue-600 border-blue-100' : 
                           noti.role_target === 'admin' ? 'bg-red-50 text-red-600 border-red-100' :
                           noti.role_target === 'superadmin' ? 'bg-red-50 text-red-600 border-red-100' :
+                          noti.role_target === 'custom_users' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
                           noti.role_target.startsWith('person:') ? 'bg-purple-50 text-purple-600 border-purple-100' :
                           'bg-orange-50 text-orange-600 border-orange-100'
                         }`}>
-                          {noti.role_target.startsWith('person:') ? noti.role_target.replace('person:', 'User: ') : noti.role_target}
+                          {noti.role_target.startsWith('person:') ? noti.role_target.replace('person:', 'User: ') : (noti.role_target === 'custom_users' ? 'Selected Users' : noti.role_target)}
                         </span>
                         {noti.isRead ? (
                           <CheckCheck size={16} className="text-blue-500" />
@@ -238,7 +290,7 @@ export default function Notifications() {
         {isModalOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity" onClick={() => !isSubmitting && setIsModalOpen(false)} />
-            <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200">
               
               <div className="p-6 md:p-8">
                 <div className="flex items-center justify-between mb-6">
@@ -284,28 +336,51 @@ export default function Notifications() {
                       className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-600 focus:bg-white outline-none transition-all text-gray-900 cursor-pointer"
                     >
                       <option value="all">Everyone</option>
-                      <option value="superadmin">Super-Admins</option>
                       <option value="admin">Admins</option>
-                      <option value="hod">Department Heads</option>
-                      <option value="user">Standard Users</option>
-                      <option value="specific_user">Specific Person</option>
+                      <option value="custom_users">Custom Selected Users (WhatsApp Reminder)</option>
                     </select>
                   </div>
 
-                  {formData.roleTarget === "specific_user" && (
-                    <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2">
-                      <label className="text-sm font-semibold text-gray-700">Select Person</label>
-                      <select
-                        value={selectedUser}
-                        onChange={(e) => setSelectedUser(e.target.value)}
-                        required
-                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-600 focus:bg-white outline-none transition-all text-gray-900 cursor-pointer"
-                      >
-                        <option value="">-- Choose a user --</option>
-                        {allUsers.map(u => (
-                          <option key={u} value={u}>{u}</option>
-                        ))}
-                      </select>
+                  {formData.roleTarget === "custom_users" && (
+                    <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-semibold text-gray-700">Reminder Date (For WhatsApp)</label>
+                        <input
+                          type="date"
+                          required
+                          value={formData.reminderDate}
+                          onChange={(e) => setFormData({ ...formData, reminderDate: e.target.value })}
+                          className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-600 focus:bg-white outline-none transition-all text-gray-900"
+                        />
+                      </div>
+                      
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-semibold text-gray-700 flex justify-between items-center">
+                          <span>Select Target Users/Admins</span>
+                          <div className="flex gap-3 items-center">
+                            <button type="button" onClick={() => setSelectedUsers([...allUsers])} className="text-xs font-bold text-red-600 hover:underline">Select All</button>
+                            <button type="button" onClick={() => setSelectedUsers([])} className="text-xs font-bold text-gray-500 hover:underline">Unselect All</button>
+                            <span className="text-xs text-gray-400 font-normal ml-1 border-l pl-3 border-gray-300">{selectedUsers.length} selected</span>
+                          </div>
+                        </label>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto p-2 bg-gray-50 border border-gray-200 rounded-xl">
+                          {allUsers.map(u => (
+                            <label key={u} className="flex items-center gap-2 cursor-pointer p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
+                              <input 
+                                type="checkbox"
+                                checked={selectedUsers.includes(u)}
+                                onChange={(e) => {
+                                  if (e.target.checked) setSelectedUsers([...selectedUsers, u]);
+                                  else setSelectedUsers(selectedUsers.filter(user => user !== u));
+                                }}
+                                className="w-4 h-4 text-red-600 rounded border-gray-300 focus:ring-red-500"
+                              />
+                              <span className="text-sm text-gray-700 font-medium truncate">{u}</span>
+                            </label>
+                          ))}
+                        </div>
+                        {selectedUsers.length === 0 && <p className="text-xs text-red-500 font-medium">Please select at least one user.</p>}
+                      </div>
                     </div>
                   )}
 

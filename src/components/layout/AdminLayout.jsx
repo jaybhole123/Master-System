@@ -156,7 +156,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
     setUsername(storedUsername);
     setUserRole(storedRole || "user");
     setUserEmail(storedEmail);
-    setIsSuperAdmin(storedUsername.toLowerCase() === "admin");
+    setIsSuperAdmin(storedUsername.toLowerCase() === "admin" || (storedRole || "").toLowerCase() === "superadmin");
 
     // Centralized Security Guard for User Role
     const path = location.pathname;
@@ -373,14 +373,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       showFor: ["admin", "user", "HOD"],
       module: "Profile",
     },
-    {
-      href: "/dashboard/global-settings",
-      label: "Global Settings",
-      icon: Settings2,
-      active: location.pathname.includes("/dashboard/global-settings"),
-      showFor: ["admin"],
-      module: "Global Settings",
-    },
+
     {
       href: "/dashboard/admin",
       label: "Dashboard",
@@ -553,6 +546,14 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname.includes("/dashboard/setting") || location.pathname.includes("/settings"),
       showFor: ["admin"],
       module: "Checklist & Delegation",
+    },
+    {
+      href: "/dashboard/global-settings",
+      label: "Global Settings",
+      icon: Settings2,
+      active: location.pathname.includes("/dashboard/global-settings"),
+      showFor: ["admin"],
+      module: "Global Settings",
     }
   ];
 
@@ -564,14 +565,17 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
   const getAccessibleRoutes = () => {
     const userRole = localStorage.getItem("role") || "user";
     const username = localStorage.getItem("user-name");
-    const isSuperAdminUser = (username || "").toLowerCase() === "admin";
+    const isSuperAdminUser = (username || "").toLowerCase() === "admin" || (userRole || "").toLowerCase() === "superadmin";
     const hasCustomPermissions = systemAccess && systemAccess.length > 0;
     
     return routes
       .filter((route) => {
         const userRoleNormalized = (userRole || "user").toLowerCase();
         
-        if (isSuperAdminUser) return true;
+        if (isSuperAdminUser) {
+            if (route.label === "My Profile") return false;
+            return true;
+        }
 
         if (hasCustomPermissions) {
            if (route.module === "Profile") return true; 
@@ -897,7 +901,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                   }, {})
                 ).map(([moduleName, moduleRoutes]) => (
                   <div key={moduleName} className="mb-4">
-                    {moduleName === "Profile" || moduleName === "Global Settings" ? (
+                    {moduleName === "Profile" || moduleName === "Global Settings" || moduleName === "Rent Management" ? (
                       <Link
                         to={moduleRoutes[0].href}
                         onClick={() => setIsMobileMenuOpen(false)}
@@ -909,6 +913,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                         <div className="flex items-center gap-3 overflow-hidden">
                           {moduleName === "Profile" && <UserRound className="h-5 w-5 shrink-0" />}
                           {moduleName === "Global Settings" && <Settings2 className="h-5 w-5 shrink-0" />}
+                          {moduleName === "Rent Management" && <Banknote className="h-5 w-5 shrink-0" />}
                           <span className="text-left leading-tight truncate">{moduleName}</span>
                         </div>
                       </Link>
@@ -932,7 +937,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                         )}
                       </button>
                     )}
-                    {moduleName !== "Profile" && openModules[moduleName] && moduleRoutes.map((route) => (
+                    {moduleName !== "Profile" && moduleName !== "Global Settings" && moduleName !== "Rent Management" && openModules[moduleName] && moduleRoutes.map((route) => (
                       <li key={route.label}>
                     {route.isSubmenu ? (
                       <div className="flex flex-col">
