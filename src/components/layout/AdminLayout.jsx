@@ -648,7 +648,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
           >
             <img src={jbtLogo} alt="JBT Logo" className="h-9 w-auto object-contain shrink-0" />
             <span className="text-sm font-bold tracking-tight leading-tight text-slate-800 whitespace-nowrap">
-              Jay Bhole
+              Jai Bhole
             </span>
           </Link>
         </div>
@@ -886,7 +886,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
               >
                 <img src={jbtLogo} alt="JBT Logo" className="h-9 w-auto object-contain shrink-0" />
                 <span className="text-sm font-bold tracking-tight leading-tight text-slate-800 whitespace-nowrap">
-                  Jay Bhole
+                  Jai Bhole
                 </span>
               </Link>
             </div>

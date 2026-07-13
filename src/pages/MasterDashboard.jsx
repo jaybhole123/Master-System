@@ -17,7 +17,7 @@ export default function MasterDashboard() {
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-500/20 rounded-full blur-2xl translate-y-1/2 -translate-x-1/4"></div>
           
           <div className="relative z-10">
-            <h1 className="text-3xl md:text-4xl font-black mb-2">Welcome to Jay Bhole, {username}!</h1>
+            <h1 className="text-3xl md:text-4xl font-black mb-2">Welcome to Jai Bhole, {username}!</h1>
             <p className="text-blue-100 text-lg max-w-2xl">
               Access your modules securely from one central hub. Select a module below to manage your operations.
             </p>
