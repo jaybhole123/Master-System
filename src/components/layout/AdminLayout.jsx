@@ -281,16 +281,22 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       const role = (userRole || "").toLowerCase();
       const isAdmin = role === "admin" || username.toLowerCase() === "admin";
       
+      const endOfToday = new Date();
+      endOfToday.setHours(23, 59, 59, 999);
+      const endOfTodayISO = endOfToday.toISOString();
+
       // Checklist Count
       let chkQuery = supabase.from('checklist').select('*', { count: 'exact', head: true })
           .is('submission_date', null)
-          .is('status', null);
+          .is('status', null)
+          .lte('task_start_date', endOfTodayISO);
       if (!isAdmin) chkQuery = chkQuery.ilike('name', username);
       const { count: checklistCount } = await chkQuery;
 
       // Delegation Count
       let delQuery = supabase.from('delegation').select('*', { count: 'exact', head: true })
-          .or('submission_date.is.null,status.neq.done');
+          .or('submission_date.is.null,status.neq.done')
+          .lte('task_start_date', endOfTodayISO);
       if (!isAdmin) delQuery = delQuery.ilike('name', username);
       const { count: delegationCount } = await delQuery;
 
