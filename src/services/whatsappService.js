@@ -828,11 +828,11 @@ export const sendCustomNotificationReminder = async (notificationDetails) => {
         const { phone, name, subject, message, date } = notificationDetails;
         if (!phone) return false;
 
-        // Template: custom_reminder_alert
+        // Template: notification_reminder
         // Variables: {{1}} Name, {{2}} Subject, {{3}} Date, {{4}} Message
         return await sendWhatsAppTemplate(
             phone,
-            'custom_reminder_alert',
+            'notification_reminder',
             [name, subject, date, message],
             'en'
         );
