@@ -43,7 +43,21 @@ const RentManagement = () => {
     due_date: '',
     method: 'CASH',
     month: currentMonth,
-    document: null
+    document: null,
+    owner_name: '',
+    monthly_rent: '',
+    security_deposit: '',
+    agreement_start: '',
+    agreement_end: '',
+    rent_due_date: '',
+    payment_mode: 'CASH',
+    last_rent_received: '',
+    payment_status: '',
+    rent_revision_date: '',
+    electricity: '',
+    maintenance: '',
+    remarks: '',
+    broker_number: ''
   });
   
   // Initialize data from Supabase
@@ -118,7 +132,21 @@ const RentManagement = () => {
       due_date: formData.due_date,
       method: formData.method,
       month: formData.month,
-      document_url: formData.document
+      document_url: formData.document,
+      owner_name: formData.owner_name,
+      monthly_rent: formData.monthly_rent || null,
+      security_deposit: formData.security_deposit || null,
+      agreement_start: formData.agreement_start || null,
+      agreement_end: formData.agreement_end || null,
+      rent_due_date: formData.rent_due_date || null,
+      payment_mode: formData.payment_mode,
+      last_rent_received: formData.last_rent_received || null,
+      payment_status: formData.payment_status,
+      rent_revision_date: formData.rent_revision_date || null,
+      electricity: formData.electricity || null,
+      maintenance: formData.maintenance || null,
+      remarks: formData.remarks,
+      broker_number: formData.broker_number
     };
 
     if (editingId) {
@@ -144,9 +172,8 @@ const RentManagement = () => {
       }
     }
     
-    setIsModalOpen(false);
     setEditingId(null);
-    setFormData({ place: '', name: '', phone: '', date: '', due_date: '', method: 'CASH', month: selectedMonth === 'ALL' ? currentMonth : selectedMonth, document: null });
+    setFormData({ place: '', name: '', phone: '', date: '', due_date: '', method: 'CASH', month: selectedMonth === 'ALL' ? currentMonth : selectedMonth, document: null, owner_name: '', monthly_rent: '', security_deposit: '', agreement_start: '', agreement_end: '', rent_due_date: '', payment_mode: 'CASH', last_rent_received: '', payment_status: '', rent_revision_date: '', electricity: '', maintenance: '', remarks: '', broker_number: '' });
   };
 
   const handleFileChange = (e) => {
@@ -172,7 +199,21 @@ const RentManagement = () => {
       due_date: record.due_date || '',
       method: record.method,
       month: record.month,
-      document: record.document || null
+      document: record.document || null,
+      owner_name: record.owner_name || '',
+      monthly_rent: record.monthly_rent || '',
+      security_deposit: record.security_deposit || '',
+      agreement_start: record.agreement_start || '',
+      agreement_end: record.agreement_end || '',
+      rent_due_date: record.rent_due_date || '',
+      payment_mode: record.payment_mode || 'CASH',
+      last_rent_received: record.last_rent_received || '',
+      payment_status: record.payment_status || '',
+      rent_revision_date: record.rent_revision_date || '',
+      electricity: record.electricity || '',
+      maintenance: record.maintenance || '',
+      remarks: record.remarks || '',
+      broker_number: record.broker_number || ''
     });
     setIsModalOpen(true);
   };
@@ -275,7 +316,7 @@ const RentManagement = () => {
             <button 
               onClick={() => {
                 setEditingId(null);
-                setFormData({ place: '', name: '', phone: '', date: '', due_date: '', method: 'CASH', month: selectedMonth === 'ALL' ? currentMonth : selectedMonth, document: null });
+                setFormData({ place: '', name: '', phone: '', date: '', due_date: '', method: 'CASH', month: selectedMonth === 'ALL' ? currentMonth : selectedMonth, document: null, owner_name: '', monthly_rent: '', security_deposit: '', agreement_start: '', agreement_end: '', rent_due_date: '', payment_mode: 'CASH', last_rent_received: '', payment_status: '', rent_revision_date: '', electricity: '', maintenance: '', remarks: '', broker_number: '' });
                 setIsModalOpen(true);
               }}
               className="w-full sm:w-auto justify-center flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium shadow-sm shadow-red-600/20"
@@ -450,15 +491,27 @@ const RentManagement = () => {
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200">
-                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Place</th>
-                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Name</th>
-                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Phone No.</th>
-                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Date</th>
-                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Due Date</th>
-                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Document</th>
-                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Payment Method</th>
-                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Actions</th>
+                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Place</th>
+                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Name</th>
+                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Owner Name</th>
+                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Phone No.</th>
+                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Monthly Rent</th>
+                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Sec. Deposit</th>
+                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Date</th>
+                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Agrmnt. Start</th>
+                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Agrmnt. End</th>
+                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Due Date</th>
+                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Payment Method</th>
+                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Last Received</th>
+                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Pay Status</th>
+                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Rev. Date</th>
+                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Electricity</th>
+                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Maintenance</th>
+                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Remarks</th>
+                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Broker No.</th>
+                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Document</th>
+                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Status</th>
+                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200">
@@ -472,7 +525,16 @@ const RentManagement = () => {
                             <div className="text-slate-700">{record.name}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-slate-700">{record.owner_name || '-'}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-slate-600 font-mono text-sm">{record.phone}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-slate-700 font-medium">{record.monthly_rent ? `₹${record.monthly_rent}` : '-'}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-slate-700 font-medium">{record.security_deposit ? `₹${record.security_deposit}` : '-'}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="inline-flex items-center px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 text-xs font-medium">
@@ -480,19 +542,15 @@ const RentManagement = () => {
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-slate-700 text-sm">{record.agreement_start || '-'}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-slate-700 text-sm">{record.agreement_end || '-'}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
                             <div className="inline-flex items-center px-2.5 py-1 rounded-md bg-orange-50 text-orange-700 border border-orange-200/50 text-xs font-medium">
                               {record.due_date || 'N/A'}
                             </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            {record.document ? (
-                              <a href={record.document} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-red-600 hover:text-red-800 text-xs font-medium">
-                                <FileText className="h-3.5 w-3.5" />
-                                View
-                              </a>
-                            ) : (
-                              <span className="text-slate-400 text-xs italic">No doc</span>
-                            )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             {record.method ? (
@@ -505,6 +563,37 @@ const RentManagement = () => {
                               </span>
                             ) : (
                               <span className="text-slate-400 text-xs italic">N/A</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-slate-700 text-sm">{record.last_rent_received || '-'}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-slate-700 text-sm">{record.payment_status || '-'}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-slate-700 text-sm">{record.rent_revision_date || '-'}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-slate-700 text-sm font-medium">{record.electricity ? `₹${record.electricity}` : '-'}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-slate-700 text-sm font-medium">{record.maintenance ? `₹${record.maintenance}` : '-'}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-slate-700 text-sm max-w-[150px] truncate" title={record.remarks}>{record.remarks || '-'}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-slate-700 text-sm">{record.broker_number || '-'}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {record.document ? (
+                              <a href={record.document} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-red-600 hover:text-red-800 text-xs font-medium">
+                                <FileText className="h-3.5 w-3.5" />
+                                View
+                              </a>
+                            ) : (
+                              <span className="text-slate-400 text-xs italic">No doc</span>
                             )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -582,7 +671,7 @@ const RentManagement = () => {
       {/* Add Record Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
               <h3 className="text-lg font-bold text-slate-800">{editingId ? 'Edit Rent Record' : 'Add Rent Record'}</h3>
               <button 
@@ -673,6 +762,69 @@ const RentManagement = () => {
                     <option value="ONLINE">ONLINE</option>
                     <option value="ADV.">ADV.</option>
                   </select>
+                </div>
+              </div>
+
+              {/* New Additional Fields */}
+              <div className="border-t border-slate-200 pt-4 mt-4">
+                <h4 className="text-sm font-bold text-slate-800 mb-4">Additional Details</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-700">Owner/Landlord Name</label>
+                    <input type="text" value={formData.owner_name} onChange={(e) => setFormData({...formData, owner_name: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-700">Monthly Rent</label>
+                    <input type="number" value={formData.monthly_rent} onChange={(e) => setFormData({...formData, monthly_rent: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-700">Security Deposit</label>
+                    <input type="number" value={formData.security_deposit} onChange={(e) => setFormData({...formData, security_deposit: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-700">Agreement Start</label>
+                    <input type="date" value={formData.agreement_start} onChange={(e) => setFormData({...formData, agreement_start: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-700">Agreement End</label>
+                    <input type="date" value={formData.agreement_end} onChange={(e) => setFormData({...formData, agreement_end: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-700">Rent Due Date</label>
+                    <input type="date" value={formData.rent_due_date} onChange={(e) => setFormData({...formData, rent_due_date: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-700">Payment Mode</label>
+                    <input type="text" value={formData.payment_mode} onChange={(e) => setFormData({...formData, payment_mode: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-700">Last Rent Received</label>
+                    <input type="date" value={formData.last_rent_received} onChange={(e) => setFormData({...formData, last_rent_received: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-700">Payment Status</label>
+                    <input type="text" value={formData.payment_status} onChange={(e) => setFormData({...formData, payment_status: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-700">Rent Revision Date</label>
+                    <input type="date" value={formData.rent_revision_date} onChange={(e) => setFormData({...formData, rent_revision_date: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-700">Electricity</label>
+                    <input type="number" value={formData.electricity} onChange={(e) => setFormData({...formData, electricity: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-700">Maintenance</label>
+                    <input type="number" value={formData.maintenance} onChange={(e) => setFormData({...formData, maintenance: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-700">Remarks</label>
+                    <input type="text" value={formData.remarks} onChange={(e) => setFormData({...formData, remarks: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-700">Broker Number</label>
+                    <input type="text" value={formData.broker_number} onChange={(e) => setFormData({...formData, broker_number: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500" />
+                  </div>
                 </div>
               </div>
 
