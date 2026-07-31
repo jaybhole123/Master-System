@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useAuthStore } from '../store/authStore';
-import { supabase } from '../lib/supabase';
+import supabase from '../../../SupabaseClient';
 import { isDateInRange } from '../utils/helpers';
 import { Download, Calendar, FileText } from 'lucide-react';
 import jsPDF from 'jspdf';
@@ -60,7 +60,7 @@ export default function Summary() {
     });
     // Apply filters first
     const filtered = ledgerData.filter(entry => {
-      if (user?.role !== 'ADMIN' && entry.personName !== user?.name) {
+      if (user && user.role !== 'ADMIN' && entry.personName && entry.personName.toLowerCase() !== (user.name || '').toLowerCase()) {
         return false;
       }
       if (filters.dateFrom || filters.dateTo) {
@@ -68,7 +68,7 @@ export default function Summary() {
           return false;
         }
       }
-      if (filters.personName && entry.personName !== filters.personName) {
+      if (filters.personName && entry.personName && entry.personName.toLowerCase() !== filters.personName.toLowerCase()) {
         return false;
       }
       return true;

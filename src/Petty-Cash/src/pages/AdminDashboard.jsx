@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { TrendingUp, TrendingDown, AlertCircle, Eye, ChevronLeft, ChevronRight, Search, Filter } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import supabase from '../../../SupabaseClient';
 import {
   formatDate,
   formatCurrency,

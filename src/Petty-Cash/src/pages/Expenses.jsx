@@ -2,7 +2,7 @@ import React, { useState, useRef, useMemo, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { Upload, X, Eye, Check, XCircle, Plus, Search, ChevronLeft, ChevronRight, Calendar, Filter } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
-import { supabase } from '../lib/supabase';
+import supabase from '../../../SupabaseClient';
 import {
   generateId,
   generateSerialNumber,

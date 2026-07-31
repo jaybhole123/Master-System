@@ -191,28 +191,6 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-
-      <div className="card">
-        <h3>Recent Activities</h3>
-        <div style={{ marginTop: '16px' }}>
-          {loading ? (
-            <p style={{ color: 'var(--text-secondary, #6b7280)' }}>Loading activities...</p>
-          ) : metrics.recentActivities.length > 0 ? (
-            metrics.recentActivities.map((act, idx) => (
-              <p key={idx} style={{ 
-                color: 'var(--text-secondary, #6b7280)', 
-                padding: '12px 0', 
-                borderBottom: idx < metrics.recentActivities.length - 1 ? '1px solid var(--border-color, #e5e7eb)' : 'none', 
-                margin: 0 
-              }}>
-                {act.text} <span style={{fontSize: '0.85em', opacity: 0.7, marginLeft: '8px'}}>{act.date.toLocaleDateString()}</span>
-              </p>
-            ))
-          ) : (
-            <p style={{ color: 'var(--text-secondary, #6b7280)' }}>No recent activities found.</p>
-          )}
-        </div>
-      </div>
     </div>
   );
 }

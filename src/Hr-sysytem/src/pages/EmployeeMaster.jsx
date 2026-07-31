@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
-import { Plus, X, Pencil, Trash2, Loader } from 'lucide-react';
+import { Plus, X, Pencil, Trash2, Loader, GripVertical } from 'lucide-react';
 
 const DocumentPreview = ({ file, url, onPreview }) => {
   if (!file && !url) return null;
@@ -27,7 +27,81 @@ export default function EmployeeMaster() {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  
+
+  // Drag scroll and row reordering states
+  const tableRef = useRef(null);
+  const [isMouseDown, setIsMouseDown] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
+  const [draggedIndex, setDraggedIndex] = useState(null);
+
+  const handleMouseDown = (e) => {
+    if (['BUTTON', 'INPUT', 'A', 'SVG', 'PATH'].includes(e.target.tagName)) return;
+    if (!tableRef.current) return;
+    setIsMouseDown(true);
+    setStartX(e.pageX - tableRef.current.offsetLeft);
+    setScrollLeft(tableRef.current.scrollLeft);
+  };
+
+  const handleMouseLeave = () => {
+    setIsMouseDown(false);
+  };
+
+  const handleMouseUp = () => {
+    setIsMouseDown(false);
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isMouseDown || !tableRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - tableRef.current.offsetLeft;
+    const walk = (x - startX) * 1.5;
+    tableRef.current.scrollLeft = scrollLeft - walk;
+  };
+
+  const handleDragStart = (e, index) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const applySavedOrder = (dataList) => {
+    try {
+      const savedOrder = localStorage.getItem('hr_employeemaster_row_order');
+      if (!savedOrder) return dataList;
+      const orderIds = JSON.parse(savedOrder);
+      const map = new Map(dataList.map(e => [e.id, e]));
+      const result = [];
+      orderIds.forEach(id => {
+        if (map.has(id)) {
+          result.push(map.get(id));
+          map.delete(id);
+        }
+      });
+      return [...result, ...Array.from(map.values())];
+    } catch (e) {
+      return dataList;
+    }
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === index) return;
+    const newEmployees = [...employees];
+    const draggedItem = newEmployees[draggedIndex];
+    newEmployees.splice(draggedIndex, 1);
+    newEmployees.splice(index, 0, draggedItem);
+    setDraggedIndex(index);
+    setEmployees(newEmployees);
+    try {
+      const orderIds = newEmployees.map(emp => emp.id);
+      localStorage.setItem('hr_employeemaster_row_order', JSON.stringify(orderIds));
+    } catch (err) {}
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+  };
+
   // Edit state
   const [editingId, setEditingId] = useState(null);
 
@@ -93,7 +167,7 @@ export default function EmployeeMaster() {
         .order('created_at', { ascending: false });
         
       if (error) throw error;
-      setEmployees(data || []);
+      setEmployees(applySavedOrder(data || []));
     } catch (error) {
       console.error('Error fetching employees:', error);
       toast.error('Failed to load employees');
@@ -354,10 +428,24 @@ export default function EmployeeMaster() {
           />
         </div>
         
-        <div style={{ overflowX: 'auto' }}>
+        <div 
+          ref={tableRef}
+          onMouseDown={handleMouseDown}
+          onMouseLeave={handleMouseLeave}
+          onMouseUp={handleMouseUp}
+          onMouseMove={handleMouseMove}
+          style={{ 
+            overflowX: 'auto', 
+            maxHeight: 'calc(100vh - 280px)',
+            overflowY: 'auto',
+            cursor: isMouseDown ? 'grabbing' : 'grab',
+            userSelect: isMouseDown ? 'none' : 'auto'
+          }}
+        >
           <table>
             <thead>
               <tr>
+                <th style={{ width: '28px' }}></th>
                 <th>Emp ID</th>
                 <th>Name</th>
                 <th>Phone Number</th>
@@ -383,8 +471,22 @@ export default function EmployeeMaster() {
                   );
                 });
 
-                return filteredEmployees.length > 0 ? filteredEmployees.map(emp => (
-                <tr key={emp.id}>
+                return filteredEmployees.length > 0 ? filteredEmployees.map((emp, idx) => (
+                <tr 
+                  key={emp.id}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, idx)}
+                  onDragOver={(e) => handleDragOver(e, idx)}
+                  onDragEnd={handleDragEnd}
+                  style={{
+                    opacity: draggedIndex === idx ? 0.4 : 1,
+                    backgroundColor: draggedIndex === idx ? '#f0f4ff' : undefined,
+                    transition: 'background-color 0.15s ease'
+                  }}
+                >
+                  <td style={{ cursor: 'grab', color: '#9ca3af', paddingRight: '4px', textAlign: 'center' }} title="Drag to reorder">
+                    <GripVertical size={16} />
+                  </td>
                   <td>{emp.employee_id}</td>
                   <td style={{ fontWeight: 500 }}>{emp.user_name}</td>
                   <td>{emp.number || '-'}</td>

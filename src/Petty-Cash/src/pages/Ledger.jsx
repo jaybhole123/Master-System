@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Download, Search, ChevronLeft, ChevronRight, Calendar, Filter } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
-import { supabase } from '../lib/supabase';
+import supabase from '../../../SupabaseClient';
 import { formatDate, formatCurrency, isDateInRange } from '../utils/helpers';
 
 const DEFAULT_USERS = [

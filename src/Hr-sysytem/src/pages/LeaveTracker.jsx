@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useEmployees } from '../hooks/useEmployees';
 import { supabase } from '../lib/supabase';
-import { Plus, X, Save, Loader, Edit, Trash2 } from 'lucide-react';
+import { Plus, X, Save, Loader, Edit, Trash2, GripVertical } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -20,6 +20,76 @@ export default function LeaveTracker() {
   
   // Reject Modal State
   const [rejectModalData, setRejectModalData] = useState({ reqId: null, reason: '' });
+
+  // Drag scroll & row reordering state
+  const tableRef = useRef(null);
+  const reqTableRef = useRef(null);
+  const [isMouseDown, setIsMouseDown] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
+  const [draggedIndex, setDraggedIndex] = useState(null);
+  const [orderedEmpIds, setOrderedEmpIds] = useState(() => {
+    try {
+      const saved = localStorage.getItem('hr_leavetracker_row_order');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  const handleMouseDown = (e, ref) => {
+    if (['BUTTON', 'INPUT', 'A', 'SVG', 'PATH', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
+    if (!ref.current) return;
+    setIsMouseDown(true);
+    setStartX(e.pageX - ref.current.offsetLeft);
+    setScrollLeft(ref.current.scrollLeft);
+  };
+
+  const handleMouseLeave = () => setIsMouseDown(false);
+  const handleMouseUp = () => setIsMouseDown(false);
+  const handleMouseMove = (e, ref) => {
+    if (!isMouseDown || !ref.current) return;
+    e.preventDefault();
+    const x = e.pageX - ref.current.offsetLeft;
+    const walk = (x - startX) * 1.5;
+    ref.current.scrollLeft = scrollLeft - walk;
+  };
+
+  const handleDragStart = (e, index) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === index) return;
+    const currentList = sortedEmployees.map(r => r.id);
+    const item = currentList[draggedIndex];
+    currentList.splice(draggedIndex, 1);
+    currentList.splice(index, 0, item);
+    setDraggedIndex(index);
+    setOrderedEmpIds(currentList);
+    try {
+      localStorage.setItem('hr_leavetracker_row_order', JSON.stringify(currentList));
+    } catch (err) {}
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+  };
+
+  const sortedEmployees = useMemo(() => {
+    if (!orderedEmpIds || orderedEmpIds.length === 0) return employees;
+    const map = new Map(employees.map(e => [e.id, e]));
+    const result = [];
+    orderedEmpIds.forEach(id => {
+      if (map.has(id)) {
+        result.push(map.get(id));
+        map.delete(id);
+      }
+    });
+    return [...result, ...Array.from(map.values())];
+  }, [employees, orderedEmpIds]);
 
   useEffect(() => {
     fetchLeaveData();
@@ -344,10 +414,24 @@ export default function LeaveTracker() {
               LEAVE BALANCE
             </div>
           
-          <div style={{ overflow: 'auto', maxHeight: 'calc(100vh - 300px)', paddingBottom: '12px' }}>
+          <div 
+            ref={tableRef}
+            onMouseDown={(e) => handleMouseDown(e, tableRef)}
+            onMouseLeave={handleMouseLeave}
+            onMouseUp={handleMouseUp}
+            onMouseMove={(e) => handleMouseMove(e, tableRef)}
+            style={{ 
+              overflow: 'auto', 
+              maxHeight: 'calc(100vh - 300px)', 
+              paddingBottom: '12px',
+              cursor: isMouseDown ? 'grabbing' : 'grab',
+              userSelect: isMouseDown ? 'none' : 'auto'
+            }}
+          >
             <table style={{ minWidth: '1000px', borderCollapse: 'collapse', margin: '0' }}>
               <thead style={{ position: 'sticky', top: 0, zIndex: 10, boxShadow: '0 2px 4px -2px rgba(0,0,0,0.1)' }}>
                 <tr>
+                  <th rowSpan="2" style={{...thStyle, width: '28px', position: 'sticky', top: 0, zIndex: 11, backgroundColor: 'var(--bg-main)', borderBottom: '1px solid var(--border-color)'}}></th>
                   <th rowSpan="2" style={{...thStyle, width: '60px', position: 'sticky', top: 0, zIndex: 11, backgroundColor: 'var(--bg-main)', borderBottom: '1px solid var(--border-color)'}}>Sr. No.</th>
                   <th rowSpan="2" style={{...thStyle, textAlign: 'left', minWidth: '200px', position: 'sticky', top: 0, zIndex: 11, backgroundColor: 'var(--bg-main)', borderBottom: '1px solid var(--border-color)'}}>Employee Name</th>
                   <th colSpan="3" style={{ ...thStyle, backgroundColor: '#eff6ff', color: 'var(--primary-color)', padding: '10px', borderBottom: '2px solid var(--primary-color)', position: 'sticky', top: 0, zIndex: 11 }}>Casual Leave (CL)</th>
@@ -362,8 +446,8 @@ export default function LeaveTracker() {
                 </tr>
               </thead>
               <tbody>
-                {employees.length > 0 ? (
-                  employees.map((emp, idx) => {
+                {sortedEmployees.length > 0 ? (
+                  sortedEmployees.map((emp, idx) => {
                     const allot = leaveAllotments[emp.id] || { cl: 0, sl: 0, el: 0 };
                     const taken = getTakenLeaves(emp.id);
                     const bal = {
@@ -374,7 +458,21 @@ export default function LeaveTracker() {
                     const totalBal = bal.cl + bal.sl + bal.el;
 
                     return (
-                      <tr key={emp.id} style={{ backgroundColor: idx % 2 === 0 ? 'var(--bg-card)' : 'rgba(0,0,0,0.02)' }}>
+                      <tr 
+                        key={emp.id} 
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, idx)}
+                        onDragOver={(e) => handleDragOver(e, idx)}
+                        onDragEnd={handleDragEnd}
+                        style={{ 
+                          backgroundColor: idx % 2 === 0 ? 'var(--bg-card)' : 'rgba(0,0,0,0.02)',
+                          opacity: draggedIndex === idx ? 0.4 : 1,
+                          transition: 'background-color 0.15s ease'
+                        }}
+                      >
+                        <td style={{ ...tdStyle, textAlign: 'center', color: '#9ca3af', cursor: 'grab', paddingRight: '4px' }} title="Drag to reorder">
+                          <GripVertical size={16} />
+                        </td>
                         <td style={{...tdStyle, color: 'var(--text-secondary)'}}>{idx + 1}</td>
                         <td style={{...tdStyle, textAlign: 'left', fontWeight: 600, color: 'var(--text-primary)'}}>{emp.name}</td>
                         
@@ -404,7 +502,7 @@ export default function LeaveTracker() {
                     );
                   })
                 ) : (
-                  <tr><td colSpan="12" style={{ textAlign: 'center', padding: '32px', color: 'var(--text-secondary)' }}>No employees found.</td></tr>
+                  <tr><td colSpan="13" style={{ textAlign: 'center', padding: '32px', color: 'var(--text-secondary)' }}>No employees found.</td></tr>
                 )}
               </tbody>
             </table>
@@ -436,7 +534,19 @@ export default function LeaveTracker() {
               LEAVE REQUESTS
             </div>
             
-            <div style={{ overflow: 'auto', maxHeight: 'calc(100vh - 280px)' }}>
+            <div 
+              ref={reqTableRef}
+              onMouseDown={(e) => handleMouseDown(e, reqTableRef)}
+              onMouseLeave={handleMouseLeave}
+              onMouseUp={handleMouseUp}
+              onMouseMove={(e) => handleMouseMove(e, reqTableRef)}
+              style={{ 
+                overflow: 'auto', 
+                maxHeight: 'calc(100vh - 280px)',
+                cursor: isMouseDown ? 'grabbing' : 'grab',
+                userSelect: isMouseDown ? 'none' : 'auto'
+              }}
+            >
               <table style={{ width: '100%', borderCollapse: 'collapse', margin: '0' }}>
                 <thead style={{ position: 'sticky', top: 0, zIndex: 10, boxShadow: '0 2px 4px -2px rgba(0,0,0,0.1)' }}>
                   <tr>

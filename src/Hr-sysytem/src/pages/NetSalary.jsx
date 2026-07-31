@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useEmployees } from '../hooks/useEmployees';
 import { supabase } from '../lib/supabase';
-import { Loader } from 'lucide-react';
+import { Loader, GripVertical } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function NetSalary() {
@@ -12,6 +12,62 @@ export default function NetSalary() {
   const [loading, setLoading] = useState(true);
   
   const [activeTab, setActiveTab] = useState('Sheet');
+
+  // Drag scroll & row reorder state
+  const tableRef = useRef(null);
+  const [isMouseDown, setIsMouseDown] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
+  const [draggedIndex, setDraggedIndex] = useState(null);
+  const [orderedIds, setOrderedIds] = useState(() => {
+    try {
+      const saved = localStorage.getItem('hr_netsalary_row_order');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  const handleMouseDown = (e) => {
+    if (['BUTTON', 'INPUT', 'A', 'SVG', 'PATH'].includes(e.target.tagName)) return;
+    if (!tableRef.current) return;
+    setIsMouseDown(true);
+    setStartX(e.pageX - tableRef.current.offsetLeft);
+    setScrollLeft(tableRef.current.scrollLeft);
+  };
+
+  const handleMouseLeave = () => setIsMouseDown(false);
+  const handleMouseUp = () => setIsMouseDown(false);
+  const handleMouseMove = (e) => {
+    if (!isMouseDown || !tableRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - tableRef.current.offsetLeft;
+    const walk = (x - startX) * 1.5;
+    tableRef.current.scrollLeft = scrollLeft - walk;
+  };
+
+  const handleDragStart = (e, index) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === index) return;
+    const currentList = records.map(r => r.id);
+    const item = currentList[draggedIndex];
+    currentList.splice(draggedIndex, 1);
+    currentList.splice(index, 0, item);
+    setDraggedIndex(index);
+    setOrderedIds(currentList);
+    try {
+      localStorage.setItem('hr_netsalary_row_order', JSON.stringify(currentList));
+    } catch (err) {}
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+  };
 
   const isDataLoading = loading || empLoading;
 
@@ -60,36 +116,51 @@ export default function NetSalary() {
     fetchData();
   }, []);
 
-  const records = employees.map(emp => {
-    const sal = salaries[emp.id] || { basic: 0, hra: 0, allowances: 0, profTax: 0, otherDeductions: 0, paymentStatus: 'Pending', bankAccount: '', pfApplicable: true, esicApplicable: true };
-    const gross = sal.basic + sal.hra + sal.allowances;
-    
-    // Deductions
-    const pfDeduction = sal.pfApplicable ? (sal.basic * (settings.pf / 100)) : 0;
-    const esicDeduction = sal.esicApplicable ? (gross * (settings.esic / 100)) : 0;
-    const ptax = sal.profTax || 0;
-    const otherDeduct = sal.otherDeductions || 0;
-    const totalDeductions = pfDeduction + esicDeduction + ptax + otherDeduct;
-    
-    const net = gross - totalDeductions;
+  const baseRecords = useMemo(() => {
+    return employees.map(emp => {
+      const sal = salaries[emp.id] || { basic: 0, hra: 0, allowances: 0, profTax: 0, otherDeductions: 0, paymentStatus: 'Pending', bankAccount: '', pfApplicable: true, esicApplicable: true };
+      const gross = sal.basic + sal.hra + sal.allowances;
+      
+      // Deductions
+      const pfDeduction = sal.pfApplicable ? (sal.basic * (settings.pf / 100)) : 0;
+      const esicDeduction = sal.esicApplicable ? (gross * (settings.esic / 100)) : 0;
+      const ptax = sal.profTax || 0;
+      const otherDeduct = sal.otherDeductions || 0;
+      const totalDeductions = pfDeduction + esicDeduction + ptax + otherDeduct;
+      
+      const net = gross - totalDeductions;
 
-    return {
-      id: emp.id,
-      name: emp.name,
-      gross,
-      deductions: totalDeductions,
-      net: net > 0 ? net : 0,
-      paymentStatus: sal.paymentStatus || 'Pending',
-      bankAccount: sal.bankAccount || emp.accountNo || '',
-      breakdown: {
-        sal,
-        pfDeduction,
-        esicDeduction,
-        ptax,
-        empOtherDeductions: otherDeduct
+      return {
+        id: emp.id,
+        name: emp.name,
+        gross,
+        deductions: totalDeductions,
+        net: net > 0 ? net : 0,
+        paymentStatus: sal.paymentStatus || 'Pending',
+        bankAccount: sal.bankAccount || emp.accountNo || '',
+        breakdown: {
+          sal,
+          pfDeduction,
+          esicDeduction,
+          ptax,
+          empOtherDeductions: otherDeduct
+        }
+      };
+    });
+  }, [employees, salaries, settings]);
+
+  const records = useMemo(() => {
+    if (!orderedIds || orderedIds.length === 0) return baseRecords;
+    const map = new Map(baseRecords.map(r => [r.id, r]));
+    const result = [];
+    orderedIds.forEach(id => {
+      if (map.has(id)) {
+        result.push(map.get(id));
+        map.delete(id);
       }
-    };
-  });
+    });
+    return [...result, ...Array.from(map.values())];
+  }, [baseRecords, orderedIds]);
 
   // Calculations
   const totalGross = records.reduce((acc, curr) => acc + curr.gross, 0);
@@ -216,10 +287,24 @@ export default function NetSalary() {
             </div>
           </div>
 
-          <div style={{ overflow: 'auto', maxHeight: 'calc(100vh - 280px)', paddingBottom: '12px' }}>
+          <div 
+            ref={tableRef}
+            onMouseDown={handleMouseDown}
+            onMouseLeave={handleMouseLeave}
+            onMouseUp={handleMouseUp}
+            onMouseMove={handleMouseMove}
+            style={{ 
+              overflow: 'auto', 
+              maxHeight: 'calc(100vh - 280px)', 
+              paddingBottom: '12px',
+              cursor: isMouseDown ? 'grabbing' : 'grab',
+              userSelect: isMouseDown ? 'none' : 'auto'
+            }}
+          >
             <table style={{ minWidth: '1500px', borderCollapse: 'collapse', margin: '0' }}>
               <thead style={{ position: 'sticky', top: 0, zIndex: 10, boxShadow: '0 2px 4px -2px rgba(0,0,0,0.1)' }}>
                 <tr>
+                  <th style={{...thStyle, width: '28px'}}></th>
                   <th style={{...thStyle, width: '60px'}}>Sr. No.</th>
                   <th style={thStyle}>Employee Name</th>
                   <th style={thStyle}>Designation</th>
@@ -245,7 +330,22 @@ export default function NetSalary() {
                     const otherDeduct = rec.breakdown.empOtherDeductions || 0;
 
                     return (
-                      <tr key={rec.id} style={{ backgroundColor: idx % 2 === 0 ? 'var(--bg-card)' : 'rgba(0,0,0,0.02)' }}>
+                      <tr 
+                        key={rec.id} 
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, idx)}
+                        onDragOver={(e) => handleDragOver(e, idx)}
+                        onDragEnd={handleDragEnd}
+                        style={{ 
+                          backgroundColor: idx % 2 === 0 ? 'var(--bg-card)' : 'rgba(0,0,0,0.02)',
+                          opacity: draggedIndex === idx ? 0.4 : 1,
+                          cursor: 'grab',
+                          transition: 'background-color 0.15s ease'
+                        }}
+                      >
+                        <td style={{ ...tdStyle, textAlign: 'center', color: '#9ca3af', cursor: 'grab', paddingRight: '4px' }} title="Drag to reorder">
+                          <GripVertical size={16} />
+                        </td>
                         <td style={{...tdStyle, textAlign: 'center', color: 'var(--text-secondary)'}}>{idx + 1}</td>
                         <td style={{...tdStyle, fontWeight: 500, color: 'var(--text-primary)'}}>{rec.name}</td>
                         <td style={{...tdStyle, color: 'var(--text-secondary)'}}>{emp.designation || '-'}</td>
@@ -267,11 +367,11 @@ export default function NetSalary() {
                     );
                   })
                 ) : (
-                  <tr><td colSpan="15" style={{ textAlign: 'center', padding: '32px', color: 'var(--text-secondary)' }}>No employees found to display salary data.</td></tr>
+                  <tr><td colSpan="16" style={{ textAlign: 'center', padding: '32px', color: 'var(--text-secondary)' }}>No employees found to display salary data.</td></tr>
                 )}
                 {records.length > 0 && (
                   <tr style={{ backgroundColor: 'var(--bg-main)' }}>
-                    <td colSpan="3" style={{ border: '1px solid var(--border-color)', padding: '16px', textAlign: 'right', fontWeight: 600, fontSize: '0.95rem', color: 'var(--text-secondary)' }}>TOTAL</td>
+                    <td colSpan="4" style={{ border: '1px solid var(--border-color)', padding: '16px', textAlign: 'right', fontWeight: 600, fontSize: '0.95rem', color: 'var(--text-secondary)' }}>TOTAL</td>
                     <td style={{...tdNumStyle, border: '1px solid var(--border-color)', fontWeight: 600}}>₹ {totalBasic.toLocaleString(undefined, {maximumFractionDigits:2})}</td>
                     <td style={{...tdNumStyle, border: '1px solid var(--border-color)', fontWeight: 600}}>₹ {totalHra.toLocaleString(undefined, {maximumFractionDigits:2})}</td>
                     <td style={{...tdNumStyle, border: '1px solid var(--border-color)', fontWeight: 600}}>₹ {totalAllowances.toLocaleString(undefined, {maximumFractionDigits:2})}</td>
