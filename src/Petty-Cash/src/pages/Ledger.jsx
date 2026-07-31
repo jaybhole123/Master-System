@@ -34,7 +34,7 @@ export default function Ledger() {
   const [filters, setFilters] = useState({
     dateFrom: '',
     dateTo: '',
-    personName: user?.role === 'ADMIN' ? '' : user?.name,
+    personName: '',
     transactionType: '',
     searchQuery: ''
   });
@@ -45,6 +45,20 @@ export default function Ledger() {
   useEffect(() => {
     setCurrentPage(1);
   }, [filters]);
+
+  const uniquePersonNames = useMemo(() => {
+    const namesSet = new Set();
+    credits.forEach(c => {
+      const name = c.person_name || c.personName;
+      if (name) namesSet.add(name);
+    });
+    expenses.forEach(e => {
+      const name = e.person_name || e.personName;
+      if (name) namesSet.add(name);
+    });
+    DEFAULT_USERS.forEach(u => namesSet.add(u.name));
+    return Array.from(namesSet);
+  }, [credits, expenses]);
 
   const ledgerData = useMemo(() => {
     const entries = [];
@@ -60,7 +74,7 @@ export default function Ledger() {
       });
     });
 
-    expenses.filter(e => e.status === 'APPROVED').forEach(e => {
+    expenses.filter(e => !e.status || String(e.status).toUpperCase() === 'APPROVED').forEach(e => {
       entries.push({
         id: e.id,
         referenceId: e.sn || e.id,
@@ -93,11 +107,6 @@ export default function Ledger() {
 
   const filteredLedger = useMemo(() => {
     return ledgerData.filter(entry => {
-      // User can only see their own ledger
-      if (user?.role !== 'ADMIN' && entry.personName !== user?.name) {
-        return false;
-      }
-
       // Apply date filter
       if (filters.dateFrom || filters.dateTo) {
         if (!isDateInRange(entry.date, filters.dateFrom, filters.dateTo)) {
@@ -105,8 +114,8 @@ export default function Ledger() {
         }
       }
 
-      // Apply person filter
-      if (filters.personName && entry.personName !== filters.personName) {
+      // Apply person filter (case-insensitive)
+      if (filters.personName && entry.personName && entry.personName.toLowerCase() !== filters.personName.toLowerCase()) {
         return false;
       }
 
@@ -123,14 +132,15 @@ export default function Ledger() {
           (entry.date && entry.date.includes(q)) ||
           (entry.type && entry.type.toLowerCase().includes(q)) ||
           (entry.amount && String(entry.amount).toLowerCase().includes(q)) ||
-          (entry.referenceId && entry.referenceId.toLowerCase().includes(q))
+          (entry.referenceId && String(entry.referenceId).toLowerCase().includes(q)) ||
+          (entry.remarks && entry.remarks.toLowerCase().includes(q))
         );
         if (!match) return false;
       }
 
       return true;
     }).sort((a, b) => new Date(b.date) - new Date(a.date));
-  }, [ledgerData, filters, user]);
+  }, [ledgerData, filters]);
 
   const totalPages = Math.ceil(filteredLedger.length / itemsPerPage);
   const paginatedLedger = filteredLedger.slice(
@@ -238,22 +248,16 @@ export default function Ledger() {
                className="w-full bg-white border border-gray-300 rounded-lg lg:rounded px-2 py-1.5 focus:outline-none focus:border-indigo-500 text-[11px] md:text-sm h-[32px] md:h-[38px]"
              />
              <div className="w-full">
-               {user?.role === 'ADMIN' ? (
-                 <select
-                   value={filters.personName}
-                   onChange={(e) => setFilters({ ...filters, personName: e.target.value })}
-                   className="w-full bg-white border border-gray-300 rounded-lg lg:rounded px-2 py-1.5 focus:outline-none focus:border-indigo-500 text-[11px] md:text-sm h-[32px] md:h-[38px]"
-                 >
-                   <option value="">All Persons</option>
-                   {DEFAULT_USERS.map(u => (
-                     <option key={u.id} value={u.name}>{u.name}</option>
-                   ))}
-                 </select>
-               ) : (
-                 <div className="w-full border border-gray-200 bg-gray-50 rounded-lg lg:rounded px-2 py-1.5 text-[11px] md:text-sm text-gray-600 font-medium whitespace-nowrap overflow-hidden text-ellipsis flex items-center justify-center h-[32px] md:h-[38px]">
-                   {user?.name}
-                 </div>
-               )}
+                <select
+                  value={filters.personName}
+                  onChange={(e) => setFilters({ ...filters, personName: e.target.value })}
+                  className="w-full bg-white border border-gray-300 rounded-lg lg:rounded px-2 py-1.5 focus:outline-none focus:border-indigo-500 text-[11px] md:text-sm h-[32px] md:h-[38px]"
+                >
+                  <option value="">All Persons</option>
+                  {uniquePersonNames.map((name, idx) => (
+                    <option key={idx} value={name}>{name}</option>
+                  ))}
+                </select>
              </div>
              <select
                value={filters.transactionType}

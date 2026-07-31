@@ -35,7 +35,7 @@ export default function Summary() {
   const [filters, setFilters] = useState({
     dateFrom: '',
     dateTo: '',
-    personName: user?.role === 'ADMIN' ? '' : user?.name,
+    personName: '',
   });
 
   const dailySummary = useMemo(() => {
@@ -49,7 +49,7 @@ export default function Summary() {
         date: c.date
       });
     });
-    expenses.filter(e => e.status === 'APPROVED').forEach(e => {
+    expenses.filter(e => !e.status || String(e.status).toUpperCase() === 'APPROVED').forEach(e => {
       ledgerData.push({
         id: e.id,
         personName: e.person_name || e.personName || '',
@@ -60,9 +60,6 @@ export default function Summary() {
     });
     // Apply filters first
     const filtered = ledgerData.filter(entry => {
-      if (user && user.role !== 'ADMIN' && entry.personName && entry.personName.toLowerCase() !== (user.name || '').toLowerCase()) {
-        return false;
-      }
       if (filters.dateFrom || filters.dateTo) {
         if (!isDateInRange(entry.date, filters.dateFrom, filters.dateTo)) {
           return false;
