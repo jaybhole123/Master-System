@@ -319,21 +319,23 @@ const Indent = () => {
         >
           Create Indent
         </button>
-        <button
-          onClick={() => setActiveTab('Department Head')}
-          style={{
-            padding: '12px 24px',
-            background: 'none',
-            border: 'none',
-            borderBottom: activeTab === 'Department Head' ? '2px solid var(--primary-color)' : '2px solid transparent',
-            color: activeTab === 'Department Head' ? 'var(--primary-color)' : 'var(--text-secondary)',
-            fontWeight: 600,
-            cursor: 'pointer',
-            fontSize: '1rem'
-          }}
-        >
-          Department Head
-        </button>
+        {localStorage.getItem('role')?.toLowerCase() === 'admin' && (
+          <button
+            onClick={() => setActiveTab('Department Head')}
+            style={{
+              padding: '12px 24px',
+              background: 'none',
+              border: 'none',
+              borderBottom: activeTab === 'Department Head' ? '2px solid var(--primary-color)' : '2px solid transparent',
+              color: activeTab === 'Department Head' ? 'var(--primary-color)' : 'var(--text-secondary)',
+              fontWeight: 600,
+              cursor: 'pointer',
+              fontSize: '1rem'
+            }}
+          >
+            Department Head
+          </button>
+        )}
         <button
           onClick={() => setActiveTab('HR')}
           style={{

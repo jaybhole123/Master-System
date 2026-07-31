@@ -78,6 +78,50 @@ export default function LeaveTracker() {
     setDraggedIndex(null);
   };
 
+  // Filter states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [designationFilter, setDesignationFilter] = useState('');
+  const [departmentFilter, setDepartmentFilter] = useState('');
+  const [leaveTypeFilter, setLeaveTypeFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+
+  const isAdminOrSuperAdmin = useMemo(() => {
+    try {
+      const rawRole = (localStorage.getItem('role') || '').toLowerCase();
+      const userName = (localStorage.getItem('user-name') || '').toLowerCase();
+      let userObjRole = '';
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        try {
+          const parsed = JSON.parse(userStr);
+          userObjRole = (parsed?.role || '').toLowerCase();
+        } catch (e) {}
+      }
+
+      const checkList = [rawRole, userObjRole, userName];
+      return checkList.some(r => r.includes('admin') || r.includes('superadmin') || r === 'super admin' || r === 'master');
+    } catch (e) {
+      return false;
+    }
+  }, []);
+
+  const uniqueDesignations = useMemo(() => {
+    const set = new Set();
+    employees.forEach(e => {
+      const d = e.designation || e.Designation;
+      if (d) set.add(d);
+    });
+    return Array.from(set).sort();
+  }, [employees]);
+
+  const uniqueDepartments = useMemo(() => {
+    const set = new Set();
+    employees.forEach(e => {
+      if (e.department) set.add(e.department);
+    });
+    return Array.from(set).sort();
+  }, [employees]);
+
   const sortedEmployees = useMemo(() => {
     if (!orderedEmpIds || orderedEmpIds.length === 0) return employees;
     const map = new Map(employees.map(e => [e.id, e]));
@@ -90,6 +134,45 @@ export default function LeaveTracker() {
     });
     return [...result, ...Array.from(map.values())];
   }, [employees, orderedEmpIds]);
+
+  const filteredEmployees = useMemo(() => {
+    return sortedEmployees.filter(emp => {
+      const q = searchQuery.toLowerCase();
+      const matchesSearch = !q || (
+        (emp.name && emp.name.toLowerCase().includes(q)) ||
+        (emp.department && emp.department.toLowerCase().includes(q)) ||
+        (emp.designation && emp.designation.toLowerCase().includes(q))
+      );
+      const desg = emp.designation || emp.Designation || '';
+      const matchesDesignation = !designationFilter || desg.toLowerCase() === designationFilter.toLowerCase();
+      const matchesDepartment = !departmentFilter || (emp.department && emp.department.toLowerCase() === departmentFilter.toLowerCase());
+      return matchesSearch && matchesDesignation && matchesDepartment;
+    });
+  }, [sortedEmployees, searchQuery, designationFilter, departmentFilter]);
+
+  const filteredRequests = useMemo(() => {
+    return leaveRequests.filter(req => {
+      const emp = employees.find(e => e.id === req.empId);
+      const empName = emp?.name || '';
+      const empDesg = emp?.designation || emp?.Designation || '';
+      const empDept = emp?.department || '';
+      const q = searchQuery.toLowerCase();
+
+      const matchesSearch = !q || (
+        empName.toLowerCase().includes(q) ||
+        (req.type && req.type.toLowerCase().includes(q)) ||
+        (req.reason && req.reason.toLowerCase().includes(q)) ||
+        (req.status && req.status.toLowerCase().includes(q))
+      );
+
+      const matchesDesignation = !designationFilter || empDesg.toLowerCase() === designationFilter.toLowerCase();
+      const matchesDepartment = !departmentFilter || empDept.toLowerCase() === departmentFilter.toLowerCase();
+      const matchesType = !leaveTypeFilter || req.type === leaveTypeFilter;
+      const matchesStatus = !statusFilter || req.status === statusFilter;
+
+      return matchesSearch && matchesDesignation && matchesDepartment && matchesType && matchesStatus;
+    });
+  }, [leaveRequests, employees, searchQuery, designationFilter, departmentFilter, leaveTypeFilter, statusFilter]);
 
   useEffect(() => {
     fetchLeaveData();
@@ -365,6 +448,93 @@ export default function LeaveTracker() {
         </div>
       </div>
 
+      {/* Filter Bar */}
+      <div className="card" style={{ marginBottom: '20px', padding: '12px 20px' }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'nowrap', overflowX: 'auto' }}>
+          <input 
+            type="text" 
+            placeholder="Search employee, leave type, reason..." 
+            style={{ flex: '1 1 180px', minWidth: '140px', padding: '8px 12px', fontSize: '0.85rem', height: '38px' }} 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          <select
+            value={designationFilter}
+            onChange={(e) => setDesignationFilter(e.target.value)}
+            style={{ flex: '0 0 auto', width: 'auto', padding: '8px 10px', fontSize: '0.85rem', height: '38px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)' }}
+          >
+            <option value="">All Designations</option>
+            {uniqueDesignations.map((desg, idx) => (
+              <option key={idx} value={desg}>{desg}</option>
+            ))}
+          </select>
+          <select
+            value={departmentFilter}
+            onChange={(e) => setDepartmentFilter(e.target.value)}
+            style={{ flex: '0 0 auto', width: 'auto', padding: '8px 10px', fontSize: '0.85rem', height: '38px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)' }}
+          >
+            <option value="">All Departments</option>
+            {uniqueDepartments.map((dept, idx) => (
+              <option key={idx} value={dept}>{dept}</option>
+            ))}
+          </select>
+
+          {activeTab === 'Requests' && (
+            <>
+              <select
+                value={leaveTypeFilter}
+                onChange={(e) => setLeaveTypeFilter(e.target.value)}
+                style={{ flex: '0 0 auto', width: 'auto', padding: '8px 10px', fontSize: '0.85rem', height: '38px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)' }}
+              >
+                <option value="">All Leave Types</option>
+                <option value="CL">CL (Casual)</option>
+                <option value="SL">SL (Sick)</option>
+                <option value="EL">EL (Earned)</option>
+              </select>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                style={{ flex: '0 0 auto', width: 'auto', padding: '8px 10px', fontSize: '0.85rem', height: '38px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)' }}
+              >
+                <option value="">All Statuses</option>
+                <option value="Pending">Pending</option>
+                <option value="Approved">Approved</option>
+                <option value="Rejected">Rejected</option>
+              </select>
+            </>
+          )}
+
+          {(searchQuery || designationFilter || departmentFilter || leaveTypeFilter || statusFilter) && (
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                setDesignationFilter('');
+                setDepartmentFilter('');
+                setLeaveTypeFilter('');
+                setStatusFilter('');
+              }}
+              style={{ flexShrink: 0, whiteSpace: 'nowrap', background: 'none', border: 'none', color: 'var(--primary-color)', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600 }}
+            >
+              Reset Filters
+            </button>
+          )}
+
+          {/* Action Buttons aligned to the right inside the Filter section */}
+          {activeTab === 'Balance' && (
+            <button className="btn-primary" onClick={saveAllotments} disabled={savingBalances} style={{ flexShrink: 0, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '6px', marginLeft: 'auto', height: '38px', padding: '0 16px' }}>
+              {savingBalances ? <Loader size={16} className="spin" /> : <Save size={16} />} 
+              {savingBalances ? 'Saving...' : 'Save Balances'}
+            </button>
+          )}
+
+          {activeTab === 'Requests' && (
+            <button className="btn-primary" onClick={() => { setNewRequest({ empId: '', type: 'CL', from: '', to: '', reason: '', status: 'Pending' }); setShowModal(true); }} style={{ flexShrink: 0, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '6px', marginLeft: 'auto', height: '38px', padding: '0 16px' }}>
+              <Plus size={16} /> New Request
+            </button>
+          )}
+        </div>
+      </div>
+
       <div style={{ display: 'flex', gap: '16px', borderBottom: '1px solid var(--border-color)', marginBottom: '24px' }}>
         <button
           onClick={() => setActiveTab('Balance')}
@@ -403,12 +573,6 @@ export default function LeaveTracker() {
 
       {activeTab === 'Balance' && (
         <div className="fade-in">
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
-            <button className="btn-primary" onClick={saveAllotments} disabled={savingBalances} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              {savingBalances ? <Loader size={16} className="spin" /> : <Save size={16} />} 
-              {savingBalances ? 'Saving...' : 'Save Balances'}
-            </button>
-          </div>
           <div className="card" style={{ padding: 0, overflow: 'hidden', border: '1px solid var(--border-color)', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
             <div style={{ backgroundColor: 'var(--primary-color)', color: 'white', textAlign: 'center', padding: '16px', fontWeight: 500, fontSize: '1.1rem', letterSpacing: '0.5px' }}>
               LEAVE BALANCE
@@ -446,8 +610,8 @@ export default function LeaveTracker() {
                 </tr>
               </thead>
               <tbody>
-                {sortedEmployees.length > 0 ? (
-                  sortedEmployees.map((emp, idx) => {
+                {filteredEmployees.length > 0 ? (
+                  filteredEmployees.map((emp, idx) => {
                     const allot = leaveAllotments[emp.id] || { cl: 0, sl: 0, el: 0 };
                     const taken = getTakenLeaves(emp.id);
                     const bal = {
@@ -523,12 +687,6 @@ export default function LeaveTracker() {
 
       {activeTab === 'Requests' && (
         <div className="fade-in">
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
-            <button className="btn-primary" onClick={() => { setNewRequest({ empId: '', type: 'CL', from: '', to: '', reason: '', status: 'Pending' }); setShowModal(true); }} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Plus size={16} /> New Request
-            </button>
-          </div>
-          
           <div className="card" style={{ padding: 0, overflow: 'hidden', border: '1px solid var(--border-color)', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
             <div style={{ backgroundColor: 'var(--primary-color)', color: 'white', textAlign: 'center', padding: '16px', fontWeight: 500, fontSize: '1.1rem', letterSpacing: '0.5px' }}>
               LEAVE REQUESTS
@@ -558,12 +716,14 @@ export default function LeaveTracker() {
                     <th style={{...thStyle, position: 'sticky', top: 0, backgroundColor: 'var(--bg-main)'}}>No. of<br/>Days</th>
                     <th style={{...thStyle, position: 'sticky', top: 0, backgroundColor: 'var(--bg-main)'}}>Status</th>
                     <th style={{...thStyle, textAlign: 'left', position: 'sticky', top: 0, backgroundColor: 'var(--bg-main)'}}>Reason / Remarks</th>
-                    <th style={{...thStyle, position: 'sticky', top: 0, backgroundColor: 'var(--bg-main)'}}>Action</th>
+                    {isAdminOrSuperAdmin && (
+                      <th style={{...thStyle, position: 'sticky', top: 0, backgroundColor: 'var(--bg-main)'}}>Action</th>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
-                  {leaveRequests.length > 0 ? (
-                    leaveRequests.map((req, idx) => {
+                  {filteredRequests.length > 0 ? (
+                    filteredRequests.map((req, idx) => {
                       const emp = employees.find(e => e.id === req.empId);
                       return (
                         <tr key={req.id} style={{ backgroundColor: idx % 2 === 0 ? 'var(--bg-card)' : 'rgba(0,0,0,0.02)' }}>
@@ -583,34 +743,36 @@ export default function LeaveTracker() {
                             </span>
                           </td>
                           <td style={{...tdStyle, textAlign: 'left'}}>{req.reason || '-'}</td>
-                          <td style={tdStyle}>
-                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
-                              {req.status === 'Pending' ? (
-                                <>
-                                  <button onClick={() => updateRequestStatus(req.id, 'Approved')} style={{ padding: '6px 12px', fontSize: '0.8rem', fontWeight: 600, backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#166534', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '6px', cursor: 'pointer', transition: 'all 0.2s' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(16, 185, 129, 0.2)'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'rgba(16, 185, 129, 0.1)'}>
-                                    Accept
-                                  </button>
-                                  <button onClick={() => setRejectModalData({ reqId: req.id, reason: '' })} style={{ padding: '6px 12px', fontSize: '0.8rem', fontWeight: 600, backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#dc2626', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '6px', cursor: 'pointer', transition: 'all 0.2s' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.2)'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.1)'}>
-                                    Reject
-                                  </button>
-                                </>
-                              ) : (
-                                <>
-                                  <button onClick={() => openEditModal(req)} style={{ padding: '6px', color: 'var(--primary-color)', background: 'transparent', border: 'none', cursor: 'pointer', transition: 'all 0.2s', borderRadius: '4px' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.1)'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'} title="Edit">
-                                    <Edit size={16} />
-                                  </button>
-                                  <button onClick={() => deleteRequest(req.id)} style={{ padding: '6px', color: 'var(--danger)', background: 'transparent', border: 'none', cursor: 'pointer', transition: 'all 0.2s', borderRadius: '4px' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.1)'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'} title="Delete">
-                                    <Trash2 size={16} />
-                                  </button>
-                                </>
-                              )}
-                            </div>
-                          </td>
+                          {isAdminOrSuperAdmin && (
+                            <td style={tdStyle}>
+                              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
+                                {req.status === 'Pending' ? (
+                                  <>
+                                    <button onClick={() => updateRequestStatus(req.id, 'Approved')} style={{ padding: '6px 12px', fontSize: '0.8rem', fontWeight: 600, backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#166534', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '6px', cursor: 'pointer', transition: 'all 0.2s' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(16, 185, 129, 0.2)'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'rgba(16, 185, 129, 0.1)'}>
+                                      Accept
+                                    </button>
+                                    <button onClick={() => setRejectModalData({ reqId: req.id, reason: '' })} style={{ padding: '6px 12px', fontSize: '0.8rem', fontWeight: 600, backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#dc2626', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '6px', cursor: 'pointer', transition: 'all 0.2s' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.2)'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.1)'}>
+                                      Reject
+                                    </button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <button onClick={() => openEditModal(req)} style={{ padding: '6px', color: 'var(--primary-color)', background: 'transparent', border: 'none', cursor: 'pointer', transition: 'all 0.2s', borderRadius: '4px' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.1)'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'} title="Edit">
+                                      <Edit size={16} />
+                                    </button>
+                                    <button onClick={() => deleteRequest(req.id)} style={{ padding: '6px', color: 'var(--danger)', background: 'transparent', border: 'none', cursor: 'pointer', transition: 'all 0.2s', borderRadius: '4px' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.1)'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'} title="Delete">
+                                      <Trash2 size={16} />
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </td>
+                          )}
                         </tr>
                       );
                     })
                   ) : (
-                    <tr><td colSpan="9" style={{ textAlign: 'center', padding: '32px', color: 'var(--text-secondary)' }}>No leave requests found.</td></tr>
+                    <tr><td colSpan={isAdminOrSuperAdmin ? 9 : 8} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-secondary)' }}>No leave requests found.</td></tr>
                   )}
                 </tbody>
               </table>

@@ -1,123 +1,123 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { Trash2, Edit2, Plus } from 'lucide-react';
-
-const DEFAULT_SETTINGS = {
-  groupHeads: ['IT', 'HR', 'Finance', 'Operations', 'Marketing'],
-  paymentModes: ['Cash', 'Cheque', 'Bank Transfer', 'Online Payment'],
-};
-
-const DEFAULT_USERS = [
-  { id: 'admin', name: 'Admin User', password: 'admin123', role: 'ADMIN', accessPages: [] },
-  { id: 'user', name: 'Employee 1', password: 'user123', role: 'USER', accessPages: [] },
-  { id: 'user2', name: 'Employee 2', password: 'user123', role: 'USER', accessPages: [] }
-];
+import { Trash2, Plus } from 'lucide-react';
+import supabase from '../../../SupabaseClient';
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState('groupHeads');
-  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
-  const [users, setUsers] = useState(DEFAULT_USERS);
 
   // Group Heads State
+  const [groupHeads, setGroupHeads] = useState([]);
   const [newGroupHead, setNewGroupHead] = useState('');
-  const [editingGroupHeadId, setEditingGroupHeadId] = useState(null);
+  const [loadingGroupHeads, setLoadingGroupHeads] = useState(true);
 
   // Payment Modes State
+  const [paymentModes, setPaymentModes] = useState([]);
   const [newPaymentMode, setNewPaymentMode] = useState('');
-  const [editingPaymentModeId, setEditingPaymentModeId] = useState(null);
+  const [loadingPaymentModes, setLoadingPaymentModes] = useState(true);
 
-  // User State
-  const [editingUserId, setEditingUserId] = useState(null);
-  const [editingUser, setEditingUser] = useState(null);
+  // ===== FETCH ON MOUNT =====
+  useEffect(() => {
+    fetchGroupHeads();
+    fetchPaymentModes();
+  }, []);
+
+  const fetchGroupHeads = async () => {
+    setLoadingGroupHeads(true);
+    const { data, error } = await supabase
+      .from('petty_cash_setting')
+      .select('id, group_head')
+      .not('group_head', 'is', null);
+    if (error) {
+      toast.error('Failed to load group heads');
+    } else {
+      setGroupHeads(data || []);
+    }
+    setLoadingGroupHeads(false);
+  };
+
+  const fetchPaymentModes = async () => {
+    setLoadingPaymentModes(true);
+    const { data, error } = await supabase
+      .from('petty_cash_setting')
+      .select('id, payment_mode')
+      .not('payment_mode', 'is', null);
+    if (error) {
+      toast.error('Failed to load payment modes');
+    } else {
+      setPaymentModes(data || []);
+    }
+    setLoadingPaymentModes(false);
+  };
 
   // ===== GROUP HEADS =====
-  const handleAddGroupHead = () => {
+  const handleAddGroupHead = async () => {
     if (!newGroupHead.trim()) {
       toast.error('Please enter group head name');
       return;
     }
-
-    const updatedSettings = {
-      ...settings,
-      groupHeads: [...settings.groupHeads, newGroupHead.trim()]
-    };
-
-    setSettings(updatedSettings);
-
-    setNewGroupHead('');
-    toast.success('Group head added successfully!');
+    const { data, error } = await supabase
+      .from('petty_cash_setting')
+      .insert([{ group_head: newGroupHead.trim() }])
+      .select('id, group_head')
+      .single();
+    if (error) {
+      toast.error('Failed to add group head');
+    } else {
+      setGroupHeads(prev => [...prev, data]);
+      setNewGroupHead('');
+      toast.success('Group head added successfully!');
+    }
   };
 
-  const handleDeleteGroupHead = (index) => {
-    const updatedSettings = {
-      ...settings,
-      groupHeads: settings.groupHeads.filter((_, i) => i !== index)
-    };
-
-    setSettings(updatedSettings);
-    saveSettings(updatedSettings);
-    toast.success('Group head deleted!');
+  const handleDeleteGroupHead = async (id) => {
+    const { error } = await supabase
+      .from('petty_cash_setting')
+      .delete()
+      .eq('id', id);
+    if (error) {
+      toast.error('Failed to delete group head');
+    } else {
+      setGroupHeads(prev => prev.filter(gh => gh.id !== id));
+      toast.success('Group head deleted!');
+    }
   };
 
   // ===== PAYMENT MODES =====
-  const handleAddPaymentMode = () => {
+  const handleAddPaymentMode = async () => {
     if (!newPaymentMode.trim()) {
       toast.error('Please enter payment mode');
       return;
     }
-
-    const updatedSettings = {
-      ...settings,
-      paymentModes: [...settings.paymentModes, newPaymentMode.trim()]
-    };
-
-    setSettings(updatedSettings);
-    saveSettings(updatedSettings);
-    setNewPaymentMode('');
-    toast.success('Payment mode added successfully!');
-  };
-
-  const handleDeletePaymentMode = (index) => {
-    const updatedSettings = {
-      ...settings,
-      paymentModes: settings.paymentModes.filter((_, i) => i !== index)
-    };
-
-    setSettings(updatedSettings);
-    saveSettings(updatedSettings);
-    toast.success('Payment mode deleted!');
-  };
-
-  // ===== USERS =====
-  const handleEditUser = (user) => {
-    setEditingUserId(user.id);
-    setEditingUser({ ...user });
-  };
-
-  const handleSaveUser = () => {
-    if (!editingUser.name.trim() || !editingUser.password.trim()) {
-      toast.error('Please fill all required fields');
-      return;
+    const { data, error } = await supabase
+      .from('petty_cash_setting')
+      .insert([{ payment_mode: newPaymentMode.trim() }])
+      .select('id, payment_mode')
+      .single();
+    if (error) {
+      toast.error('Failed to add payment mode');
+    } else {
+      setPaymentModes(prev => [...prev, data]);
+      setNewPaymentMode('');
+      toast.success('Payment mode added successfully!');
     }
-
-    const updatedUsers = users.map(u => u.id === editingUserId ? editingUser : u);
-    setUsers(updatedUsers);
-    setEditingUserId(null);
-    setEditingUser(null);
-    toast.success('User updated successfully!');
   };
 
-  const handleDeleteUser = (userId) => {
-    if (confirm('Are you sure you want to delete this user?')) {
-      const updatedUsers = users.filter(u => u.id !== userId);
-      setUsers(updatedUsers);
-      toast.success('User deleted!');
+  const handleDeletePaymentMode = async (id) => {
+    const { error } = await supabase
+      .from('petty_cash_setting')
+      .delete()
+      .eq('id', id);
+    if (error) {
+      toast.error('Failed to delete payment mode');
+    } else {
+      setPaymentModes(prev => prev.filter(pm => pm.id !== id));
+      toast.success('Payment mode deleted!');
     }
   };
 
   return (
     <div className="p-6 space-y-6">
-
 
       {/* Tabs */}
       <div className="border-b border-gray-200">
@@ -165,22 +165,28 @@ export default function Settings() {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {settings.groupHeads.map((head, idx) => (
-              <div key={idx} className="bg-gray-50 border border-gray-200 rounded-lg p-4 flex items-center justify-between">
-                <span className="font-medium text-gray-900">{head}</span>
-                <button
-                  onClick={() => handleDeleteGroupHead(idx)}
-                  className="text-red-600 hover:text-red-800 transition"
-                >
-                  <Trash2 size={18} />
-                </button>
+          {loadingGroupHeads ? (
+            <p className="text-center text-gray-500 py-8">Loading...</p>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {groupHeads.map((gh) => (
+                  <div key={gh.id} className="bg-gray-50 border border-gray-200 rounded-lg p-4 flex items-center justify-between">
+                    <span className="font-medium text-gray-900">{gh.group_head}</span>
+                    <button
+                      onClick={() => handleDeleteGroupHead(gh.id)}
+                      className="text-red-600 hover:text-red-800 transition"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
 
-          {settings.groupHeads.length === 0 && (
-            <p className="text-center text-gray-500 py-8">No group heads added yet.</p>
+              {groupHeads.length === 0 && (
+                <p className="text-center text-gray-500 py-8">No group heads added yet.</p>
+              )}
+            </>
           )}
         </div>
       )}
@@ -207,22 +213,28 @@ export default function Settings() {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {settings.paymentModes.map((mode, idx) => (
-              <div key={idx} className="bg-gray-50 border border-gray-200 rounded-lg p-4 flex items-center justify-between">
-                <span className="font-medium text-gray-900">{mode}</span>
-                <button
-                  onClick={() => handleDeletePaymentMode(idx)}
-                  className="text-red-600 hover:text-red-800 transition"
-                >
-                  <Trash2 size={18} />
-                </button>
+          {loadingPaymentModes ? (
+            <p className="text-center text-gray-500 py-8">Loading...</p>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {paymentModes.map((pm) => (
+                  <div key={pm.id} className="bg-gray-50 border border-gray-200 rounded-lg p-4 flex items-center justify-between">
+                    <span className="font-medium text-gray-900">{pm.payment_mode}</span>
+                    <button
+                      onClick={() => handleDeletePaymentMode(pm.id)}
+                      className="text-red-600 hover:text-red-800 transition"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
 
-          {settings.paymentModes.length === 0 && (
-            <p className="text-center text-gray-500 py-8">No payment modes added yet.</p>
+              {paymentModes.length === 0 && (
+                <p className="text-center text-gray-500 py-8">No payment modes added yet.</p>
+              )}
+            </>
           )}
         </div>
       )}

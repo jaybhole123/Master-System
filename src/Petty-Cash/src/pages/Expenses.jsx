@@ -33,9 +33,27 @@ export default function Expenses() {
     } catch (e) {}
   };
 
+  const [groupHeads, setGroupHeads] = useState([]);
+  const [paymentModes, setPaymentModes] = useState([]);
+
   useEffect(() => {
     fetchCreditsAndExpenses();
+    fetchSettings();
   }, []);
+
+  const fetchSettings = async () => {
+    const { data: ghData } = await supabase
+      .from('petty_cash_setting')
+      .select('id, group_head')
+      .not('group_head', 'is', null);
+    if (ghData) setGroupHeads(ghData);
+
+    const { data: pmData } = await supabase
+      .from('petty_cash_setting')
+      .select('id, payment_mode')
+      .not('payment_mode', 'is', null);
+    if (pmData) setPaymentModes(pmData);
+  };
 
   const [formData, setFormData] = useState({
     personName: '',
@@ -497,12 +515,9 @@ export default function Expenses() {
                     <label className="block text-[11px] font-semibold text-slate-700 mb-1 uppercase tracking-wide">Approved By *</label>
                     <select value={formData.groupHead} onChange={(e) => setFormData({ ...formData, groupHead: e.target.value })} className="w-full border border-slate-300 rounded-md px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 text-[13px] bg-white transition-shadow" required>
                       <option value="">Select Head</option>
-                      <option value="IT">IT</option>
-                      <option value="HR">HR</option>
-                      <option value="Operations">Operations</option>
-                      <option value="Sales">Sales</option>
-                      <option value="Marketing">Marketing</option>
-                      <option value="Finance">Finance</option>
+                      {groupHeads.map((gh) => (
+                        <option key={gh.id} value={gh.group_head}>{gh.group_head}</option>
+                      ))}
                     </select>
                   </div>
 
@@ -511,10 +526,9 @@ export default function Expenses() {
                     <label className="block text-[11px] font-semibold text-slate-700 mb-1 uppercase tracking-wide">Payment Mode *</label>
                     <select value={formData.paymentMode} onChange={(e) => setFormData({ ...formData, paymentMode: e.target.value })} className="w-full border border-slate-300 rounded-md px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 text-[13px] bg-white transition-shadow" required>
                       <option value="">Select Mode</option>
-                      <option value="Cash">Cash</option>
-                      <option value="Cheque">Cheque</option>
-                      <option value="Bank Transfer">Bank Transfer</option>
-                      <option value="Online">Online</option>
+                      {paymentModes.map((pm) => (
+                        <option key={pm.id} value={pm.payment_mode}>{pm.payment_mode}</option>
+                      ))}
                     </select>
                   </div>
                 </div>

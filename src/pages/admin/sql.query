@@ -486,3 +486,12 @@ CREATE TABLE public.petty_cash_expenses (
   created_at timestamp with time zone DEFAULT now(),
   CONSTRAINT petty_cash_expenses_pkey PRIMARY KEY (id)
 );
+
+-- Petty Cash Settings Table
+CREATE TABLE petty_cash_setting (
+  id uuid DEFAULT gen_random_uuid() NOT NULL,
+  group_head text,
+  payment_mode text,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT petty_cash_setting_pkey PRIMARY KEY (id)
+);

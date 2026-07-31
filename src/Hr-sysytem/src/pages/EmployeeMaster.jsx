@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
-import { Plus, X, Pencil, Trash2, Loader, GripVertical } from 'lucide-react';
+import { Plus, X, Pencil, Trash2, Loader, GripVertical, Filter } from 'lucide-react';
 
 const DocumentPreview = ({ file, url, onPreview }) => {
   if (!file && !url) return null;
@@ -27,6 +27,26 @@ export default function EmployeeMaster() {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [designationFilter, setDesignationFilter] = useState('');
+  const [departmentFilter, setDepartmentFilter] = useState('');
+
+  const uniqueDesignations = useMemo(() => {
+    const desgs = new Set();
+    employees.forEach(emp => {
+      const d = emp.designation || emp.Designation;
+      if (d) desgs.add(d);
+    });
+    return Array.from(desgs).sort();
+  }, [employees]);
+
+  const uniqueDepartments = useMemo(() => {
+    const depts = new Set();
+    employees.forEach(emp => {
+      const d = emp.department;
+      if (d) depts.add(d);
+    });
+    return Array.from(depts).sort();
+  }, [employees]);
 
   // Drag scroll and row reordering states
   const tableRef = useRef(null);
@@ -418,14 +438,42 @@ export default function EmployeeMaster() {
       </div>
 
       <div className="card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', gap: '16px', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap' }}>
           <input 
             type="text" 
             placeholder="Search employees..." 
-            style={{ maxWidth: '300px' }} 
+            style={{ maxWidth: '280px', minWidth: '200px' }} 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
+          <select
+            value={designationFilter}
+            onChange={(e) => setDesignationFilter(e.target.value)}
+            style={{ maxWidth: '200px', minWidth: '160px', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)' }}
+          >
+            <option value="">All Designations</option>
+            {uniqueDesignations.map((desg, idx) => (
+              <option key={idx} value={desg}>{desg}</option>
+            ))}
+          </select>
+          <select
+            value={departmentFilter}
+            onChange={(e) => setDepartmentFilter(e.target.value)}
+            style={{ maxWidth: '200px', minWidth: '160px', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)' }}
+          >
+            <option value="">All Departments</option>
+            {uniqueDepartments.map((dept, idx) => (
+              <option key={idx} value={dept}>{dept}</option>
+            ))}
+          </select>
+          {(searchQuery || designationFilter || departmentFilter) && (
+            <button
+              onClick={() => { setSearchQuery(''); setDesignationFilter(''); setDepartmentFilter(''); }}
+              style={{ background: 'none', border: 'none', color: 'var(--primary-color)', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600 }}
+            >
+              Reset Filters
+            </button>
+          )}
         </div>
         
         <div 
@@ -450,7 +498,7 @@ export default function EmployeeMaster() {
                 <th>Name</th>
                 <th>Phone Number</th>
                 <th>Department</th>
-                {/* <th>Designation</th> */}
+                <th>Designation</th>
                 {/* <th>Date of Joining</th> */}
                 <th>Experience</th>
                 <th>Father's Name</th>
@@ -462,13 +510,19 @@ export default function EmployeeMaster() {
               {(() => {
                 const filteredEmployees = employees.filter(emp => {
                   const query = searchQuery.toLowerCase();
-                  return (
+                  const matchesSearch = !query || (
                     (emp.employee_id && emp.employee_id.toLowerCase().includes(query)) ||
                     (emp.user_name && emp.user_name.toLowerCase().includes(query)) ||
                     (emp.department && emp.department.toLowerCase().includes(query)) ||
                     (emp.designation && emp.designation.toLowerCase().includes(query)) ||
                     (emp.Designation && emp.Designation.toLowerCase().includes(query))
                   );
+
+                  const empDesg = emp.designation || emp.Designation || '';
+                  const matchesDesignation = !designationFilter || empDesg.toLowerCase() === designationFilter.toLowerCase();
+                  const matchesDepartment = !departmentFilter || (emp.department && emp.department.toLowerCase() === departmentFilter.toLowerCase());
+
+                  return matchesSearch && matchesDesignation && matchesDepartment;
                 });
 
                 return filteredEmployees.length > 0 ? filteredEmployees.map((emp, idx) => (
@@ -491,7 +545,7 @@ export default function EmployeeMaster() {
                   <td style={{ fontWeight: 500 }}>{emp.user_name}</td>
                   <td>{emp.number || '-'}</td>
                   <td>{emp.department}</td>
-                  {/* <td>{emp.Designation || emp.designation}</td> */}
+                  <td style={{ color: 'var(--text-secondary)' }}>{emp.Designation || emp.designation || '-'}</td>
                   {/* <td>{emp.joining_date ? new Date(emp.joining_date).toLocaleDateString() : '-'}</td> */}
                   <td>{emp.experience || '-'}</td>
                   <td>{emp.fathers_name || '-'}</td>

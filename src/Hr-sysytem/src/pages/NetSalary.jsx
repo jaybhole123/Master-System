@@ -252,6 +252,22 @@ export default function NetSalary() {
           Salary Sheet
         </button>
         <button
+          onClick={() => setActiveTab('Sheet2')}
+          style={{
+            padding: '12px 24px',
+            background: 'none',
+            border: 'none',
+            borderBottom: activeTab === 'Sheet2' ? '2px solid var(--primary-color)' : '2px solid transparent',
+            color: activeTab === 'Sheet2' ? 'var(--primary-color)' : 'var(--text-secondary)',
+            fontWeight: 500,
+            cursor: 'pointer',
+            fontSize: '1rem',
+            transition: 'all 0.2s ease'
+          }}
+        >
+          Salary Sheet 2
+        </button>
+        <button
           onClick={() => setActiveTab('Dashboard')}
           style={{
             padding: '12px 24px',
@@ -389,6 +405,15 @@ export default function NetSalary() {
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+      {/* Sheet2 Tab */}
+      {activeTab === 'Sheet2' && (
+        <div className="card" style={{ padding: 0, overflow: 'hidden', border: '1px solid var(--border-color)', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+          <div style={{ backgroundColor: 'var(--primary-color)', color: 'white', textAlign: 'center', padding: '16px', fontWeight: 500, fontSize: '1.1rem', letterSpacing: '0.5px' }}>
+            SALARY SHEET 2
+          </div>
+          <p style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)' }}>Second salary sheet content placeholder.</p>
         </div>
       )}
 

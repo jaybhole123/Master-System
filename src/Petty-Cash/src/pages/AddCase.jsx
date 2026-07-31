@@ -21,6 +21,9 @@ export default function AddCase() {
   const fileInputRef = useRef(null);
   const [credits, setCredits] = useState([]);
   const [expenses, setExpenses] = useState([]); // Needed for calculateBalance
+  // Payment Modes State
+  const [paymentModes, setPaymentModes] = useState([]);
+  const [loadingPaymentModes, setLoadingPaymentModes] = useState(true);
 
   const [formData, setFormData] = useState({
     personName: '',
@@ -63,8 +66,24 @@ export default function AddCase() {
     } catch (err) {}
   };
 
+  // Fetch payment modes from petty_cash_setting
+  const fetchPaymentModes = async () => {
+    setLoadingPaymentModes(true);
+    const { data, error } = await supabase
+      .from('petty_cash_setting')
+      .select('id, payment_mode')
+      .not('payment_mode', 'is', null);
+    if (error) {
+      toast.error('Failed to load payment modes');
+    } else {
+      setPaymentModes(data || []);
+    }
+    setLoadingPaymentModes(false);
+  };
+
   useEffect(() => {
     fetchCreditsAndExpenses();
+    fetchPaymentModes();
   }, []);
 
   useEffect(() => {
@@ -298,10 +317,9 @@ export default function AddCase() {
                className="w-full bg-white border border-gray-300 rounded-lg lg:rounded px-2 py-1.5 focus:outline-none focus:border-sky-500 text-[11px] md:text-sm h-[32px] md:h-[38px]"
              >
                <option value="">All Modes</option>
-               <option value="Cash">Cash</option>
-               <option value="Cheque">Cheque</option>
-               <option value="Bank Transfer">Bank Transfer</option>
-               <option value="Online">Online</option>
+               {paymentModes.map(pm => (
+                 <option key={pm.id} value={pm.payment_mode}>{pm.payment_mode}</option>
+               ))}
              </select>
           </div>
         </div>
@@ -358,14 +376,13 @@ export default function AddCase() {
 
                   {/* PAYMENT MODE */}
                   <div>
-                    <label className="block text-[11px] md:text-sm font-bold text-gray-700 mb-0.5 md:mb-2 uppercase">PAYMENT MODE *</label>
-                    <select value={formData.paymentMode} onChange={(e) => setFormData({ ...formData, paymentMode: e.target.value })} className="w-full border border-gray-300 rounded-lg px-2 py-1.5 md:px-4 md:py-2 focus:outline-none focus:ring-2 focus:ring-sky-400 text-[11px] md:text-base appearance-none bg-white min-h-[30px] md:min-h-[42px]">
-                      <option value="">Select Mode</option>
-                      <option value="Cash">Cash</option>
-                      <option value="Cheque">Cheque</option>
-                      <option value="Bank Transfer">Bank Transfer</option>
-                      <option value="Online">Online</option>
-                    </select>
+                      <label className="block text-[11px] md:text-sm font-bold text-gray-700 mb-0.5 md:mb-2 uppercase">PAYMENT MODE *</label>
+                      <select value={formData.paymentMode} onChange={(e) => setFormData({ ...formData, paymentMode: e.target.value })} className="w-full border border-gray-300 rounded-lg px-2 py-1.5 md:px-4 md:py-2 focus:outline-none focus:ring-2 focus:ring-sky-400 text-[11px] md:text-base appearance-none bg-white min-h-[30px] md:min-h-[42px]">
+                        <option value="">Select Mode</option>
+                        {paymentModes.map(pm => (
+                          <option key={pm.id} value={pm.payment_mode}>{pm.payment_mode}</option>
+                        ))}
+                      </select>
                   </div>
                 </div>
 

@@ -567,14 +567,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       showFor: ["admin"],
       module: "Checklist & Delegation",
     },
-    {
-      href: "/dashboard/global-settings",
-      label: "Global Settings",
-      icon: Settings2,
-      active: location.pathname.includes("/dashboard/global-settings"),
-      showFor: ["admin"],
-      module: "Global Settings",
-    },
+
     // --- HR System Module Routes ---
     {
       href: "/hr/dashboard",
@@ -675,7 +668,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
     },
     {
       href: "/petty-cash/add-case",
-      label: "Add Credit / Case",
+      label: "Add Credit",
       icon: CirclePlus,
       active: location.pathname === "/petty-cash/add-case",
       showFor: ["admin", "user", "HOD"],
@@ -712,6 +705,14 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/petty-cash/settings",
       showFor: ["admin"],
       module: "Petty Cash",
+    },
+    {
+      href: "/dashboard/global-settings",
+      label: "Global Settings",
+      icon: Settings2,
+      active: location.pathname.includes("/dashboard/global-settings"),
+      showFor: ["admin"],
+      module: "Global Settings",
     }
   ];
 
