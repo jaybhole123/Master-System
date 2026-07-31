@@ -261,12 +261,6 @@ CREATE TABLE public.users (
   date_of_birth date,
   driving_licence character varying,
   experience character varying,
-  pf_applicable boolean DEFAULT false,
-  esic_applicable boolean DEFAULT false,
-  aadhar_doc_url text,
-  pan_doc_url text,
-  dl_doc_url text,
-  account_doc_url text,
   CONSTRAINT users_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.working_day_calender (
@@ -359,7 +353,6 @@ CREATE TABLE public.salary_structures (
   payment_status text DEFAULT 'Pending'::text,
   bank_account text,
   updated_at timestamp with time zone DEFAULT now(),
-  esic_applicable boolean DEFAULT false,
   CONSTRAINT salary_structures_pkey PRIMARY KEY (employee_id)
 );
 CREATE TABLE public.payroll_settings (
@@ -436,6 +429,7 @@ CREATE TABLE public.inventory_items (
   updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT inventory_items_pkey PRIMARY KEY (id)
 );
+
 CREATE TABLE public.attendance (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   employee_id integer NOT NULL,
@@ -444,6 +438,7 @@ CREATE TABLE public.attendance (
   check_out timestamp with time zone,
   working_hours text,
   attendance_type text,
+  employee_name text,
   latitude numeric,
   longitude numeric,
   address text,
@@ -452,37 +447,22 @@ CREATE TABLE public.attendance (
   remarks text,
   status text,
   created_at timestamp with time zone DEFAULT now(),
-  employee_name text,
-  CONSTRAINT attendance_pkey PRIMARY KEY (id)
+  CONSTRAINT attendance_pkey PRIMARY KEY (id),
+  CONSTRAINT fk_attendance_employee FOREIGN KEY (employee_id) REFERENCES public.employee (id) ON DELETE CASCADE
 );
-CREATE TABLE public.petty_cash_addcash_credits (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  sn text UNIQUE,
-  person_name text NOT NULL,
-  date date NOT NULL,
-  amount numeric NOT NULL CHECK (amount > 0::numeric),
-  payment_mode text,
-  particulars text DEFAULT 'CASH'::text,
-  remarks text,
-  receipt_url text,
-  status text DEFAULT 'APPROVED'::text,
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT petty_cash_addcash_credits_pkey PRIMARY KEY (id)
-);
-CREATE TABLE public.petty_cash_expenses (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  sn text UNIQUE,
-  person_name text NOT NULL,
-  particulars text,
-  date date NOT NULL,
-  received numeric DEFAULT 0,
-  amount numeric NOT NULL CHECK (amount > 0::numeric),
-  balance numeric DEFAULT 0,
-  payment_mode text,
-  group_head text,
-  remarks text,
-  receipt_url text,
-  status text NOT NULL DEFAULT 'PENDING'::text CHECK (status = ANY (ARRAY['PENDING'::text, 'APPROVED'::text, 'REJECTED'::text])),
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT petty_cash_expenses_pkey PRIMARY KEY (id)
-);
+
+-- Query to add pf_applicable and esic_applicable to employee table (if not exists)
+ALTER TABLE public.users
+ADD COLUMN pf_applicable boolean DEFAULT false,
+ADD COLUMN esic_applicable boolean DEFAULT false;
+
+-- Query to add esic_applicable to salary_structures table (if not exists)
+ALTER TABLE public.salary_structures
+ADD COLUMN esic_applicable boolean DEFAULT false;
+
+-- Query to add document upload URLs to users table
+ALTER TABLE public.users 
+ADD COLUMN aadhar_doc_url text,
+ADD COLUMN pan_doc_url text,
+ADD COLUMN dl_doc_url text,
+ADD COLUMN account_doc_url text;

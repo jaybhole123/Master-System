@@ -50,6 +50,18 @@ const getHeaderTitle = (pathname, routes) => {
   if (pathname.includes("/dashboard/global-settings")) return { module: "Global Settings", page: "Global Settings" };
   // Check Rent Management
   if (pathname.includes("/dashboard/rent-management")) return { module: "Rent Management", page: "Rent Management" };
+  // Check HR System routes
+  if (pathname.startsWith("/hr")) {
+    const flat = routes.flatMap(r => r.subItems ? r.subItems : [r]);
+    const match = flat.find(r => r.href && pathname === r.href);
+    return { module: "HR System", page: match?.label || "HR System" };
+  }
+  // Check Petty Cash routes
+  if (pathname.startsWith("/petty-cash")) {
+    const flat = routes.flatMap(r => r.subItems ? r.subItems : [r]);
+    const match = flat.find(r => r.href && pathname === r.href);
+    return { module: "Petty Cash", page: match?.label || "Petty Cash" };
+  }
   // Check Document & Substruction routes
   if (
     pathname.includes("/doc-dashboard") ||
@@ -129,6 +141,8 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
     return {
       "Profile": path.includes("/dashboard/profile"),
       "Rent Management": path.includes("/dashboard/rent-management"),
+      "HR System": path.startsWith("/hr"),
+      "Petty Cash": path.startsWith("/petty-cash"),
       "Checklist & Delegation": path.includes("/dashboard") && !path.includes("/dashboard/profile") && !path.includes("/dashboard/global-settings") && !path.includes("/dashboard/rent-management"),
       "Document & Substruction": path.includes("/document") || path.includes("/doc-dashboard") || path.includes("/resource-manager") || path.includes("/loan") || path.includes("/subscription") || path.includes("/bg") || path === "/",
     };
@@ -560,6 +574,144 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname.includes("/dashboard/global-settings"),
       showFor: ["admin"],
       module: "Global Settings",
+    },
+    // --- HR System Module Routes ---
+    {
+      href: "/hr/dashboard",
+      label: "HR Dashboard",
+      icon: LayoutDashboard,
+      active: location.pathname === "/hr/dashboard" || location.pathname === "/hr",
+      showFor: ["admin", "user", "HOD"],
+      module: "HR System",
+    },
+    {
+      href: "/hr/employee-master",
+      label: "Employee Master",
+      icon: UserRound,
+      active: location.pathname === "/hr/employee-master",
+      showFor: ["admin", "user", "HOD"],
+      module: "HR System",
+    },
+    {
+      href: "/hr/salary-structure",
+      label: "Salary Structure",
+      icon: CreditCard,
+      active: location.pathname === "/hr/salary-structure",
+      showFor: ["admin", "user", "HOD"],
+      module: "HR System",
+    },
+    {
+      href: "/hr/attendance",
+      label: "Attendance",
+      icon: CalendarCheck,
+      active: location.pathname === "/hr/attendance",
+      showFor: ["admin", "user", "HOD"],
+      module: "HR System",
+    },
+    {
+      href: "/hr/leave-tracker",
+      label: "Leave Tracker",
+      icon: CalendarIcon,
+      active: location.pathname === "/hr/leave-tracker",
+      showFor: ["admin", "user", "HOD"],
+      module: "HR System",
+    },
+    {
+      href: "/hr/payroll-process",
+      label: "Payroll Process",
+      icon: RefreshCw,
+      active: location.pathname === "/hr/payroll-process",
+      showFor: ["admin", "user", "HOD"],
+      module: "HR System",
+    },
+    {
+      href: "/hr/net-salary",
+      label: "Net Salary",
+      icon: DollarSign,
+      active: location.pathname === "/hr/net-salary",
+      showFor: ["admin", "user", "HOD"],
+      module: "HR System",
+    },
+    {
+      href: "/hr/payslip",
+      label: "Payslip",
+      icon: FileText,
+      active: location.pathname === "/hr/payslip",
+      showFor: ["admin", "user", "HOD"],
+      module: "HR System",
+    },
+    {
+      href: "/hr/create-indent",
+      label: "Create Indent",
+      icon: CirclePlus,
+      active: location.pathname === "/hr/create-indent",
+      showFor: ["admin", "user", "HOD"],
+      module: "HR System",
+    },
+    {
+      href: "/hr/inventory",
+      label: "Inventory",
+      icon: Database,
+      active: location.pathname === "/hr/inventory",
+      showFor: ["admin", "user", "HOD"],
+      module: "HR System",
+    },
+    {
+      href: "/hr/offer-letter",
+      label: "Offer Letter",
+      icon: FileText,
+      active: location.pathname === "/hr/offer-letter",
+      showFor: ["admin", "user", "HOD"],
+      module: "HR System",
+    },
+    // --- Petty Cash Module Routes ---
+    {
+      href: "/petty-cash/dashboard",
+      label: "Petty Dashboard",
+      icon: LayoutDashboard,
+      active: location.pathname === "/petty-cash/dashboard" || location.pathname === "/petty-cash",
+      showFor: ["admin", "user", "HOD"],
+      module: "Petty Cash",
+    },
+    {
+      href: "/petty-cash/add-case",
+      label: "Add Credit / Case",
+      icon: CirclePlus,
+      active: location.pathname === "/petty-cash/add-case",
+      showFor: ["admin", "user", "HOD"],
+      module: "Petty Cash",
+    },
+    {
+      href: "/petty-cash/expenses",
+      label: "Expenses",
+      icon: CreditCard,
+      active: location.pathname === "/petty-cash/expenses",
+      showFor: ["admin", "user", "HOD"],
+      module: "Petty Cash",
+    },
+    {
+      href: "/petty-cash/ledger",
+      label: "Ledger",
+      icon: ClipboardList,
+      active: location.pathname === "/petty-cash/ledger",
+      showFor: ["admin", "user", "HOD"],
+      module: "Petty Cash",
+    },
+    {
+      href: "/petty-cash/summary",
+      label: "Summary",
+      icon: Database,
+      active: location.pathname === "/petty-cash/summary",
+      showFor: ["admin", "user", "HOD"],
+      module: "Petty Cash",
+    },
+    {
+      href: "/petty-cash/settings",
+      label: "Petty Settings",
+      icon: Settings,
+      active: location.pathname === "/petty-cash/settings",
+      showFor: ["admin"],
+      module: "Petty Cash",
     }
   ];
 
@@ -695,6 +847,8 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                     <div className="flex items-center gap-3">
                       {moduleName === "Checklist & Delegation" && <ClipboardList className="h-5 w-5 shrink-0" />}
                       {moduleName === "Document & Substruction" && <Database className="h-5 w-5 shrink-0" />}
+                      {moduleName === "HR System" && <UserRound className="h-5 w-5 shrink-0" />}
+                      {moduleName === "Petty Cash" && <Banknote className="h-5 w-5 shrink-0" />}
                       <span className="text-left leading-tight">{moduleName}</span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -934,6 +1088,8 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                         <div className="flex items-center gap-3 overflow-hidden">
                           {moduleName === "Checklist & Delegation" && <ClipboardList className="h-5 w-5 shrink-0" />}
                           {moduleName === "Document & Substruction" && <Database className="h-5 w-5 shrink-0" />}
+                          {moduleName === "HR System" && <UserRound className="h-5 w-5 shrink-0" />}
+                          {moduleName === "Petty Cash" && <Banknote className="h-5 w-5 shrink-0" />}
                           <span className="text-left leading-tight truncate">{moduleName}</span>
                         </div>
                         {openModules[moduleName] ? (

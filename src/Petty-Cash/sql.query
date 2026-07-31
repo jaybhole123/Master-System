@@ -455,34 +455,5 @@ CREATE TABLE public.attendance (
   employee_name text,
   CONSTRAINT attendance_pkey PRIMARY KEY (id)
 );
-CREATE TABLE public.petty_cash_addcash_credits (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  sn text UNIQUE,
-  person_name text NOT NULL,
-  date date NOT NULL,
-  amount numeric NOT NULL CHECK (amount > 0::numeric),
-  payment_mode text,
-  particulars text DEFAULT 'CASH'::text,
-  remarks text,
-  receipt_url text,
-  status text DEFAULT 'APPROVED'::text,
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT petty_cash_addcash_credits_pkey PRIMARY KEY (id)
-);
-CREATE TABLE public.petty_cash_expenses (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  sn text UNIQUE,
-  person_name text NOT NULL,
-  particulars text,
-  date date NOT NULL,
-  received numeric DEFAULT 0,
-  amount numeric NOT NULL CHECK (amount > 0::numeric),
-  balance numeric DEFAULT 0,
-  payment_mode text,
-  group_head text,
-  remarks text,
-  receipt_url text,
-  status text NOT NULL DEFAULT 'PENDING'::text CHECK (status = ANY (ARRAY['PENDING'::text, 'APPROVED'::text, 'REJECTED'::text])),
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT petty_cash_expenses_pkey PRIMARY KEY (id)
-);
+
+

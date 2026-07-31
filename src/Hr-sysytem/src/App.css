@@ -1,0 +1,208 @@
+.hr-system-container .app-container {
+  display: flex;
+  min-height: 100vh;
+}
+
+.hr-system-container .sidebar {
+  width: 260px;
+  background-color: var(--sidebar-bg);
+  color: var(--sidebar-text);
+  display: flex;
+  flex-direction: column;
+  transition: width 0.3s ease;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.hr-system-container .sidebar-header {
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.hr-system-container .sidebar-nav {
+  padding: 16px 0;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.hr-system-container .nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 24px;
+  color: var(--sidebar-text);
+  text-decoration: none;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  opacity: 0.8;
+}
+
+.hr-system-container .nav-item:hover {
+  background-color: var(--sidebar-hover);
+  opacity: 1;
+}
+
+.hr-system-container .nav-item.active {
+  background-color: rgba(220, 38, 38, 0.15);
+  color: #ef4444;
+  border-right: 3px solid #dc2626;
+  opacity: 1;
+}
+
+.hr-system-container .main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+.hr-system-container .topbar {
+  height: 70px;
+  background-color: var(--bg-card);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.hr-system-container .page-content {
+  padding: 32px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.hr-system-container .page-header {
+  margin-bottom: 24px;
+}
+
+.hr-system-container .page-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.hr-system-container .page-subtitle {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+/* Animations */
+.hr-system-container .fade-in {
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.hr-system-container .form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.hr-system-container .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hr-system-container .form-group label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.hr-system-container .theme-toggle {
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border-radius: 50%;
+  transition: background-color 0.2s ease;
+}
+
+.hr-system-container .theme-toggle:hover {
+  background-color: rgba(0,0,0,0.05);
+}
+
+.hr-system-container .mobile-menu-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+}
+
+.hr-system-container .mobile-close-btn {
+  background: none;
+  border: none;
+  color: var(--sidebar-text);
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+}
+
+.hr-system-container .mobile-menu-overlay {
+  display: none;
+}
+
+/* --- Responsive Design --- */
+@media (max-width: 768px) {
+  .hr-system-container .app-container {
+    flex-direction: column;
+  }
+  
+  .hr-system-container .mobile-menu-btn {
+    display: flex;
+  }
+  
+  .hr-system-container .sidebar {
+    position: fixed;
+    left: -100%;
+    top: 0;
+    bottom: 0;
+    z-index: 1000;
+    width: 280px;
+    height: 100vh;
+    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 4px 0 15px rgba(0,0,0,0.2);
+  }
+  
+  .hr-system-container .sidebar.open {
+    left: 0;
+  }
+  
+  .hr-system-container .topbar {
+    padding: 0 16px;
+    height: 60px;
+  }
+  
+  .hr-system-container .page-content {
+    padding: 16px;
+  }
+  
+  .hr-system-container .page-title {
+    font-size: 1.5rem;
+  }
+}

@@ -1,0 +1,115 @@
+.petty-cash-container {
+  --primary-navy: #0f172a;
+  --accent-red: #dc2626;
+  --bg-slate: #f8fafc;
+  --border-gray: #e2e8f0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 0.85rem;
+  color: #1e293b;
+  width: 100%;
+}
+
+/* Page Content Container */
+.petty-cash-container .page-content {
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  border: 1px solid var(--border-gray);
+  padding: 0.75rem;
+}
+
+/* Glass effect */
+.petty-cash-container .glass-effect {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.petty-cash-container .modal-backdrop {
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+.petty-cash-container .scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.petty-cash-container .scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Typography Overrides */
+.petty-cash-container .text-navy { color: var(--primary-navy); }
+.petty-cash-container .bg-navy { background-color: var(--primary-navy); }
+
+/* Animation - Subtle Floating */
+@keyframes soft-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+.petty-cash-container .animate-soft-float {
+  animation: soft-float 4s ease-in-out infinite;
+}
+
+/* Standardized Card Style */
+.petty-cash-container .hr-card {
+  background-color: #ffffff;
+  border-radius: 0.75rem;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.3s ease;
+}
+
+.petty-cash-container .hr-card:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.petty-cash-container .hr-input {
+  width: 100%;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid #cbd5e1;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.petty-cash-container .hr-input:focus {
+  border-color: transparent;
+  box-shadow: 0 0 0 2px #ef4444;
+}
+
+.petty-cash-container .hr-button-primary {
+  background-color: #dc2626;
+  color: #ffffff;
+  font-weight: 500;
+  padding: 0.375rem 0.875rem;
+  border-radius: 0.5rem;
+  transition: background-color 0.2s ease;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.petty-cash-container .hr-button-primary:hover {
+  background-color: #b91c1c;
+}
+
+.petty-cash-container .hr-button-secondary {
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  font-weight: 500;
+  padding: 0.375rem 0.875rem;
+  border-radius: 0.5rem;
+  transition: background-color 0.2s ease;
+}
+
+.petty-cash-container .hr-button-secondary:hover {
+  background-color: #f8fafc;
+}
+
+/* Table Compaction inside Petty Cash */
+.petty-cash-container table th, 
+.petty-cash-container table td {
+  padding: 0.5rem 1rem !important;
+}

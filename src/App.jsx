@@ -1,7 +1,12 @@
 
 
+import { useEffect } from "react"
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom"
+import { Toaster } from "react-hot-toast"
 import "./index.css"
+import "./Hr-sysytem/src/index.css"
+import "./Hr-sysytem/src/App.css"
+import "./Petty-Cash/src/index.css"
 import DocumentRoutes from "./modules/document/DocumentRoutes"
 
 // --- Page Imports ---
@@ -21,6 +26,30 @@ import MasterDashboard from "./pages/MasterDashboard"
 import ProfilePage from "./pages/ProfilePage"
 import GlobalSettings from "./pages/admin/GlobalSettings"
 
+// --- HR System Imports ---
+import HrDashboard from "./Hr-sysytem/src/pages/Dashboard"
+import HrEmployeeMaster from "./Hr-sysytem/src/pages/EmployeeMaster"
+import HrSalaryStructure from "./Hr-sysytem/src/pages/SalaryStructure"
+import HrAttendance from "./Hr-sysytem/src/pages/Attendance"
+import HrLeaveTracker from "./Hr-sysytem/src/pages/LeaveTracker"
+import HrPayrollProcess from "./Hr-sysytem/src/pages/PayrollProcess"
+import HrNetSalary from "./Hr-sysytem/src/pages/NetSalary"
+import HrPayslip from "./Hr-sysytem/src/pages/Payslip"
+import HrBankTransfer from "./Hr-sysytem/src/pages/BankTransfer"
+import HrCreateIndent from "./Hr-sysytem/src/pages/Create-Indent"
+import HrInventory from "./Hr-sysytem/src/pages/Inventory"
+import HrOfferLetter from "./Hr-sysytem/src/pages/OfferLetter"
+import HrEmployeeJoin from "./Hr-sysytem/src/pages/EmployeeJoin"
+
+// --- Petty Cash Imports ---
+import PettyDashboard from "./Petty-Cash/src/pages/AdminDashboard"
+import PettyAddCase from "./Petty-Cash/src/pages/AddCase"
+import PettyExpenses from "./Petty-Cash/src/pages/Expenses"
+import PettyLedger from "./Petty-Cash/src/pages/Ledger"
+import PettySummary from "./Petty-Cash/src/pages/Summary"
+import PettySettings from "./Petty-Cash/src/pages/Settings"
+import { initializeStorage } from "./Petty-Cash/src/utils/storageManager"
+
 // --- Data & Delegation Imports ---
 import DataPage from "./pages/admin/DataPage"
 import AdminDataPage from "./pages/admin/admin-data-page"
@@ -35,7 +64,8 @@ import TrainingVideo from "./pages/admin/TrainingVideo"
 import InsuranceManagement from "./pages/admin/InsuranceManagement"
 import RentManagement from "./pages/admin/RentManagement"
 
-// --- Components ---
+// --- Layout & Components ---
+import AdminLayout from "./components/layout/AdminLayout"
 import RealtimeLogoutListener from "./components/RealtimeLogoutListener"
 import { MagicToastProvider } from "./context/MagicToastContext"
 
@@ -72,9 +102,30 @@ const SuperAdminRoute = ({ children }) => {
     return children
 }
 
+const HrWrapper = ({ children }) => (
+    <ProtectedRoute>
+        <AdminLayout>
+            <div className="hr-system-container p-2 sm:p-4">
+                {children}
+            </div>
+        </AdminLayout>
+    </ProtectedRoute>
+);
+
+const PettyWrapper = ({ children }) => (
+    <ProtectedRoute>
+        <AdminLayout>
+            <div className="petty-cash-container p-2 sm:p-4">
+                {children}
+            </div>
+        </AdminLayout>
+    </ProtectedRoute>
+);
+
 function App() {
     return (
         <MagicToastProvider>
+            <Toaster position="top-right" />
             <Router>
                 {/* Realtime listener handles logout logic across tabs */}
                 <RealtimeLogoutListener />
@@ -324,6 +375,35 @@ function App() {
                             </ProtectedRoute>
                         }
                     />
+
+                    {/* --- HR System Routes --- */}
+                    <Route path="/hr" element={<HrWrapper><HrDashboard /></HrWrapper>} />
+                    <Route path="/hr/dashboard" element={<HrWrapper><HrDashboard /></HrWrapper>} />
+                    <Route path="/hr/employee-master" element={<HrWrapper><HrEmployeeMaster /></HrWrapper>} />
+                    <Route path="/hr/salary-structure" element={<HrWrapper><HrSalaryStructure /></HrWrapper>} />
+                    <Route path="/hr/attendance" element={<HrWrapper><HrAttendance /></HrWrapper>} />
+                    <Route path="/hr/leave-tracker" element={<HrWrapper><HrLeaveTracker /></HrWrapper>} />
+                    <Route path="/hr/leaves" element={<Navigate to="/hr/leave-tracker" replace />} />
+                    <Route path="/hr/payroll-process" element={<HrWrapper><HrPayrollProcess /></HrWrapper>} />
+                    <Route path="/hr/process" element={<Navigate to="/hr/payroll-process" replace />} />
+                    <Route path="/hr/net-salary" element={<HrWrapper><HrNetSalary /></HrWrapper>} />
+                    <Route path="/hr/payslip" element={<HrWrapper><HrPayslip /></HrWrapper>} />
+                    <Route path="/hr/bank-transfer" element={<HrWrapper><HrBankTransfer /></HrWrapper>} />
+                    <Route path="/hr/bank" element={<Navigate to="/hr/bank-transfer" replace />} />
+                    <Route path="/hr/create-indent" element={<HrWrapper><HrCreateIndent /></HrWrapper>} />
+                    <Route path="/hr/indent" element={<Navigate to="/hr/create-indent" replace />} />
+                    <Route path="/hr/inventory" element={<HrWrapper><HrInventory /></HrWrapper>} />
+                    <Route path="/hr/offer-letter" element={<HrWrapper><HrOfferLetter /></HrWrapper>} />
+                    <Route path="/hr/employee-join" element={<HrWrapper><HrEmployeeJoin /></HrWrapper>} />
+
+                    {/* --- Petty Cash System Routes --- */}
+                    <Route path="/petty-cash" element={<PettyWrapper><PettyDashboard /></PettyWrapper>} />
+                    <Route path="/petty-cash/dashboard" element={<PettyWrapper><PettyDashboard /></PettyWrapper>} />
+                    <Route path="/petty-cash/add-case" element={<PettyWrapper><PettyAddCase /></PettyWrapper>} />
+                    <Route path="/petty-cash/expenses" element={<PettyWrapper><PettyExpenses /></PettyWrapper>} />
+                    <Route path="/petty-cash/ledger" element={<PettyWrapper><PettyLedger /></PettyWrapper>} />
+                    <Route path="/petty-cash/summary" element={<PettyWrapper><PettySummary /></PettyWrapper>} />
+                    <Route path="/petty-cash/settings" element={<PettyWrapper><PettySettings /></PettyWrapper>} />
 
                     {/* --- Backward Compatibility Redirects (From Snippet 1) --- */}
                     {/* These catch old URLs and forward them to the new structure */}

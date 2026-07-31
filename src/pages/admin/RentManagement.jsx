@@ -292,8 +292,8 @@ const RentManagement = () => {
 
   return (
     <AdminLayout>
-      <div className="flex-1 flex flex-col h-screen overflow-hidden bg-slate-50">
-        <header className="bg-white border-b border-slate-200 px-4 sm:px-6 py-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 z-10 shrink-0">
+      <div className="space-y-6">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-slate-800 flex items-center gap-2">
               <Banknote className="h-5 w-5 sm:h-6 sm:w-6 text-red-600" />
@@ -319,15 +319,15 @@ const RentManagement = () => {
                 setFormData({ place: '', name: '', phone: '', date: '', due_date: '', method: 'CASH', month: selectedMonth === 'ALL' ? currentMonth : selectedMonth, document: null, owner_name: '', monthly_rent: '', security_deposit: '', agreement_start: '', agreement_end: '', rent_due_date: '', payment_mode: 'CASH', last_rent_received: '', payment_status: '', rent_revision_date: '', electricity: '', maintenance: '', remarks: '', broker_number: '' });
                 setIsModalOpen(true);
               }}
-              className="w-full sm:w-auto justify-center flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium shadow-sm shadow-red-600/20"
+              className="w-full sm:w-auto justify-center flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium shadow-sm shadow-red-600/20 shrink-0"
             >
               <Plus className="h-4 w-4" />
               Add Record
             </button>
           </div>
-        </header>
+        </div>
 
-        <main className="flex-1 overflow-auto p-6">
+        <div className="space-y-6">
           <div className="max-w-7xl mx-auto space-y-6">
             
             {/* Controls Bar */}
@@ -665,7 +665,7 @@ const RentManagement = () => {
               </div>
             </div>
           </div>
-        </main>
+        </div>
       </div>
 
       {/* Add Record Modal */}
