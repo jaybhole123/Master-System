@@ -4,7 +4,7 @@ import supabase from '../../../SupabaseClient';
 import { isDateInRange } from '../utils/helpers';
 import { Download, Calendar, FileText } from 'lucide-react';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 const DEFAULT_USERS = [
   { id: 'admin', name: 'Admin User', password: 'admin123', role: 'ADMIN' },
@@ -168,7 +168,7 @@ export default function Summary() {
       rows.push([{ content: '', colSpan: 5, styles: { fillColor: [240, 240, 240], minCellHeight: 3 } }]);
     });
 
-    doc.autoTable({
+    autoTable(doc, {
       startY: 30,
       head: [['DATE', 'Opening Balance', 'Total Received', 'Total Expense', 'Closing Balance']],
       body: rows,

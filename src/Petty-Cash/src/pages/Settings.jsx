@@ -146,7 +146,7 @@ export default function Settings() {
       {/* GROUP HEADS TAB */}
       {activeTab === 'groupHeads' && (
         <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Manage Group Heads</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">Manage Approval Heads</h2>
 
           <div className="flex gap-3 mb-6">
             <input

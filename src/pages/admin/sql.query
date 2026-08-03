@@ -360,6 +360,15 @@ CREATE TABLE public.salary_structures (
   bank_account text,
   updated_at timestamp with time zone DEFAULT now(),
   esic_applicable boolean DEFAULT false,
+  total_days numeric DEFAULT 0,
+  present_days numeric DEFAULT 0,
+  leaves numeric DEFAULT 0,
+  leave_deduction numeric DEFAULT 0,
+  month_advance numeric DEFAULT 0,
+  month_recovery numeric DEFAULT 0,
+  prev_advance_deduction numeric DEFAULT 0,
+  salary_date date,
+  salary_month text,
   CONSTRAINT salary_structures_pkey PRIMARY KEY (employee_id)
 );
 CREATE TABLE public.payroll_settings (

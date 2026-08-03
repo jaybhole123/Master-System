@@ -57,9 +57,15 @@ export default function Attendance() {
 
   
   const [activeTab, setActiveTab] = useState('Register');
-  const [selectedMonth, setSelectedMonth] = useState('2026-07');
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
   const [showModal, setShowModal] = useState(false);
-  const [uploadData, setUploadData] = useState({ month: '07', year: '2026', file: null });
+  const [uploadData, setUploadData] = useState(() => {
+    const now = new Date();
+    return { month: String(now.getMonth() + 1).padStart(2, '0'), year: String(now.getFullYear()), file: null };
+  });
 
   // Add Employee Modal States
   const [showAddEmployeeModal, setShowAddEmployeeModal] = useState(false);
@@ -571,7 +577,8 @@ export default function Attendance() {
           toast.success(`Attendance sheet for ${monthYearStr} uploaded successfully!`);
         }
         setShowModal(false);
-        setUploadData({ month: '07', year: '2026', file: null });
+        const now = new Date();
+        setUploadData({ month: String(now.getMonth() + 1).padStart(2, '0'), year: String(now.getFullYear()), file: null });
         
         // If they uploaded data for the current month, refresh page to show it
         if (getFormattedMonth(selectedMonth) === monthYearStr) {

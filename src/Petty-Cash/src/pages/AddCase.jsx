@@ -335,7 +335,7 @@ export default function AddCase() {
 
       {/* Form Section Modal */}
       {showFormModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex flex-col items-center justify-center z-50 p-2 md:p-4">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex flex-col items-center justify-center z-50 p-2 md:p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[95vh] md:max-h-[90vh] flex flex-col overflow-hidden">
             <div className="p-2 md:p-4 border-b-2 border-red-700 flex justify-between items-center bg-red-600 flex-shrink-0">
               <h2 className="text-base md:text-xl font-bold text-white uppercase tracking-wider">JAI BHOLE GROUPS - CREDIT ENTRY FORM</h2>
@@ -644,7 +644,7 @@ export default function AddCase() {
 
       {/* Image Modal */}
       {showImageModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-2xl w-full p-6">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">Image Preview</h3>

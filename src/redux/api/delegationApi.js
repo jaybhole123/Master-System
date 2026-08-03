@@ -44,33 +44,37 @@ export const insertDelegationDoneAndUpdate = createAsyncThunk(
 
           // Step 2: Handle image upload if exists
           let imageUrl = taskData.image || taskData.image_url;
-          const taskImage = uploadedImages[taskData.id];
+          const taskImages = uploadedImages[taskData.id];
 
-          if (taskImage) {
+          if (taskImages) {
             try {
-              console.log('Uploading image for task:', taskData.id);
+              console.log('Uploading images for task:', taskData.id);
+              const filesToUpload = Array.isArray(taskImages) ? taskImages : [taskImages];
+              const uploadedUrls = [];
 
-              // Create a unique filename
-              const timestamp = Date.now();
-              const fileName = `delegation_${taskData.id}_${timestamp}_${taskImage.name}`;
+              for (const file of filesToUpload) {
+                const randomSuffix = Math.random().toString(36).substring(2, 8);
+                const sanitizedName = file.name ? file.name.replace(/[^a-zA-Z0-9.-]/g, '_') : 'image.jpg';
+                const fileName = `delegation_${taskData.id}_${Date.now()}_${randomSuffix}_${sanitizedName}`;
 
-              // Upload to Supabase storage using 'checklist' bucket as 'delegation' bucket doesn't exist
-              const { data: uploadData, error: uploadError } = await supabase.storage
-                .from('checklist')
-                .upload(fileName, taskImage);
-
-              if (uploadError) {
-                console.error('Image upload error:', uploadError);
-              } else {
-                // Get public URL from 'checklist' bucket
-                const { data: { publicUrl } } = supabase.storage
+                const { data: uploadData, error: uploadError } = await supabase.storage
                   .from('checklist')
-                  .getPublicUrl(fileName);
+                  .upload(fileName, file);
 
-                imageUrl = publicUrl;
+                if (uploadError) {
+                  console.error('Image upload error:', uploadError);
+                } else {
+                  const { data: { publicUrl } } = supabase.storage
+                    .from('checklist')
+                    .getPublicUrl(fileName);
+                  uploadedUrls.push(publicUrl);
+                }
+              }
+
+              if (uploadedUrls.length > 0) {
+                imageUrl = uploadedUrls.join(',');
 
                 if (doneData) {
-                  // Update delegation_done with correct column name (image_url)
                   const { error: updateImageError } = await supabase
                     .from('delegation_done')
                     .update({ image_url: imageUrl })
@@ -80,8 +84,7 @@ export const insertDelegationDoneAndUpdate = createAsyncThunk(
                     console.error('Error updating image URL:', updateImageError);
                   }
                 }
-
-                console.log('Image uploaded successfully:', imageUrl);
+                console.log('Images uploaded successfully:', imageUrl);
               }
             } catch (imageError) {
               console.error('Image processing error:', imageError);

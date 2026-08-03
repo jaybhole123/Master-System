@@ -733,16 +733,22 @@ const AllTasks = () => {
 
   // File Upload
   const handleImageUpload = useCallback((id, e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setUploadedImages((prev) => ({ ...prev, [id]: file }));
-      setSuccessMessage(`File selected for task ID: ${id}`);
+    const files = Array.from(e.target.files);
+    if (files.length > 0) {
+      setUploadedImages((prev) => {
+        const existing = prev[id];
+        const newFiles = existing ? (Array.isArray(existing) ? [...existing, ...files] : [existing, ...files]) : files;
+        return { ...prev, [id]: newFiles };
+      });
+      setSuccessMessage(`${files.length} file(s) selected for task ID: ${id}`);
     }
   }, []);
 
   const uploadFile = async (id, file) => {
     const bucketName = activeTab;
-    const fileName = `${id}_${Date.now()}_${file.name}`;
+    const randomSuffix = Math.random().toString(36).substring(2, 8);
+    const sanitizedName = file.name ? file.name.replace(/[^a-zA-Z0-9.-]/g, '_') : 'image.jpg';
+    const fileName = `${id}_${Date.now()}_${randomSuffix}_${sanitizedName}`;
     const { data, error: uploadError } = await supabase.storage.from(bucketName).upload(fileName, file);
 
     if (uploadError) throw uploadError;
@@ -911,7 +917,12 @@ const AllTasks = () => {
       const updatePromises = selectedArray.map(async (id) => {
         let imageUrl = null;
         if (uploadedImages[id]) {
-          imageUrl = await uploadFile(id, uploadedImages[id]);
+          if (Array.isArray(uploadedImages[id])) {
+            const urls = await Promise.all(uploadedImages[id].map(file => uploadFile(id, file)));
+            imageUrl = urls.join(',');
+          } else {
+            imageUrl = await uploadFile(id, uploadedImages[id]);
+          }
         }
 
         const remarksField = (activeTab === "checklist") ? "remark" : "remarks";
@@ -1633,10 +1644,11 @@ const AllTasks = () => {
                                         <label className={`flex items-center gap-2 cursor-pointer text-xs font-medium transition-colors ${selectedItems.has(task.id) ? "text-red-600 hover:text-red-800" : "text-gray-400 cursor-not-allowed"}`}>
                                           <Upload className="h-3.5 w-3.5" />
                                           <span>
-                                            {uploadedImages[task.id] ? "File Selected" : (task.require_attachment || task.attachment) ? <span>Upload Proof <span className="text-red-500 font-bold">*</span></span> : "Upload Proof"}
+                                            {uploadedImages[task.id] ? `${Array.isArray(uploadedImages[task.id]) ? uploadedImages[task.id].length : 1} File(s) Selected` : (task.require_attachment || task.attachment) ? <span>Upload Proof <span className="text-red-500 font-bold">*</span></span> : "Upload Proof"}
                                           </span>
                                           <input
                                             type="file"
+                                            multiple
                                             className="hidden"
                                             onChange={(e) => handleImageUpload(task.id, e)}
                                             disabled={!selectedItems.has(task.id)}
@@ -1645,11 +1657,12 @@ const AllTasks = () => {
                                         <label className={`flex items-center gap-2 cursor-pointer text-xs font-medium transition-colors ${selectedItems.has(task.id) ? "text-cyan-500 hover:text-cyan-700" : "text-gray-400 cursor-not-allowed"}`}>
                                           <Camera className="h-3.5 w-3.5" />
                                           <span>
-                                            {uploadedImages[task.id] ? "Photo Captured" : (task.require_attachment || task.attachment) ? <span>Take Photo <span className="text-red-500 font-bold">*</span></span> : "Take Photo"}
+                                            {uploadedImages[task.id] ? `${Array.isArray(uploadedImages[task.id]) ? uploadedImages[task.id].length : 1} Photo(s) Captured` : (task.require_attachment || task.attachment) ? <span>Take Photo <span className="text-red-500 font-bold">*</span></span> : "Take Photo"}
                                           </span>
                                           <input
                                             type="file"
                                             accept="image/*"
+                                            multiple
                                             className="hidden"
                                             onChange={(e) => handleImageUpload(task.id, e)}
                                             disabled={!selectedItems.has(task.id)}
@@ -1666,7 +1679,13 @@ const AllTasks = () => {
                                     </td>
                                     <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-800">
                                       {task.image || task.uploaded_image_url || task.image_url ? (
-                                        <a href={task.image || task.uploaded_image_url || task.image_url} target="_blank" rel="noopener noreferrer" className="text-red-600 hover:underline">View</a>
+                                        <div className="flex flex-col gap-1">
+                                          {(task.image || task.uploaded_image_url || task.image_url).split(',').map((url, i, arr) => (
+                                            <a key={i} href={url.trim()} target="_blank" rel="noopener noreferrer" className="text-red-600 hover:underline">
+                                              {arr.length > 1 ? `View ${i + 1}` : "View"}
+                                            </a>
+                                          ))}
+                                        </div>
                                       ) : "—"}
                                     </td>
                                   </>
@@ -1899,13 +1918,13 @@ const AllTasks = () => {
                               <div className="flex gap-2">
                                 <label className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md border text-xs font-medium transition-all ${selectedItems.has(task.id) ? "border-red-200 bg-red-50 text-red-600 active:scale-95" : "border-gray-100 bg-gray-50 text-gray-400 grayscale"}`}>
                                   <Upload className="h-3.5 w-3.5" />
-                                  <span>{uploadedImages[task.id] ? "Selected" : "Upload"}</span>
-                                  <input type="file" className="hidden" onChange={(e) => handleImageUpload(task.id, e)} disabled={!selectedItems.has(task.id)} />
+                                  <span>{uploadedImages[task.id] ? `${Array.isArray(uploadedImages[task.id]) ? uploadedImages[task.id].length : 1} Selected` : "Upload"}</span>
+                                  <input type="file" multiple className="hidden" onChange={(e) => handleImageUpload(task.id, e)} disabled={!selectedItems.has(task.id)} />
                                 </label>
                                 <label className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md border text-xs font-medium transition-all ${selectedItems.has(task.id) ? "border-cyan-200 bg-cyan-50 text-cyan-500 active:scale-95" : "border-gray-100 bg-gray-50 text-gray-400 grayscale"}`}>
                                   <Camera className="h-3.5 w-3.5" />
                                   <span>Photo</span>
-                                  <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(task.id, e)} disabled={!selectedItems.has(task.id)} />
+                                  <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleImageUpload(task.id, e)} disabled={!selectedItems.has(task.id)} />
                                 </label>
                               </div>
                             </div>
@@ -1924,19 +1943,24 @@ const AllTasks = () => {
                           )}
 
                           {/* History attachments */}
-                          {showHistory && (task.work_photo_url || task.bill_copy_url || task.image_url || task.uploaded_image_url) && (
+                          {showHistory && (task.work_photo_url || task.bill_copy_url || task.image_url || task.uploaded_image_url || task.image) && (
                             <div className="pt-2 border-t border-gray-50">
                               <p className="text-[10px] text-gray-400 uppercase font-semibold mb-2">Attachments</p>
                               <div className="flex flex-wrap gap-3">
-                                {(task.work_photo_url || task.image_url || task.uploaded_image_url) && (
+                                {(task.work_photo_url || task.image_url || task.uploaded_image_url || task.image) && (
                                   <div className="flex flex-col gap-1">
                                     <span className="text-[10px] text-gray-500 font-medium">Work Photo</span>
-                                    <img
-                                      src={task.work_photo_url || task.image_url || task.uploaded_image_url}
-                                      alt="Work"
-                                      className="w-24 h-24 object-cover rounded-lg border-2 border-red-100 shadow-sm cursor-zoom-in"
-                                      onClick={() => setLightboxImage({ url: task.work_photo_url || task.image_url || task.uploaded_image_url, name: "Work Photo" })}
-                                    />
+                                    <div className="flex flex-wrap gap-2">
+                                      {(task.work_photo_url || task.image_url || task.uploaded_image_url || task.image).split(',').map((url, i) => (
+                                        <img
+                                          key={i}
+                                          src={url.trim()}
+                                          alt={`Work ${i+1}`}
+                                          className="w-24 h-24 object-cover rounded-lg border-2 border-red-100 shadow-sm cursor-zoom-in"
+                                          onClick={() => setLightboxImage({ url: url.trim(), name: `Work Photo ${i+1}` })}
+                                        />
+                                      ))}
+                                    </div>
                                   </div>
                                 )}
                                 {task.bill_copy_url && (

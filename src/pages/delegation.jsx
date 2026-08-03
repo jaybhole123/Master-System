@@ -616,13 +616,14 @@ function DelegationDataPage() {
   );
 
   const handleImageUpload = useCallback((id, e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    setUploadedImages((prev) => ({
-      ...prev,
-      [id]: file,
-    }));
+    const files = Array.from(e.target.files);
+    if (files.length > 0) {
+      setUploadedImages((prev) => {
+        const existing = prev[id];
+        const newFiles = existing ? (Array.isArray(existing) ? [...existing, ...files] : [existing, ...files]) : files;
+        return { ...prev, [id]: newFiles };
+      });
+    }
   }, []);
 
   const handleStatusChange = useCallback((id, value) => {
@@ -1931,7 +1932,7 @@ function DelegationDataPage() {
                                   {uploadedImages[task.id] ? (
                                     <div className="flex items-center space-x-2 p-1 bg-green-50 rounded border border-green-200">
                                       <span className="text-[10px] text-green-700 truncate max-w-[80px]">
-                                        {uploadedImages[task.id].name}
+                                        {Array.isArray(uploadedImages[task.id]) ? `${uploadedImages[task.id].length} File(s)` : uploadedImages[task.id].name}
                                       </span>
                                       <button
                                         onClick={() =>
@@ -1979,8 +1980,9 @@ function DelegationDataPage() {
                                       </div>
                                       <input
                                         type="file"
+                                        multiple
                                         className="hidden"
-                                        accept="image/*"
+                                        accept="image/*,application/pdf"
                                         disabled={!isSelected}
                                         onChange={(e) =>
                                           handleImageUpload(task.id, e)

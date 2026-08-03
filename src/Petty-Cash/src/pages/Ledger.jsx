@@ -36,6 +36,7 @@ export default function Ledger() {
     dateTo: '',
     personName: '',
     transactionType: '',
+    remarks: '',
     searchQuery: ''
   });
 
@@ -105,6 +106,16 @@ export default function Ledger() {
     });
   }, [credits, expenses]);
 
+  const uniqueRemarks = useMemo(() => {
+    const remarksSet = new Set();
+    ledgerData.forEach(entry => {
+      if (entry.remarks && entry.remarks.trim()) {
+        remarksSet.add(entry.remarks.trim().toUpperCase());
+      }
+    });
+    return Array.from(remarksSet).sort();
+  }, [ledgerData]);
+
   const filteredLedger = useMemo(() => {
     return ledgerData.filter(entry => {
       // Apply date filter
@@ -121,6 +132,11 @@ export default function Ledger() {
 
       // Apply transaction type filter
       if (filters.transactionType && entry.type !== filters.transactionType) {
+        return false;
+      }
+
+      // Apply remarks filter
+      if (filters.remarks && (!entry.remarks || entry.remarks.trim().toUpperCase() !== filters.remarks.toUpperCase())) {
         return false;
       }
 
@@ -259,15 +275,29 @@ export default function Ledger() {
                   ))}
                 </select>
              </div>
-             <select
-               value={filters.transactionType}
-               onChange={(e) => setFilters({ ...filters, transactionType: e.target.value })}
-               className="w-full bg-white border border-gray-300 rounded-lg lg:rounded px-2 py-1.5 focus:outline-none focus:border-indigo-500 text-[11px] md:text-sm h-[32px] md:h-[38px]"
-             >
-               <option value="">All Types</option>
-               <option value="CREDIT">Credit</option>
-               <option value="EXPENSE">Expense</option>
-             </select>
+             <div className="w-full">
+               <select
+                 value={filters.transactionType}
+                 onChange={(e) => setFilters({ ...filters, transactionType: e.target.value })}
+                 className="w-full bg-white border border-gray-300 rounded-lg lg:rounded px-2 py-1.5 focus:outline-none focus:border-indigo-500 text-[11px] md:text-sm h-[32px] md:h-[38px]"
+               >
+                 <option value="">All Types</option>
+                 <option value="CREDIT">Credit</option>
+                 <option value="EXPENSE">Expense</option>
+               </select>
+             </div>
+             <div className="w-full">
+                <select
+                  value={filters.remarks}
+                  onChange={(e) => setFilters({ ...filters, remarks: e.target.value })}
+                  className="w-full bg-white border border-gray-300 rounded-lg lg:rounded px-2 py-1.5 focus:outline-none focus:border-indigo-500 text-[11px] md:text-sm h-[32px] md:h-[38px]"
+                >
+                  <option value="">All Remarks</option>
+                  {uniqueRemarks.map((remark, idx) => (
+                    <option key={idx} value={remark}>{remark}</option>
+                  ))}
+                </select>
+             </div>
           </div>
         </div>
 

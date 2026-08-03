@@ -11,7 +11,8 @@ import {
   fileToBase64,
   getTodayDate,
   createLedgerEntry,
-  calculateBalance
+  calculateBalance,
+  getTotalBalance
 } from '../utils/helpers';
 
 export default function Expenses() {
@@ -115,10 +116,10 @@ export default function Expenses() {
   // Get all users for dropdown
   const userList = DEFAULT_USERS.map(u => u.name);
 
-  // Calculate balance for selected person
+  // Calculate total global balance instead of person-specific
   const selectedPersonBalance = useMemo(() => {
-    return calculateBalance(formData.personName, credits, expenses.filter(e => e.status === 'APPROVED'));
-  }, [formData.personName, credits, expenses]);
+    return getTotalBalance(credits, expenses.filter(e => e.status === 'APPROVED'));
+  }, [credits, expenses]);
 
   const pendingExpenses = expenses.filter(e => e.status === 'PENDING');
   const approvedExpenses = expenses.filter(e => e.status === 'APPROVED');
@@ -139,19 +140,19 @@ export default function Expenses() {
   const filteredExpenses = displayExpenses.filter(expense => {
     if (filters.fromDate && expense.date < filters.fromDate) return false;
     if (filters.toDate && expense.date > filters.toDate) return false;
-    if (filters.personName && expense.personName !== filters.personName) return false;
-    if (filters.mode && expense.paymentMode !== filters.mode) return false;
-    if (filters.groupHead && expense.groupHead !== filters.groupHead) return false;
+    if (filters.personName && (expense.person_name || expense.personName) !== filters.personName) return false;
+    if (filters.mode && (expense.payment_mode || expense.paymentMode) !== filters.mode) return false;
+    if (filters.groupHead && (expense.group_head || expense.groupHead) !== filters.groupHead) return false;
 
     if (filters.searchQuery) {
       const q = filters.searchQuery.toLowerCase();
       const match = (
         (expense.sn && String(expense.sn).toLowerCase().includes(q)) ||
-        (expense.personName && expense.personName.toLowerCase().includes(q)) ||
+        ((expense.person_name || expense.personName) && (expense.person_name || expense.personName).toLowerCase().includes(q)) ||
         (expense.date && expense.date.includes(q)) ||
         (expense.amount && String(expense.amount).toLowerCase().includes(q)) ||
-        (expense.paymentMode && expense.paymentMode.toLowerCase().includes(q)) ||
-        (expense.groupHead && expense.groupHead.toLowerCase().includes(q)) ||
+        ((expense.payment_mode || expense.paymentMode) && (expense.payment_mode || expense.paymentMode).toLowerCase().includes(q)) ||
+        ((expense.group_head || expense.groupHead) && (expense.group_head || expense.groupHead).toLowerCase().includes(q)) ||
         (expense.remarks && expense.remarks.toLowerCase().includes(q))
       );
       if (!match) return false;
@@ -406,7 +407,7 @@ export default function Expenses() {
               className="w-full bg-white border border-gray-300 rounded-lg lg:rounded px-2 py-1.5 focus:outline-none focus:border-indigo-500 text-[11px] md:text-sm h-[32px] md:h-[38px]"
             >
               <option value="">All Persons</option>
-              {Array.from(new Set(expenses.map(e => e.personName))).filter(Boolean).map((person, idx) => (
+              {Array.from(new Set(expenses.map(e => e.person_name || e.personName))).filter(Boolean).map((person, idx) => (
                 <option key={person || idx} value={person}>{person}</option>
               ))}
             </select>
@@ -637,9 +638,9 @@ export default function Expenses() {
                   <div>
                     <span className="text-[8px] font-medium text-gray-400 uppercase tracking-widest block leading-none mb-0.5"># {((currentPage - 1) * itemsPerPage) + paginatedExpenses.indexOf(expense) + 1}</span>
                     <h3 className="font-medium text-gray-900 text-[11px] uppercase tracking-tight leading-none mt-[2px]">
-                      {expense.personName}
+                      {expense.person_name || expense.personName}
                     </h3>
-                    <span className="text-[7px] font-medium text-indigo-500 uppercase tracking-wider bg-indigo-50/50 px-1 rounded mt-0.5 inline-block">{expense.groupHead}</span>
+                    <span className="text-[7px] font-medium text-indigo-500 uppercase tracking-wider bg-indigo-50/50 px-1 rounded mt-0.5 inline-block">{expense.group_head || expense.groupHead}</span>
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-[1px]">
@@ -651,7 +652,7 @@ export default function Expenses() {
                       </span>
                     )}
                     <span className="bg-sky-100/80 text-sky-700 px-1 py-[1px] rounded text-[7px] font-medium tracking-widest uppercase leading-none">
-                      {expense.paymentMode}
+                      {expense.payment_mode || expense.paymentMode}
                     </span>
                   </div>
                 </div>
@@ -745,8 +746,8 @@ export default function Expenses() {
                       {formatCurrency(expense.amount)}
                     </td>
                     <td className="px-2 py-1.5 text-right text-xs border border-gray-300 font-medium text-blue-700">{expense.balance ? formatCurrency(expense.balance) : '-'}</td>
-                    <td className="px-2 py-1.5 text-center text-xs border border-gray-300 uppercase">{expense.personName}</td>
-                    <td className="px-2 py-1.5 text-center text-xs border border-gray-300 uppercase">{expense.groupHead || '-'}</td>
+                    <td className="px-2 py-1.5 text-center text-xs border border-gray-300 uppercase">{expense.person_name || expense.personName}</td>
+                    <td className="px-2 py-1.5 text-center text-xs border border-gray-300 uppercase">{expense.group_head || expense.groupHead || '-'}</td>
                     <td className="px-2 py-1.5 text-left text-xs border border-gray-300 truncate max-w-[150px] uppercase">{expense.remarks || '-'}</td>
                     <td className="px-2 py-1.5 text-center text-xs border border-gray-300">
                       {activeTab === 'pending' ? (

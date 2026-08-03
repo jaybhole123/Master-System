@@ -143,7 +143,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       "Rent Management": path.includes("/dashboard/rent-management"),
       "HR System": path.startsWith("/hr"),
       "Petty Cash": path.startsWith("/petty-cash"),
-      "Checklist & Delegation": path.includes("/dashboard") && !path.includes("/dashboard/profile") && !path.includes("/dashboard/global-settings") && !path.includes("/dashboard/rent-management"),
+      "Checklist & Delegation": path.startsWith("/dashboard") && !path.includes("/dashboard/profile") && !path.includes("/dashboard/global-settings") && !path.includes("/dashboard/rent-management"),
       "Document & Substruction": path.includes("/document") || path.includes("/doc-dashboard") || path.includes("/resource-manager") || path.includes("/loan") || path.includes("/subscription") || path.includes("/bg") || path === "/",
     };
   });

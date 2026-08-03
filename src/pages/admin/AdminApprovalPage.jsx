@@ -670,27 +670,32 @@ export default function AdminApprovalPage() {
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 {(() => {
                                                     const proofs = [];
-                                                    if (task.work_photo_url) proofs.push({ url: task.work_photo_url, label: 'Work Photo' });
-                                                    if (task.bill_copy_url) proofs.push({ url: task.bill_copy_url, label: 'Bill Copy' });
+                                                    if (task.work_photo_url) task.work_photo_url.split(',').forEach((url, i) => proofs.push({ url: url.trim(), label: `Work Photo ${i > 0 ? i+1 : ''}`.trim() }));
+                                                    if (task.bill_copy_url) task.bill_copy_url.split(',').forEach((url, i) => proofs.push({ url: url.trim(), label: `Bill Copy ${i > 0 ? i+1 : ''}`.trim() }));
                                                     
                                                     const commonImg = task.image || task.image_url || task.img_url || task.uploaded_image_url;
-                                                    if (commonImg && !proofs.some(p => p.url === commonImg)) {
-                                                        proofs.push({ url: commonImg, label: (activeTab === 'checklist' ? 'Checklist Proof' : 'Proof') });
+                                                    if (commonImg) {
+                                                        commonImg.split(',').forEach((url, i) => {
+                                                            const u = url.trim();
+                                                            if (!proofs.some(p => p.url === u)) {
+                                                                proofs.push({ url: u, label: activeTab === 'checklist' ? `Checklist Proof ${i > 0 ? i+1 : ''}`.trim() : `Proof ${i > 0 ? i+1 : ''}`.trim() });
+                                                            }
+                                                        });
                                                     }
 
                                                     if (proofs.length === 0) return <span className="text-gray-300 text-xs italic">No Proof</span>;
                                                     
                                                     return (
-                                                        <div className="flex flex-wrap items-center gap-2">
+                                                        <div className="flex flex-wrap items-start gap-3 min-w-[140px] max-w-[240px]">
                                                             {proofs.map((proof, idx) => (
-                                                                <div key={idx} className="flex flex-col items-center gap-1">
+                                                                <div key={idx} className="flex flex-col items-center gap-1 w-[54px]">
                                                                     <div 
                                                                         onClick={() => setSelectedImage(proof.url)}
-                                                                        className="w-12 h-12 rounded-lg overflow-hidden border border-gray-100 shadow-sm cursor-zoom-in hover:scale-110 transition-transform bg-gray-50"
+                                                                        className="w-12 h-12 rounded-lg overflow-hidden border border-gray-100 shadow-sm cursor-zoom-in hover:scale-110 transition-transform bg-gray-50 shrink-0"
                                                                     >
                                                                         <img src={proof.url} className="w-full h-full object-cover" alt={proof.label} />
                                                                     </div>
-                                                                    <span className="text-[8px] font-bold text-gray-400 uppercase tracking-tighter">{proof.label}</span>
+                                                                    <span className="text-[7px] font-bold text-gray-400 uppercase tracking-tighter text-center leading-tight w-full truncate" title={proof.label}>{proof.label}</span>
                                                                 </div>
                                                             ))}
                                                         </div>
@@ -891,12 +896,17 @@ export default function AdminApprovalPage() {
                                         </div>
                                         {(() => {
                                             const proofs = [];
-                                            if (task.work_photo_url) proofs.push({ url: task.work_photo_url, label: 'Work Photo' });
-                                            if (task.bill_copy_url) proofs.push({ url: task.bill_copy_url, label: 'Bill Copy' });
+                                            if (task.work_photo_url) task.work_photo_url.split(',').forEach((url, i) => proofs.push({ url: url.trim(), label: `Work Photo ${i > 0 ? i+1 : ''}`.trim() }));
+                                            if (task.bill_copy_url) task.bill_copy_url.split(',').forEach((url, i) => proofs.push({ url: url.trim(), label: `Bill Copy ${i > 0 ? i+1 : ''}`.trim() }));
                                             
                                             const commonImg = task.image || task.image_url || task.img_url || task.uploaded_image_url;
-                                            if (commonImg && !proofs.some(p => p.url === commonImg)) {
-                                                proofs.push({ url: commonImg, label: 'Proof' });
+                                            if (commonImg) {
+                                                commonImg.split(',').forEach((url, i) => {
+                                                    const u = url.trim();
+                                                    if (!proofs.some(p => p.url === u)) {
+                                                        proofs.push({ url: u, label: `Proof ${i > 0 ? i+1 : ''}`.trim() });
+                                                    }
+                                                });
                                             }
 
                                             if (proofs.length === 0) return <span className="text-gray-300 text-[10px] italic">No Proof</span>;
