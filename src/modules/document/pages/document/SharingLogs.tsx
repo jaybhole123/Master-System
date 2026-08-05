@@ -41,7 +41,7 @@ const SharingLogs = () => {
         {
           timestamp: "2024-01-15 14:30:00",
           email: "john@example.com",
-          name: "John Doe",
+          name: "name",
           documentName: "Annual Report 2023",
           documentType: "PDF",
           category: "Financial",

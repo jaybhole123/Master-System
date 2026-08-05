@@ -223,7 +223,7 @@ export default function EmployeeJoin() {
           <div className="form-grid">
             <div className="form-group">
               <label>Name</label>
-              <input type="text" name="name" value={formData.name} onChange={handleChange} required placeholder="John Doe" />
+              <input type="text" name="name" value={formData.name} onChange={handleChange} required placeholder="name" />
             </div>
             <div className="form-group">
               <label>Email Address</label>

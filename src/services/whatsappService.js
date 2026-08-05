@@ -92,7 +92,7 @@ const triggerWhatsAppToast = () => {
  * @param {string} message - Message text
  * @returns {Promise<boolean>} - Success status
  */
-const sendWhatsAppMessage = async (phoneNumber, message) => {
+export const sendWhatsAppMessage = async (phoneNumber, message) => {
     if (!ENABLE_WHATSAPP) {
         console.log(`📱 [WhatsApp Disabled] To: +${phoneNumber}, Message: ${message}`);
         return true;
@@ -842,6 +842,127 @@ export const sendCustomNotificationReminder = async (notificationDetails) => {
     }
 };
 
+/**
+ * Send Help Slip Admin Reply Notification
+ * @param {Object} details - Help slip details
+ * @returns {Promise<boolean>} - Success status
+ */
+export const sendHelpSlipReplyNotification = async (details) => {
+    try {
+        const { recipientPhone, recipientName, challenge, adminReply } = details;
+        
+        let phone = recipientPhone;
+        if (!phone && recipientName) {
+            phone = await getUserPhoneNumber(recipientName);
+        }
+        
+        if (!phone) {
+            console.warn(`No phone number found for user: ${recipientName}`);
+            return false;
+        }
+
+        // Attempt sending Meta Template: help_slip_reply
+        // Variables: {{1}} recipientName, {{2}} challenge, {{3}} adminReply
+        const sentTemplate = await sendWhatsAppTemplate(
+            phone,
+            'help_slip_reply',
+            [recipientName, challenge, adminReply],
+            'en'
+        );
+
+        if (!sentTemplate) {
+            // Fallback to custom direct text message
+            const customMessage = `📋 *HELP SLIP - ADMIN REPLY*\n\n` +
+                `Hello *${recipientName}*,\n` +
+                `Admin has replied to your Help Slip challenge:\n\n` +
+                `❓ *Challenge:* ${challenge}\n` +
+                `💬 *Admin Reply:* ${adminReply}\n\n` +
+                `Best regards,\nJay Bhole System`;
+            return await sendWhatsAppMessage(phone, customMessage);
+        }
+
+        return true;
+    } catch (error) {
+        console.error('Error sending help slip reply notification:', error);
+        return false;
+    }
+};
+
+/**
+ * Get superadmin phone numbers from database
+ * @returns {Promise<Array<string>>} - Array of phone numbers
+ */
+const getSuperAdminPhoneNumbers = async () => {
+    try {
+        const { data, error } = await supabase
+            .from('users')
+            .select('number, role')
+            .ilike('role', 'superadmin');
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+            return ["9131749390"]; // Default fallback superadmin number
+        }
+
+        const numbers = data.map(u => u.number).filter(Boolean);
+        return numbers.length > 0 ? numbers : ["9131749390"];
+    } catch (error) {
+        console.error('Error fetching superadmin phone numbers:', error);
+        return ["9131749390"];
+    }
+};
+
+/**
+ * Send New Help Slip Notification to Superadmin(s)
+ * @param {Object} details - Help slip details
+ * @returns {Promise<boolean>} - Success status
+ */
+export const sendNewHelpSlipNotification = async (details) => {
+    try {
+        const { userName, department, userPhone, challenge, solution1, solution2, solution3 } = details;
+        
+        // Dynamically fetch phone numbers of users with role "superadmin"
+        const superAdminNumbers = await getSuperAdminPhoneNumbers();
+
+        // Combine all solutions provided by user
+        const solutionsList = [];
+        if (solution1?.trim()) solutionsList.push(`Solution 1 - ${solution1.trim()}`);
+        if (solution2?.trim()) solutionsList.push(`Solution 2 - ${solution2.trim()}`);
+        if (solution3?.trim()) solutionsList.push(`Solution 3 - ${solution3.trim()}`);
+
+        const combinedSolutions = solutionsList.join(' | ') || 'N/A';
+
+        // Loop through all superadmin phone numbers and send notification
+        for (const adminNum of superAdminNumbers) {
+            const sentTemplate = await sendWhatsAppTemplate(
+                adminNum,
+                'new_help_slip_submitted',
+                [userName, department || 'N/A', challenge, combinedSolutions],
+                'en'
+            );
+
+            if (!sentTemplate) {
+                // Fallback to custom direct text message
+                const customMessage = `🆘 *NEW HELP SLIP SUBMITTED*\n\n` +
+                    `👤 *Employee:* ${userName}\n` +
+                    `🏢 *Department:* ${department || 'N/A'}\n` +
+                    `📞 *Contact:* ${userPhone || 'N/A'}\n\n` +
+                    `❓ *Challenge:* ${challenge}\n\n` +
+                    `💡 *Suggested Solutions:*\n` +
+                    (solutionsList.length > 0 ? solutionsList.map(s => `• ${s}`).join('\n') : '• N/A') + `\n\n` +
+                    `Please review and reply in the Master System.`;
+                await sendWhatsAppMessage(adminNum, customMessage);
+            }
+        }
+
+        return true;
+    } catch (error) {
+        console.error('Error sending new help slip notification to superadmin:', error);
+        return false;
+    }
+};
+
 export default {
     sendUrgentTaskNotification,
     sendTaskExtensionNotification,
@@ -860,5 +981,7 @@ export default {
     sendDailyTaskSummaryNotification,
     sendPurchaseDeliveredNotification,
     sendRentPaymentReminder,
-    sendCustomNotificationReminder
+    sendCustomNotificationReminder,
+    sendHelpSlipReplyNotification,
+    sendNewHelpSlipNotification
 };

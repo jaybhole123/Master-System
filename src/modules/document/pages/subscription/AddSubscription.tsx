@@ -244,7 +244,7 @@ const AddSubscription: React.FC<AddSubscriptionProps> = ({ isOpen, onClose, onSu
                   className="w-full p-3 shadow-input border-none rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   value={formData.subscriberName}
                   onChange={handleInputChange}
-                  placeholder="e.g. John Doe"
+                  placeholder="e.g. name"
                 />
               </div>
             </div>

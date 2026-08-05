@@ -733,7 +733,12 @@ const AllTasks = () => {
 
   // File Upload
   const handleImageUpload = useCallback((id, e) => {
-    const files = Array.from(e.target.files);
+    let files = [];
+    if (e.dataTransfer && e.dataTransfer.files) {
+      files = Array.from(e.dataTransfer.files);
+    } else if (e.target && e.target.files) {
+      files = Array.from(e.target.files);
+    }
     if (files.length > 0) {
       setUploadedImages((prev) => {
         const existing = prev[id];
@@ -1639,7 +1644,16 @@ const AllTasks = () => {
                                         disabled={!selectedItems.has(task.id)}
                                       />
                                     </td>
-                                    <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-800 bg-emerald-50/30">
+                                    <td 
+                                      className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-800 bg-emerald-50/30 transition-colors"
+                                      onDragOver={(e) => { e.preventDefault(); if (selectedItems.has(task.id)) e.currentTarget.classList.add('!bg-emerald-100'); }}
+                                      onDragLeave={(e) => { e.preventDefault(); e.currentTarget.classList.remove('!bg-emerald-100'); }}
+                                      onDrop={(e) => {
+                                        e.preventDefault();
+                                        e.currentTarget.classList.remove('!bg-emerald-100');
+                                        if (selectedItems.has(task.id)) handleImageUpload(task.id, e);
+                                      }}
+                                    >
                                       <div className="flex flex-col gap-2">
                                         <label className={`flex items-center gap-2 cursor-pointer text-xs font-medium transition-colors ${selectedItems.has(task.id) ? "text-red-600 hover:text-red-800" : "text-gray-400 cursor-not-allowed"}`}>
                                           <Upload className="h-3.5 w-3.5" />
@@ -1915,7 +1929,16 @@ const AllTasks = () => {
                                   className="w-full text-xs border-gray-200 rounded-md py-1.5 px-3 focus:outline-none focus:ring-1 focus:ring-red-400"
                                 />
                               </div>
-                              <div className="flex gap-2">
+                              <div 
+                                className="flex gap-2 p-1 rounded-md transition-colors"
+                                onDragOver={(e) => { e.preventDefault(); if (selectedItems.has(task.id)) e.currentTarget.classList.add('bg-emerald-50'); }}
+                                onDragLeave={(e) => { e.preventDefault(); e.currentTarget.classList.remove('bg-emerald-50'); }}
+                                onDrop={(e) => {
+                                  e.preventDefault();
+                                  e.currentTarget.classList.remove('bg-emerald-50');
+                                  if (selectedItems.has(task.id)) handleImageUpload(task.id, e);
+                                }}
+                              >
                                 <label className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md border text-xs font-medium transition-all ${selectedItems.has(task.id) ? "border-red-200 bg-red-50 text-red-600 active:scale-95" : "border-gray-100 bg-gray-50 text-gray-400 grayscale"}`}>
                                   <Upload className="h-3.5 w-3.5" />
                                   <span>{uploadedImages[task.id] ? `${Array.isArray(uploadedImages[task.id]) ? uploadedImages[task.id].length : 1} Selected` : "Upload"}</span>

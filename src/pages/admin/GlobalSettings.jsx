@@ -41,6 +41,11 @@ const MODULES = [
     id: 'Petty Cash',
     name: 'Petty Cash',
     pages: ['Petty Dashboard', 'Add Credit / Case', 'Expenses', 'Ledger', 'Summary', 'Petty Settings']
+  },
+  {
+    id: 'Help Slip',
+    name: 'Help Slip',
+    pages: ['Help Slip', 'Submissions']
   }
 ];
 

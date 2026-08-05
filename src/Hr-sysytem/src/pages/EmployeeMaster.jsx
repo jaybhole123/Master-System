@@ -606,7 +606,7 @@ export default function EmployeeMaster() {
               <div className="form-grid">
                 <div className="form-group">
                   <label>Name</label>
-                  <input type="text" name="name" value={formData.name} onChange={handleAddChange} required placeholder="John Doe" />
+                  <input type="text" name="name" value={formData.name} onChange={handleAddChange} required placeholder="name" />
                 </div>
                 <div className="form-group">
                   <label>Email Address</label>

@@ -7,6 +7,41 @@ import html2canvas from 'html2canvas';
 import jbtLogo from '../assets/jbt.logo.jfif';
 import jbeLogo from '../assets/jbe-logo.jfif';
 
+const FIRM_DETAILS = {
+  'M/s Jai Bhole Traders': {
+    name: 'M/s Jai Bhole Traders',
+    logo: jbtLogo,
+    gstin: '22AWGPA9068C1ZW',
+    textColor: '#2c3e60',
+    address: 'N.K. Agrawal & Sons Tower, 2nd Floor, Lane No. 8, Near State Bank of India, New Shanti Nagar, Shankar Nagar, Raipur 492 004 (C.G.)',
+    footerContact: 'Mo. : 78736 50000, 91091 61146, E-mail : biswanath23@gmail.com, jaibholetraderacc@gmail.com'
+  },
+  'Jai Bhole Enterprises': {
+    name: 'Jai Bhole Enterprises',
+    logo: jbeLogo,
+    gstin: '22AHAPA5408K1ZW',
+    textColor: '#ee5945',
+    address: 'N.K. Agrawal & Sons Tower, 3rd Floor, Lane No. 8, Near State Bank of India, New Shanti Nagar, Shankar Nagar, Raipur 492 004 (C.G.)',
+    footerContact: 'Mo. : 91654 22000, E-mail : amarnath.agrawal22@gmail.com, GSTIN : 22AHAPA5408K1ZW'
+  },
+  'ASAK COAL PRIVATE LIMITED': {
+    name: 'ASAK COAL PRIVATE LIMITED',
+    logo: null,
+    gstin: '22AAXCA2906K1ZH',
+    textColor: '#834333',
+    address: 'N.K. Agrawal & Sons Tower, 1st Floor, Lane No. 8, Near State Bank of India, New Shanti Nagar, Shankar Nagar, Raipur 492 004 (C.G.)',
+    footerContact: 'Mo. : 91654 22000, E-mail : asakcoal@gmail.com, CIN No. : U51909CT2022PTC013419, GSTIN : 22AAXCA2906K1ZH'
+  },
+  'Jai Bhole Logistics': {
+    name: 'Jai Bhole Logistics',
+    logo: jbeLogo,
+    gstin: '22AANHA7052H1ZH',
+    textColor: '#ff6b52',
+    address: 'N.K. Agrawal & Sons Tower, 3rd Floor, Lane No. 8, Near State Bank of India, New Shanti Nagar, Shankar Nagar, Raipur 492 004 (C.G.)',
+    footerContact: 'Mo.: 91654 22000, E-mail : amarnath.agrawal22@gmail.com'
+  }
+};
+
 const OfferLetter = () => {
   const [isPreview, setIsPreview] = useState(false);
   const letterRef = useRef(null);
@@ -59,13 +94,15 @@ const OfferLetter = () => {
       const pdfHeight = pdf.internal.pageSize.getHeight();
       
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`Offer_Letter_${formData.name.replace(/\s+/g, '_')}.pdf`);
+      pdf.save(`Offer_Letter_${formData.name ? formData.name.replace(/\s+/g, '_') : 'Employee'}.pdf`);
       toast.success("PDF downloaded successfully!");
     } catch (error) {
       console.error("Error generating PDF", error);
       toast.error("Failed to download PDF");
     }
   };
+
+  const activeFirm = FIRM_DETAILS[formData.companyName] || FIRM_DETAILS['M/s Jai Bhole Traders'];
 
   return (
     <div className="p-6 fade-in">
@@ -92,7 +129,9 @@ const OfferLetter = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
               <select name="companyName" value={formData.companyName} onChange={handleChange} className="w-full border rounded p-2">
                 <option value="M/s Jai Bhole Traders">M/s Jai Bhole Traders</option>
-                <option value="M/s Jai Bhole Enterprise">M/s Jai Bhole Enterprise</option>
+                <option value="Jai Bhole Enterprises">Jai Bhole Enterprises</option>
+                <option value="ASAK COAL PRIVATE LIMITED">ASAK COAL PRIVATE LIMITED</option>
+                <option value="Jai Bhole Logistics">Jai Bhole Logistics</option>
               </select>
             </div>
             <div className="form-group">
@@ -237,15 +276,22 @@ const OfferLetter = () => {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #ccc', paddingBottom: '10px', marginBottom: '15px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                  {formData.companyName === 'M/s Jai Bhole Traders' ? (
-                    <img src={jbtLogo} alt="Jai Bhole Traders Logo" style={{ height: '60px', width: 'auto', borderRadius: '8px' }} />
-                  ) : (
-                    <img src={jbeLogo} alt="Jai Bhole Enterprise Logo" style={{ height: '60px', width: 'auto', borderRadius: '8px' }} />
+                  {activeFirm.logo && (
+                    <img src={activeFirm.logo} alt={activeFirm.name} style={{ height: '60px', width: 'auto', borderRadius: '8px' }} />
                   )}
-                  <h1 style={{ fontSize: '2rem', fontWeight: 'bold', margin: 0, color: '#374151' }}>{formData.companyName}</h1>
+                  <h1 style={{ 
+                    fontSize: formData.companyName === 'ASAK COAL PRIVATE LIMITED' ? '1.6rem' : '1.8rem', 
+                    fontWeight: 'bold', 
+                    margin: 0, 
+                    color: activeFirm.textColor,
+                    whiteSpace: 'nowrap',
+                    fontFamily: formData.companyName === 'ASAK COAL PRIVATE LIMITED' ? '"Impact", "Arial Black", sans-serif' : 'inherit'
+                  }}>
+                    {activeFirm.name}
+                  </h1>
                 </div>
-                <div style={{ textAlign: 'right', fontSize: '1rem', fontWeight: 'bold', color: '#4b5563', paddingTop: '5px' }}>
-                  GSTIN: 22AWGPA9068C1ZW
+                <div style={{ textAlign: 'right', fontSize: '0.9rem', fontWeight: 'bold', color: '#4b5563', paddingTop: '5px', whiteSpace: 'nowrap' }}>
+                  GSTIN: {activeFirm.gstin}
                 </div>
               </div>
 
@@ -313,7 +359,8 @@ const OfferLetter = () => {
 
               {/* Bottom Address */}
               <div style={{ borderTop: '2px solid #ccc', marginTop: '20px', paddingTop: '10px', textAlign: 'center', fontSize: '0.85rem', color: '#6b7280' }}>
-                N.K. Agrawal & Sons Tower, 2nd Floor, Lane No. 8, Near State Bank of India, New Shanti Nagar
+                <div>{activeFirm.address}</div>
+                <div>{activeFirm.footerContact}</div>
               </div>
             </div>
             </div>

@@ -146,7 +146,7 @@ export default function BulkImportModal({ isOpen, onClose, onImportSuccess }) {
       exampleRow = [
         dbDepartments[0] || "Sales",
         dbAssigners[0] || "Admin",
-        dbUsers[0]?.user_name || "John Doe",
+        dbUsers[0]?.user_name || "name",
         "Clean the display rack daily",
         "Daily",
         new Date().toISOString().split('T')[0],
@@ -170,7 +170,7 @@ export default function BulkImportModal({ isOpen, onClose, onImportSuccess }) {
       exampleRow = [
         dbDepartments[0] || "Sales",
         dbAssigners[0] || "Admin",
-        dbUsers[0]?.user_name || "John Doe",
+        dbUsers[0]?.user_name || "name",
         "Submit weekly audit report",
         new Date().toISOString().split('T')[0],
         "10:00",
@@ -789,7 +789,7 @@ export default function BulkImportModal({ isOpen, onClose, onImportSuccess }) {
                           <tr className="border-b border-gray-100">
                             <td className="p-2 text-gray-500 whitespace-nowrap font-medium">e.g. Sales</td>
                             <td className="p-2 text-gray-500 whitespace-nowrap font-medium">e.g. Admin</td>
-                            <td className="p-2 text-gray-500 whitespace-nowrap font-medium">e.g. John Doe</td>
+                            <td className="p-2 text-gray-500 whitespace-nowrap font-medium">e.g. name</td>
                             <td className="p-2 text-gray-400 font-medium">Instructions...</td>
                             {selectedModule === "checklist" && (
                               <td className="p-2 text-purple-600 font-bold whitespace-nowrap">Daily / Weekly / Monthly</td>

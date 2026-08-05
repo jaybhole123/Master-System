@@ -616,7 +616,12 @@ function DelegationDataPage() {
   );
 
   const handleImageUpload = useCallback((id, e) => {
-    const files = Array.from(e.target.files);
+    let files = [];
+    if (e.dataTransfer && e.dataTransfer.files) {
+      files = Array.from(e.dataTransfer.files);
+    } else if (e.target && e.target.files) {
+      files = Array.from(e.target.files);
+    }
     if (files.length > 0) {
       setUploadedImages((prev) => {
         const existing = prev[id];
@@ -1928,7 +1933,16 @@ function DelegationDataPage() {
                                     className="border border-gray-300 rounded-md px-3 py-2 w-full h-8 sm:h-auto min-h-[32px] sm:min-h-[64px] disabled:bg-gray-100 disabled:cursor-not-allowed text-xs sm:text-sm resize-none"
                                   />
                                 </td>
-                                <td className="px-2 sm:px-6 py-2 sm:py-4 bg-orange-50">
+                                <td 
+                                  className="px-2 sm:px-6 py-2 sm:py-4 bg-orange-50 transition-colors"
+                                  onDragOver={(e) => { e.preventDefault(); if (isSelected) e.currentTarget.classList.add('!bg-orange-100'); }}
+                                  onDragLeave={(e) => { e.preventDefault(); e.currentTarget.classList.remove('!bg-orange-100'); }}
+                                  onDrop={(e) => {
+                                    e.preventDefault();
+                                    e.currentTarget.classList.remove('!bg-orange-100');
+                                    if (isSelected) handleImageUpload(task.id, e);
+                                  }}
+                                >
                                   {uploadedImages[task.id] ? (
                                     <div className="flex items-center space-x-2 p-1 bg-green-50 rounded border border-green-200">
                                       <span className="text-[10px] text-green-700 truncate max-w-[80px]">
@@ -2157,7 +2171,16 @@ function DelegationDataPage() {
                                   />
                                 </div>
 
-                                <div className="space-y-1">
+                                <div 
+                                  className="space-y-1 p-1 rounded-lg transition-colors"
+                                  onDragOver={(e) => { e.preventDefault(); if (isSelected) e.currentTarget.classList.add('bg-orange-50'); }}
+                                  onDragLeave={(e) => { e.preventDefault(); e.currentTarget.classList.remove('bg-orange-50'); }}
+                                  onDrop={(e) => {
+                                    e.preventDefault();
+                                    e.currentTarget.classList.remove('bg-orange-50');
+                                    if (isSelected) handleImageUpload(task.id, e);
+                                  }}
+                                >
                                   <p className="text-[10px] text-gray-400 uppercase font-semibold">Attachment</p>
                                   {uploadedImages[task.id] ? (
                                     <div className="flex items-center gap-2 p-2 bg-green-50 rounded border border-green-100">

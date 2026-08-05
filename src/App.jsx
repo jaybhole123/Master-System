@@ -25,6 +25,7 @@ import MisReport from "./pages/MisReport"
 import MasterDashboard from "./pages/MasterDashboard"
 import ProfilePage from "./pages/ProfilePage"
 import GlobalSettings from "./pages/admin/GlobalSettings"
+import HelpSlipPage from "./HelpSlip/src/pages/HelpSlip"
 
 // --- HR System Imports ---
 import HrDashboard from "./Hr-sysytem/src/pages/Dashboard"
@@ -372,6 +373,20 @@ function App() {
                         element={
                             <ProtectedRoute allowedRoles={["admin"]}>
                                 <GlobalSettings />
+                            </ProtectedRoute>
+                        }
+                    />
+
+                    {/* --- Help Slip --- */}
+                    <Route
+                        path="/dashboard/help-slip"
+                        element={
+                            <ProtectedRoute>
+                                <AdminLayout>
+                                    <div className="h-full overflow-y-auto w-full">
+                                        <HelpSlipPage />
+                                    </div>
+                                </AdminLayout>
                             </ProtectedRoute>
                         }
                     />
