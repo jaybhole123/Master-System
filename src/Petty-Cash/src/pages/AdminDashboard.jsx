@@ -326,50 +326,50 @@ export default function AdminDashboard() {
           </div>
 
           {/* Filters */}
-          <div className={`${showMobileFilters ? 'grid' : 'hidden'} lg:flex grid-cols-2 lg:flex-row gap-2 w-full lg:w-auto lg:flex-[4] items-center`}>
-             <input
-               type="text"
-               placeholder="From Date"
-               onFocus={(e) => (e.target.type = 'date')}
-               onBlur={(e) => { if (!e.target.value) e.target.type = 'text'; }}
-               value={filters.dateFrom}
-               onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
-               className="w-full bg-white border border-gray-300 rounded-lg lg:rounded px-2 py-1.5 focus:outline-none focus:border-indigo-500 text-[11px] md:text-sm h-[32px] md:h-[38px]"
-             />
-             <input
-               type="text"
-               placeholder="To Date"
-               onFocus={(e) => (e.target.type = 'date')}
-               onBlur={(e) => { if (!e.target.value) e.target.type = 'text'; }}
-               value={filters.dateTo}
-               onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
-               className="w-full bg-white border border-gray-300 rounded-lg lg:rounded px-2 py-1.5 focus:outline-none focus:border-indigo-500 text-[11px] md:text-sm h-[32px] md:h-[38px]"
-             />
-             <input
-               type="text"
-               value={filters.personName}
-               onChange={(e) => setFilters({ ...filters, personName: e.target.value })}
-               placeholder="Search person..."
-               className="w-full bg-white border border-gray-300 rounded-lg lg:rounded px-2 py-1.5 focus:outline-none focus:border-indigo-500 text-[11px] md:text-sm h-[32px] md:h-[38px]"
-             />
-             <SearchableSelect
-               value={filters.groupHead}
-               onChange={(val) => setFilters({ ...filters, groupHead: val })}
-               className="w-full lg:w-40"
-               options={[
-                 { value: '', label: 'All Groups' },
-                 ...Array.from(new Set(expenses.map(e => e.group_head || e.groupHead))).filter(Boolean).map(gh => ({ value: gh, label: gh }))
-               ]}
-             />
-             <SearchableSelect
-               value={filters.paymentMode}
-               onChange={(val) => setFilters({ ...filters, paymentMode: val })}
-               className="w-full lg:w-40"
-               options={[
-                 { value: '', label: 'All Modes' },
-                 ...Array.from(new Set(expenses.map(e => e.payment_mode || e.paymentMode))).filter(Boolean).map(pm => ({ value: pm, label: pm }))
-               ]}
-             />
+          <div className={`${showMobileFilters ? 'grid' : 'hidden'} lg:flex grid-cols-2 lg:flex-row lg:flex-wrap gap-2 w-full lg:w-auto lg:flex-[5] items-center`}>
+              <input
+                type="text"
+                placeholder="From Date"
+                onFocus={(e) => (e.target.type = 'date')}
+                onBlur={(e) => { if (!e.target.value) e.target.type = 'text'; }}
+                value={filters.dateFrom}
+                onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
+                className="w-full lg:min-w-[110px] lg:flex-1 bg-white border border-gray-300 rounded-lg lg:rounded px-2 py-1.5 focus:outline-none focus:border-indigo-500 text-[11px] md:text-sm h-[32px] md:h-[38px]"
+              />
+              <input
+                type="text"
+                placeholder="To Date"
+                onFocus={(e) => (e.target.type = 'date')}
+                onBlur={(e) => { if (!e.target.value) e.target.type = 'text'; }}
+                value={filters.dateTo}
+                onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
+                className="w-full lg:min-w-[110px] lg:flex-1 bg-white border border-gray-300 rounded-lg lg:rounded px-2 py-1.5 focus:outline-none focus:border-indigo-500 text-[11px] md:text-sm h-[32px] md:h-[38px]"
+              />
+              <input
+                type="text"
+                value={filters.personName}
+                onChange={(e) => setFilters({ ...filters, personName: e.target.value })}
+                placeholder="Search person..."
+                className="w-full lg:min-w-[130px] lg:flex-1 bg-white border border-gray-300 rounded-lg lg:rounded px-2 py-1.5 focus:outline-none focus:border-indigo-500 text-[11px] md:text-sm h-[32px] md:h-[38px]"
+              />
+              <SearchableSelect
+                value={filters.groupHead}
+                onChange={(val) => setFilters({ ...filters, groupHead: val })}
+                className="w-full lg:min-w-[140px] lg:flex-1"
+                options={[
+                  { value: '', label: 'All Groups' },
+                  ...Array.from(new Set(expenses.map(e => e.group_head || e.groupHead))).filter(Boolean).map(gh => ({ value: gh, label: gh }))
+                ]}
+              />
+              <SearchableSelect
+                value={filters.paymentMode}
+                onChange={(val) => setFilters({ ...filters, paymentMode: val })}
+                className="w-full lg:min-w-[130px] lg:flex-1"
+                options={[
+                  { value: '', label: 'All Modes' },
+                  ...Array.from(new Set(expenses.map(e => e.payment_mode || e.paymentMode))).filter(Boolean).map(pm => ({ value: pm, label: pm }))
+                ]}
+              />
           </div>
         </div>
 
