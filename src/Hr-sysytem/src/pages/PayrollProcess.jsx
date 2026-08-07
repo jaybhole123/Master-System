@@ -34,14 +34,18 @@ export default function PayrollProcess() {
       if (salariesRes.data) {
         salariesRes.data.forEach(s => {
           salMap[s.employee_id] = {
-            basic: s.basic || 0,
-            hra: s.hra || 0,
-            allowances: s.allowances || 0,
-            profTax: s.prof_tax || 0,
-            otherDeductions: s.other_deductions || 0,
+            basic: Number(s.basic) || 0,
+            hra: Number(s.hra) || 0,
+            allowances: Number(s.allowances) || 0,
+            profTax: Number(s.prof_tax) || 0,
+            otherDeductions: Number(s.other_deductions) || 0,
             paymentStatus: s.payment_status || 'Pending',
             bankAccount: s.bank_account || '',
-            pfApplicable: s.pf_applicable !== false
+            pfApplicable: s.pf_applicable !== false,
+            esicApplicable: s.esic_applicable !== false,
+            absentDeduction: Number(s.leave_deduction) || 0,
+            salaryDate: s.salary_date || '',
+            salaryMonth: s.salary_month || ''
           };
         });
       }
@@ -73,25 +77,43 @@ export default function PayrollProcess() {
       
       const results = activeEmployees.map(emp => {
         const sal = salaries[emp.id] || { 
-          basic: 0, hra: 0, allowances: 0, otherDeductions: 0, paymentStatus: 'Pending', bankAccount: '', pfApplicable: true
+          basic: 0, hra: 0, allowances: 0, profTax: 0, otherDeductions: 0, paymentStatus: 'Pending', bankAccount: '', pfApplicable: true, esicApplicable: false, absentDeduction: 0, salaryDate: '', salaryMonth: ''
         };
-        const gross = sal.basic + sal.hra + sal.allowances;
-        const totalEarnings = gross;
 
-        const pfDeduction = sal.pfApplicable ? (sal.basic * (settings.pf / 100)) : 0;
-        const empProfTax = sal.profTax || 0;
-        const empOtherDeductions = sal.otherDeductions || 0;
-        const totalDeductions = pfDeduction + empProfTax + empOtherDeductions;
+        const basic = Number(sal.basic) || 0;
+        const hra = Number(sal.hra) || 0;
+        const allowances = Number(sal.allowances) || 0;
+        const gross = basic + hra + allowances;
 
-        const net = totalEarnings - totalDeductions;
+        const pfDeduction = sal.pfApplicable ? (basic * (settings.pf / 100)) : 0;
+        const esicDeduction = sal.esicApplicable ? (gross * (settings.esic / 100)) : 0;
+        const empProfTax = Number(sal.profTax) || 0;
+        const absentDeduct = Number(sal.absentDeduction) || 0;
+        const empOtherDeductions = Number(sal.otherDeductions) || 0;
+
+        const totalDeductions = pfDeduction + esicDeduction + empProfTax + absentDeduct + empOtherDeductions;
+        const net = gross - totalDeductions;
+
+        const targetMonth = sal.salaryMonth || currentMonthYear;
 
         return {
           employee_id: emp.id,
-          month_year: currentMonthYear,
-          gross: totalEarnings,
+          employee_name: emp.name || '',
+          month_year: targetMonth,
+          basic,
+          hra,
+          allowances,
+          gross,
+          pf_deduction: pfDeduction,
+          esic_deduction: esicDeduction,
+          ptax: empProfTax,
+          absent_deduction: absentDeduct,
+          other_deductions: empOtherDeductions,
           deductions: totalDeductions,
           net: net > 0 ? net : 0,
-          breakdown: { sal, pfDeduction, ptax: empProfTax, empOtherDeductions }
+          payment_status: sal.paymentStatus || 'Pending',
+          bank_account: sal.bankAccount || '',
+          salary_date: sal.salaryDate || ''
         };
       });
 

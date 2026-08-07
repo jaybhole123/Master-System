@@ -55,6 +55,7 @@ export default function Payslip() {
   const [selectedEmp, setSelectedEmp] = useState('');
   const [companyName, setCompanyName] = useState('M/s Jai Bhole Traders');
   const [payslipMonth, setPayslipMonth] = useState('July 2026');
+  const [salaryDate, setSalaryDate] = useState('');
   const [showPreviewModal, setShowPreviewModal] = useState(false);
 
   const isDataLoading = loading || empLoading;
@@ -81,7 +82,9 @@ export default function Payslip() {
               paymentStatus: s.payment_status || 'Pending',
               bankAccount: s.bank_account || '',
               pfApplicable: s.pf_applicable !== false,
-              esicApplicable: s.esic_applicable !== false
+              esicApplicable: s.esic_applicable !== false,
+              salaryDate: s.salary_date || '',
+              salaryMonth: s.salary_month || ''
             };
           });
         }
@@ -103,6 +106,16 @@ export default function Payslip() {
 
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (selectedEmp && salaries[selectedEmp]) {
+      const sal = salaries[selectedEmp];
+      if (sal.salaryDate) setSalaryDate(sal.salaryDate);
+      else setSalaryDate('');
+
+      if (sal.salaryMonth) setPayslipMonth(sal.salaryMonth);
+    }
+  }, [selectedEmp, salaries]);
 
   const records = employees.map(emp => {
     const sal = salaries[emp.id] || { basic: 0, hra: 0, allowances: 0, profTax: 0, otherDeductions: 0, paymentStatus: 'Pending', bankAccount: '', pfApplicable: true, esicApplicable: true };
@@ -320,6 +333,7 @@ export default function Payslip() {
           <div>
             <p style={{ margin: '6px 0', fontSize: '1rem' }}><strong style={{ color: '#475569' }}>Bank Account:</strong> <span style={{ fontWeight: 600, color: '#0f172a' }}>{payrollData.bankAccount || '-'}</span></p>
             <p style={{ margin: '6px 0', fontSize: '1rem' }}><strong style={{ color: '#475569' }}>Department:</strong> <span style={{ fontWeight: 600, color: '#0f172a' }}>{empDetails.department}</span></p>
+            <p style={{ margin: '6px 0', fontSize: '1rem' }}><strong style={{ color: '#475569' }}>Salary Date:</strong> <span style={{ fontWeight: 600, color: '#0f172a' }}>{salaryDate || payrollData.breakdown?.sal?.salaryDate || '-'}</span></p>
           </div>
         </div>
 
@@ -412,6 +426,16 @@ export default function Payslip() {
               value={payslipMonth} 
               onChange={(e) => setPayslipMonth(e.target.value)} 
               placeholder="e.g. July 2026"
+              style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+            />
+          </div>
+
+          <div className="form-group">
+            <label style={{ fontWeight: 600, marginBottom: '6px', display: 'block' }}>Salary Date</label>
+            <input 
+              type="date" 
+              value={salaryDate} 
+              onChange={(e) => setSalaryDate(e.target.value)} 
               style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
             />
           </div>

@@ -4,6 +4,42 @@ import { supabase } from '../lib/supabase';
 import { Loader } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+const MONTH_LIST = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
+
+const getMonthName = (val) => {
+  if (!val) return '';
+  if (MONTH_LIST.includes(val)) return val;
+  if (val.includes('-')) {
+    const parts = val.split('-');
+    const monthIdx = parseInt(parts[1], 10) - 1;
+    if (monthIdx >= 0 && monthIdx < 12) return MONTH_LIST[monthIdx];
+  }
+  const matched = MONTH_LIST.find(m => val.toLowerCase().includes(m.toLowerCase()));
+  if (matched) return matched;
+  return val;
+};
+
+const getDaysForMonthName = (monthName, year = 2026) => {
+  const monthMap = {
+    'January': 31,
+    'February': (year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0)) ? 29 : 28,
+    'March': 31,
+    'April': 30,
+    'May': 31,
+    'June': 30,
+    'July': 31,
+    'August': 31,
+    'September': 30,
+    'October': 31,
+    'November': 30,
+    'December': 31
+  };
+  return monthMap[monthName] || 30;
+};
+
 export default function SalaryStructure() {
   const [employees] = useEmployees();
   
@@ -41,6 +77,7 @@ export default function SalaryStructure() {
             esicApplicable: s.esic_applicable !== false,
             totalDays: s.total_days || 0,
             presentDays: s.present_days || 0,
+            absent: s.absent || 0,
             leaves: s.leaves || 0,
             leaveDeduction: s.leave_deduction || 0,
             monthAdvance: s.month_advance || 0,
@@ -78,6 +115,7 @@ export default function SalaryStructure() {
     esicApplicable: true,
     totalDays: 0,
     presentDays: 0,
+    absent: 0,
     leaves: 0,
     leaveDeduction: 0,
     monthAdvance: 0,
@@ -105,6 +143,7 @@ export default function SalaryStructure() {
         esicApplicable: salaries[empId].esicApplicable !== false,
         totalDays: salaries[empId].totalDays || 0,
         presentDays: salaries[empId].presentDays || 0,
+        absent: salaries[empId].absent || 0,
         leaves: salaries[empId].leaves || 0,
         leaveDeduction: salaries[empId].leaveDeduction || 0,
         monthAdvance: salaries[empId].monthAdvance || 0,
@@ -126,6 +165,7 @@ export default function SalaryStructure() {
         esicApplicable: true,
         totalDays: 0,
         presentDays: 0,
+        absent: 0,
         leaves: 0,
         leaveDeduction: 0,
         monthAdvance: 0,
@@ -146,38 +186,49 @@ export default function SalaryStructure() {
     } else if (name === 'paymentStatus' || name === 'bankAccount' || name === 'salaryDate' || name === 'salaryMonth') {
       updatedData[name] = value;
       
-      // Auto-fetch Month and Total Days logic
-      if (name === 'salaryDate' && value) {
-        const monthVal = value.substring(0, 7); // Extracts YYYY-MM
-        updatedData.salaryMonth = monthVal;
-        
-        const [year, month] = monthVal.split('-');
-        const daysInMonth = new Date(parseInt(year), parseInt(month), 0).getDate();
-        updatedData.totalDays = daysInMonth;
-      } else if (name === 'salaryMonth' && value) {
-        const [year, month] = value.split('-');
-        const daysInMonth = new Date(parseInt(year), parseInt(month), 0).getDate();
+      // Month dropdown sets Total Days
+      if (name === 'salaryMonth' && value) {
+        let year = 2026;
+        if (updatedData.salaryDate) {
+          const d = new Date(updatedData.salaryDate);
+          if (!isNaN(d.getTime())) year = d.getFullYear();
+        }
+        const daysInMonth = getDaysForMonthName(value, year);
         updatedData.totalDays = daysInMonth;
       }
     } else {
       updatedData[name] = value === '' ? '' : Number(value);
     }
 
-    // Auto-calculate leaves and leave deduction
-    if (['totalDays', 'presentDays', 'basic', 'salaryDate', 'salaryMonth'].includes(name)) {
+    // Auto-calculate absent days and leave deduction
+    if (['totalDays', 'presentDays', 'absent', 'leaves', 'basic', 'salaryDate', 'salaryMonth'].includes(name)) {
       const tDays = Number(updatedData.totalDays) || 0;
       const pDays = Number(updatedData.presentDays) || 0;
       const baseSal = Number(updatedData.basic) || 0;
       
       if (tDays > 0) {
-        // Only calculate if pDays is within valid range
         if (pDays >= 0 && pDays <= tDays) {
-          const calculatedLeaves = tDays - pDays;
-          updatedData.leaves = calculatedLeaves;
+          const nonPresent = tDays - pDays;
           
+          if (name === 'absent') {
+            const calculatedLeaves = Math.max(0, nonPresent - (Number(updatedData.absent) || 0));
+            updatedData.leaves = calculatedLeaves;
+          } else if (name === 'leaves') {
+            const calculatedAbsent = Math.max(0, nonPresent - (Number(updatedData.leaves) || 0));
+            updatedData.absent = calculatedAbsent;
+          } else {
+            // When totalDays or presentDays or basic changes:
+            // Remaining non-present days automatically go to Absent Days
+            const levVal = Number(updatedData.leaves) || 0;
+            updatedData.absent = Math.max(0, nonPresent - levVal);
+          }
+          
+          // Deduction ONLY applies to Absent Days (Leaves do not cause salary deduction)
+          const absentDays = Number(updatedData.absent) || 0;
           const perDaySalary = baseSal / tDays;
-          updatedData.leaveDeduction = Math.round(perDaySalary * calculatedLeaves);
+          updatedData.leaveDeduction = Math.round(perDaySalary * absentDays);
         } else if (pDays > tDays) {
+          updatedData.absent = 0;
           updatedData.leaves = 0;
           updatedData.leaveDeduction = 0;
         }
@@ -205,6 +256,7 @@ export default function SalaryStructure() {
         esic_applicable: formData.esicApplicable,
         total_days: Number(formData.totalDays) || 0,
         present_days: Number(formData.presentDays) || 0,
+        absent: Number(formData.absent) || 0,
         leaves: Number(formData.leaves) || 0,
         leave_deduction: Number(formData.leaveDeduction) || 0,
         month_advance: Number(formData.monthAdvance) || 0,
@@ -237,6 +289,7 @@ export default function SalaryStructure() {
         esicApplicable: true,
         totalDays: 0,
         presentDays: 0,
+        absent: 0,
         leaves: 0,
         leaveDeduction: 0,
         monthAdvance: 0,
@@ -299,12 +352,17 @@ export default function SalaryStructure() {
               <input type="text" value={selectedEmp ? (selectedEmpData.department || 'N/A') : 'Select an employee'} disabled style={{ opacity: 0.7 }} />
             </div>
             <div className="form-group">
-              <label>Date</label>
+              <label>Salary Date</label>
               <input type="date" name="salaryDate" value={formData.salaryDate} onChange={handleChange} disabled={!selectedEmp} />
             </div>
             <div className="form-group">
               <label>Month</label>
-              <input type="month" name="salaryMonth" value={formData.salaryMonth} onChange={handleChange} disabled={!selectedEmp} />
+              <select name="salaryMonth" value={getMonthName(formData.salaryMonth)} onChange={handleChange} disabled={!selectedEmp}>
+                <option value="">-- Select Month --</option>
+                {MONTH_LIST.map(m => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
             </div>
           </div>
         </div>
@@ -312,7 +370,7 @@ export default function SalaryStructure() {
         {/* SECTION 2: Attendance & Leaves */}
         <div style={{ backgroundColor: '#f8fafc', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '24px' }}>
           <h4 style={{ margin: '0 0 16px 0', color: '#475569', fontSize: '1rem', borderBottom: '2px solid #e2e8f0', paddingBottom: '8px' }}>Attendance & Leaves</h4>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '20px' }}>
             <div className="form-group">
               <label>Total No. Of Days</label>
               <input type="number" name="totalDays" value={formData.totalDays === 0 && formData.totalDays !== '' ? '' : formData.totalDays} onChange={handleChange} disabled={!selectedEmp} />
@@ -320,6 +378,10 @@ export default function SalaryStructure() {
             <div className="form-group">
               <label>Present Days</label>
               <input type="number" name="presentDays" value={formData.presentDays === 0 && formData.presentDays !== '' ? '' : formData.presentDays} onChange={handleChange} disabled={!selectedEmp} />
+            </div>
+            <div className="form-group">
+              <label>Absent Days</label>
+              <input type="number" name="absent" value={formData.absent === 0 && formData.absent !== '' ? '' : formData.absent} onChange={handleChange} disabled={!selectedEmp} />
             </div>
             <div className="form-group">
               <label>Leaves</label>

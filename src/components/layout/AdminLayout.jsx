@@ -758,6 +758,9 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
            if (route.label === "Global Settings") {
                mappedModule = "Checklist & Delegation";
            }
+           if (route.label === "Add Credit") {
+               mappedLabel = "Add Credit / Case";
+           }
 
            const pageKey = `${mappedModule}::${mappedLabel}`;
            return pageAccess && pageAccess.includes(pageKey);

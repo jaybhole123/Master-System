@@ -466,3 +466,36 @@ ADD COLUMN aadhar_doc_url text,
 ADD COLUMN pan_doc_url text,
 ADD COLUMN dl_doc_url text,
 ADD COLUMN account_doc_url text;
+
+-- Comprehensive ALTER query for HR Module (salary_structures)
+ALTER TABLE public.salary_structures
+ADD COLUMN IF NOT EXISTS esic_applicable boolean DEFAULT true,
+ADD COLUMN IF NOT EXISTS total_days numeric DEFAULT 0,
+ADD COLUMN IF NOT EXISTS present_days numeric DEFAULT 0,
+ADD COLUMN IF NOT EXISTS absent numeric DEFAULT 0,
+ADD COLUMN IF NOT EXISTS leaves numeric DEFAULT 0,
+ADD COLUMN IF NOT EXISTS leave_deduction numeric DEFAULT 0,
+ADD COLUMN IF NOT EXISTS month_advance numeric DEFAULT 0,
+ADD COLUMN IF NOT EXISTS month_recovery numeric DEFAULT 0,
+ADD COLUMN IF NOT EXISTS prev_advance_deduction numeric DEFAULT 0,
+ADD COLUMN IF NOT EXISTS salary_date text,
+ADD COLUMN IF NOT EXISTS salary_month text;
+
+-- Comprehensive ALTER query for processed_payroll (individual columns instead of JSON)
+ALTER TABLE public.processed_payroll
+ADD COLUMN IF NOT EXISTS employee_name text,
+ADD COLUMN IF NOT EXISTS basic numeric DEFAULT 0,
+ADD COLUMN IF NOT EXISTS hra numeric DEFAULT 0,
+ADD COLUMN IF NOT EXISTS allowances numeric DEFAULT 0,
+ADD COLUMN IF NOT EXISTS pf_deduction numeric DEFAULT 0,
+ADD COLUMN IF NOT EXISTS esic_deduction numeric DEFAULT 0,
+ADD COLUMN IF NOT EXISTS ptax numeric DEFAULT 0,
+ADD COLUMN IF NOT EXISTS absent_deduction numeric DEFAULT 0,
+ADD COLUMN IF NOT EXISTS other_deductions numeric DEFAULT 0,
+ADD COLUMN IF NOT EXISTS payment_status text DEFAULT 'Pending',
+ADD COLUMN IF NOT EXISTS bank_account text,
+ADD COLUMN IF NOT EXISTS salary_date text;
+
+-- Query to drop the JSON breakdown column from processed_payroll table
+ALTER TABLE public.processed_payroll
+DROP COLUMN IF EXISTS breakdown;

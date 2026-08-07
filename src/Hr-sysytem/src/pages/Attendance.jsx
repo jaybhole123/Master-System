@@ -1,5 +1,5 @@
-  import React, { useState, useEffect } from 'react';
-import { Plus, X, Save, Loader, Download, FileSpreadsheet, MapPin, Navigation, Clock, CheckCircle2, User, RefreshCw, LogOut, LogIn, Camera, UserPlus } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, X, Save, Loader, Download, FileSpreadsheet, MapPin, Navigation, Clock, CheckCircle2, User, RefreshCw, LogOut, LogIn, Camera, UserPlus, Copy, Bot, Sparkles } from 'lucide-react';
 import { useEmployees } from '../hooks/useEmployees';
 import { useCurrentLocation } from '../hooks/useCurrentLocation';
 import { supabase } from '../lib/supabase';
@@ -596,6 +596,25 @@ export default function Attendance() {
     };
     
     reader.readAsText(file);
+  };
+
+  const handleCopyChatGptPrompt = () => {
+    const promptText = `Please convert my attendance data/Excel sheet into a clean CSV format with the exact following header structure:
+
+S.NO,NAME,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31
+
+Instructions:
+1. S.NO: Serial Number (1, 2, 3...)
+2. NAME: Employee Full Name
+3. 1 to 31: Attendance status for each date of the month:
+   - P = Present
+   - A = Absent
+   - L = Leave
+   - HD = Half Day
+4. Output strictly the clean raw CSV text block so I can directly save it as a .csv file and upload it.`;
+
+    navigator.clipboard.writeText(promptText);
+    toast.success('ChatGPT AI Prompt copied to clipboard!');
   };
 
   const handleDownloadPDF = () => {
@@ -1404,22 +1423,22 @@ export default function Attendance() {
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
           backgroundColor: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', zIndex: 100,
-          display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '24px',
+          display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '16px',
           animation: 'fadeIn 0.2s ease-out'
         }}>
-          <div className="card" style={{ width: '100%', maxWidth: '480px', padding: '32px', borderRadius: '16px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-              <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)' }}>Upload Attendance</h2>
-              <button onClick={() => setShowModal(false)} style={{ background: 'var(--bg-main)', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: '8px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }} onMouseOver={(e) => e.currentTarget.style.background = 'var(--border-color)'} onMouseOut={(e) => e.currentTarget.style.background = 'var(--bg-main)'}>
-                <X size={20} />
+          <div className="card" style={{ width: '100%', maxWidth: '480px', maxHeight: '90vh', overflowY: 'auto', padding: '20px 24px', borderRadius: '16px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h2 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 700, color: 'var(--text-primary)' }}>Upload Attendance</h2>
+              <button onClick={() => setShowModal(false)} style={{ background: 'var(--bg-main)', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: '6px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }} onMouseOver={(e) => e.currentTarget.style.background = 'var(--border-color)'} onMouseOut={(e) => e.currentTarget.style.background = 'var(--bg-main)'}>
+                <X size={18} />
               </button>
             </div>
             
-            <form onSubmit={handleUpload} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <form onSubmit={handleUpload} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div style={{ display: 'flex', gap: '16px' }}>
                 <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-                  <label style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>Month</label>
-                  <select value={uploadData.month} onChange={(e) => setUploadData({...uploadData, month: e.target.value})} required style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-main)', fontSize: '0.95rem' }}>
+                  <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>Month</label>
+                  <select value={uploadData.month} onChange={(e) => setUploadData({...uploadData, month: e.target.value})} required style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-main)', fontSize: '0.9rem' }}>
                     <option value="01">January</option>
                     <option value="02">February</option>
                     <option value="03">March</option>
@@ -1435,43 +1454,113 @@ export default function Attendance() {
                   </select>
                 </div>
                 <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-                  <label style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>Year</label>
-                  <input type="number" value={uploadData.year} onChange={(e) => setUploadData({...uploadData, year: e.target.value})} required min="2000" max="2100" style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-main)', fontSize: '0.95rem' }} />
+                  <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>Year</label>
+                  <input type="number" value={uploadData.year} onChange={(e) => setUploadData({...uploadData, year: e.target.value})} required min="2000" max="2100" style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-main)', fontSize: '0.9rem' }} />
                 </div>
               </div>
               
               <div className="form-group" style={{ marginBottom: 0 }}>
-                <label style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>Upload CSV File</label>
-                <div style={{ position: 'relative', border: '2px dashed var(--border-color)', borderRadius: '12px', padding: '32px 24px', textAlign: 'center', backgroundColor: 'var(--bg-main)', transition: 'all 0.2s', cursor: 'pointer' }} onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--primary-color)'} onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}>
+                <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>Upload CSV File</label>
+                <div style={{ position: 'relative', border: '2px dashed var(--border-color)', borderRadius: '12px', padding: '16px', textAlign: 'center', backgroundColor: 'var(--bg-main)', transition: 'all 0.2s', cursor: 'pointer' }} onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--primary-color)'} onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}>
                   <input type="file" accept=".csv" onChange={(e) => setUploadData({...uploadData, file: e.target.files[0]})} required style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }} />
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                    <div style={{ padding: '12px', backgroundColor: 'var(--bg-card)', borderRadius: '50%', color: 'var(--primary-color)' }}>
-                      <Plus size={24} />
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                    <div style={{ padding: '8px', backgroundColor: 'var(--bg-card)', borderRadius: '50%', color: 'var(--primary-color)' }}>
+                      <Plus size={18} />
                     </div>
-                    <span style={{ fontWeight: 600, color: uploadData.file ? 'var(--primary-color)' : 'var(--text-primary)' }}>
+                    <span style={{ fontWeight: 600, fontSize: '0.9rem', color: uploadData.file ? 'var(--primary-color)' : 'var(--text-primary)' }}>
                       {uploadData.file ? uploadData.file.name : 'Click to Browse CSV'}
                     </span>
-                    {!uploadData.file && <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>or drag and drop here</span>}
+                    {!uploadData.file && <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>or drag and drop here</span>}
                   </div>
                 </div>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '12px', marginBottom: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '6px', marginBottom: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ display: 'inline-block', width: '4px', height: '4px', borderRadius: '50%', backgroundColor: 'var(--primary-color)' }}></span>
                   Please ensure the CSV has an 'employee_id' or 'name' column.
                 </p>
               </div>
 
-              <div style={{ padding: '12px', backgroundColor: 'var(--bg-main)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                <p style={{ margin: '0 0 8px 0', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>CSV Header Format (Copy this):</p>
-                <code style={{ display: 'block', padding: '8px', backgroundColor: 'var(--bg-card)', borderRadius: '4px', fontSize: '0.75rem', color: 'var(--text-secondary)', overflowX: 'auto', whiteSpace: 'nowrap' }}>
+              <div style={{ padding: '10px 12px', backgroundColor: 'var(--bg-main)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)' }}>CSV Header Format:</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText('S.NO,NAME,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31');
+                      toast.success('CSV Header copied!');
+                    }}
+                    style={{ background: 'none', border: 'none', color: 'var(--primary-color)', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', padding: 0 }}
+                  >
+                    <Copy size={12} /> Copy Header
+                  </button>
+                </div>
+                <code style={{ display: 'block', padding: '6px', backgroundColor: 'var(--bg-card)', borderRadius: '4px', fontSize: '0.72rem', color: 'var(--text-secondary)', overflowX: 'auto', whiteSpace: 'nowrap' }}>
                   S.NO,NAME,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31
                 </code>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', paddingTop: '16px', borderTop: '1px solid var(--border-color)' }}>
-                <button type="button" onClick={() => setShowModal(false)} className="btn-primary" style={{ backgroundColor: 'transparent', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '10px 20px', fontWeight: 600 }}>
+              {/* ChatGPT AI Prompt Generator Box */}
+              <div style={{ backgroundColor: 'rgba(124, 58, 237, 0.05)', padding: '10px 12px', borderRadius: '10px', border: '1px solid rgba(124, 58, 237, 0.2)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#6d28d9', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Bot size={15} color="#7c3aed" /> ChatGPT AI Prompt (For Excel Data)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleCopyChatGptPrompt}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '4px 10px',
+                      fontSize: '0.72rem',
+                      fontWeight: 600,
+                      backgroundColor: '#7c3aed',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 4px rgba(124, 58, 237, 0.2)',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <Copy size={12} /> Copy Prompt
+                  </button>
+                </div>
+                <p style={{ margin: '0 0 6px 0', fontSize: '0.75rem', color: '#5b21b6', lineHeight: '1.2' }}>
+                  Copy this prompt & paste into ChatGPT with your raw Excel sheet to automatically generate the CSV!
+                </p>
+                <textarea
+                  readOnly
+                  rows={2}
+                  value={`Please convert my attendance data/Excel sheet into a clean CSV format with the exact following header structure:
+
+S.NO,NAME,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31
+
+Instructions:
+1. S.NO: Serial Number (1, 2, 3...)
+2. NAME: Employee Full Name
+3. 1 to 31: Attendance status (P = Present, A = Absent, L = Leave, HD = Half Day)
+4. Output strictly clean raw CSV text block.`}
+                  style={{
+                    width: '100%',
+                    padding: '6px',
+                    fontSize: '0.7rem',
+                    fontFamily: 'monospace',
+                    backgroundColor: 'var(--bg-card)',
+                    border: '1px solid rgba(124, 58, 237, 0.3)',
+                    borderRadius: '6px',
+                    color: 'var(--text-primary)',
+                    resize: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', paddingTop: '10px', borderTop: '1px solid var(--border-color)' }}>
+                <button type="button" onClick={() => setShowModal(false)} className="btn-primary" style={{ backgroundColor: 'transparent', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '8px 16px', fontWeight: 600, fontSize: '0.9rem' }}>
                   Cancel
                 </button>
-                <button type="submit" className="btn-primary" style={{ padding: '10px 24px', fontWeight: 600, boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)' }}>
+                <button type="submit" className="btn-primary" style={{ padding: '8px 20px', fontWeight: 600, fontSize: '0.9rem', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)' }}>
                   Upload Data
                 </button>
               </div>

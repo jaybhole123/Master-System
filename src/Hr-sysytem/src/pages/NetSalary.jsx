@@ -19,7 +19,7 @@ export default function NetSalary() {
 
   const [visibleCols, setVisibleCols] = useState({
     empName: true, department: true, basic: true, hra: true, allowances: true,
-    monthAdvance: true, gross: true, totalDays: true, present: true, leaves: true,
+    monthAdvance: true, gross: true, totalDays: true, present: true, absent: true, leaves: true,
     leaveDeduct: true, monthRecov: true, prevAdvDeduct: true, pf: true,
     esic: true, pTax: true, otherDeduct: true, totalDeduct: true, netSalary: true,
     paymentStatus: true, bankAcc: true
@@ -116,6 +116,7 @@ export default function NetSalary() {
               esicApplicable: s.esic_applicable !== false,
               totalDays: s.total_days || 0,
               presentDays: s.present_days || 0,
+              absent: s.absent || 0,
               leaves: s.leaves || 0,
               leaveDeduction: s.leave_deduction || 0,
               monthAdvance: s.month_advance || 0,
@@ -278,6 +279,7 @@ export default function NetSalary() {
     if (visibleCols.gross) headers[0].push('Gross (Rs)');
     if (visibleCols.totalDays) headers[0].push('Days');
     if (visibleCols.present) headers[0].push('Present');
+    if (visibleCols.absent) headers[0].push('Absent');
     if (visibleCols.leaves) headers[0].push('Leaves');
     if (visibleCols.leaveDeduct) headers[0].push('Leave Ded (Rs)');
     if (visibleCols.monthRecov) headers[0].push('Recovery (Rs)');
@@ -304,6 +306,7 @@ export default function NetSalary() {
       if (visibleCols.gross) row.push(rec.gross.toLocaleString(undefined, {maximumFractionDigits:2}));
       if (visibleCols.totalDays) row.push(rec.breakdown.sal.totalDays || 0);
       if (visibleCols.present) row.push(rec.breakdown.sal.presentDays || 0);
+      if (visibleCols.absent) row.push(rec.breakdown.sal.absent || 0);
       if (visibleCols.leaves) row.push(rec.breakdown.sal.leaves || 0);
       if (visibleCols.leaveDeduct) row.push(rec.breakdown.leaveDeduct.toLocaleString(undefined, {maximumFractionDigits:2}));
       if (visibleCols.monthRecov) row.push(rec.breakdown.monthRecov.toLocaleString(undefined, {maximumFractionDigits:2}));
@@ -524,6 +527,7 @@ export default function NetSalary() {
                   {visibleCols.gross && <th style={{...thStyle, backgroundColor: '#f8fafc'}}>Gross Salary (₹)</th>}
                   {visibleCols.totalDays && <th style={thStyle}>Total Days</th>}
                   {visibleCols.present && <th style={thStyle}>Present</th>}
+                  {visibleCols.absent && <th style={thStyle}>Absent</th>}
                   {visibleCols.leaves && <th style={thStyle}>Leaves</th>}
                   {visibleCols.leaveDeduct && <th style={thStyle}>Leave Deduct (₹)</th>}
                   {visibleCols.monthRecov && <th style={thStyle}>Month Recovery (₹)</th>}
@@ -583,6 +587,7 @@ export default function NetSalary() {
                         {visibleCols.gross && <td style={{...tdNumStyle, fontWeight: 600, color: 'var(--text-primary)', backgroundColor: 'rgba(0,0,0,0.02)'}}>{rec.gross.toLocaleString(undefined, {maximumFractionDigits:2})}</td>}
                         {visibleCols.totalDays && <td style={{...tdNumStyle, textAlign: 'center'}}>{rec.breakdown.sal.totalDays || 0}</td>}
                         {visibleCols.present && <td style={{...tdNumStyle, textAlign: 'center'}}>{rec.breakdown.sal.presentDays || 0}</td>}
+                        {visibleCols.absent && <td style={{...tdNumStyle, textAlign: 'center'}}>{rec.breakdown.sal.absent || 0}</td>}
                         {visibleCols.leaves && <td style={{...tdNumStyle, textAlign: 'center'}}>{rec.breakdown.sal.leaves || 0}</td>}
                         {visibleCols.leaveDeduct && <td style={{...tdNumStyle, color: 'var(--danger)'}}>{rec.breakdown.leaveDeduct.toLocaleString(undefined, {maximumFractionDigits:2})}</td>}
                         {visibleCols.monthRecov && <td style={{...tdNumStyle, color: 'var(--danger)'}}>{rec.breakdown.monthRecov.toLocaleString(undefined, {maximumFractionDigits:2})}</td>}
@@ -613,6 +618,7 @@ export default function NetSalary() {
                     {visibleCols.gross && <td style={{...tdNumStyle, border: '1px solid var(--border-color)', fontWeight: 600, color: 'var(--text-primary)', backgroundColor: 'rgba(0,0,0,0.02)'}}>₹ {totalGross.toLocaleString(undefined, {maximumFractionDigits:2})}</td>}
                     {visibleCols.totalDays && <td style={{...tdNumStyle, border: '1px solid var(--border-color)', fontWeight: 600}}>-</td>}
                     {visibleCols.present && <td style={{...tdNumStyle, border: '1px solid var(--border-color)', fontWeight: 600}}>-</td>}
+                    {visibleCols.absent && <td style={{...tdNumStyle, border: '1px solid var(--border-color)', fontWeight: 600}}>-</td>}
                     {visibleCols.leaves && <td style={{...tdNumStyle, border: '1px solid var(--border-color)', fontWeight: 600}}>-</td>}
                     {visibleCols.leaveDeduct && <td style={{...tdNumStyle, border: '1px solid var(--border-color)', fontWeight: 600, color: 'var(--danger)'}}>₹ {totalLeaveDeduct.toLocaleString(undefined, {maximumFractionDigits:2})}</td>}
                     {visibleCols.monthRecov && <td style={{...tdNumStyle, border: '1px solid var(--border-color)', fontWeight: 600, color: 'var(--danger)'}}>₹ {totalMonthRecovery.toLocaleString(undefined, {maximumFractionDigits:2})}</td>}
