@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import { Upload, X, Eye, Check, XCircle, Plus, Search, ChevronLeft, ChevronRight, Calendar, Filter } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import supabase from '../../../SupabaseClient';
+import SearchableSelect from '../../../components/SearchableSelect';
 import {
   generateId,
   generateSerialNumber,
@@ -76,6 +77,10 @@ export default function Expenses() {
   const [showFormModal, setShowFormModal] = useState(false);
   const [activeTab, setActiveTab] = useState('pending'); // 'pending' or 'history'
   const [statusFilter, setStatusFilter] = useState('');
+
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addModalType, setAddModalType] = useState('');
+  const [addModalValue, setAddModalValue] = useState('');
 
   const [filters, setFilters] = useState({
     fromDate: '',
@@ -187,6 +192,61 @@ export default function Expenses() {
     } catch (error) {
       toast.error('Error reading image');
     }
+  };
+
+  const handleDropdownChange = async (e, fieldName) => {
+    const value = e.target.value;
+    
+    if (value === 'ADD_NEW_HEAD') {
+      setAddModalType('head');
+      setAddModalValue('');
+      setShowAddModal(true);
+    } else if (value === 'ADD_NEW_MODE') {
+      setAddModalType('mode');
+      setAddModalValue('');
+      setShowAddModal(true);
+    } else {
+      setFormData(prev => ({ ...prev, [fieldName]: value }));
+    }
+  };
+
+  const handleAddNewSubmit = async (e) => {
+    e.preventDefault();
+    if (!addModalValue || addModalValue.trim() === '') {
+      setShowAddModal(false);
+      setFormData(prev => ({ ...prev, [addModalType === 'head' ? 'groupHead' : 'paymentMode']: '' }));
+      return;
+    }
+    const trimmedValue = addModalValue.trim();
+    try {
+      const field = addModalType === 'head' ? 'group_head' : 'payment_mode';
+      const { data, error } = await supabase
+        .from('petty_cash_setting')
+        .insert([{ [field]: trimmedValue }])
+        .select();
+      
+      if (error) throw error;
+      if (data && data.length > 0) {
+        if (addModalType === 'head') {
+          setGroupHeads(prev => [...prev, data[0]]);
+          setFormData(prev => ({ ...prev, groupHead: trimmedValue }));
+          toast.success("New Head added!");
+        } else {
+          setPaymentModes(prev => [...prev, data[0]]);
+          setFormData(prev => ({ ...prev, paymentMode: trimmedValue }));
+          toast.success("New Payment Mode added!");
+        }
+      }
+    } catch (err) {
+      toast.error(`Error adding new ${addModalType === 'head' ? 'group head' : 'payment mode'}`);
+      setFormData(prev => ({ ...prev, [addModalType === 'head' ? 'groupHead' : 'paymentMode']: '' }));
+    }
+    setShowAddModal(false);
+  };
+
+  const handleAddNewCancel = () => {
+    setShowAddModal(false);
+    setFormData(prev => ({ ...prev, [addModalType === 'head' ? 'groupHead' : 'paymentMode']: '' }));
   };
 
   const handleSubmit = async (e) => {
@@ -382,7 +442,7 @@ export default function Expenses() {
           </div>
 
           {/* Filters */}
-          <div className={`${showMobileFilters ? 'grid' : 'hidden'} lg:flex grid-cols-2 md:grid-cols-4 lg:flex-row gap-2 w-full lg:w-auto lg:flex-[4] items-center`}>
+          <div className={`${showMobileFilters ? 'grid' : 'hidden'} lg:flex grid-cols-2 md:grid-cols-4 lg:flex-row lg:flex-wrap gap-2 w-full lg:w-auto lg:flex-[5] items-center`}>
             <input
               type="text"
               placeholder="From Date"
@@ -390,7 +450,7 @@ export default function Expenses() {
               onBlur={(e) => { if (!e.target.value) e.target.type = 'text'; }}
               value={filters.fromDate}
               onChange={(e) => setFilters({ ...filters, fromDate: e.target.value })}
-              className="w-full bg-white border border-gray-300 rounded-lg lg:rounded px-2 py-1.5 focus:outline-none focus:border-indigo-500 text-[11px] md:text-sm h-[32px] md:h-[38px]"
+              className="w-full lg:min-w-[110px] lg:flex-1 bg-white border border-gray-300 rounded-lg lg:rounded px-2 py-1.5 focus:outline-none focus:border-indigo-500 text-[11px] md:text-sm h-[32px] md:h-[38px]"
             />
             <input
               type="text"
@@ -399,51 +459,46 @@ export default function Expenses() {
               onBlur={(e) => { if (!e.target.value) e.target.type = 'text'; }}
               value={filters.toDate}
               onChange={(e) => setFilters({ ...filters, toDate: e.target.value })}
-              className="w-full bg-white border border-gray-300 rounded-lg lg:rounded px-2 py-1.5 focus:outline-none focus:border-indigo-500 text-[11px] md:text-sm h-[32px] md:h-[38px]"
+              className="w-full lg:min-w-[110px] lg:flex-1 bg-white border border-gray-300 rounded-lg lg:rounded px-2 py-1.5 focus:outline-none focus:border-indigo-500 text-[11px] md:text-sm h-[32px] md:h-[38px]"
             />
-            <select
+            <SearchableSelect
               value={filters.personName}
-              onChange={(e) => setFilters({ ...filters, personName: e.target.value })}
-              className="w-full bg-white border border-gray-300 rounded-lg lg:rounded px-2 py-1.5 focus:outline-none focus:border-indigo-500 text-[11px] md:text-sm h-[32px] md:h-[38px]"
-            >
-              <option value="">All Persons</option>
-              {Array.from(new Set(expenses.map(e => e.person_name || e.personName))).filter(Boolean).map((person, idx) => (
-                <option key={person || idx} value={person}>{person}</option>
-              ))}
-            </select>
-            <select
+              onChange={(val) => setFilters({ ...filters, personName: val })}
+              className="w-full lg:min-w-[130px] lg:flex-1"
+              options={[
+                { value: '', label: 'All Persons' },
+                ...Array.from(new Set(expenses.map(e => e.person_name || e.personName))).filter(Boolean).map(person => ({ value: person, label: person }))
+              ]}
+            />
+            <SearchableSelect
               value={filters.mode}
-              onChange={(e) => setFilters({ ...filters, mode: e.target.value })}
-              className="w-full bg-white border border-gray-300 rounded-lg lg:rounded px-2 py-1.5 focus:outline-none focus:border-indigo-500 text-[11px] md:text-sm h-[32px] md:h-[38px]"
-            >
-              <option value="">All Modes</option>
-              <option value="Cash">Cash</option>
-              <option value="Cheque">Cheque</option>
-              <option value="Bank Transfer">Bank Transfer</option>
-              <option value="Online">Online</option>
-            </select>
-            <select
+              onChange={(val) => setFilters({ ...filters, mode: val })}
+              className="w-full lg:min-w-[120px] lg:flex-1"
+              options={[
+                { value: '', label: 'All Modes' },
+                ...Array.from(new Set(paymentModes.map(pm => pm.payment_mode))).map(mode => ({ value: mode, label: mode }))
+              ]}
+            />
+            <SearchableSelect
               value={filters.groupHead}
-              onChange={(e) => setFilters({ ...filters, groupHead: e.target.value })}
-              className="w-full bg-white border border-gray-300 rounded-lg lg:rounded px-2 py-1.5 focus:outline-none focus:border-indigo-500 text-[11px] md:text-sm h-[32px] md:h-[38px]"
-            >
-              <option value="">All Groups</option>
-              <option value="IT">IT</option>
-              <option value="HR">HR</option>
-              <option value="Finance">Finance</option>
-              <option value="Operations">Operations</option>
-              <option value="Marketing">Marketing</option>
-            </select>
+              onChange={(val) => setFilters({ ...filters, groupHead: val })}
+              className="w-full lg:min-w-[130px] lg:flex-1"
+              options={[
+                { value: '', label: 'All Groups' },
+                ...Array.from(new Set(groupHeads.map(gh => gh.group_head))).map(gh => ({ value: gh, label: gh }))
+              ]}
+            />
             {activeTab === 'history' && (
-              <select
+              <SearchableSelect
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full bg-white border border-indigo-200 text-indigo-700 rounded-lg lg:rounded px-2 py-1.5 focus:outline-none focus:border-indigo-500 text-[11px] md:text-sm font-medium h-[32px] md:h-[38px]"
-              >
-                <option value="">All Statuses</option>
-                <option value="APPROVED">Approved</option>
-                <option value="REJECTED">Rejected</option>
-              </select>
+                onChange={(val) => setStatusFilter(val)}
+                className="w-full lg:min-w-[130px] lg:flex-1"
+                options={[
+                  { value: '', label: 'All Statuses' },
+                  { value: 'APPROVED', label: 'Approved' },
+                  { value: 'REJECTED', label: 'Rejected' }
+                ]}
+              />
             )}
           </div>
         </div>
@@ -481,10 +536,9 @@ export default function Expenses() {
 
                   {/* PARTICULARS */}
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1 uppercase tracking-wide">Particulars *</label>
-                    <input type="text" value={formData.particulars || ''} onChange={(e) => setFormData({ ...formData, particulars: e.target.value })} placeholder="e.g. Travel, Food" className="w-full border border-slate-300 rounded-md px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 text-[13px] bg-white transition-shadow" required />
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1 uppercase tracking-wide">Particulars</label>
+                    <input type="text" value={formData.particulars || ''} onChange={(e) => setFormData({ ...formData, particulars: e.target.value })} placeholder="Enter particulars" className="w-full border border-slate-300 rounded-md px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 text-[13px] bg-white transition-shadow" />
                   </div>
-
 
                   {/* PAID */}
                   <div>
@@ -514,22 +568,24 @@ export default function Expenses() {
                   {/* APPROVED BY */}
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-700 mb-1 uppercase tracking-wide">Approved By *</label>
-                    <select value={formData.groupHead} onChange={(e) => setFormData({ ...formData, groupHead: e.target.value })} className="w-full border border-slate-300 rounded-md px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 text-[13px] bg-white transition-shadow" required>
+                    <select value={formData.groupHead} onChange={(e) => handleDropdownChange(e, 'groupHead')} className="w-full border border-slate-300 rounded-md px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 text-[13px] bg-white transition-shadow" required>
                       <option value="">Select Head</option>
                       {groupHeads.map((gh) => (
                         <option key={gh.id} value={gh.group_head}>{gh.group_head}</option>
                       ))}
+                      <option value="ADD_NEW_HEAD" className="font-bold text-indigo-600">+ Add New Head...</option>
                     </select>
                   </div>
 
                   {/* PAYMENT MODE */}
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-700 mb-1 uppercase tracking-wide">Payment Mode *</label>
-                    <select value={formData.paymentMode} onChange={(e) => setFormData({ ...formData, paymentMode: e.target.value })} className="w-full border border-slate-300 rounded-md px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 text-[13px] bg-white transition-shadow" required>
+                    <select value={formData.paymentMode} onChange={(e) => handleDropdownChange(e, 'paymentMode')} className="w-full border border-slate-300 rounded-md px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 text-[13px] bg-white transition-shadow" required>
                       <option value="">Select Mode</option>
                       {paymentModes.map((pm) => (
                         <option key={pm.id} value={pm.payment_mode}>{pm.payment_mode}</option>
                       ))}
+                      <option value="ADD_NEW_MODE" className="font-bold text-indigo-600">+ Add New Mode...</option>
                     </select>
                   </div>
                 </div>
@@ -738,9 +794,7 @@ export default function Expenses() {
                   <tr key={expense.id} className="bg-white hover:bg-red-50/50 border-b border-gray-200">
                     <td className="px-2 py-1.5 text-center text-xs border border-gray-200 font-medium">{sNo}</td>
                     <td className="px-2 py-1.5 text-center text-xs border border-gray-200 whitespace-nowrap">{formatDate(expense.date)}</td>
-                    <td className="px-2 py-1.5 text-center text-xs border border-gray-200 font-bold text-red-800 bg-red-50/50">
-                      {particulars}
-                    </td>
+                    <td className="px-2 py-1.5 text-center text-xs border border-gray-300 font-bold text-gray-800">{particulars}</td>
                     <td className="px-2 py-1.5 text-right text-xs border border-gray-300 font-medium">{expense.received ? formatCurrency(expense.received) : ''}</td>
                     <td className="px-2 py-1.5 text-right text-xs border border-gray-300 font-bold text-red-600 bg-red-50">
                       {formatCurrency(expense.amount)}
@@ -865,6 +919,52 @@ export default function Expenses() {
               </button>
             </div>
             <img src={selectedImage} alt="Expense" className="w-full rounded" />
+          </div>
+        </div>
+      )}
+      {/* Add New Item Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex flex-col items-center justify-center z-[60] p-6">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm flex flex-col overflow-hidden border border-slate-200">
+            <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+              <h2 className="text-base font-bold text-slate-800">
+                {addModalType === 'head' ? 'Add New Approved By' : 'Add New Payment Mode'}
+              </h2>
+              <button type="button" onClick={handleAddNewCancel} className="text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition-colors rounded-full p-1.5">
+                <X size={18} />
+              </button>
+            </div>
+            <form onSubmit={handleAddNewSubmit} className="p-5">
+              <div className="mb-4">
+                <label className="block text-[11px] font-semibold text-slate-700 mb-2 uppercase tracking-wide">
+                  {addModalType === 'head' ? 'Approved By Name' : 'Payment Mode Name'} *
+                </label>
+                <input
+                  type="text"
+                  value={addModalValue}
+                  onChange={(e) => setAddModalValue(e.target.value)}
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 text-[13px] transition-shadow"
+                  placeholder={`Enter ${addModalType === 'head' ? 'head name' : 'payment mode'}...`}
+                  autoFocus
+                  required
+                />
+              </div>
+              <div className="flex gap-3 justify-end">
+                <button
+                  type="button"
+                  onClick={handleAddNewCancel}
+                  className="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 transition-colors font-medium text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="bg-indigo-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-indigo-700 active:bg-indigo-800 transition-all shadow-sm text-sm"
+                >
+                  Save
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

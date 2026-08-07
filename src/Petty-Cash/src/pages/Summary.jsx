@@ -5,6 +5,7 @@ import { isDateInRange } from '../utils/helpers';
 import { Download, Calendar, FileText } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import SearchableSelect from '../../../components/SearchableSelect';
 
 const DEFAULT_USERS = [
   { id: 'admin', name: 'Admin User', password: 'admin123', role: 'ADMIN' },
@@ -221,16 +222,15 @@ export default function Summary() {
              </div>
              <div className="w-full lg:w-56">
                {user?.role === 'ADMIN' ? (
-                 <select
+                 <SearchableSelect
                    value={filters.personName}
-                   onChange={(e) => setFilters({ ...filters, personName: e.target.value })}
-                   className="w-full bg-white border border-gray-300 rounded-lg lg:rounded px-2 py-1.5 focus:outline-none focus:border-indigo-500 text-[11px] md:text-sm h-[32px] md:h-[38px] transition-all cursor-pointer"
-                 >
-                   <option value="">All Persons</option>
-                   {DEFAULT_USERS.map(u => (
-                     <option key={u.id} value={u.name}>{u.name}</option>
-                   ))}
-                 </select>
+                   onChange={(val) => setFilters({ ...filters, personName: val })}
+                   className="w-full"
+                   options={[
+                     { value: '', label: 'All Persons' },
+                     ...DEFAULT_USERS.map(u => ({ value: u.name, label: u.name }))
+                   ]}
+                 />
                ) : (
                  <div className="w-full border border-gray-200 bg-gray-50 rounded-lg lg:rounded px-2 py-1.5 text-[11px] md:text-sm text-gray-600 font-medium text-center h-[32px] md:h-[38px] flex items-center justify-center">
                    {user?.name}

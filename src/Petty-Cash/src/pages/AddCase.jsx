@@ -1,4 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import SearchableSelect from '../../../components/SearchableSelect';
 import toast from 'react-hot-toast';
 import { Upload, X, Eye, Plus, Filter, Search, ChevronLeft, ChevronRight, Calendar, MapPin, Briefcase, FileText, Check, File, FileDown, Navigation } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
@@ -301,26 +304,24 @@ export default function AddCase() {
                onChange={(e) => setFilters({ ...filters, toDate: e.target.value })}
                className="w-full bg-white border border-gray-300 rounded-lg lg:rounded px-2 py-1.5 focus:outline-none focus:border-sky-500 text-[11px] md:text-sm h-[32px] md:h-[38px]"
              />
-             <select
+             <SearchableSelect
                value={filters.personName}
-               onChange={(e) => setFilters({ ...filters, personName: e.target.value })}
-               className="w-full bg-white border border-gray-300 rounded-lg lg:rounded px-2 py-1.5 focus:outline-none focus:border-sky-500 text-[11px] md:text-sm h-[32px] md:h-[38px]"
-             >
-               <option value="">All Persons</option>
-               {Array.from(new Set(credits.map(c => c.person_name || c.personName))).map(person => (
-                 <option key={person} value={person}>{person}</option>
-               ))}
-             </select>
-             <select
+               onChange={(val) => setFilters({ ...filters, personName: val })}
+               className="w-full"
+               options={[
+                 { value: '', label: 'All Persons' },
+                 ...Array.from(new Set(credits.map(c => c.person_name || c.personName))).map(person => ({ value: person, label: person }))
+               ]}
+             />
+             <SearchableSelect
                value={filters.mode}
-               onChange={(e) => setFilters({ ...filters, mode: e.target.value })}
-               className="w-full bg-white border border-gray-300 rounded-lg lg:rounded px-2 py-1.5 focus:outline-none focus:border-sky-500 text-[11px] md:text-sm h-[32px] md:h-[38px]"
-             >
-               <option value="">All Modes</option>
-               {paymentModes.map(pm => (
-                 <option key={pm.id} value={pm.payment_mode}>{pm.payment_mode}</option>
-               ))}
-             </select>
+               onChange={(val) => setFilters({ ...filters, mode: val })}
+               className="w-full"
+               options={[
+                 { value: '', label: 'All Modes' },
+                 ...paymentModes.map(pm => ({ value: pm.payment_mode, label: pm.payment_mode }))
+               ]}
+             />
           </div>
         </div>
 

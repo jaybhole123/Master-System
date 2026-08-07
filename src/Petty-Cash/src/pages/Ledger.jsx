@@ -3,6 +3,7 @@ import { Download, Search, ChevronLeft, ChevronRight, Calendar, Filter } from 'l
 import { useAuthStore } from '../store/authStore';
 import supabase from '../../../SupabaseClient';
 import { formatDate, formatCurrency, isDateInRange } from '../utils/helpers';
+import SearchableSelect from '../../../components/SearchableSelect';
 
 const DEFAULT_USERS = [
   { id: 'admin', name: 'Admin User', password: 'admin123', role: 'ADMIN' },
@@ -264,39 +265,38 @@ export default function Ledger() {
                className="w-full bg-white border border-gray-300 rounded-lg lg:rounded px-2 py-1.5 focus:outline-none focus:border-indigo-500 text-[11px] md:text-sm h-[32px] md:h-[38px]"
              />
              <div className="w-full">
-                <select
+                <SearchableSelect
                   value={filters.personName}
-                  onChange={(e) => setFilters({ ...filters, personName: e.target.value })}
-                  className="w-full bg-white border border-gray-300 rounded-lg lg:rounded px-2 py-1.5 focus:outline-none focus:border-indigo-500 text-[11px] md:text-sm h-[32px] md:h-[38px]"
-                >
-                  <option value="">All Persons</option>
-                  {uniquePersonNames.map((name, idx) => (
-                    <option key={idx} value={name}>{name}</option>
-                  ))}
-                </select>
+                  onChange={(val) => setFilters({ ...filters, personName: val })}
+                  className="w-full"
+                  options={[
+                    { value: '', label: 'All Persons' },
+                    ...uniquePersonNames.map(name => ({ value: name, label: name }))
+                  ]}
+                />
              </div>
              <div className="w-full">
-               <select
+               <SearchableSelect
                  value={filters.transactionType}
-                 onChange={(e) => setFilters({ ...filters, transactionType: e.target.value })}
-                 className="w-full bg-white border border-gray-300 rounded-lg lg:rounded px-2 py-1.5 focus:outline-none focus:border-indigo-500 text-[11px] md:text-sm h-[32px] md:h-[38px]"
-               >
-                 <option value="">All Types</option>
-                 <option value="CREDIT">Credit</option>
-                 <option value="EXPENSE">Expense</option>
-               </select>
+                 onChange={(val) => setFilters({ ...filters, transactionType: val })}
+                 className="w-full"
+                 options={[
+                   { value: '', label: 'All Types' },
+                   { value: 'CREDIT', label: 'Credit' },
+                   { value: 'EXPENSE', label: 'Expense' }
+                 ]}
+               />
              </div>
              <div className="w-full">
-                <select
+                <SearchableSelect
                   value={filters.remarks}
-                  onChange={(e) => setFilters({ ...filters, remarks: e.target.value })}
-                  className="w-full bg-white border border-gray-300 rounded-lg lg:rounded px-2 py-1.5 focus:outline-none focus:border-indigo-500 text-[11px] md:text-sm h-[32px] md:h-[38px]"
-                >
-                  <option value="">All Remarks</option>
-                  {uniqueRemarks.map((remark, idx) => (
-                    <option key={idx} value={remark}>{remark}</option>
-                  ))}
-                </select>
+                  onChange={(val) => setFilters({ ...filters, remarks: val })}
+                  className="w-full"
+                  options={[
+                    { value: '', label: 'All Remarks' },
+                    ...uniqueRemarks.map(remark => ({ value: remark, label: remark }))
+                  ]}
+                />
              </div>
           </div>
         </div>

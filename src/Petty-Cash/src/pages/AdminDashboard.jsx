@@ -1,6 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { TrendingUp, TrendingDown, AlertCircle, Eye, ChevronLeft, ChevronRight, Search, Filter } from 'lucide-react';
+import { TrendingUp, TrendingDown, AlertCircle, Eye, ChevronLeft, ChevronRight, Search, Filter, Download } from 'lucide-react';
 import supabase from '../../../SupabaseClient';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import SearchableSelect from '../../../components/SearchableSelect';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import {
   formatDate,
   formatCurrency,
@@ -187,16 +192,89 @@ export default function AdminDashboard() {
     link.click();
   };
 
+  const handleDownloadPDF = () => {
+    const doc = new jsPDF('landscape');
+    
+    const formatPDFCurrency = (val) => {
+      return Number(val).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
+
+    const headers = [['S.NO', 'DATE', 'PARTICULARS', 'RECEIVED (Rs)', 'PAID (Rs)', 'BALANCE (Rs)', 'PAID TO', 'APPROVED BY', 'REMARKS']];
+    
+    const chunks = [];
+    for (let i = 0; i < filteredTransactions.length; i += 20) {
+      chunks.push(filteredTransactions.slice(i, i + 20));
+    }
+    
+    if (chunks.length === 0) {
+      doc.setFontSize(14);
+      doc.text('No transactions found', doc.internal.pageSize.width / 2, 20, { align: 'center' });
+      doc.save(`transactions-report-${new Date().toISOString().split('T')[0]}.pdf`);
+      return;
+    }
+
+    chunks.forEach((chunk, pageIndex) => {
+      if (pageIndex > 0) {
+        doc.addPage();
+      }
+
+      // Add title
+      doc.setFontSize(18);
+      doc.setTextColor(23, 37, 84); // blue-900
+      doc.text('JAI BHOLE GROUPS OF COMPANIES', doc.internal.pageSize.width / 2, 15, { align: 'center' });
+      doc.setFontSize(14);
+      doc.setTextColor(30, 64, 175); // blue-800
+      doc.text('PETTY CASH REGISTER (TRANSACTIONS)', doc.internal.pageSize.width / 2, 22, { align: 'center' });
+      
+      const data = chunk.map((t, idx) => [
+        (pageIndex * 20) + idx + 1,
+        formatDate(t.date),
+        'CASH',
+        t.type === 'CREDIT' ? formatPDFCurrency(Math.abs(t.amount)) : '',
+        t.type === 'EXPENSE' ? formatPDFCurrency(Math.abs(t.amount)) : '',
+        formatPDFCurrency(t.balance),
+        t.personName,
+        t.type === 'CREDIT' ? '-' : (t.groupHead || '-'),
+        t.remarks || '-'
+      ]);
+
+      // Create table
+      autoTable(doc, {
+        head: headers,
+        body: data,
+        startY: 30,
+        margin: { bottom: 10, left: 14, right: 14 },
+        theme: 'grid',
+        headStyles: { fillColor: [37, 99, 235], textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center', cellPadding: 2 },
+        columnStyles: {
+          0: { halign: 'center', cellWidth: 12 },
+          1: { halign: 'center', cellWidth: 23 },
+          2: { halign: 'center', fontStyle: 'bold', cellWidth: 28 },
+          3: { halign: 'right', cellWidth: 32 },
+          4: { halign: 'right', textColor: [220, 38, 38], cellWidth: 32 },
+          5: { halign: 'right', fontStyle: 'bold', textColor: [29, 78, 216], cellWidth: 32 },
+          6: { halign: 'center', cellWidth: 35 },
+          7: { halign: 'center', cellWidth: 35 },
+          8: { halign: 'left', cellWidth: 'auto' }
+        },
+        styles: { fontSize: 9, cellPadding: 1.5, overflow: 'linebreak' }
+      });
+    });
+
+    doc.save(`transactions-report-${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
   // Chart data - Expense by Group Head
   const expenseByGroupHead = useMemo(() => {
     const groupData = {};
     expenses
       .filter(e => e.status === 'APPROVED')
       .forEach(e => {
-        if (!groupData[e.groupHead]) {
-          groupData[e.groupHead] = 0;
+        const group = e.group_head || e.groupHead || 'Unassigned';
+        if (!groupData[group]) {
+          groupData[group] = 0;
         }
-        groupData[e.groupHead] += parseFloat(e.amount);
+        groupData[group] += parseFloat(e.amount || 0);
       });
     return groupData;
   }, [expenses]);
@@ -239,6 +317,12 @@ export default function AdminDashboard() {
             >
               <TrendingUp size={16} className="rotate-90" />
             </button>
+            <button
+               onClick={handleDownloadPDF}
+               className="bg-red-600 hover:bg-red-700 text-white rounded-lg flex items-center justify-center lg:hidden h-[32px] w-[32px] flex-shrink-0 shadow-sm transition"
+            >
+              <Download size={16} />
+            </button>
           </div>
 
           {/* Filters */}
@@ -268,39 +352,42 @@ export default function AdminDashboard() {
                placeholder="Search person..."
                className="w-full bg-white border border-gray-300 rounded-lg lg:rounded px-2 py-1.5 focus:outline-none focus:border-indigo-500 text-[11px] md:text-sm h-[32px] md:h-[38px]"
              />
-             <select
+             <SearchableSelect
                value={filters.groupHead}
-               onChange={(e) => setFilters({ ...filters, groupHead: e.target.value })}
-               className="w-full bg-white border border-gray-300 rounded-lg lg:rounded px-2 py-1.5 focus:outline-none focus:border-indigo-500 text-[11px] md:text-sm h-[32px] md:h-[38px]"
-             >
-               <option value="">All Groups</option>
-               <option value="IT">IT</option>
-               <option value="HR">HR</option>
-               <option value="Finance">Finance</option>
-               <option value="Operations">Operations</option>
-               <option value="Marketing">Marketing</option>
-             </select>
-             <select
+               onChange={(val) => setFilters({ ...filters, groupHead: val })}
+               className="w-full lg:w-40"
+               options={[
+                 { value: '', label: 'All Groups' },
+                 ...Array.from(new Set(expenses.map(e => e.group_head || e.groupHead))).filter(Boolean).map(gh => ({ value: gh, label: gh }))
+               ]}
+             />
+             <SearchableSelect
                value={filters.paymentMode}
-               onChange={(e) => setFilters({ ...filters, paymentMode: e.target.value })}
-               className="w-full bg-white border border-gray-300 rounded-lg lg:rounded px-2 py-1.5 focus:outline-none focus:border-indigo-500 text-[11px] md:text-sm h-[32px] md:h-[38px]"
-             >
-               <option value="">All Modes</option>
-               <option value="Cash">Cash</option>
-               <option value="Cheque">Cheque</option>
-               <option value="Bank Transfer">Bank Transfer</option>
-               <option value="Online">Online</option>
-             </select>
+               onChange={(val) => setFilters({ ...filters, paymentMode: val })}
+               className="w-full lg:w-40"
+               options={[
+                 { value: '', label: 'All Modes' },
+                 ...Array.from(new Set(expenses.map(e => e.payment_mode || e.paymentMode))).filter(Boolean).map(pm => ({ value: pm, label: pm }))
+               ]}
+             />
           </div>
         </div>
 
         {/* Desktop Export Button */}
-        <button
-           onClick={handleDownloadCSV}
-           className="hidden lg:flex bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 h-[38px] rounded-lg font-semibold items-center justify-center gap-2 transition shadow-sm w-full lg:w-auto flex-shrink-0"
-        >
-          <TrendingUp size={16} className="rotate-90" /> Export CSV
-        </button>
+        <div className="hidden lg:flex gap-2 w-full lg:w-auto flex-shrink-0">
+          <button
+             onClick={handleDownloadCSV}
+             className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 h-[38px] rounded-lg font-semibold flex items-center justify-center gap-2 transition shadow-sm"
+          >
+            <TrendingUp size={16} className="rotate-90" /> Export CSV
+          </button>
+          <button
+             onClick={handleDownloadPDF}
+             className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 h-[38px] rounded-lg font-semibold flex items-center justify-center gap-2 transition shadow-sm"
+          >
+            <Download size={16} /> Download PDF
+          </button>
+        </div>
       </div>
 
       {/* Statistics Cards */}
