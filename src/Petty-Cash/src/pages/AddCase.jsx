@@ -3,7 +3,7 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import SearchableSelect from '../../../components/SearchableSelect';
 import toast from 'react-hot-toast';
-import { Upload, X, Eye, Plus, Filter, Search, ChevronLeft, ChevronRight, Calendar, MapPin, Briefcase, FileText, Check, File, FileDown, Navigation } from 'lucide-react';
+import { Upload, X, Eye, Plus, Filter, Search, ChevronLeft, ChevronRight, Calendar, MapPin, Briefcase, FileText, Check, File, FileDown, Navigation, Edit2, Trash2 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import supabase from '../../../SupabaseClient';
 
@@ -46,6 +46,7 @@ export default function AddCase() {
   const [showImageModal, setShowImageModal] = useState(false);
   const [selectedImage, setSelectedImage] = useState('');
   const [showFormModal, setShowFormModal] = useState(false);
+  const [editingCreditId, setEditingCreditId] = useState(null);
   const [filters, setFilters] = useState({
     fromDate: '',
     toDate: '',
@@ -54,8 +55,7 @@ export default function AddCase() {
     searchQuery: ''
   });
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(15);
+  const [visibleCount, setVisibleCount] = useState(50);
 
   const fetchCreditsAndExpenses = async () => {
     try {
@@ -90,7 +90,7 @@ export default function AddCase() {
   }, []);
 
   useEffect(() => {
-    setCurrentPage(1);
+    setVisibleCount(50);
   }, [filters]);
 
   const filteredCredits = credits.filter(credit => {
@@ -119,14 +119,48 @@ export default function AddCase() {
   });
 
   const sortedCredits = filteredCredits.slice().reverse();
-  const totalPages = Math.ceil(sortedCredits.length / itemsPerPage);
-  const paginatedCredits = sortedCredits.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  const displayedCredits = sortedCredits.slice(0, visibleCount);
 
-  const pageTotalAmount = paginatedCredits.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
+  const pageTotalAmount = displayedCredits.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
   const totalAmount = sortedCredits.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
+
+  const handleScroll = (e) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.target;
+    if (scrollTop + clientHeight >= scrollHeight - 50) {
+      if (visibleCount < sortedCredits.length) {
+        setVisibleCount(prev => prev + 50);
+      }
+    }
+  };
+
+  const handleDeleteCredit = async (credit) => {
+    if (!window.confirm('Are you sure you want to delete this credit?')) return;
+    try {
+      await supabase.from('petty_cash_addcash_credits').delete().eq('id', credit.id);
+      setCredits(prev => prev.filter(c => c.id !== credit.id));
+      toast.success('Credit deleted successfully!');
+    } catch (error) {
+      toast.error('Error deleting credit');
+    }
+  };
+
+  const handleEditCredit = (credit) => {
+    setFormData({
+      personName: credit.person_name || credit.personName || '',
+      date: credit.date || '',
+      amount: credit.amount || '',
+      paymentMode: credit.payment_mode || credit.paymentMode || '',
+      remarks: credit.remarks || '',
+      particulars: credit.particulars || 'CASH',
+      paid: '',
+      balance: '',
+      approvedBy: ''
+    });
+    setEditingCreditId(credit.id);
+    setImagePreview(credit.receipt_url || credit.image || '');
+    setImage(credit.receipt_url || credit.image || '');
+    setShowFormModal(true);
+  };
 
   const handleImageSelect = async (e) => {
     const file = e.target.files?.[0];
@@ -163,55 +197,69 @@ export default function AddCase() {
     try {
       setLoading(true);
 
-      const newCredit = {
-        sn: generateSerialNumber(),
-        person_name: formData.personName,
-        date: formData.date,
-        amount: parseFloat(formData.amount),
-        payment_mode: formData.paymentMode,
-        particulars: formData.particulars || 'CASH',
-        receipt_url: image || '',
-        remarks: formData.remarks,
-        status: 'APPROVED'
-      };
+      if (editingCreditId) {
+        const updateData = {
+          person_name: formData.personName,
+          date: formData.date,
+          amount: parseFloat(formData.amount),
+          payment_mode: formData.paymentMode,
+          particulars: formData.particulars || 'CASH',
+          receipt_url: image || '',
+          remarks: formData.remarks
+        };
+        await supabase.from('petty_cash_addcash_credits').update(updateData).eq('id', editingCreditId);
+        await fetchCreditsAndExpenses();
+        toast.success('Credit updated successfully!');
+      } else {
+        const newCredit = {
+          sn: generateSerialNumber(),
+          person_name: formData.personName,
+          date: formData.date,
+          amount: parseFloat(formData.amount),
+          payment_mode: formData.paymentMode,
+          particulars: formData.particulars || 'CASH',
+          receipt_url: image || '',
+          remarks: formData.remarks,
+          status: 'APPROVED'
+        };
 
-      // Save credit to Supabase
-      const { data: insertedCreditData, error: creditError } = await supabase
-        .from('petty_cash_addcash_credits')
-        .insert([newCredit])
-        .select()
-        .single();
-        
-      if (creditError) {
-        console.error('Supabase credit insert error:', creditError);
+        // Save credit to Supabase
+        const { data: insertedCreditData, error: creditError } = await supabase
+          .from('petty_cash_addcash_credits')
+          .insert([newCredit])
+          .select()
+          .single();
+          
+        if (creditError) {
+          console.error('Supabase credit insert error:', creditError);
+        }
+
+        // Calculate new balance
+        const newBalance = calculateBalance(
+          formData.personName,
+          [...credits, { ...newCredit, personName: newCredit.person_name }], // optimistic
+          expenses
+        );
+
+        // Create ledger entry
+        const ledgerEntry = {
+          ref_id: insertedCreditData ? insertedCreditData.id : generateId(),
+          person_name: formData.personName,
+          type: 'CREDIT',
+          amount: parseFloat(formData.amount),
+          date: formData.date,
+          reference: newCredit.sn,
+          balance: newBalance
+        };
+
+        // Save to Supabase ledger if available
+        try {
+          await supabase.from('ledger').insert([ledgerEntry]);
+        } catch(e) {}
+
+        await fetchCreditsAndExpenses();
+        toast.success(`Credit of ${formatCurrency(formData.amount)} added successfully!`);
       }
-
-      // Calculate new balance
-      const newBalance = calculateBalance(
-        formData.personName,
-        [...credits, { ...newCredit, personName: newCredit.person_name }], // optimistic
-        expenses
-      );
-
-      // Create ledger entry
-      const ledgerEntry = {
-        ref_id: insertedCreditData ? insertedCreditData.id : generateId(),
-        person_name: formData.personName,
-        type: 'CREDIT',
-        amount: parseFloat(formData.amount),
-        date: formData.date,
-        reference: newCredit.sn,
-        balance: newBalance
-      };
-
-      // Save to Supabase ledger if available
-      try {
-        await supabase.from('ledger').insert([ledgerEntry]);
-      } catch(e) {}
-
-      await fetchCreditsAndExpenses();
-
-      toast.success(`Credit of ${formatCurrency(formData.amount)} added successfully!`);
 
       // Reset form
       setFormData({
@@ -227,16 +275,14 @@ export default function AddCase() {
       });
       setImage(null);
       setImagePreview('');
+      setEditingCreditId(null);
 
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
 
-      // Automatically close the modal after 3 seconds as requested
-      setTimeout(() => {
-        setShowFormModal(false);
-        setLoading(false);
-      }, 3000);
+      setShowFormModal(false);
+      setLoading(false);
 
     } catch (error) {
       console.error(error);
@@ -339,8 +385,14 @@ export default function AddCase() {
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex flex-col items-center justify-center z-50 p-2 md:p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[95vh] md:max-h-[90vh] flex flex-col overflow-hidden">
             <div className="p-2 md:p-4 border-b-2 border-red-700 flex justify-between items-center bg-red-600 flex-shrink-0">
-              <h2 className="text-base md:text-xl font-bold text-white uppercase tracking-wider">JAI BHOLE GROUPS - CREDIT ENTRY FORM</h2>
-              <button type="button" onClick={() => setShowFormModal(false)} className="text-red-100 hover:text-white transition-colors bg-red-800 rounded-full p-1 shadow-sm">
+              <h2 className="text-base md:text-xl font-bold text-white uppercase tracking-wider">{editingCreditId ? 'EDIT CREDIT' : 'JAI BHOLE GROUPS - CREDIT ENTRY FORM'}</h2>
+              <button type="button" onClick={() => {
+                setShowFormModal(false);
+                setEditingCreditId(null);
+                setFormData({ personName: '', date: '', amount: '', paymentMode: '', remarks: '', particulars: '', paid: '', balance: '', approvedBy: '' });
+                setImage(null);
+                setImagePreview('');
+              }} className="text-red-100 hover:text-white transition-colors bg-red-800 rounded-full p-1 shadow-sm">
                 <X size={20} className="md:w-6 md:h-6" />
               </button>
             </div>
@@ -451,7 +503,7 @@ export default function AddCase() {
                     disabled={loading}
                     className="flex-1 bg-gradient-to-r from-green-500 to-green-600 text-white font-semibold py-1.5 px-4 md:py-2 md:px-6 rounded-lg hover:from-green-600 hover:to-green-700 disabled:opacity-50 transition text-[12px] md:text-base"
                   >
-                    {loading ? 'Adding Credit...' : 'Add Credit'}
+                    {loading ? (editingCreditId ? 'Updating...' : 'Adding Credit...') : (editingCreditId ? 'Update Credit' : 'Add Credit')}
                   </button>
                   <button
                     type="reset"
@@ -473,14 +525,14 @@ export default function AddCase() {
       {/* List Section */}
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm flex flex-col pt-1 mt-2 flex-1 min-h-0">
         {/* Mobile View: Cards */}
-        <div className="md:hidden flex flex-col gap-2 p-2 overflow-y-auto flex-1 bg-slate-50/50 pb-2">
-          {paginatedCredits.map((credit) => (
+        <div onScroll={handleScroll} className="md:hidden flex flex-col gap-2 p-2 overflow-y-auto flex-1 bg-slate-50/50 pb-2">
+          {displayedCredits.map((credit, idx) => (
             <div key={credit.id} className="bg-white rounded-lg border border-indigo-50 shadow-[0_2px_10px_-4px_rgba(79,70,229,0.1)] p-1.5 relative flex flex-col gap-1 transition-all">
               {/* Top Row: SN and Badge */}
               <div className="flex justify-between items-center mb-0">
                 <div className="flex items-center gap-1.5">
                   <div>
-                    <span className="text-[8px] font-medium text-gray-400 uppercase tracking-widest block leading-none mb-0.5"># {((currentPage - 1) * itemsPerPage) + paginatedCredits.indexOf(credit) + 1}</span>
+                    <span className="text-[8px] font-medium text-gray-400 uppercase tracking-widest block leading-none mb-0.5"># {idx + 1}</span>
                     <h3 className="font-medium text-gray-900 text-[11px] uppercase tracking-tight leading-none mt-[2px]">
                       {credit.person_name || credit.personName}
                     </h3>
@@ -507,6 +559,15 @@ export default function AddCase() {
                 </div>
               </div>
 
+              <div className="grid grid-cols-2 gap-1.5 mt-0">
+                <button onClick={() => handleEditCredit(credit)} className="bg-blue-50 text-blue-600 hover:bg-blue-100 py-1 rounded text-[10px] font-medium flex items-center justify-center gap-1 transition-all">
+                  <Edit2 size={11} /> Edit
+                </button>
+                <button onClick={() => handleDeleteCredit(credit)} className="bg-red-50 text-red-600 hover:bg-red-100 py-1 rounded text-[10px] font-medium flex items-center justify-center gap-1 transition-all">
+                  <Trash2 size={11} /> Delete
+                </button>
+              </div>
+
               {/* View Image Action */}
               {credit.image && (
                 <div className="mt-0 flex justify-end">
@@ -526,7 +587,7 @@ export default function AddCase() {
         </div>
 
         {/* Desktop View: Table */}
-        <div className="hidden md:block overflow-x-auto overflow-y-auto flex-1 min-h-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <div onScroll={handleScroll} className="hidden md:block overflow-x-auto overflow-y-auto flex-1 min-h-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           <div className="bg-red-600 border-b-2 border-red-700 p-2 text-center shadow-sm sticky top-0 z-20">
             <h1 className="text-white font-bold text-lg md:text-2xl tracking-wider uppercase">JAI BHOLE GROUPS OF COMPANIES</h1>
           </div>
@@ -543,11 +604,12 @@ export default function AddCase() {
                 <th className="px-2 py-2 text-center text-xs font-bold text-red-900 uppercase border border-red-200">RECEIVED FROM</th>
                 <th className="px-2 py-2 text-center text-xs font-bold text-red-900 uppercase border border-red-200">PAYMENT MODE</th>
                 <th className="px-2 py-2 text-center text-xs font-bold text-red-900 uppercase border border-red-200">REMARKS</th>
+                <th className="px-2 py-2 text-center text-xs font-bold text-red-900 uppercase border border-red-200">ACTION</th>
               </tr>
             </thead>
             <tbody>
-              {paginatedCredits.map((credit, idx) => {
-                const sNo = ((currentPage - 1) * itemsPerPage) + idx + 1;
+              {displayedCredits.map((credit, idx) => {
+                const sNo = idx + 1;
                 const particulars = credit.particulars || 'CASH';
 
                 return (
@@ -563,6 +625,12 @@ export default function AddCase() {
                     <td className="px-2 py-1.5 text-center text-xs border border-gray-300 uppercase">{credit.person_name || credit.personName}</td>
                     <td className="px-2 py-1.5 text-center text-xs border border-gray-300 uppercase">{credit.payment_mode || credit.paymentMode}</td>
                     <td className="px-2 py-1.5 text-left text-xs border border-gray-300 truncate max-w-[150px] uppercase">{credit.remarks || '-'}</td>
+                    <td className="px-2 py-1.5 text-center text-xs border border-gray-300">
+                      <div className="flex justify-center gap-2">
+                        <button onClick={() => handleEditCredit(credit)} title="Edit" className="text-blue-500 hover:text-blue-700"><Edit2 size={14} /></button>
+                        <button onClick={() => handleDeleteCredit(credit)} title="Delete" className="text-red-500 hover:text-red-700"><Trash2 size={14} /></button>
+                      </div>
+                    </td>
                   </tr>
                 );
               })}
@@ -576,70 +644,31 @@ export default function AddCase() {
           )}
         </div>
 
-        {/* Footer & Pagination Controls */}
+        {/* Footer & Totals */}
         <div className="px-2 md:px-4 py-2 border-t border-gray-200 bg-gray-50 flex flex-col lg:flex-row items-center justify-between gap-2 lg:gap-4 rounded-b-lg pb-2 md:pb-3">
 
           {/* Mobile Totals Row */}
-          {paginatedCredits.length > 0 && (
+          {displayedCredits.length > 0 && (
             <div className="flex w-full lg:w-auto justify-between lg:hidden items-center text-xs border-b border-gray-200 pb-2 mb-1 px-1">
-              <div className="flex flex-col"><span className="text-gray-500 text-[9px] uppercase font-medium tracking-wider mb-0.5">Page Total</span> <span className="font-medium text-emerald-600 text-[13px]">{formatCurrency(pageTotalAmount)}</span></div>
+              <div className="flex flex-col"><span className="text-gray-500 text-[9px] uppercase font-medium tracking-wider mb-0.5">Loaded Total</span> <span className="font-medium text-emerald-600 text-[13px]">{formatCurrency(pageTotalAmount)}</span></div>
               <div className="flex flex-col text-right"><span className="text-gray-500 text-[9px] uppercase font-medium tracking-wider mb-0.5">Total Filtered</span> <span className="font-medium text-gray-900 text-[13px]">{formatCurrency(totalAmount)}</span></div>
             </div>
           )}
 
           {/* Desktop Totals (Hidden on Mobile) */}
-          {paginatedCredits.length > 0 && (
-            <div className="hidden lg:flex items-center gap-6 text-sm order-2">
-              <div><span className="text-gray-600">Page Total:</span> <span className="font-semibold text-emerald-600 ml-1">{formatCurrency(pageTotalAmount)}</span></div>
+          {displayedCredits.length > 0 && (
+            <div className="hidden lg:flex items-center justify-end w-full gap-6 text-sm">
+              <div><span className="text-gray-600">Loaded Total:</span> <span className="font-semibold text-emerald-600 ml-1">{formatCurrency(pageTotalAmount)}</span></div>
               <div className="w-px h-4 bg-gray-300"></div>
               <div><span className="text-gray-500 text-xs mr-1">Filtered Total:</span> <span className="font-semibold text-gray-900">{formatCurrency(totalAmount)}</span></div>
             </div>
           )}
-
-          {/* Controls Row */}
-          <div className="flex w-full lg:w-auto justify-between items-center order-3 lg:order-1 gap-2">
-            <div className="text-[10px] md:text-sm text-gray-600 flex items-center gap-1.5 md:gap-2 flex-shrink-0">
-              <select
-                value={itemsPerPage}
-                onChange={(e) => {
-                  setItemsPerPage(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
-                className="border border-gray-300 rounded-md px-1 flex-shrink-0 md:px-2 py-1 focus:outline-none focus:border-indigo-500 bg-white font-medium text-[10px] md:text-sm shadow-sm"
-              >
-                <option value={10}>10</option>
-                <option value={15}>15</option>
-                <option value={20}>20</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-              </select>
-              <span className="text-[10px] md:text-sm text-gray-500 whitespace-nowrap ml-1 font-medium">
-                {filteredCredits.length > 0 ? ((currentPage - 1) * itemsPerPage) + 1 : 0}-{Math.min(currentPage * itemsPerPage, sortedCredits.length)} of {sortedCredits.length}
-              </span>
+          
+          {displayedCredits.length > 0 && (
+            <div className="text-[10px] md:text-sm text-gray-500 w-full lg:w-auto text-center lg:text-left mt-1 lg:mt-0 font-medium">
+              Showing {displayedCredits.length} of {sortedCredits.length}
             </div>
-
-            <div className="flex gap-1.5 md:gap-2 justify-end items-center flex-shrink-0 text-gray-700">
-              <button
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="p-1 md:px-2 md:py-1 border border-gray-300 rounded-md bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition shadow-sm flex items-center justify-center text-indigo-600"
-                title="Previous Page"
-              >
-                <ChevronLeft size={16} strokeWidth={2.5} />
-              </button>
-              <div className="flex items-center text-[10px] md:text-sm font-medium whitespace-nowrap text-gray-500">
-                Pg {currentPage}/{totalPages || 1}
-              </div>
-              <button
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages || totalPages === 0}
-                className="p-1 md:px-2 md:py-1 border border-gray-300 rounded-md bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition shadow-sm flex items-center justify-center text-indigo-600"
-                title="Next Page"
-              >
-                <ChevronRight size={16} strokeWidth={2.5} />
-              </button>
-            </div>
-          </div>
+          )}
         </div>
       </div>
 

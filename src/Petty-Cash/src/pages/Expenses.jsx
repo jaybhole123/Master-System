@@ -1,6 +1,6 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { Upload, X, Eye, Check, XCircle, Plus, Search, ChevronLeft, ChevronRight, Calendar, Filter } from 'lucide-react';
+import { Upload, X, Eye, Check, XCircle, Plus, Search, ChevronLeft, ChevronRight, Calendar, Filter, Edit2, Trash2, RotateCcw } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import supabase from '../../../SupabaseClient';
 import SearchableSelect from '../../../components/SearchableSelect';
@@ -81,6 +81,7 @@ export default function Expenses() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [addModalType, setAddModalType] = useState('');
   const [addModalValue, setAddModalValue] = useState('');
+  const [editingExpenseId, setEditingExpenseId] = useState(null);
 
   const [filters, setFilters] = useState({
     fromDate: '',
@@ -91,11 +92,10 @@ export default function Expenses() {
     searchQuery: ''
   });
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(15);
+  const [visibleCount, setVisibleCount] = useState(50);
 
   useEffect(() => {
-    setCurrentPage(1);
+    setVisibleCount(50);
   }, [filters, activeTab, statusFilter]);
 
   useEffect(() => {
@@ -167,14 +167,19 @@ export default function Expenses() {
   });
 
   const sortedExpenses = filteredExpenses.slice().reverse();
-  const totalPages = Math.ceil(sortedExpenses.length / itemsPerPage);
-  const paginatedExpenses = sortedExpenses.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  const displayedExpenses = sortedExpenses.slice(0, visibleCount);
 
-  const pageTotalAmount = paginatedExpenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
+  const pageTotalAmount = displayedExpenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
   const totalAmount = sortedExpenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
+
+  const handleScroll = (e) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.target;
+    if (scrollTop + clientHeight >= scrollHeight - 50) {
+      if (visibleCount < sortedExpenses.length) {
+        setVisibleCount(prev => prev + 50);
+      }
+    }
+  };
 
   const handleImageSelect = async (e) => {
     const file = e.target.files?.[0];
@@ -277,48 +282,62 @@ export default function Expenses() {
     try {
       setLoading(true);
 
-      const newExpense = {
-        id: generateId(),
-        sn: generateSerialNumber(),
-        personName: formData.personName,
-        particulars: formData.particulars || '',
-        date: formData.date,
-        received: parseFloat(formData.received) || 0,
-        amount: parseFloat(formData.amount) || 0,
-        balance: parseFloat(formData.balance) || 0,
-        paymentMode: formData.paymentMode,
-        groupHead: formData.groupHead,
-        image: image || '',
-        remarks: formData.remarks,
-        status: 'PENDING',
-        timestamp: new Date().toISOString()
-      };
+      if (editingExpenseId) {
+        const updateData = {
+          person_name: formData.personName,
+          particulars: formData.particulars,
+          date: formData.date,
+          received: parseFloat(formData.received) || 0,
+          amount: parseFloat(formData.amount) || 0,
+          balance: parseFloat(formData.balance) || 0,
+          payment_mode: formData.paymentMode,
+          group_head: formData.groupHead,
+          remarks: formData.remarks,
+          receipt_url: image || ''
+        };
+        await supabase.from('petty_cash_expenses').update(updateData).eq('id', editingExpenseId);
+        await fetchCreditsAndExpenses();
+        toast.success('Expense updated successfully!');
+      } else {
+        const newExpense = {
+          id: generateId(),
+          sn: generateSerialNumber(),
+          personName: formData.personName,
+          particulars: formData.particulars || '',
+          date: formData.date,
+          received: parseFloat(formData.received) || 0,
+          amount: parseFloat(formData.amount) || 0,
+          balance: parseFloat(formData.balance) || 0,
+          paymentMode: formData.paymentMode,
+          groupHead: formData.groupHead,
+          image: image || '',
+          remarks: formData.remarks,
+          status: 'PENDING',
+          timestamp: new Date().toISOString()
+        };
 
-      // saveExpense removed - using Supabase only
+        try {
+          await supabase.from('petty_cash_expenses').insert([{
+            sn: newExpense.sn,
+            person_name: newExpense.personName,
+            particulars: newExpense.particulars,
+            date: newExpense.date,
+            received: newExpense.received,
+            amount: newExpense.amount,
+            balance: newExpense.balance,
+            payment_mode: newExpense.paymentMode,
+            group_head: newExpense.groupHead,
+            remarks: newExpense.remarks,
+            receipt_url: newExpense.image,
+            status: 'PENDING'
+          }]);
+        } catch (e) {
+          console.error('Supabase expense insert error:', e);
+        }
 
-      // Save to Supabase petty_cash_expenses table as well
-      try {
-        await supabase.from('petty_cash_expenses').insert([{
-          sn: newExpense.sn,
-          person_name: newExpense.personName,
-          particulars: newExpense.particulars,
-          date: newExpense.date,
-          received: newExpense.received,
-          amount: newExpense.amount,
-          balance: newExpense.balance,
-          payment_mode: newExpense.paymentMode,
-          group_head: newExpense.groupHead,
-          remarks: newExpense.remarks,
-          receipt_url: newExpense.image,
-          status: 'PENDING'
-        }]);
-      } catch (e) {
-        console.error('Supabase expense insert error:', e);
+        await fetchCreditsAndExpenses();
+        toast.success(`Expense of ${formatCurrency(formData.amount)} submitted for approval!`);
       }
-
-      await fetchCreditsAndExpenses();
-
-      toast.success(`Expense of ${formatCurrency(formData.amount)} submitted for approval!`);
 
       // Reset form
       setFormData({
@@ -334,15 +353,14 @@ export default function Expenses() {
       });
       setImage(null);
       setImagePreview('');
+      setEditingExpenseId(null);
 
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
 
-      setTimeout(() => {
-        setShowFormModal(false);
-        setLoading(false);
-      }, 3000);
+      setShowFormModal(false);
+      setLoading(false);
 
     } catch (error) {
       console.error(error);
@@ -376,6 +394,47 @@ export default function Expenses() {
       console.error(error);
       toast.error('Error rejecting expense');
     }
+  };
+
+  const handleDeleteExpense = async (expense) => {
+    if (!window.confirm('Are you sure you want to delete this expense?')) return;
+    try {
+      await supabase.from('petty_cash_expenses').delete().eq('id', expense.id);
+      setExpenses(prev => prev.filter(e => e.id !== expense.id));
+      toast.success('Expense deleted successfully!');
+    } catch (error) {
+      console.error(error);
+      toast.error('Error deleting expense');
+    }
+  };
+
+  const handleRevertToPending = async (expense) => {
+    try {
+      await supabase.from('petty_cash_expenses').update({ status: 'PENDING' }).eq('id', expense.id);
+      setExpenses(prev => prev.map(e => e.id === expense.id ? { ...e, status: 'PENDING' } : e));
+      toast.success('Expense moved back to pending!');
+    } catch (error) {
+      console.error(error);
+      toast.error('Error updating status');
+    }
+  };
+
+  const handleEditExpense = (expense) => {
+    setFormData({
+      personName: expense.person_name || expense.personName || '',
+      date: expense.date || '',
+      amount: expense.amount || '',
+      paymentMode: expense.payment_mode || expense.paymentMode || '',
+      groupHead: expense.group_head || expense.groupHead || '',
+      remarks: expense.remarks || '',
+      particulars: expense.particulars || '',
+      received: expense.received || '',
+      balance: expense.balance || ''
+    });
+    setEditingExpenseId(expense.id);
+    setImagePreview(expense.receipt_url || expense.image || '');
+    setImage(expense.receipt_url || expense.image || '');
+    setShowFormModal(true);
   };
 
   const handleImageView = (imageBase64) => {
@@ -518,10 +577,16 @@ export default function Expenses() {
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] md:max-h-[80vh] flex flex-col overflow-hidden border border-slate-200">
             <div className="p-3 md:p-4 border-b border-slate-100 flex justify-between items-center bg-white flex-shrink-0">
               <div>
-                <h2 className="text-base md:text-lg font-bold text-slate-800 tracking-tight">Expense Entry Form</h2>
+                <h2 className="text-base md:text-lg font-bold text-slate-800 tracking-tight">{editingExpenseId ? 'Edit Expense' : 'Expense Entry Form'}</h2>
                 <p className="text-[10px] md:text-xs text-slate-500 mt-0.5 font-medium uppercase tracking-wider">Jai Bhole Groups</p>
               </div>
-              <button type="button" onClick={() => setShowFormModal(false)} className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors rounded-full p-1.5">
+              <button type="button" onClick={() => {
+                setShowFormModal(false);
+                setEditingExpenseId(null);
+                setFormData({ personName: '', date: '', amount: '', paymentMode: '', groupHead: '', remarks: '', particulars: '', received: '', balance: '' });
+                setImage(null);
+                setImagePreview('');
+              }} className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors rounded-full p-1.5">
                 <X size={18} />
               </button>
             </div>
@@ -658,8 +723,8 @@ export default function Expenses() {
                     className="flex-1 bg-indigo-600 text-white font-semibold py-2 px-6 rounded-md hover:bg-indigo-700 active:bg-indigo-800 disabled:opacity-70 transition-all shadow-sm shadow-indigo-200 text-sm flex justify-center items-center gap-2"
                   >
                     {loading ? (
-                      <><div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Submitting...</>
-                    ) : 'Submit Expense'}
+                      <><div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> {editingExpenseId ? 'Updating...' : 'Submitting...'}</>
+                    ) : (editingExpenseId ? 'Update Expense' : 'Submit Expense')}
                   </button>
                   <button
                     type="reset"
@@ -685,14 +750,14 @@ export default function Expenses() {
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm flex flex-col pt-1 mt-2 flex-1 min-h-0">
 
         {/* Mobile View: Cards */}
-        <div className="md:hidden flex flex-col gap-2 p-2 overflow-y-auto flex-1 bg-slate-50/50 pb-2">
-          {paginatedExpenses.map((expense) => (
+        <div onScroll={handleScroll} className="md:hidden flex flex-col gap-2 p-2 overflow-y-auto flex-1 bg-slate-50/50 pb-2">
+          {displayedExpenses.map((expense, idx) => (
             <div key={expense.id} className="bg-white rounded-lg border border-indigo-50 shadow-[0_2px_10px_-4px_rgba(79,70,229,0.1)] p-1.5 relative flex flex-col gap-1 transition-all">
               {/* Top Row: Info */}
               <div className="flex justify-between items-center mb-0">
                 <div className="flex items-center gap-1.5">
                   <div>
-                    <span className="text-[8px] font-medium text-gray-400 uppercase tracking-widest block leading-none mb-0.5"># {((currentPage - 1) * itemsPerPage) + paginatedExpenses.indexOf(expense) + 1}</span>
+                    <span className="text-[8px] font-medium text-gray-400 uppercase tracking-widest block leading-none mb-0.5"># {idx + 1}</span>
                     <h3 className="font-medium text-gray-900 text-[11px] uppercase tracking-tight leading-none mt-[2px]">
                       {expense.person_name || expense.personName}
                     </h3>
@@ -730,18 +795,42 @@ export default function Expenses() {
               {/* Actions & Image */}
               <div className="flex flex-col gap-1">
                 {activeTab === 'pending' && (
-                  <div className="grid grid-cols-2 gap-1.5 mt-0">
-                    <button
-                      onClick={() => handleApproveExpense(expense)}
-                      className="bg-gradient-to-tr from-emerald-500 to-emerald-400 text-white hover:from-emerald-600 hover:to-emerald-500 py-1 rounded text-[10px] font-medium flex items-center justify-center gap-1 shadow-sm shadow-emerald-200 transition-all"
-                    >
-                      <Check size={11} strokeWidth={2.5} /> Approve
+                  <div className="flex flex-col gap-1.5 mt-0">
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <button
+                        onClick={() => handleApproveExpense(expense)}
+                        className="bg-gradient-to-tr from-emerald-500 to-emerald-400 text-white hover:from-emerald-600 hover:to-emerald-500 py-1 rounded text-[10px] font-medium flex items-center justify-center gap-1 shadow-sm shadow-emerald-200 transition-all"
+                      >
+                        <Check size={11} strokeWidth={2.5} /> Approve
+                      </button>
+                      <button
+                        onClick={() => handleRejectExpense(expense)}
+                        className="bg-rose-50 text-rose-600 hover:bg-rose-100 py-1 rounded text-[10px] font-medium flex items-center justify-center gap-1 transition-all"
+                      >
+                        <XCircle size={11} strokeWidth={2} /> Reject
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <button onClick={() => handleEditExpense(expense)} className="bg-blue-50 text-blue-600 hover:bg-blue-100 py-1 rounded text-[10px] font-medium flex items-center justify-center gap-1 transition-all">
+                        <Edit2 size={11} /> Edit
+                      </button>
+                      <button onClick={() => handleDeleteExpense(expense)} className="bg-red-50 text-red-600 hover:bg-red-100 py-1 rounded text-[10px] font-medium flex items-center justify-center gap-1 transition-all">
+                        <Trash2 size={11} /> Delete
+                      </button>
+                    </div>
+                  </div>
+                )}
+                
+                {activeTab === 'history' && (
+                  <div className="grid grid-cols-3 gap-1.5 mt-0">
+                    <button onClick={() => handleRevertToPending(expense)} className="bg-orange-50 text-orange-600 hover:bg-orange-100 py-1 rounded text-[10px] font-medium flex items-center justify-center gap-1 transition-all">
+                      <RotateCcw size={11} /> Pending
                     </button>
-                    <button
-                      onClick={() => handleRejectExpense(expense)}
-                      className="bg-rose-50 text-rose-600 hover:bg-rose-100 py-1 rounded text-[10px] font-medium flex items-center justify-center gap-1 transition-all"
-                    >
-                      <XCircle size={11} strokeWidth={2} /> Reject
+                    <button onClick={() => handleEditExpense(expense)} className="bg-blue-50 text-blue-600 hover:bg-blue-100 py-1 rounded text-[10px] font-medium flex items-center justify-center gap-1 transition-all">
+                      <Edit2 size={11} /> Edit
+                    </button>
+                    <button onClick={() => handleDeleteExpense(expense)} className="bg-red-50 text-red-600 hover:bg-red-100 py-1 rounded text-[10px] font-medium flex items-center justify-center gap-1 transition-all">
+                      <Trash2 size={11} /> Delete
                     </button>
                   </div>
                 )}
@@ -763,7 +852,7 @@ export default function Expenses() {
         </div>
 
         {/* Desktop View: Table */}
-        <div className="hidden md:block overflow-x-auto overflow-y-auto flex-1 min-h-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <div onScroll={handleScroll} className="hidden md:block overflow-x-auto overflow-y-auto flex-1 min-h-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           <div className="bg-red-600 border-b-2 border-red-700 p-2 text-center shadow-sm sticky top-0 z-20">
             <h1 className="text-white font-bold text-lg md:text-2xl tracking-wider uppercase">JAI BHOLE GROUPS OF COMPANIES</h1>
           </div>
@@ -782,12 +871,12 @@ export default function Expenses() {
                 <th className="px-2 py-2 text-center text-xs font-bold text-red-900 uppercase border border-red-200">PAID TO</th>
                 <th className="px-2 py-2 text-center text-xs font-bold text-red-900 uppercase border border-red-200">APPROVED BY</th>
                 <th className="px-2 py-2 text-center text-xs font-bold text-red-900 uppercase border border-red-200">REMARKS</th>
-                <th className="px-2 py-2 text-center text-xs font-bold text-red-900 uppercase border border-red-200">{activeTab === 'pending' ? 'ACTION' : 'STATUS'}</th>
+                <th className="px-2 py-2 text-center text-xs font-bold text-red-900 uppercase border border-red-200">ACTION / STATUS</th>
               </tr>
             </thead>
             <tbody>
-              {paginatedExpenses.map((expense, idx) => {
-                const sNo = ((currentPage - 1) * itemsPerPage) + idx + 1;
+              {displayedExpenses.map((expense, idx) => {
+                const sNo = idx + 1;
                 const particulars = expense.particulars || 'CASH';
 
                 return (
@@ -805,24 +894,39 @@ export default function Expenses() {
                     <td className="px-2 py-1.5 text-left text-xs border border-gray-300 truncate max-w-[150px] uppercase">{expense.remarks || '-'}</td>
                     <td className="px-2 py-1.5 text-center text-xs border border-gray-300">
                       {activeTab === 'pending' ? (
-                        <div className="flex justify-center gap-2">
-                          <button
-                            onClick={() => handleApproveExpense(expense)}
-                            className="text-green-600 hover:text-green-800 flex items-center gap-1 font-medium"
-                          >
-                            <Check size={16} />
-                          </button>
-                          <button
-                            onClick={() => handleRejectExpense(expense)}
-                            className="text-red-600 hover:text-red-800 flex items-center gap-1 font-medium"
-                          >
-                            <XCircle size={16} />
-                          </button>
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="flex justify-center gap-2">
+                            <button
+                              onClick={() => handleApproveExpense(expense)}
+                              className="text-green-600 hover:text-green-800 flex items-center gap-1 font-medium"
+                              title="Approve"
+                            >
+                              <Check size={16} />
+                            </button>
+                            <button
+                              onClick={() => handleRejectExpense(expense)}
+                              className="text-red-600 hover:text-red-800 flex items-center gap-1 font-medium"
+                              title="Reject"
+                            >
+                              <XCircle size={16} />
+                            </button>
+                          </div>
+                          <div className="flex justify-center gap-2">
+                            <button onClick={() => handleEditExpense(expense)} title="Edit" className="text-blue-500 hover:text-blue-700"><Edit2 size={14} /></button>
+                            <button onClick={() => handleDeleteExpense(expense)} title="Delete" className="text-red-500 hover:text-red-700"><Trash2 size={14} /></button>
+                          </div>
                         </div>
                       ) : (
-                        <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${expense.status === 'APPROVED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                          {expense.status}
-                        </span>
+                        <div className="flex flex-col gap-1 items-center">
+                          <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${expense.status === 'APPROVED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                            {expense.status}
+                          </span>
+                          <div className="flex gap-2 mt-1">
+                            <button onClick={() => handleRevertToPending(expense)} title="Revert to Pending" className="text-orange-500 hover:text-orange-700"><RotateCcw size={14} /></button>
+                            <button onClick={() => handleEditExpense(expense)} title="Edit" className="text-blue-500 hover:text-blue-700"><Edit2 size={14} /></button>
+                            <button onClick={() => handleDeleteExpense(expense)} title="Delete" className="text-red-500 hover:text-red-700"><Trash2 size={14} /></button>
+                          </div>
+                        </div>
                       )}
                     </td>
                   </tr>
@@ -838,70 +942,31 @@ export default function Expenses() {
           )}
         </div>
 
-        {/* Footer & Pagination Controls */}
+        {/* Footer & Totals */}
         <div className="px-2 md:px-4 py-2 border-t border-gray-200 bg-gray-50 flex flex-col lg:flex-row items-center justify-between gap-2 lg:gap-4 rounded-b-lg pb-2 md:pb-3">
 
           {/* Mobile Totals Row */}
-          {paginatedExpenses.length > 0 && (
+          {displayedExpenses.length > 0 && (
             <div className="flex w-full lg:w-auto justify-between lg:hidden items-center text-xs border-b border-gray-200 pb-2 mb-1 px-1">
-              <div className="flex flex-col"><span className="text-gray-500 text-[9px] uppercase font-medium tracking-wider mb-0.5">Page Total</span> <span className="font-medium text-rose-600 text-[13px]">{formatCurrency(pageTotalAmount)}</span></div>
+              <div className="flex flex-col"><span className="text-gray-500 text-[9px] uppercase font-medium tracking-wider mb-0.5">Loaded Total</span> <span className="font-medium text-rose-600 text-[13px]">{formatCurrency(pageTotalAmount)}</span></div>
               <div className="flex flex-col text-right"><span className="text-gray-500 text-[9px] uppercase font-medium tracking-wider mb-0.5">Total Filtered</span> <span className="font-medium text-gray-900 text-[13px]">{formatCurrency(totalAmount)}</span></div>
             </div>
           )}
 
           {/* Desktop Totals (Hidden on Mobile) */}
-          {paginatedExpenses.length > 0 && (
-            <div className="hidden lg:flex items-center gap-6 text-sm order-2">
-              <div><span className="text-gray-600">Page Total:</span> <span className="font-semibold text-rose-600 ml-1">{formatCurrency(pageTotalAmount)}</span></div>
+          {displayedExpenses.length > 0 && (
+            <div className="hidden lg:flex items-center justify-end w-full gap-6 text-sm">
+              <div><span className="text-gray-600">Loaded Total:</span> <span className="font-semibold text-rose-600 ml-1">{formatCurrency(pageTotalAmount)}</span></div>
               <div className="w-px h-4 bg-gray-300"></div>
               <div><span className="text-gray-500 text-xs mr-1">Filtered Total:</span> <span className="font-semibold text-gray-900">{formatCurrency(totalAmount)}</span></div>
             </div>
           )}
-
-          {/* Controls Row */}
-          <div className="flex w-full lg:w-auto justify-between items-center order-3 lg:order-1 gap-2">
-            <div className="text-[10px] md:text-sm text-gray-600 flex items-center gap-1.5 md:gap-2 flex-shrink-0">
-              <select
-                value={itemsPerPage}
-                onChange={(e) => {
-                  setItemsPerPage(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
-                className="border border-gray-300 rounded-md px-1 flex-shrink-0 md:px-2 py-1 focus:outline-none focus:border-indigo-500 bg-white font-medium text-[10px] md:text-sm shadow-sm"
-              >
-                <option value={10}>10</option>
-                <option value={15}>15</option>
-                <option value={20}>20</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-              </select>
-              <span className="text-[10px] md:text-sm text-gray-500 whitespace-nowrap ml-1 font-medium">
-                {filteredExpenses.length > 0 ? ((currentPage - 1) * itemsPerPage) + 1 : 0}-{Math.min(currentPage * itemsPerPage, sortedExpenses.length)} of {sortedExpenses.length}
-              </span>
+          
+          {displayedExpenses.length > 0 && (
+            <div className="text-[10px] md:text-sm text-gray-500 w-full lg:w-auto text-center lg:text-left mt-1 lg:mt-0 font-medium">
+              Showing {displayedExpenses.length} of {sortedExpenses.length}
             </div>
-
-            <div className="flex gap-1.5 md:gap-2 justify-end items-center flex-shrink-0 text-gray-700">
-              <button
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="p-1 md:px-2 md:py-1 border border-gray-300 rounded-md bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition shadow-sm flex items-center justify-center text-indigo-600"
-                title="Previous Page"
-              >
-                <ChevronLeft size={16} strokeWidth={2.5} />
-              </button>
-              <div className="flex items-center text-[10px] md:text-sm font-medium whitespace-nowrap">
-                Pg {currentPage}/{totalPages || 1}
-              </div>
-              <button
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages || totalPages === 0}
-                className="p-1 md:px-2 md:py-1 border border-gray-300 rounded-md bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 transition shadow-sm flex items-center justify-center text-indigo-600"
-                title="Next Page"
-              >
-                <ChevronRight size={16} strokeWidth={2.5} />
-              </button>
-            </div>
-          </div>
+          )}
         </div>
       </div>
 
