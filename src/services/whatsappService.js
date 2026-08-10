@@ -81,7 +81,7 @@ const getUserPhoneNumber = async (username) => {
  */
 const triggerWhatsAppToast = () => {
     const event = new CustomEvent("SHOW_WHATSAPP_TOAST", {
-        detail: { message: "WhatsApp feature will be enabled later", type: "whatsapp" }
+        detail: { message: "WhatsApp notification sent successfully", type: "whatsapp" }
     });
     window.dispatchEvent(event);
 };
@@ -154,40 +154,55 @@ const sendWhatsAppTemplate = async (phoneNumber, templateName, parameters = [], 
         const formattedPhone = formatPhoneNumber(phoneNumber);
         if (!formattedPhone) return false;
 
-        const payload = {
-            messaging_product: "whatsapp",
-            to: formattedPhone,
-            type: "template",
-            template: {
-                name: templateName,
-                language: {
-                    code: languageCode
+        const attemptSend = async (langCode) => {
+            const payload = {
+                messaging_product: "whatsapp",
+                to: formattedPhone,
+                type: "template",
+                template: {
+                    name: templateName,
+                    language: {
+                        code: langCode
+                    },
+                    components: parameters.length > 0 ? [
+                        {
+                            type: "body",
+                            parameters: parameters.map(param => ({
+                                type: "text",
+                                text: String(param)
+                            }))
+                        }
+                    ] : []
+                }
+            };
+
+            const response = await fetch(`${WHATSAPP_API_URL}/${WHATSAPP_PHONE_NUMBER_ID}/messages`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${WHATSAPP_ACCESS_TOKEN}`,
+                    'Content-Type': 'application/json',
                 },
-                components: parameters.length > 0 ? [
-                    {
-                        type: "body",
-                        parameters: parameters.map(param => ({
-                            type: "text",
-                            text: String(param)
-                        }))
-                    }
-                ] : []
-            }
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+            return { ok: response.ok, data };
         };
 
-        const response = await fetch(`${WHATSAPP_API_URL}/${WHATSAPP_PHONE_NUMBER_ID}/messages`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${WHATSAPP_ACCESS_TOKEN}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(payload)
-        });
-
-        const data = await response.json();
+        let result = await attemptSend(languageCode);
         
-        if (!response.ok) {
-            console.error('WhatsApp API Error:', data);
+        // If template doesn't exist in translation (error code 132001), try other common English variants
+        if (!result.ok && result.data?.error?.code === 132001) {
+            const fallbackLanguages = ['en', 'en_US', 'en_GB'].filter(l => l !== languageCode);
+            for (const fallbackLang of fallbackLanguages) {
+                console.log(`Retrying template ${templateName} with language ${fallbackLang}...`);
+                result = await attemptSend(fallbackLang);
+                if (result.ok) break;
+            }
+        }
+
+        if (!result.ok) {
+            console.error('WhatsApp API Error:', result.data);
             return false;
         }
 
@@ -861,13 +876,18 @@ export const sendHelpSlipReplyNotification = async (details) => {
             return false;
         }
 
+        // Truncate long texts to avoid WhatsApp API limits (1024 chars)
+        const truncate = (str, len = 1000) => str && str.length > len ? str.substring(0, len) + "..." : str;
+        const safeChallenge = truncate(challenge);
+        const safeAdminReply = truncate(adminReply);
+
         // Attempt sending Meta Template: help_slip_reply
         // Variables: {{1}} recipientName, {{2}} challenge, {{3}} adminReply
         const sentTemplate = await sendWhatsAppTemplate(
             phone,
             'help_slip_reply',
-            [recipientName, challenge, adminReply],
-            'en'
+            [recipientName, safeChallenge, safeAdminReply],
+            'en_US'
         );
 
         if (!sentTemplate) {
@@ -932,14 +952,17 @@ export const sendNewHelpSlipNotification = async (details) => {
         if (solution3?.trim()) solutionsList.push(`Solution 3 - ${solution3.trim()}`);
 
         const combinedSolutions = solutionsList.join(' | ') || 'N/A';
+        const truncate = (str, len = 1000) => str && str.length > len ? str.substring(0, len) + "..." : str;
+        const safeChallenge = truncate(challenge);
+        const safeCombinedSolutions = truncate(combinedSolutions);
 
         // Loop through all superadmin phone numbers and send notification
         for (const adminNum of superAdminNumbers) {
             const sentTemplate = await sendWhatsAppTemplate(
                 adminNum,
-                'new_help_slip_submitted',
-                [userName, department || 'N/A', challenge, combinedSolutions],
-                'en'
+                'new_help_slip_submit',
+                [userName, department || 'N/A', safeChallenge, safeCombinedSolutions],
+                'en_US'
             );
 
             if (!sentTemplate) {
