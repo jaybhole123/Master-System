@@ -144,7 +144,7 @@ export const sendWhatsAppMessage = async (phoneNumber, message) => {
  * @param {string} languageCode - Language code (default: 'en')
  * @returns {Promise<boolean>} - Success status
  */
-const sendWhatsAppTemplate = async (phoneNumber, templateName, parameters = [], languageCode = 'en') => {
+const sendWhatsAppTemplate = async (phoneNumber, templateName, parameters = [], languageCode = 'en', showToast = true) => {
     if (!ENABLE_WHATSAPP) {
         console.log(`📱 [WhatsApp Disabled] Template: ${templateName}, To: +${phoneNumber}, Params:`, parameters);
         return true;
@@ -206,7 +206,7 @@ const sendWhatsAppTemplate = async (phoneNumber, templateName, parameters = [], 
             return false;
         }
 
-        triggerWhatsAppToast();
+        if (showToast) triggerWhatsAppToast();
         return true;
     } catch (error) {
         console.error('Error sending WhatsApp template:', error);
@@ -887,7 +887,7 @@ export const sendHelpSlipReplyNotification = async (details) => {
             phone,
             'help_slip_reply',
             [recipientName, safeChallenge, safeAdminReply],
-            'en_US'
+            'en'
         );
 
         if (!sentTemplate) {
@@ -957,13 +957,16 @@ export const sendNewHelpSlipNotification = async (details) => {
         const safeCombinedSolutions = truncate(combinedSolutions);
 
         // Loop through all superadmin phone numbers and send notification
+        let isFirst = true;
         for (const adminNum of superAdminNumbers) {
             const sentTemplate = await sendWhatsAppTemplate(
                 adminNum,
-                'new_help_slip_submit',
+                'new_help_slip_submitted',
                 [userName, department || 'N/A', safeChallenge, safeCombinedSolutions],
-                'en_US'
+                'en',
+                isFirst
             );
+            isFirst = false;
 
             if (!sentTemplate) {
                 // Fallback to custom direct text message
