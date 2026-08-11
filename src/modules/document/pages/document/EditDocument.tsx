@@ -108,16 +108,12 @@ const EditDocument: React.FC<EditDocumentProps> = ({ isOpen, onClose, documentId
     };
 
     const getNameLabel = (category?: string) => {
-        const c = category?.toLowerCase() || '';
-        if (c.includes('personal')) return 'Person Name';
-        if (c.includes('director')) return 'Director Name';
-        if (c.includes('company')) return 'Company Name';
         return 'Name';
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.companyName || !formData.documentType || !formData.category || !formData.documentName) {
+        if (!formData.pName || !formData.documentType || !formData.documentName) {
             toast.error("Please fill all required fields.");
             return;
         }
@@ -132,17 +128,17 @@ const EditDocument: React.FC<EditDocumentProps> = ({ isOpen, onClose, documentId
         try {
             // Check for new Master Data
             const exists = masterData?.some(m =>
-                m.companyName.toLowerCase() === formData.companyName?.toLowerCase() &&
-                m.documentType.toLowerCase() === formData.documentType?.toLowerCase() &&
-                m.category.toLowerCase() === formData.category?.toLowerCase()
+                m.companyName.toLowerCase() === formData.pName?.toLowerCase() &&
+                m.documentType.toLowerCase() === formData.documentType?.toLowerCase()
             );
 
-            if (!exists && formData.companyName && formData.documentType && formData.category) {
+            // Auto add to master list if not exists
+            if (!exists && formData.pName && formData.documentType) {
                 const newMaster: MasterItem = {
                     id: Math.random().toString(36).substr(2, 9),
-                    companyName: formData.companyName,
+                    companyName: formData.pName,
                     documentType: formData.documentType,
-                    category: formData.category
+                    category: ''
                 };
                 addMasterData(newMaster);
             }
@@ -255,7 +251,7 @@ const EditDocument: React.FC<EditDocumentProps> = ({ isOpen, onClose, documentId
                 formData.documentName,                        // 2: Document name
                 formData.documentType,                        // 3: Document Type
                 formData.category,                            // 4: Category
-                formData.companyName,                         // 5: Name
+                formData.pName,                               // 5: Name
                 formData.needsRenewal ? "Yes" : "No",         // 6: Renewal
                 formattedRenewalDate,                         // 7: Renewal Date (DD/MM/YYYY HH:MM)
                 fileUrl,                                      // 8: Image URL
@@ -266,7 +262,7 @@ const EditDocument: React.FC<EditDocumentProps> = ({ isOpen, onClose, documentId
                 formData.concernPersonName || "",             // 13: Concern Name (Col N)
                 formData.concernPersonMobile || "",           // 14: Concern Mobile (Col O)
                 formData.concernPersonDepartment || "",       // 15: Concern Dept (Col P)
-                formData.companyBranch || "",                 // 16: Company Name (Col Q)
+                formData.companyName || "",                   // 16: Company Name (Col Q)
                 formData.autoDebited || "",                   // 17: Auto Debited (Col R)
                 formData.dueDate || "",                       // 18: Due Date (Col S)
                 formData.dateOfProposal || "",                // 19: Date of Proposal (Col T)
@@ -278,6 +274,8 @@ const EditDocument: React.FC<EditDocumentProps> = ({ isOpen, onClose, documentId
                 formData.dueDateOfLastPremium || "",          // 25: Due Date of Last Premium (Col Z)
                 formData.coverageTill || "",                  // 26: Coverage Till (Col AA)
                 formData.docRemarks || "",                    // 27: Remarks (Col AB)
+                formData.maturityDate || "",                  // 28: Maturity Date (Col AC)
+                formData.mode || "",                          // 29: Mode (Col AD)
             ];
 
             // Submit Update with rowIndex if available
@@ -351,18 +349,6 @@ const EditDocument: React.FC<EditDocumentProps> = ({ isOpen, onClose, documentId
                                     />
                                 </div>
 
-                                {/* 3. Category (Searchable) */}
-                                <div>
-                                    <SearchableInput compact
-                                        label="Category"
-                                        value={formData.category || ''}
-                                        onChange={val => handleChange('category', val)}
-                                        options={categoryOptions}
-                                        placeholder="Select Category..."
-                                        required
-                                    />
-                                </div>
-
                                 {/* 4. Name (Input with Dynamic Label) */}
                                 <div>
                                     <label className="block text-xs font-semibold text-gray-600 mb-1">{getNameLabel(formData.category)} <span className="text-red-500">*</span></label>
@@ -370,8 +356,8 @@ const EditDocument: React.FC<EditDocumentProps> = ({ isOpen, onClose, documentId
                                         type="text"
                                         required
                                         className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
-                                        value={formData.companyName || ''}
-                                        onChange={e => handleChange('companyName', e.target.value)}
+                                        value={formData.pName || ''}
+                                        onChange={e => handleChange('pName', e.target.value)}
                                         placeholder={`Enter ${getNameLabel(formData.category)}...`}
                                     />
                                 </div>
@@ -536,6 +522,27 @@ const EditDocument: React.FC<EditDocumentProps> = ({ isOpen, onClose, documentId
                                 value={formData.coverageTill || ''} onChange={e => handleChange('coverageTill', e.target.value)} placeholder="e.g. 25" />
                         </div>
 
+                        {/* 20b. Maturity Date */}
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-600 mb-1">MATURITY DATE</label>
+                            <input type="date" className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
+                                value={formData.maturityDate || ''} onChange={e => handleChange('maturityDate', e.target.value)} />
+                        </div>
+
+                        {/* 20c. Mode */}
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-600 mb-1">MODE</label>
+                            <select className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
+                                value={formData.mode || ''} onChange={e => handleChange('mode', e.target.value)}>
+                                <option value="">Select...</option>
+                                <option value="Yearly">Yearly</option>
+                                <option value="Half-Yearly">Half-Yearly</option>
+                                <option value="Quarterly">Quarterly</option>
+                                <option value="Monthly">Monthly</option>
+                                <option value="Single">Single</option>
+                            </select>
+                        </div>
+
                         {/* 21. Remarks */}
                         <div className="md:col-span-2">
                             <label className="block text-xs font-semibold text-gray-600 mb-1">Remarks</label>
@@ -545,14 +552,16 @@ const EditDocument: React.FC<EditDocumentProps> = ({ isOpen, onClose, documentId
 
                         {/* 22. Auto Debited */}
                         <div className="md:col-span-2">
-                            <label className="block text-xs font-semibold text-gray-600 mb-1">Auto Debited</label>
-                            <input
-                                type="text"
+                            <label className="block text-xs font-semibold text-gray-600 mb-1">AUTO</label>
+                            <select
                                 className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
                                 value={formData.autoDebited || ''}
                                 onChange={e => handleChange('autoDebited', e.target.value)}
-                                placeholder="e.g. Yes / No"
-                            />
+                            >
+                                <option value="">Select...</option>
+                                <option value="Yes">Yes</option>
+                                <option value="No">No</option>
+                            </select>
                         </div>
                     </form>
                 </div>

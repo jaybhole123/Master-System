@@ -12,6 +12,7 @@ import {
   MessageCircle,
   Share2,
   Upload,
+  Columns
 } from "lucide-react";
 import useDataStore from "../../store/dataStore";
 import useHeaderStore from "../../store/headerStore";
@@ -37,145 +38,33 @@ const AllDocuments = () => {
   } = useDataStore();
   const { setTitle } = useHeaderStore();
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterCategory, setFilterCategory] = useState("");
+  const [filterName, setFilterName] = useState("");
+  const [visibleColumns, setVisibleColumns] = useState({
+    serialNo: true,
+    name: true,
+    policyNo: true,
+    company: true,
+    type: true,
+    sumAssured: true,
+    premium: true,
+    premiumPayingTerm: true,
+    policyTerm: true,
+    firstPremiumDate: true,
+    dueDateOfLastPremium: true,
+    coverageTill: true,
+    remarks: true,
+    renewal: true,
+    renewalDate: true,
+    bank: true,
+    auto: true,
+    file: true
+  });
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   
   // SWR: Initialize state immediately with store data to bypass initial loading screens
   const [documents, setDocuments] = useState<DocumentItem[]>(() => storeDocuments || []);
   const [isLoading, setIsLoading] = useState(() => !storeDocuments || storeDocuments.length === 0);
   const [error, setError] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleExcelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async (evt) => {
-      try {
-        const bstr = evt.target?.result;
-        const workbook = XLSX.read(bstr, { type: "binary" });
-        const wsname = workbook.SheetNames[0];
-        const ws = workbook.Sheets[wsname];
-        const data = XLSX.utils.sheet_to_json(ws);
-        
-        if (data.length === 0) {
-          toast.error("Excel file is empty");
-          return;
-        }
-
-        setIsLoading(true);
-        let successCount = 0;
-        
-        for (const rawRow of data as any[]) {
-          const row: any = {};
-          for (const key in rawRow) {
-            row[key.trim()] = rawRow[key];
-          }
-
-          const entry = {
-            name: row["Name"] || "",
-            policyNo: row["Policy No"] || "",
-            company: row["Company"] || "",
-            type: row["TYPE"] || "",
-            sumAssured: row["Sum Assured"] || "",
-            premium: row["Premium"] || "",
-            premiumPayingTerm: row["Premium Paying Term"] || "",
-            policyTerm: row["Policy Term"] || "",
-            firstPremiumDate: row["First Premium Date"] || "",
-            dueDateOfLastPremium: row["Due Date of Last Premium"] || "",
-            coverageTill: row["Coverasge Till"] || row["Coverage Till"] || "",
-            remarks: row["Remarks"] || "",
-            bank: row["BANK"] || "",
-            auto: row["AUTO"] || "",
-          };
-          
-          const now = new Date();
-          const formattedTimestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}:${String(now.getSeconds()).padStart(2, "0")}`;
-
-          const sheetData = {
-            Timestamp: formattedTimestamp,
-            "Serial No": "", 
-            "Document name": entry.policyNo || `Policy ${entry.name}`, 
-            "Document Type": entry.type,
-            Category: "Policy", 
-            Name: entry.name,
-            "Need Renewal": "No",
-            "Renewal Date": "",
-            Image: "",
-            issueDate: entry.firstPremiumDate,
-            concernPersonName: entry.bank,
-            concernPersonMobile: "",
-            concernPersonDepartment: "",
-            CompanyName: entry.company,
-            autoDebited: entry.auto,
-            dueDate: "",
-            dateOfProposal: "",
-            sumAssured: entry.sumAssured,
-            premium: entry.premium,
-            premiumPayingTerm: entry.premiumPayingTerm,
-            policyTerm: entry.policyTerm,
-            firstPremiumDate: entry.firstPremiumDate,
-            dueDateOfLastPremium: entry.dueDateOfLastPremium,
-            coverageTill: entry.coverageTill,
-            docRemarks: entry.remarks,
-          };
-
-          try {
-            const res = await submitToGoogleSheets({
-              action: "insert",
-              sheetName: "Documents",
-              data: [
-                sheetData.Timestamp,
-                sheetData["Serial No"],
-                sheetData["Document name"],
-                sheetData["Document Type"],
-                sheetData.Category,
-                sheetData.Name,
-                sheetData["Need Renewal"],
-                sheetData["Renewal Date"],
-                sheetData.Image,
-                null, null, null,
-                sheetData.issueDate,
-                sheetData.concernPersonName,
-                sheetData.concernPersonMobile,
-                sheetData.concernPersonDepartment,
-                sheetData.CompanyName,
-                sheetData.autoDebited,
-                sheetData.dueDate,
-                sheetData.dateOfProposal,
-                sheetData.sumAssured,
-                sheetData.premium,
-                sheetData.premiumPayingTerm,
-                sheetData.policyTerm,
-                sheetData.firstPremiumDate,
-                sheetData.dueDateOfLastPremium,
-                sheetData.coverageTill,
-                sheetData.docRemarks,
-              ],
-            });
-            
-            if (res && res.serialNo) {
-               successCount++;
-            }
-          } catch (e) {
-            console.error("Error inserting row", e);
-          }
-        }
-        
-        toast.success(`Successfully uploaded ${successCount} documents from Excel.`);
-        loadDocuments(true);
-      } catch (err) {
-        console.error("Excel upload error:", err);
-        toast.error("Failed to parse Excel file.");
-        setIsLoading(false);
-      } finally {
-        if (fileInputRef.current) fileInputRef.current.value = "";
-      }
-    };
-    reader.readAsBinaryString(file);
-  };
-
   useEffect(() => {
     setTitle("All Document");
     loadDocuments(false); // Background update, no spinner if data already exists
@@ -248,11 +137,11 @@ const AllDocuments = () => {
         (item.companyBranch?.toLowerCase().includes(searchTerm.toLowerCase()) || false) || // Search in companyBranch
         item.sn.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchesCategory = filterCategory
-        ? item.category === filterCategory
+      const matchesName = filterName
+        ? item.pName === filterName
         : true;
 
-      return matchesSearch && matchesCategory;
+      return matchesSearch && matchesName;
     })
     .sort((a, b) => {
       const getSnNumber = (sn: string) => {
@@ -520,7 +409,6 @@ const AllDocuments = () => {
         "Serial No",
         "Document Name",
         "Document Type",
-        "Category",
         "Name",
         "Renewal",
         "Renewal Date",
@@ -545,7 +433,6 @@ const AllDocuments = () => {
           item.sn || "-",
           item.documentName || "-",
           item.documentType || "-",
-          item.category || "-",
           item.pName || "-",
           item.needsRenewal ? "Yes" : "No",
           item.renewalDate ? formatDate(item.renewalDate) : "-",
@@ -637,20 +524,20 @@ const AllDocuments = () => {
               />
             </div>
 
-            {/* Filter Dropdown */}
+            {/* Name Filter Dropdown */}
             <div className="relative">
               <select
-                value={filterCategory}
-                onChange={(e) => setFilterCategory(e.target.value)}
+                value={filterName}
+                onChange={(e) => setFilterName(e.target.value)}
                 className="appearance-none pl-4 pr-10 py-2.5 shadow-input border-none rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 bg-gray-50 text-gray-700 text-sm font-medium cursor-pointer hover:bg-gray-100 transition-colors"
               >
-                <option value="">All Categories</option>
-                {Array.from(new Set(documents.map((d) => d.category)))
+                <option value="">All Names</option>
+                {Array.from(new Set(documents.map((d) => d.pName)))
                   .filter(Boolean)
                   .sort()
-                  .map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
+                  .map((name) => (
+                    <option key={name} value={name}>
+                      {name}
                     </option>
                   ))}
               </select>
@@ -670,6 +557,7 @@ const AllDocuments = () => {
                 </svg>
               </div>
             </div>
+
             <button
               onClick={exportToPDF}
               className="flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-4 py-2.5 rounded-lg transition-all shadow-sm whitespace-nowrap"
@@ -677,21 +565,6 @@ const AllDocuments = () => {
             >
               <FileText className="h-5 w-5 text-red-600" />
               <span className="hidden sm:inline">Export PDF</span>
-            </button>
-            <input
-              type="file"
-              accept=".xlsx, .xls, .csv"
-              ref={fileInputRef}
-              onChange={handleExcelUpload}
-              className="hidden"
-            />
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-4 py-2.5 rounded-lg transition-all shadow-sm whitespace-nowrap"
-              title="Upload Excel"
-            >
-              <Upload className="h-5 w-5 text-green-600" />
-              <span className="hidden sm:inline">Upload Excel</span>
             </button>
             <button
               onClick={() => setIsAddModalOpen(true)}
@@ -768,65 +641,98 @@ const AllDocuments = () => {
                       Share
                     </th>
 
+                    {visibleColumns.serialNo && (
                     <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
                       Serial No
                     </th>
+                    )}
+                    {visibleColumns.name && (
                     <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
                       Name
                     </th>
+                    )}
+                    {visibleColumns.policyNo && (
                     <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
                       Policy No
                     </th>
+                    )}
+                    {visibleColumns.company && (
                     <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
                       Company
                     </th>
+                    )}
+                    {visibleColumns.type && (
                     <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
                       TYPE
                     </th>
+                    )}
+                    {visibleColumns.sumAssured && (
                     <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
                       Sum Assured
                     </th>
+                    )}
+                    {visibleColumns.premium && (
                     <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
                       Premium
                     </th>
+                    )}
+                    {visibleColumns.premiumPayingTerm && (
                     <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
                       Premium Paying Term
                     </th>
+                    )}
+                    {visibleColumns.policyTerm && (
                     <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
                       Policy Term
                     </th>
+                    )}
+                    {visibleColumns.firstPremiumDate && (
                     <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
                       First Premium Date
                     </th>
+                    )}
+                    {visibleColumns.dueDateOfLastPremium && (
                     <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
                       Due Date of Last Premium
                     </th>
+                    )}
+                    {visibleColumns.coverageTill && (
                     <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
                       Coverage Till
                     </th>
+                    )}
+                    {visibleColumns.remarks && (
                     <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
                       Remarks
                     </th>
+                    )}
 
-                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
-                      Category
-                    </th>
+                    {visibleColumns.renewal && (
                     <th className="px-3 py-2 whitespace-nowrap text-center bg-gray-50">
                       Renewal
                     </th>
+                    )}
+                    {visibleColumns.renewalDate && (
                     <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
                       Renewal Date
                     </th>
+                    )}
 
+                    {visibleColumns.bank && (
                     <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
                       BANK
                     </th>
+                    )}
+                    {visibleColumns.auto && (
                     <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
                       AUTO
                     </th>
+                    )}
+                    {visibleColumns.file && (
                     <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
                       File
                     </th>
+                    )}
                     <th className="px-3 py-2 w-20 text-center bg-gray-50">
                       Action
                     </th>
@@ -956,11 +862,7 @@ const AllDocuments = () => {
                         {item.docRemarks || "-"}
                       </td>
 
-                      <td className="px-3 py-2 text-gray-600 text-center">
-                        <span className="px-2 py-1 bg-red-50 text-red-700 rounded text-xs font-medium">
-                          {item.category}
-                        </span>
-                      </td>
+                      
                       <td className="px-3 py-2 text-center">
                         {item.needsRenewal ? (
                           <span className="inline-flex items-center justify-center px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-100 rounded text-xs font-medium">
@@ -1055,9 +957,7 @@ const AllDocuments = () => {
                       Due: {formatDate(item.dueDate) || "-"}
                     </p>
                   </div>
-                  <span className="px-2 py-0.5 bg-red-50 text-red-700 rounded text-[10px] font-medium border border-red-100">
-                    {item.category}
-                  </span>
+                  
                 </div>
 
                 <div className="pt-2 border-t border-gray-50">

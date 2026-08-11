@@ -37,7 +37,10 @@ interface DocumentEntry {
   dueDateOfLastPremium: string;
   coverageTill: string;
   docRemarks: string;
+  maturityDate: string;
+  mode: string;
 }
+
 
 interface AddDocumentProps {
   isOpen: boolean;
@@ -78,6 +81,8 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
       dueDateOfLastPremium: "",
       coverageTill: "",
       docRemarks: "",
+      maturityDate: "",
+      mode: "",
     },
   ]);
 
@@ -87,6 +92,24 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
     "Company A",
     "Company B",
     "Company C",
+  ]);
+
+  const [banks] = useState([
+    "HDFC Bank",
+    "ICICI Bank",
+    "State Bank of India (SBI)",
+    "Axis Bank",
+    "Kotak Mahindra Bank",
+    "Punjab National Bank (PNB)",
+    "Bank of Baroda",
+    "IndusInd Bank",
+    "Yes Bank",
+    "Canara Bank",
+    "Union Bank of India",
+    "Bank of India",
+    "IDFC FIRST Bank",
+    "Bandhan Bank",
+    "Federal Bank",
   ]);
 
   const typeOptions = useMemo(() => {
@@ -221,6 +244,8 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
       dueDateOfLastPremium: lastEntry.dueDateOfLastPremium || "",
       coverageTill: lastEntry.coverageTill || "",
       docRemarks: lastEntry.docRemarks || "",
+      maturityDate: lastEntry.maturityDate || "",
+      mode: lastEntry.mode || "",
     };
 
     setEntries((prev) => [...prev, newEntry]);
@@ -240,10 +265,6 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
   };
 
   const getNameLabel = (category: string) => {
-    const c = category?.toLowerCase() || "";
-    if (c.includes("personal")) return "Person Name";
-    if (c.includes("director")) return "Director Name";
-    if (c.includes("company")) return "Company Name";
     return "Name";
   };
 
@@ -317,14 +338,12 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
 
       // Now process all entries concurrently
       const insertPromises = entries.map(async (entry, index) => {
-        // Only add to master data if all three fields are filled
-        if (entry.name && entry.documentType && entry.category) {
+        // Only add to master data if all two fields are filled
+        if (entry.name && entry.documentType) {
           const exists = masterData?.some(
             (m) =>
               m.companyName.toLowerCase() === entry.name.toLowerCase() &&
-              m.documentType.toLowerCase() ===
-              entry.documentType.toLowerCase() &&
-              m.category.toLowerCase() === entry.category.toLowerCase(),
+              m.documentType.toLowerCase() === entry.documentType.toLowerCase()
           );
 
           if (!exists) {
@@ -386,6 +405,8 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
           dueDateOfLastPremium: entry.dueDateOfLastPremium || "",
           coverageTill: entry.coverageTill || "",
           docRemarks: entry.docRemarks || "",
+          maturityDate: entry.maturityDate || "",
+          mode: entry.mode || "",
         };
 
         // 3. Submit Document
@@ -423,6 +444,8 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
               sheetData.dueDateOfLastPremium, // Z: Due Date of Last Premium
               sheetData.coverageTill, // AA: Coverage Till
               sheetData.docRemarks, // AB: Remarks
+              sheetData.maturityDate, // AC: Maturity Date
+              sheetData.mode, // AD: Mode
             ],
           });
 
@@ -505,6 +528,8 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
           dueDateOfLastPremium: "",
           coverageTill: "",
           docRemarks: "",
+          maturityDate: "",
+          mode: "",
         },
       ]);
     } catch (error) {
@@ -517,7 +542,7 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 bg-black/40 backdrop-blur-sm overflow-y-auto">
-      <div className="relative my-4 w-full max-w-4xl bg-white rounded-xl shadow-input">
+      <div className="relative my-4 w-full max-w-4xl bg-white rounded-xl">
         {/* Header Compact */}
         <div className="flex justify-between items-center px-5 py-3 border-b border-gray-100">
           <div>
@@ -540,7 +565,7 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
             {entries.map((entry, index) => (
               <div
                 key={entry.id}
-                className="relative p-4 bg-white rounded-lg shadow-input group"
+                className="relative p-4 bg-white rounded-lg group"
               >
                 <div className="flex justify-between items-center pb-1 mb-2 border-b border-gray-50">
                   <h3 className="text-xs font-bold tracking-wider text-gray-600 uppercase">
@@ -572,12 +597,12 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
                     <input
                       type="text"
                       required
-                      className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
+                      className="p-2 w-full text-xs font-medium rounded-lg border border-gray-200 transition-colors outline-none focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
                       value={entry.documentName}
                       onChange={(e) =>
                         handleChange(entry.id, "documentName", e.target.value)
                       }
-                      placeholder="e.g. Policy No"
+                      
                     />
                   </div>
 
@@ -591,21 +616,7 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
                         handleChange(entry.id, "documentType", val)
                       }
                       options={typeOptions}
-                      placeholder="Select Type..."
-                    />
-                  </div>
-
-                  {/* 3. Category (Searchable) - OPTIONAL */}
-                  <div>
-                    <SearchableInput
-                      compact
-                      label="Category"
-                      value={entry.category}
-                      onChange={(val) =>
-                        handleChange(entry.id, "category", val)
-                      }
-                      options={categoryOptions}
-                      placeholder="Select Category..."
+                      
                     />
                   </div>
 
@@ -619,7 +630,6 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
                         handleChange(entry.id, "name", val)
                       }
                       options={remotePersonNames}
-                      placeholder={`Enter ${getNameLabel(entry.category)}...`}
                     />
                   </div>
 
@@ -631,8 +641,8 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
 
                     <input
                       list="company-list"
-                      placeholder="Type or select company"
-                      className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
+                      
+                      className="p-2 w-full text-xs font-medium rounded-lg border border-gray-200 transition-colors outline-none focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
                       value={entry.companyName}
                       onChange={(e) =>
                         handleChange(entry.id, "companyName", e.target.value)
@@ -684,7 +694,7 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
                       <div className="flex-1">
                         <input
                           type="date"
-                          className="w-full p-1.5 text-xs shadow-input border-none rounded focus:ring-1 focus:ring-red-500 outline-none bg-white"
+                          className="w-full p-1.5 text-xs border border-gray-200 rounded focus:ring-1 focus:ring-red-500 outline-none bg-white"
                           value={entry.renewalDate || ""}
                           onChange={(e) =>
                             handleChange(
@@ -705,7 +715,7 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
                     </label>
                     <input
                       type="date"
-                      className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
+                      className="p-2 w-full text-xs font-medium rounded-lg border border-gray-200 transition-colors outline-none focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
                       value={entry.issueDate}
                       onChange={(e) =>
                         handleChange(entry.id, "issueDate", e.target.value)
@@ -719,8 +729,9 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
                       BANK
                     </label>
                     <input
+                      list="bank-list"
                       type="text"
-                      className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
+                      className="p-2 w-full text-xs font-medium rounded-lg border border-gray-200 transition-colors outline-none focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
                       value={entry.concernPersonName || ""}
                       onChange={(e) =>
                         handleChange(
@@ -729,8 +740,13 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
                           e.target.value,
                         )
                       }
-                      placeholder="Bank Name"
+                      
                     />
+                    <datalist id="bank-list">
+                      {banks.map((bank, index) => (
+                        <option key={index} value={bank} />
+                      ))}
+                    </datalist>
                   </div>
 
                   {/* 9. Concern Person Mobile - OPTIONAL */}
@@ -740,7 +756,7 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
                     </label>
                     <input
                       type="text"
-                      className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
+                      className="p-2 w-full text-xs font-medium rounded-lg border border-gray-200 transition-colors outline-none focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
                       value={entry.concernPersonMobile}
                       onChange={(e) =>
                         handleChange(
@@ -749,7 +765,7 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
                           e.target.value,
                         )
                       }
-                      placeholder="Mobile"
+                      
                     />
                   </div>
 
@@ -760,7 +776,7 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
                     </label>
                     <input
                       type="text"
-                      className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
+                      className="p-2 w-full text-xs font-medium rounded-lg border border-gray-200 transition-colors outline-none focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
                       value={entry.concernPersonDepartment}
                       onChange={(e) =>
                         handleChange(
@@ -777,70 +793,91 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
                   {/* 12. Due Date - OPTIONAL */}
                   <div>
                     <label className="block mb-1 text-xs font-semibold text-gray-600">DUE DATE</label>
-                    <input type="date" className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
+                    <input type="date" className="p-2 w-full text-xs font-medium rounded-lg border border-gray-200 transition-colors outline-none focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
                       value={entry.dueDate} onChange={(e) => handleChange(entry.id, "dueDate", e.target.value)} />
                   </div>
 
                   {/* 13. Date of Proposal - OPTIONAL */}
                   <div>
                     <label className="block mb-1 text-xs font-semibold text-gray-600">DATE OF THE PROPOSAL</label>
-                    <input type="date" className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
+                    <input type="date" className="p-2 w-full text-xs font-medium rounded-lg border border-gray-200 transition-colors outline-none focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
                       value={entry.dateOfProposal} onChange={(e) => handleChange(entry.id, "dateOfProposal", e.target.value)} />
                   </div>
 
                   {/* 14. Sum Assured - OPTIONAL */}
                   <div>
                     <label className="block mb-1 text-xs font-semibold text-gray-600">Sum Assured (₹)</label>
-                    <input type="number" placeholder="e.g. 1000000" className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
+                    <input type="number"  className="p-2 w-full text-xs font-medium rounded-lg border border-gray-200 transition-colors outline-none focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
                       value={entry.sumAssured} onChange={(e) => handleChange(entry.id, "sumAssured", e.target.value)} />
                   </div>
 
                   {/* 15. Premium - OPTIONAL */}
                   <div>
                     <label className="block mb-1 text-xs font-semibold text-gray-600">Premium (₹ / year)</label>
-                    <input type="number" placeholder="e.g. 25000" className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
+                    <input type="number"  className="p-2 w-full text-xs font-medium rounded-lg border border-gray-200 transition-colors outline-none focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
                       value={entry.premium} onChange={(e) => handleChange(entry.id, "premium", e.target.value)} />
                   </div>
 
                   {/* 16. Premium Paying Term - OPTIONAL */}
                   <div>
                     <label className="block mb-1 text-xs font-semibold text-gray-600">Premium Paying Term</label>
-                    <input type="text" placeholder="e.g. 20 years" className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
+                    <input type="text"  className="p-2 w-full text-xs font-medium rounded-lg border border-gray-200 transition-colors outline-none focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
                       value={entry.premiumPayingTerm} onChange={(e) => handleChange(entry.id, "premiumPayingTerm", e.target.value)} />
                   </div>
 
                   {/* 17. Policy Term - OPTIONAL */}
                   <div>
                     <label className="block mb-1 text-xs font-semibold text-gray-600">Policy Term</label>
-                    <input type="text" placeholder="e.g. 25 years" className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
+                    <input type="text"  className="p-2 w-full text-xs font-medium rounded-lg border border-gray-200 transition-colors outline-none focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
                       value={entry.policyTerm} onChange={(e) => handleChange(entry.id, "policyTerm", e.target.value)} />
                   </div>
 
                   {/* 18. First Premium Date - OPTIONAL */}
                   <div>
                     <label className="block mb-1 text-xs font-semibold text-gray-600">First Premium Date</label>
-                    <input type="date" className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
+                    <input type="date" className="p-2 w-full text-xs font-medium rounded-lg border border-gray-200 transition-colors outline-none focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
                       value={entry.firstPremiumDate} onChange={(e) => handleChange(entry.id, "firstPremiumDate", e.target.value)} />
                   </div>
 
                   {/* 19. Due Date of Last Premium - OPTIONAL */}
                   <div>
                     <label className="block mb-1 text-xs font-semibold text-gray-600">Due Date of Last Premium</label>
-                    <input type="date" className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
+                    <input type="date" className="p-2 w-full text-xs font-medium rounded-lg border border-gray-200 transition-colors outline-none focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
                       value={entry.dueDateOfLastPremium} onChange={(e) => handleChange(entry.id, "dueDateOfLastPremium", e.target.value)} />
                   </div>
 
                   {/* 20. Coverage Till (years) - OPTIONAL */}
                   <div>
                     <label className="block mb-1 text-xs font-semibold text-gray-600">Coverage Till (years)</label>
-                    <input type="number" placeholder="e.g. 25" className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
+                    <input type="number"  className="p-2 w-full text-xs font-medium rounded-lg border border-gray-200 transition-colors outline-none focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
                       value={entry.coverageTill} onChange={(e) => handleChange(entry.id, "coverageTill", e.target.value)} />
+                  </div>
+
+                  {/* 20b. Maturity Date - OPTIONAL */}
+                  <div>
+                    <label className="block mb-1 text-xs font-semibold text-gray-600">MATURITY DATE</label>
+                    <input type="date" className="p-2 w-full text-xs font-medium rounded-lg border border-gray-200 transition-colors outline-none focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
+                      value={entry.maturityDate} onChange={(e) => handleChange(entry.id, "maturityDate", e.target.value)} />
+                  </div>
+
+                  {/* 20c. Mode - OPTIONAL */}
+                  <div>
+                    <label className="block mb-1 text-xs font-semibold text-gray-600">MODE</label>
+                    <select className="p-2 w-full text-xs font-medium rounded-lg border border-gray-200 transition-colors outline-none focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
+                      value={entry.mode} onChange={(e) => handleChange(entry.id, "mode", e.target.value)}>
+                        <option value="">Select...</option>
+                        <option value="Yearly">Yearly</option>
+                        <option value="Half-Yearly">Half-Yearly</option>
+                        <option value="Quarterly">Quarterly</option>
+                        <option value="Monthly">Monthly</option>
+                        <option value="Single">Single</option>
+                    </select>
                   </div>
 
                   {/* 21. Remarks - OPTIONAL */}
                   <div className="md:col-span-2">
                     <label className="block mb-1 text-xs font-semibold text-gray-600">Remarks</label>
-                    <textarea rows={2} placeholder="Any additional notes..." className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white resize-none"
+                    <textarea rows={2}  className="p-2 w-full text-xs font-medium rounded-lg border border-gray-200 transition-colors outline-none focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white resize-none"
                       value={entry.docRemarks} onChange={(e) => handleChange(entry.id, "docRemarks", e.target.value)} />
                   </div>
 
@@ -849,9 +886,8 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
                     <label className="block mb-1 text-xs font-semibold text-gray-600">
                       AUTO
                     </label>
-                    <input
-                      type="text"
-                      className="p-2 w-full text-xs font-medium rounded-lg border-none transition-colors outline-none shadow-input focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
+                    <select
+                      className="p-2 w-full text-xs font-medium rounded-lg border border-gray-200 transition-colors outline-none focus:ring-1 focus:ring-red-500 bg-gray-50/50 focus:bg-white"
                       value={entry.autoDebited}
                       onChange={(e) =>
                         handleChange(
@@ -860,8 +896,11 @@ const AddDocument: React.FC<AddDocumentProps> = ({ isOpen, onClose }) => {
                           e.target.value,
                         )
                       }
-                      placeholder="e.g. Yes / No"
-                    />
+                    >
+                      <option value="">Select...</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
                   </div>
 
                   {/* 23. File Upload - OPTIONAL */}

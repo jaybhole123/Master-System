@@ -618,7 +618,7 @@ export default function InsuranceManagement() {
                   <label className="block text-xs font-semibold text-gray-600 mb-1.5">Premium (₹ / year)</label>
                   <input
                     type="number"
-                    placeholder="e.g. 25000"
+                    placeholder=""
                     value={form.premium}
                     onChange={(e) => setForm((f) => ({ ...f, premium: e.target.value }))}
                     className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500"

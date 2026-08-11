@@ -534,6 +534,9 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
         { href: "/document/renewal", label: "Document Renewal", badge: docRenewalCount, active: location.pathname === "/document/renewal", showFor: ["admin", "user", "HOD"] },
         { href: "/subscription/renewal", label: "Subscription Renewal", badge: subRenewalCount, active: location.pathname === "/subscription/renewal", showFor: ["admin", "user", "HOD"] },
         { href: "/document/shared", label: "Document Shared", badge: shareHistory?.length || null, active: location.pathname === "/document/shared", showFor: ["admin", "user", "HOD"] },
+        { href: "/document/reminder-calendar", label: "Reminder Calendar", active: location.pathname === "/document/reminder-calendar", showFor: ["admin", "user", "HOD"] },
+        { href: "/document/insurance-master-data", label: "Insurance Master Data", active: location.pathname === "/document/insurance-master-data", showFor: ["admin", "user", "HOD"] },
+        { href: "/document/vehicle-reports", label: "Vehicle Reports", active: location.pathname === "/document/vehicle-reports", showFor: ["admin", "user", "HOD"] },
         { href: "/subscription/approval", label: "Subscription Approval", badge: subApprovalCount, active: location.pathname === "/subscription/approval", showFor: ["admin", "user", "HOD"] },
         { href: "/subscription/payment", label: "Subscription Payment", badge: subPaymentCount, active: location.pathname === "/subscription/payment", showFor: ["admin", "user", "HOD"] },
       ]

@@ -17,7 +17,7 @@ const SearchableInput: React.FC<SearchableInputProps> = ({
     value,
     onChange,
     options,
-    placeholder = "Select or type...",
+    placeholder = "",
     required = false,
     compact = false
 }) => {

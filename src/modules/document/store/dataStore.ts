@@ -36,6 +36,8 @@ export interface DocumentItem {
   dueDateOfLastPremium?: string; // Column Z
   coverageTill?: string; // Column AA
   docRemarks?: string; // Column AB
+  maturityDate?: string; // Column AC
+  mode?: string; // Column AD
   // Note: companyBranch is stored in column Q
 }
 

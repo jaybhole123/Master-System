@@ -348,16 +348,18 @@ export const fetchDocumentsFromGoogleSheets = async (): Promise<DocumentItem[]> 
           concernPersonDepartment: (r?.[15] || "").toString().trim(), // Column P is index 15
           pName: (r?.[5] || "").toString().trim(), // Column F: Name (user entered name)
           autoDebited: (r?.[17] || "").toString().trim(), // Column R: Auto Debited
-          dueDate: (r?.[18] || "").toString().trim(), // Column S: Due Date
-          dateOfProposal: (r?.[19] || "").toString().trim(), // Column T: Date of Proposal
+          dueDate: getDateString(r?.[18]), // Column S: Due Date
+          dateOfProposal: getDateString(r?.[19]), // Column T: Date of Proposal
           sumAssured: (r?.[20] || "").toString().trim(), // Column U: Sum Assured
           premium: (r?.[21] || "").toString().trim(), // Column V: Premium
           premiumPayingTerm: (r?.[22] || "").toString().trim(), // Column W: Premium Paying Term
           policyTerm: (r?.[23] || "").toString().trim(), // Column X: Policy Term
-          firstPremiumDate: (r?.[24] || "").toString().trim(), // Column Y: First Premium Date
-          dueDateOfLastPremium: (r?.[25] || "").toString().trim(), // Column Z: Due Date of Last Premium
+          firstPremiumDate: getDateString(r?.[24]), // Column Y: First Premium Date
+          dueDateOfLastPremium: getDateString(r?.[25]), // Column Z: Due Date of Last Premium
           coverageTill: (r?.[26] || "").toString().trim(), // Column AA: Coverage Till
           docRemarks: (r?.[27] || "").toString().trim(), // Column AB: Remarks
+          maturityDate: getDateString(r?.[28]), // Column AC: Maturity Date
+          mode: (r?.[29] || "").toString().trim(), // Column AD: Mode
         };
       })
       .filter(

@@ -10,6 +10,9 @@ import Dashboard from "./pages/Dashboard";
 import Settings from "./pages/Settings";
 import ResourceManager from "./pages/ResourceManager";
 import DocumentRenewal from "./pages/document/Renewal";
+import ReminderCalendar from "./pages/document/ReminderCalendar";
+import InsuranceMasterData from "./pages/document/InsuranceMasterData";
+import VehicleReports from "./pages/document/VehicleReports";
 import SubscriptionRenewal from "./pages/subscription/Renewal";
 import AllDocuments from "./pages/document/AllDocuments";
 import SharedDocuments from "./pages/document/Shared";
@@ -44,7 +47,10 @@ export default function DocumentRoutes() {
           <Route index element={<Navigate to="all" replace />} />
           <Route path="all" element={<DocumentLayout><AllDocuments /></DocumentLayout>} />
           <Route path="renewal" element={<DocumentLayout><DocumentRenewal /></DocumentLayout>} />
+          <Route path="reminder-calendar" element={<DocumentLayout><ReminderCalendar /></DocumentLayout>} />
           <Route path="shared" element={<DocumentLayout><SharedDocuments /></DocumentLayout>} />
+          <Route path="insurance-master-data" element={<DocumentLayout><InsuranceMasterData /></DocumentLayout>} />
+          <Route path="vehicle-reports" element={<DocumentLayout><VehicleReports /></DocumentLayout>} />
         </Route>
 
         {/* Subscription Routes */}
