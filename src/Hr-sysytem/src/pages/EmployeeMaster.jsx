@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { Plus, X, Pencil, Trash2, Loader, GripVertical, Filter } from 'lucide-react';
 import Cropper from 'react-easy-crop';
 import getCroppedImg from '../utils/cropImage';
+import { sendBirthdayWishes } from '../../../services/whatsappService';
 
 const DocumentPreview = ({ file, url, onPreview }) => {
   if (!file && !url) return null;
@@ -24,6 +25,29 @@ const DocumentPreview = ({ file, url, onPreview }) => {
   return null;
 };
 
+const calculateDynamicExperience = (joiningDate, fallbackExperience) => {
+  if (!joiningDate) return fallbackExperience || '-';
+  const joinDate = new Date(joiningDate);
+  const today = new Date();
+  
+  if (isNaN(joinDate.getTime())) return fallbackExperience || '-';
+  
+  let months = (today.getFullYear() - joinDate.getFullYear()) * 12;
+  months -= joinDate.getMonth();
+  months += today.getMonth();
+  
+  if (months <= 0) return 'Fresher';
+  
+  const years = Math.floor(months / 12);
+  const remainingMonths = months % 12;
+  
+  let expStr = '';
+  if (years > 0) expStr += `${years} Year${years > 1 ? 's' : ''} `;
+  if (remainingMonths > 0) expStr += `${remainingMonths} Month${remainingMonths > 1 ? 's' : ''}`;
+  
+  return expStr.trim();
+};
+
 export default function EmployeeMaster() {
   // Main state
   const [employees, setEmployees] = useState([]);
@@ -31,6 +55,8 @@ export default function EmployeeMaster() {
   const [searchQuery, setSearchQuery] = useState('');
   const [designationFilter, setDesignationFilter] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('');
+  const [todaysBirthdays, setTodaysBirthdays] = useState([]);
+  const [showBirthdayModal, setShowBirthdayModal] = useState(false);
 
   const uniqueDesignations = useMemo(() => {
     const desgs = new Set();
@@ -86,24 +112,7 @@ export default function EmployeeMaster() {
     e.dataTransfer.effectAllowed = 'move';
   };
 
-  const applySavedOrder = (dataList) => {
-    try {
-      const savedOrder = localStorage.getItem('hr_employeemaster_row_order');
-      if (!savedOrder) return dataList;
-      const orderIds = JSON.parse(savedOrder);
-      const map = new Map(dataList.map(e => [e.id, e]));
-      const result = [];
-      orderIds.forEach(id => {
-        if (map.has(id)) {
-          result.push(map.get(id));
-          map.delete(id);
-        }
-      });
-      return [...result, ...Array.from(map.values())];
-    } catch (e) {
-      return dataList;
-    }
-  };
+  // Database-backed ordering logic
 
   const handleDragOver = (e, index) => {
     e.preventDefault();
@@ -114,14 +123,18 @@ export default function EmployeeMaster() {
     newEmployees.splice(index, 0, draggedItem);
     setDraggedIndex(index);
     setEmployees(newEmployees);
-    try {
-      const orderIds = newEmployees.map(emp => emp.id);
-      localStorage.setItem('hr_employeemaster_row_order', JSON.stringify(orderIds));
-    } catch (err) {}
   };
 
-  const handleDragEnd = () => {
+  const handleDragEnd = async () => {
     setDraggedIndex(null);
+    try {
+      const promises = employees.map((emp, index) => 
+        supabase.from('users').update({ display_order: index }).eq('id', emp.id)
+      );
+      await Promise.all(promises);
+    } catch (err) {
+      console.error("Error saving sequence to DB:", err);
+    }
   };
 
   // Edit state
@@ -162,7 +175,8 @@ export default function EmployeeMaster() {
     experience: '',
     pfApplicable: false,
     esicApplicable: false,
-    status: 'Active'
+    status: 'Active',
+    displayOrder: ''
   };
   
   const [formData, setFormData] = useState(initialFormData);
@@ -234,11 +248,42 @@ export default function EmployeeMaster() {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('id, employee_id, user_name, department, designation, Designation, status, created_at, number, joining_date, fathers_name, experience, photo')
+        .select('id, employee_id, user_name, department, designation, Designation, status, created_at, number, joining_date, fathers_name, experience, photo, display_order, date_of_birth')
+        .order('display_order', { ascending: true })
         .order('created_at', { ascending: false });
         
       if (error) throw error;
-      setEmployees(applySavedOrder(data || []));
+      const fetchedEmployees = data || [];
+      setEmployees(fetchedEmployees);
+
+      // Check for birthdays today
+      const today = new Date();
+      const todayMonth = today.getMonth() + 1;
+      const todayDay = today.getDate();
+      
+      const bdays = fetchedEmployees.filter(emp => {
+        if (!emp.date_of_birth) return false;
+        const dob = new Date(emp.date_of_birth);
+        return dob.getMonth() + 1 === todayMonth && dob.getDate() === todayDay;
+      });
+
+      if (bdays.length > 0) {
+        setTodaysBirthdays(bdays);
+        
+        const todayStr = today.toISOString().split('T')[0];
+        
+        if (!sessionStorage.getItem('birthdayShown')) {
+          setShowBirthdayModal(true);
+          sessionStorage.setItem('birthdayShown', 'true');
+        }
+
+        if (localStorage.getItem('birthdayMsgSentDate') !== todayStr) {
+           bdays.forEach(emp => {
+             sendBirthdayWishes({ userName: emp.user_name, number: emp.number });
+           });
+           localStorage.setItem('birthdayMsgSentDate', todayStr);
+        }
+      }
     } catch (error) {
       console.error('Error fetching employees:', error);
       toast.error('Failed to load employees');
@@ -324,7 +369,8 @@ export default function EmployeeMaster() {
         accountDocUrl: fullEmp.account_doc_url || '',
         pfApplicable: fullEmp.pf_applicable || false,
         esicApplicable: fullEmp.esic_applicable || false,
-        status: fullEmp.status || 'Active'
+        status: fullEmp.status || 'Active',
+        displayOrder: fullEmp.display_order ?? ''
       });
       setPhotoPreview(fullEmp.photo || null);
       setAadharFile(null);
@@ -486,7 +532,8 @@ export default function EmployeeMaster() {
         account_doc_url: accountDocUrl,
         pf_applicable: formData.pfApplicable,
         esic_applicable: formData.esicApplicable,
-        status: formData.status
+        status: formData.status,
+        display_order: formData.displayOrder ? parseInt(formData.displayOrder, 10) : 0
       };
 
       if (editingId) {
@@ -534,6 +581,23 @@ export default function EmployeeMaster() {
 
   return (
     <div className="fade-in">
+      {/* Birthday Banner */}
+      {todaysBirthdays.length > 0 && (
+        <div style={{ backgroundColor: '#fdf2f8', border: '1px solid #fbcfe8', borderRadius: '8px', padding: '12px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+          <div style={{ fontSize: '1.5rem', flexShrink: 0 }}>🎉🎂</div>
+          <div style={{ flex: 1, overflow: 'hidden' }}>
+            <marquee behavior="scroll" direction="left" scrollamount="6" style={{ fontWeight: 'bold', color: '#be185d', fontSize: '1.1rem', paddingTop: '4px' }}>
+              {todaysBirthdays.map((emp, idx) => (
+                <span key={emp.id} style={{ marginRight: '40px' }}>
+                  Wishing a very Happy Birthday to {emp.user_name} ({emp.designation || emp.Designation || 'Employee'})! 🎈
+                </span>
+              ))}
+            </marquee>
+          </div>
+          <div style={{ fontSize: '1.5rem', flexShrink: 0 }}>🎂🎉</div>
+        </div>
+      )}
+
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h1 className="page-title">Employees</h1>
@@ -615,6 +679,7 @@ export default function EmployeeMaster() {
             <thead>
               <tr>
                 <th style={{ width: '28px' }}></th>
+                <th>Seq. No.</th>
                 <th>Photo</th>
                 {/* <th>Emp ID</th> */}
                 <th>Name</th>
@@ -663,6 +728,9 @@ export default function EmployeeMaster() {
                   <td style={{ cursor: 'grab', color: '#9ca3af', paddingRight: '4px', textAlign: 'center' }} title="Drag to reorder">
                     <GripVertical size={16} />
                   </td>
+                  <td style={{ fontWeight: 500, color: 'var(--primary-color)', textAlign: 'center' }}>
+                    {emp.display_order ?? 0}
+                  </td>
                   <td>
                     {emp.photo ? (
                       <img src={emp.photo} alt={emp.user_name} style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
@@ -678,7 +746,7 @@ export default function EmployeeMaster() {
                   <td>{emp.department}</td>
                   <td style={{ color: 'var(--text-secondary)' }}>{emp.Designation || emp.designation || '-'}</td>
                   {/* <td>{emp.joining_date ? new Date(emp.joining_date).toLocaleDateString() : '-'}</td> */}
-                  <td>{emp.experience || '-'}</td>
+                  <td>{calculateDynamicExperience(emp.joining_date, emp.experience)}</td>
                   <td>{emp.fathers_name || '-'}</td>
                   <td>
                     <span style={{
@@ -784,6 +852,10 @@ export default function EmployeeMaster() {
                     <option value="Active">Active</option>
                     <option value="Inactive">Inactive</option>
                   </select>
+                </div>
+                <div className="form-group">
+                  <label>Display Order (Seq. No.)</label>
+                  <input type="number" name="displayOrder" value={formData.displayOrder} onChange={handleAddChange} placeholder="e.g. 1" />
                 </div>
                 <div className="form-group">
                   <label>Designation</label>
@@ -1008,6 +1080,36 @@ export default function EmployeeMaster() {
               style={{ maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain', borderRadius: '8px', boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }} 
               onClick={(e) => e.stopPropagation()}
             />
+          </div>
+        </div>
+      )}
+
+      {/* Birthday Modal */}
+      {showBirthdayModal && todaysBirthdays.length > 0 && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10001, padding: '20px' }}>
+          <div className="card fade-in" style={{ width: '100%', maxWidth: '450px', textAlign: 'center', padding: '30px' }}>
+            <h2 style={{ fontSize: '2rem', margin: '0 0 16px 0', color: '#ec4899' }}>🎉 Happy Birthday! 🎂</h2>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>Today is the birthday of the following employee(s):</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
+              {todaysBirthdays.map(emp => (
+                <div key={emp.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', backgroundColor: '#fdf2f8', borderRadius: '8px', border: '1px solid #fbcfe8' }}>
+                  {emp.photo ? (
+                    <img src={emp.photo} alt={emp.user_name} style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover' }} />
+                  ) : (
+                    <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: '#fbcfe8', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#be185d', fontSize: '20px', fontWeight: 'bold' }}>
+                      {emp.user_name ? emp.user_name.charAt(0).toUpperCase() : '?'}
+                    </div>
+                  )}
+                  <div style={{ textAlign: 'left' }}>
+                    <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: '#831843' }}>{emp.user_name}</div>
+                    <div style={{ fontSize: '0.85rem', color: '#be185d' }}>{emp.designation || emp.Designation || 'Employee'}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button onClick={() => setShowBirthdayModal(false)} style={{ padding: '10px 24px', backgroundColor: '#ec4899', color: 'white', border: 'none', borderRadius: '6px', fontSize: '1rem', cursor: 'pointer', fontWeight: 'bold' }}>
+              Close
+            </button>
           </div>
         </div>
       )}

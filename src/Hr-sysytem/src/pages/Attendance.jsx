@@ -447,6 +447,22 @@ export default function Attendance() {
     fetchAttendance();
   }, [selectedMonth, employees]);
 
+  const [dragFillState, setDragFillState] = useState({
+    isDragging: false,
+    value: '',
+    empId: null
+  });
+
+  useEffect(() => {
+    const handleGlobalMouseUp = () => {
+      if (dragFillState.isDragging) {
+        setDragFillState(prev => ({ ...prev, isDragging: false }));
+      }
+    };
+    window.addEventListener('mouseup', handleGlobalMouseUp);
+    return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
+  }, [dragFillState.isDragging]);
+
   const handleCellChange = (empId, day, value) => {
     const v = value.toUpperCase();
     // Allow any input so user sees what they type, but only valid codes will be colored and calculated
@@ -457,6 +473,20 @@ export default function Attendance() {
         [day]: v
       }
     }));
+  };
+
+  const handleCellMouseDown = (empId, value) => {
+    setDragFillState({
+      isDragging: true,
+      value: value.toUpperCase(),
+      empId
+    });
+  };
+
+  const handleCellMouseEnter = (empId, day) => {
+    if (dragFillState.isDragging) {
+      handleCellChange(empId, day, dragFillState.value);
+    }
   };
 
   const handleSave = async () => {
@@ -970,6 +1000,8 @@ Instructions:
                                 type="text"
                                 value={val}
                                 onChange={(e) => handleCellChange(emp.id, day, e.target.value)}
+                                onMouseDown={(e) => handleCellMouseDown(emp.id, e.target.value)}
+                                onMouseEnter={() => handleCellMouseEnter(emp.id, day)}
                                 disabled={isInvalidDay}
                                 style={{ 
                                   width: '100%', height: '35px', border: 'none', textAlign: 'center', 

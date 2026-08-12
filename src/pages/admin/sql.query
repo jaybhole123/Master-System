@@ -533,3 +533,7 @@ CREATE TABLE public.help_slips (
 ALTER TABLE rent_records 
 ADD COLUMN second_reminder_date date DEFAULT null,
 ADD COLUMN second_reminder_sent boolean DEFAULT false;
+
+-- ADDED FOR EMPLOYEE MASTER ROW ORDERING
+ALTER TABLE users 
+ADD COLUMN display_order integer DEFAULT 0;

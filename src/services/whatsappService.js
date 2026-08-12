@@ -1018,6 +1018,45 @@ export const sendPremiumReminderNotification = async (docDetails) => {
     }
 };
 
+/**
+ * Send Birthday wishes notification
+ */
+export const sendBirthdayWishes = async (empDetails) => {
+    try {
+        const { userName, number } = empDetails;
+        let phoneNumber = number;
+        if (!phoneNumber && userName) {
+            phoneNumber = await getUserPhoneNumber(userName);
+        }
+
+        // Send to employee
+        if (phoneNumber) {
+            await sendWhatsAppTemplate(
+                phoneNumber,
+                'happy_birthday_wish',
+                [userName || 'Employee'],
+                'en'
+            );
+        }
+
+        // Send to Admin (Superadmins)
+        const superAdminNumbers = await getSuperAdminPhoneNumbers();
+        for (const adminNum of superAdminNumbers) {
+            await sendWhatsAppTemplate(
+                adminNum,
+                'admin_birthday_alert',
+                [userName || 'an employee'],
+                'en',
+                false
+            );
+        }
+        return true;
+    } catch (error) {
+        console.error('Error sending birthday wishes:', error);
+        return false;
+    }
+};
+
 export default {
     sendUrgentTaskNotification,
     sendTaskExtensionNotification,
@@ -1039,5 +1078,6 @@ export default {
     sendCustomNotificationReminder,
     sendHelpSlipReplyNotification,
     sendNewHelpSlipNotification,
-    sendPremiumReminderNotification
+    sendPremiumReminderNotification,
+    sendBirthdayWishes
 };
