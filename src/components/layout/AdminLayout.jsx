@@ -297,7 +297,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
     const fetchCounts = async () => {
       if (!username) return;
       const role = (userRole || "").toLowerCase();
-      const isAdmin = role === "admin" || username.toLowerCase() === "admin";
+      const isAdmin = role === "admin" || role === "superadmin" || username.toLowerCase() === "admin";
       
       const endOfToday = new Date();
       endOfToday.setHours(23, 59, 59, 999);
@@ -430,6 +430,14 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       // Show for super admin OR anyone with 'admin' role
       showFor: (isSuperAdmin || userRole.toLowerCase() === "admin") ? ["admin"] : [],
       badge: pageCounts.taskManager,
+    },
+    {
+      href: "/dashboard/my-task",
+      label: "My Task",
+      icon: CheckCircle,
+      active: location.pathname === "/dashboard/my-task",
+      showFor: isSuperAdmin ? ["admin", "superadmin"] : [],
+      module: "Checklist & Delegation",
     },
     {
       href: "/dashboard/assign-task",

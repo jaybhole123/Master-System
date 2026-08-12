@@ -55,8 +55,10 @@ import { initializeStorage } from "./Petty-Cash/src/utils/storageManager"
 import DataPage from "./pages/admin/DataPage"
 import AdminDataPage from "./pages/admin/admin-data-page"
 import AccountDataPage from "./pages/delegation"
+import MyDelegation from "./pages/MyDelegation" // New
 import AdminDelegationTask from "./pages/delegation-data"
 import AllTasks from "./pages/admin/AllTasks"
+import MyTasks from "./pages/admin/MyTasks" // New
 import HolidayListPage from "./pages/admin/HolidayListPage"         // New
 import WorkingDayCalendarPage from "./pages/admin/WorkingDayCalendarPage" // New
 import AdminApprovalPage from "./pages/admin/AdminApprovalPage" // New
@@ -255,6 +257,24 @@ function App() {
                         element={
                             <ProtectedRoute>
                                 <AllTasks />
+                            </ProtectedRoute>
+                        }
+                    />
+
+                    <Route
+                        path="/dashboard/my-task"
+                        element={
+                            <ProtectedRoute allowedRoles={["superadmin"]}>
+                                <MyTasks />
+                            </ProtectedRoute>
+                        }
+                    />
+
+                    <Route
+                        path="/dashboard/my-task/delegation"
+                        element={
+                            <ProtectedRoute allowedRoles={["superadmin"]}>
+                                <MyDelegation />
                             </ProtectedRoute>
                         }
                     />

@@ -25,6 +25,169 @@ import {
 
 const months = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
 
+const MISReportView = ({ data, selectedMonth }) => {
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const getPaymentStatus = (record) => {
+    if (record.status !== 'Done') {
+      const today = new Date().toISOString().split('T')[0];
+      if (record.due_date && record.due_date < today) return 'Overdue';
+      return 'Pending';
+    }
+    const receiptDateStr = record.last_rent_received || record.date;
+    if (receiptDateStr && record.due_date) {
+      if (receiptDateStr <= record.due_date) return 'On Time';
+      return 'Late';
+    }
+    return 'On Time';
+  };
+
+  const calculateDelay = (record) => {
+    if (!record.due_date) return '-';
+    
+    const dueDate = new Date(record.due_date);
+    let compareDate;
+    
+    if (record.status === 'Done') {
+      const receiptDateStr = record.last_rent_received || record.date;
+      if (!receiptDateStr) return '-';
+      compareDate = new Date(receiptDateStr);
+    } else {
+      compareDate = new Date();
+    }
+    
+    const diffTime = compareDate - dueDate;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays <= 0) return '0 days';
+    
+    if (diffDays < 30) {
+      return `${diffDays} day${diffDays > 1 ? 's' : ''}`;
+    } else {
+      const months = Math.floor(diffDays / 30);
+      const remainingDays = diffDays % 30;
+      return `${months} month${months > 1 ? 's' : ''} ${remainingDays > 0 ? `${remainingDays} day${remainingDays > 1 ? 's' : ''}` : ''}`;
+    }
+  };
+
+  const reportData = data
+    .filter(item => selectedMonth === 'ALL' || item.month === selectedMonth)
+    .map(item => ({
+      ...item,
+      computedStatus: getPaymentStatus(item),
+      computedDelay: calculateDelay(item)
+    }));
+
+  const onTime = reportData.filter(i => i.computedStatus === 'On Time');
+  const late = reportData.filter(i => i.computedStatus === 'Late');
+  const overdue = reportData.filter(i => i.computedStatus === 'Overdue');
+  const pending = reportData.filter(i => i.computedStatus === 'Pending');
+
+  const displayData = statusFilter === 'ALL' 
+    ? reportData 
+    : reportData.filter(i => i.computedStatus === statusFilter);
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-300">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div 
+          onClick={() => setStatusFilter('ALL')}
+          className={`bg-white p-4 rounded-xl border ${statusFilter === 'ALL' ? 'border-slate-800 ring-1 ring-slate-800 shadow-md' : 'border-slate-200 shadow-sm'} cursor-pointer hover:shadow-md transition-all`}
+        >
+          <p className="text-sm text-slate-500 font-medium mb-1">Total</p>
+          <p className="text-2xl font-bold text-slate-800">{reportData.length}</p>
+        </div>
+        <div 
+          onClick={() => setStatusFilter('On Time')}
+          className={`bg-white p-4 rounded-xl border ${statusFilter === 'On Time' ? 'border-green-600 ring-1 ring-green-600 shadow-md' : 'border-slate-200 shadow-sm'} cursor-pointer hover:shadow-md transition-all`}
+        >
+          <p className="text-sm text-slate-500 font-medium mb-1">On Time</p>
+          <p className="text-2xl font-bold text-green-600">{onTime.length}</p>
+        </div>
+        <div 
+          onClick={() => setStatusFilter('Late')}
+          className={`bg-white p-4 rounded-xl border ${statusFilter === 'Late' ? 'border-orange-500 ring-1 ring-orange-500 shadow-md' : 'border-slate-200 shadow-sm'} cursor-pointer hover:shadow-md transition-all`}
+        >
+          <p className="text-sm text-slate-500 font-medium mb-1">Late</p>
+          <p className="text-2xl font-bold text-orange-600">{late.length}</p>
+        </div>
+        <div 
+          onClick={() => setStatusFilter('Overdue')}
+          className={`bg-white p-4 rounded-xl border ${statusFilter === 'Overdue' ? 'border-red-600 ring-1 ring-red-600 shadow-md' : 'border-slate-200 shadow-sm'} cursor-pointer hover:shadow-md transition-all`}
+        >
+          <p className="text-sm text-slate-500 font-medium mb-1">Overdue</p>
+          <p className="text-2xl font-bold text-red-600">{overdue.length}</p>
+        </div>
+        <div 
+          onClick={() => setStatusFilter('Pending')}
+          className={`bg-white p-4 rounded-xl border ${statusFilter === 'Pending' ? 'border-blue-600 ring-1 ring-blue-600 shadow-md' : 'border-slate-200 shadow-sm'} cursor-pointer hover:shadow-md transition-all`}
+        >
+          <p className="text-sm text-slate-500 font-medium mb-1">Pending</p>
+          <p className="text-2xl font-bold text-blue-600">{pending.length}</p>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
+          <h3 className="font-bold text-slate-800">Timeliness Report</h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200">
+                <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Name & Place</th>
+                <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Due Date</th>
+                <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Received</th>
+                <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Amount</th>
+                <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Delay</th>
+                <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200">
+              {displayData.map(record => (
+                <tr key={record.id} className="hover:bg-slate-50/50 transition-colors">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="font-medium text-slate-900">{record.name}</div>
+                    <div className="text-xs text-slate-500">{record.place}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
+                    {record.due_date || 'N/A'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
+                    {record.last_rent_received || record.date || 'N/A'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-700">
+                    {record.monthly_rent ? `₹${record.monthly_rent}` : '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-700">
+                    {record.computedDelay}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                      record.computedStatus === 'On Time' ? 'bg-green-100 text-green-800' :
+                      record.computedStatus === 'Late' ? 'bg-orange-100 text-orange-800' :
+                      record.computedStatus === 'Overdue' ? 'bg-red-100 text-red-800' :
+                      'bg-blue-100 text-blue-800'
+                    }`}>
+                      {record.computedStatus}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+              {displayData.length === 0 && (
+                <tr>
+                  <td colSpan="5" className="px-6 py-8 text-center text-sm text-slate-500">
+                    No records found for the selected filter.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const RentManagement = () => {
   const currentMonth = months[new Date().getMonth()];
 
@@ -35,6 +198,8 @@ const RentManagement = () => {
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [activeTab, setActiveTab] = useState('LIVE');
   const [activeActionId, setActiveActionId] = useState(null);
+  const [globalStatusFilter, setGlobalStatusFilter] = useState('ALL');
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [formData, setFormData] = useState({
     place: '',
     name: '',
@@ -114,11 +279,28 @@ const RentManagement = () => {
     fetchRecords();
   }, []);
 
-  const filteredData = rentData.filter(item => 
+  const getGlobalPaymentStatus = (record) => {
+    if (record.status !== 'Done') {
+      const today = new Date().toISOString().split('T')[0];
+      if (record.due_date && record.due_date < today) return 'Overdue';
+      return 'Pending';
+    }
+    const receiptDateStr = record.last_rent_received || record.date;
+    if (receiptDateStr && record.due_date) {
+      if (receiptDateStr <= record.due_date) return 'On Time';
+      return 'Late';
+    }
+    return 'On Time';
+  };
+
+  const filteredData = rentData
+    .map(item => ({ ...item, computedStatus: getGlobalPaymentStatus(item) }))
+    .filter(item => 
     (selectedMonth === 'ALL' || item.month === selectedMonth) && 
     (item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
      item.place.toLowerCase().includes(searchQuery.toLowerCase())) &&
-    (activeTab === 'HISTORY' ? item.status === 'Done' : item.status !== 'Done')
+    (activeTab === 'HISTORY' ? item.status === 'Done' : activeTab === 'LIVE' ? item.status !== 'Done' : true) &&
+    (globalStatusFilter === 'ALL' || item.computedStatus === globalStatusFilter)
   );
 
   const handleSaveRecord = async (e) => {
@@ -360,14 +542,39 @@ const RentManagement = () => {
                   >
                     <History className="h-3.5 w-3.5" /> History
                   </button>
+                  <button 
+                    onClick={() => setActiveTab('MIS')}
+                    className={`flex items-center gap-1.5 px-3 py-1 text-sm font-medium rounded-md transition-colors ${activeTab === 'MIS' ? 'bg-white text-red-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                  >
+                    <FileText className="h-3.5 w-3.5" /> MIS Report
+                  </button>
                 </div>
               </div>
               
               <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
-                <button className="flex items-center gap-2 px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">
-                  <Filter className="h-4 w-4" />
-                  Filter
-                </button>
+                <div className="relative">
+                  <button 
+                    onClick={() => setShowFilterMenu(!showFilterMenu)}
+                    className="flex items-center gap-2 px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+                  >
+                    <Filter className="h-4 w-4" />
+                    {globalStatusFilter === 'ALL' ? 'Filter' : globalStatusFilter}
+                  </button>
+                  {showFilterMenu && (
+                    <div className="absolute right-0 mt-2 w-40 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-20 animate-in fade-in zoom-in-95 duration-200">
+                      {['ALL', 'On Time', 'Late', 'Overdue', 'Pending'].map(f => (
+                        <button 
+                          key={f}
+                          onClick={() => { setGlobalStatusFilter(f); setShowFilterMenu(false); }}
+                          className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 ${globalStatusFilter === f ? 'bg-red-50 text-red-700 font-bold' : 'text-slate-700 hover:bg-slate-50'}`}
+                        >
+                          {globalStatusFilter === f && <Check className="h-4 w-4 text-red-600" />}
+                          {f === 'ALL' ? 'All Statuses' : f}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <div className="relative">
                   <button 
                     onClick={() => setShowExportMenu(!showExportMenu)}
@@ -406,6 +613,10 @@ const RentManagement = () => {
               </div>
             </div>
 
+            {activeTab === 'MIS' ? (
+              <MISReportView data={rentData} selectedMonth={selectedMonth} />
+            ) : (
+              <>
             {/* Mobile Card View */}
             <div className="md:hidden flex flex-col gap-4">
               {filteredData.length > 0 ? (
@@ -664,6 +875,8 @@ const RentManagement = () => {
                 </div>
               </div>
             </div>
+              </>
+            )}
           </div>
         </div>
       </div>

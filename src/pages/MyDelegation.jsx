@@ -63,7 +63,7 @@ function useDebounce(value, delay) {
   return debouncedValue;
 }
 
-function DelegationDataPage() {
+function MyDelegation() {
   const { showToast } = useMagicToast();
   const [uploadedImages, setUploadedImages] = useState({});
   const [accountData, setAccountData] = useState([]);
@@ -83,7 +83,7 @@ function DelegationDataPage() {
   const [userRole, setUserRole] = useState("");
   const [username, setUsername] = useState("");
   const [dateFilter, setDateFilter] = useState("all");
-  const [doerFilter, setDoerFilter] = useState("all");
+  const [doerFilter, setDoerFilter] = useState(localStorage.getItem("user-name") || "all");
   const [givenByFilter, setGivenByFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -2263,4 +2263,4 @@ function DelegationDataPage() {
   );
 }
 
-export default DelegationDataPage;
+export default MyDelegation;

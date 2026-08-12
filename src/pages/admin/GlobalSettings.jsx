@@ -19,12 +19,16 @@ const MODULES = [
       'Document Renewal', 
       'Subscription Renewal', 
       'Document Shared', 
+      'Reminder Calendar',
+      'Insurance Master Data',
+      'Vehicle Reports',
       'Subscription Approval', 
       'Subscription Payment', 
       'All Loan', 
       'Request Forecloser', 
       'Collect NOC', 
-      'Bank Guarantee'
+      'Bank Guarantee',
+      'Settings'
     ]
   },
   {

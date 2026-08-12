@@ -44,7 +44,7 @@ const isAudioUrl = (url) => {
   );
 };
 
-const AllTasks = () => {
+const MyTasks = () => {
   const location = useLocation();
   const dispatch = useDispatch();
   const { customDropdowns = [] } = useSelector((state) => state.setting || {});
@@ -68,7 +68,7 @@ const AllTasks = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [dateFilter, setDateFilter] = useState("all"); // all, today, overdue, upcoming
-  const [userFilter, setUserFilter] = useState("all");
+  const [userFilter, setUserFilter] = useState(localStorage.getItem("user-name") || "all");
   const [givenByFilter, setGivenByFilter] = useState("all");
   const [dropdownOpen, setDropdownOpen] = useState({ dateFilter: false, userFilter: false, givenByFilter: false });
   const [lightboxImage, setLightboxImage] = useState(null); // { url, name }
@@ -2293,4 +2293,4 @@ const AllTasks = () => {
   );
 };
 
-export default AllTasks;
+export default MyTasks;

@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
 import { Plus, X, Pencil, Trash2, Loader, GripVertical, Filter } from 'lucide-react';
+import Cropper from 'react-easy-crop';
+import getCroppedImg from '../utils/cropImage';
 
 const DocumentPreview = ({ file, url, onPreview }) => {
   if (!file && !url) return null;
@@ -174,16 +176,65 @@ export default function EmployeeMaster() {
   // Image Preview Modal State
   const [previewModalImg, setPreviewModalImg] = useState(null);
 
+  // Crop Modal State
+  const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [cropImageSrc, setCropImageSrc] = useState(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+
   useEffect(() => {
     fetchEmployees();
     fetchDepartments();
   }, []);
 
+  useEffect(() => {
+    if (formData.ifscCode && formData.ifscCode.length === 11) {
+      const toastId = toast.loading('Fetching Bank Details...');
+      fetch(`https://ifsc.razorpay.com/${formData.ifscCode.toUpperCase()}`)
+        .then(res => {
+          if (!res.ok) throw new Error('Invalid IFSC Code');
+          return res.json();
+        })
+        .then(data => {
+          if (data && data.BRANCH) {
+            let actualBranch = data.BRANCH;
+            if (actualBranch.toUpperCase() === 'BRANCH') {
+              if (data.ADDRESS) {
+                const parts = data.ADDRESS.split(',');
+                if (parts.length > 1) {
+                  let possibleBranch = parts[1].trim();
+                  possibleBranch = possibleBranch.replace(/ BRANCH$/i, '').trim();
+                  actualBranch = possibleBranch || data.CITY;
+                } else {
+                  actualBranch = data.CITY || data.BRANCH;
+                }
+              } else if (data.CITY) {
+                actualBranch = data.CITY;
+              }
+            }
+            setFormData(prev => ({
+              ...prev,
+              branchName: actualBranch,
+              bankName: data.BANK || prev.bankName
+            }));
+            toast.success('Bank details fetched!', { id: toastId });
+          } else {
+            toast.dismiss(toastId);
+          }
+        })
+        .catch(err => {
+          console.log('Error fetching IFSC:', err);
+          toast.error('Invalid IFSC Code.', { id: toastId });
+        });
+    }
+  }, [formData.ifscCode]);
+
   const fetchEmployees = async () => {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('id, employee_id, user_name, department, designation, Designation, status, created_at, number, joining_date, fathers_name, experience')
+        .select('id, employee_id, user_name, department, designation, Designation, status, created_at, number, joining_date, fathers_name, experience, photo')
         .order('created_at', { ascending: false });
         
       if (error) throw error;
@@ -292,20 +343,85 @@ export default function EmployeeMaster() {
     if (['photoFile', 'aadharFile', 'panFile', 'dlFile', 'accountFile'].includes(e.target.name)) {
       const file = e.target.files[0];
       const preview = file ? URL.createObjectURL(file) : null;
-      if (e.target.name === 'photoFile') { setPhotoFile(file); setPhotoPreview(preview); }
-      if (e.target.name === 'aadharFile') setAadharFile(file);
+      if (e.target.name === 'photoFile') { 
+        if (file) {
+          setCropImageSrc(preview);
+          setCropModalOpen(true);
+        }
+      }
+      else if (e.target.name === 'aadharFile') setAadharFile(file);
       if (e.target.name === 'panFile') setPanFile(file);
       if (e.target.name === 'dlFile') setDlFile(file);
       if (e.target.name === 'accountFile') setAccountFile(file);
     } else if (e.target.type === 'checkbox') {
       setFormData({...formData, [e.target.name]: e.target.checked});
     } else {
-      setFormData({...formData, [e.target.name]: e.target.value});
+      let newFormData = { ...formData, [e.target.name]: e.target.value };
+      
+      if (e.target.name === 'joiningDate' && e.target.value) {
+        const joinDate = new Date(e.target.value);
+        const today = new Date();
+        if (joinDate <= today) {
+          let diffMonths = (today.getFullYear() - joinDate.getFullYear()) * 12;
+          diffMonths -= joinDate.getMonth();
+          diffMonths += today.getMonth();
+          
+          if (today.getDate() < joinDate.getDate()) {
+            diffMonths--;
+          }
+          
+          if (diffMonths <= 0) {
+            newFormData.experience = 'Fresher';
+          } else {
+            const years = Math.floor(diffMonths / 12);
+            const months = diffMonths % 12;
+            let expStr = '';
+            if (years > 0) expStr += `${years} Year${years > 1 ? 's' : ''} `;
+            if (months > 0) expStr += `${months} Month${months > 1 ? 's' : ''}`;
+            newFormData.experience = expStr.trim();
+          }
+        }
+      }
+      
+      setFormData(newFormData);
+    }
+  };
+
+  const onCropComplete = (croppedArea, croppedAreaPixels) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  };
+
+  const showCroppedImage = async () => {
+    try {
+      const croppedImageFile = await getCroppedImg(
+        cropImageSrc,
+        croppedAreaPixels
+      );
+      const preview = URL.createObjectURL(croppedImageFile);
+      setPhotoFile(new File([croppedImageFile], "profile.jpg", { type: "image/jpeg" }));
+      setPhotoPreview(preview);
+      setCropModalOpen(false);
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to crop image');
     }
   };
 
   const handleAddSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validations
+    const aadharLen = formData.aadharNo ? formData.aadharNo.replace(/\s/g, '').length : 0;
+    if (aadharLen > 0 && aadharLen < 12) {
+      toast.error('Aadhar Number must be at least 12 characters');
+      return;
+    }
+    const panLen = formData.panNo ? formData.panNo.replace(/\s/g, '').length : 0;
+    if (panLen > 0 && panLen < 10) {
+      toast.error('PAN Card Number must be at least 10 characters');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -494,6 +610,7 @@ export default function EmployeeMaster() {
             <thead>
               <tr>
                 <th style={{ width: '28px' }}></th>
+                <th>Photo</th>
                 <th>Emp ID</th>
                 <th>Name</th>
                 <th>Phone Number</th>
@@ -541,6 +658,15 @@ export default function EmployeeMaster() {
                   <td style={{ cursor: 'grab', color: '#9ca3af', paddingRight: '4px', textAlign: 'center' }} title="Drag to reorder">
                     <GripVertical size={16} />
                   </td>
+                  <td>
+                    {emp.photo ? (
+                      <img src={emp.photo} alt={emp.user_name} style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
+                    ) : (
+                      <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'var(--bg-color, #f3f4f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: '14px', fontWeight: 'bold' }}>
+                        {emp.user_name ? emp.user_name.charAt(0).toUpperCase() : '?'}
+                      </div>
+                    )}
+                  </td>
                   <td>{emp.employee_id}</td>
                   <td style={{ fontWeight: 500 }}>{emp.user_name}</td>
                   <td>{emp.number || '-'}</td>
@@ -573,7 +699,7 @@ export default function EmployeeMaster() {
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan="9" style={{ textAlign: 'center', padding: '24px', color: 'var(--text-secondary)' }}>
+                  <td colSpan="10" style={{ textAlign: 'center', padding: '24px', color: 'var(--text-secondary)' }}>
                     {loading ? (
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                         <Loader size={20} className="spin" /> Loading employees...
@@ -604,6 +730,28 @@ export default function EmployeeMaster() {
             <form onSubmit={handleAddSubmit}>
               <h3 style={{ marginBottom: '16px', paddingBottom: '8px', color: 'var(--primary-color)' }}>Personal & Professional Details</h3>
               <div className="form-grid">
+                <div className="form-group" style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+                  <label>Photo</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    {photoPreview ? (
+                      <div style={{ width: '60px', height: '60px', borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--primary-color)' }}>
+                        <img src={photoPreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      </div>
+                    ) : (
+                      <div style={{ width: '60px', height: '60px', borderRadius: '50%', backgroundColor: 'var(--bg-color, #f3f4f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px dashed var(--border-color, #d1d5db)' }}>
+                        <span style={{ fontSize: '24px' }}>👤</span>
+                      </div>
+                    )}
+                    
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <label style={{ cursor: 'pointer', backgroundColor: 'var(--primary-color)', color: 'white', padding: '8px 16px', borderRadius: '6px', fontSize: '0.9rem', fontWeight: '500', display: 'inline-block', textAlign: 'center', width: 'fit-content' }}>
+                        Upload Image
+                        <input type="file" name="photoFile" accept="image/*" onChange={handleAddChange} style={{ display: 'none' }} />
+                      </label>
+                      {photoFile && <small style={{ color: 'var(--success)' }}>Selected: {photoFile.name}</small>}
+                    </div>
+                  </div>
+                </div>
                 <div className="form-group">
                   <label>Name</label>
                   <input type="text" name="name" value={formData.name} onChange={handleAddChange} required placeholder="name" />
@@ -696,28 +844,7 @@ export default function EmployeeMaster() {
                     <option value="AB-">AB-</option>
                   </select>
                 </div>
-                <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <label>Photo</label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    {photoPreview ? (
-                      <div style={{ width: '60px', height: '60px', borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--primary-color)' }}>
-                        <img src={photoPreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      </div>
-                    ) : (
-                      <div style={{ width: '60px', height: '60px', borderRadius: '50%', backgroundColor: 'var(--bg-color, #f3f4f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px dashed var(--border-color, #d1d5db)' }}>
-                        <span style={{ fontSize: '24px' }}>👤</span>
-                      </div>
-                    )}
-                    
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <label style={{ cursor: 'pointer', backgroundColor: 'var(--primary-color)', color: 'white', padding: '8px 16px', borderRadius: '6px', fontSize: '0.9rem', fontWeight: '500', display: 'inline-block', textAlign: 'center', width: 'fit-content' }}>
-                        Upload Image
-                        <input type="file" name="photoFile" accept="image/*" onChange={handleAddChange} style={{ display: 'none' }} />
-                      </label>
-                      {photoFile && <small style={{ color: 'var(--success)' }}>Selected: {photoFile.name}</small>}
-                    </div>
-                  </div>
-                </div>
+
                 <div className="form-group">
                   <label>Health Issues</label>
                   <input type="text" name="healthIssues" value={formData.healthIssues} onChange={handleAddChange} placeholder="Any health issues?" />
@@ -734,6 +861,9 @@ export default function EmployeeMaster() {
                   <label>Aadhar Document (No.)</label>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <input type="text" name="aadharNo" value={formData.aadharNo} onChange={handleAddChange} required placeholder="1234 5678 9012" />
+                    {formData.aadharNo && formData.aadharNo.replace(/\s/g, '').length < 12 && (
+                      <small style={{ color: '#ef4444' }}>Aadhar Number must be at least 12 characters</small>
+                    )}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <label style={{ cursor: 'pointer', backgroundColor: 'var(--bg-main)', border: '1px solid var(--border-color)', padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                         Upload Aadhar
@@ -747,6 +877,9 @@ export default function EmployeeMaster() {
                   <label>PAN Card No.</label>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <input type="text" name="panNo" value={formData.panNo} onChange={handleAddChange} required placeholder="ABCDE1234F" style={{ textTransform: 'uppercase' }} />
+                    {formData.panNo && formData.panNo.replace(/\s/g, '').length < 10 && (
+                      <small style={{ color: '#ef4444' }}>PAN Card Number must be at least 10 characters</small>
+                    )}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <label style={{ cursor: 'pointer', backgroundColor: 'var(--bg-main)', border: '1px solid var(--border-color)', padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                         Upload PAN
@@ -809,6 +942,45 @@ export default function EmployeeMaster() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Crop Modal */}
+      {cropModalOpen && cropImageSrc && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1001, padding: '20px' }}>
+          <div className="card fade-in" style={{ width: '100%', maxWidth: '600px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ margin: 0, fontSize: '1.2rem' }}>Crop Photo</h2>
+              <button onClick={() => { setCropModalOpen(false); setCropImageSrc(null); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div style={{ position: 'relative', width: '100%', height: '300px', backgroundColor: '#333', borderRadius: '8px', overflow: 'hidden' }}>
+              <Cropper
+                image={cropImageSrc}
+                crop={crop}
+                zoom={zoom}
+                aspect={1}
+                onCropChange={setCrop}
+                onCropComplete={onCropComplete}
+                onZoomChange={setZoom}
+              />
+            </div>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px' }}>
+              <input 
+                type="range" 
+                min={1} max={3} step={0.1} 
+                value={zoom} 
+                onChange={(e) => setZoom(Number(e.target.value))}
+                style={{ flex: 1 }}
+              />
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button type="button" onClick={() => { setCropModalOpen(false); setCropImageSrc(null); }} style={{ padding: '8px 16px', border: '1px solid var(--border-color)', borderRadius: '6px', backgroundColor: 'transparent', cursor: 'pointer' }}>Cancel</button>
+                <button type="button" onClick={showCroppedImage} style={{ padding: '8px 16px', border: 'none', borderRadius: '6px', backgroundColor: 'var(--primary-color)', color: 'white', cursor: 'pointer' }}>Crop & Save</button>
+              </div>
+            </div>
           </div>
         </div>
       )}

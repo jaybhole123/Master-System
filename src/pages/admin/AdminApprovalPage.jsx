@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDispatch } from "react-redux";
 import AdminLayout from "../../components/layout/AdminLayout";
+import TaskManagementTabs from "../../components/TaskManagementTabs";
 import { fetchPendingApprovals, updateDelegationDoneStatus, rejectDelegationTask, fetchDelegationHistory } from "../../redux/api/delegationApi";
 import { fetchPendingMaintenanceApprovals, approveMaintenanceTask, rejectMaintenanceTask, fetchApprovedMaintenance } from "../../redux/api/maintenanceApi";
 import { fetchPendingRepairApprovals, approveRepairTask, rejectRepairTask, fetchApprovedRepairs } from "../../redux/api/repairApi";
@@ -115,14 +116,33 @@ export default function AdminApprovalPage() {
         const username = localStorage.getItem("user-name");
         const currentUsername = (username || "").toLowerCase();
         const currentUserRole = (userRole || "").toLowerCase();
-        const isSystemAdmin = currentUsername === "admin" || currentUserRole === "admin";
+        const isSystemAdmin = currentUsername === "admin" || currentUserRole === "admin" || currentUserRole === "superadmin";
 
-        // Filter tasks if not super admin
+        // Fetch all users to map their roles
+        const { data: allUsers } = await supabase.from("users").select("user_name, role");
+        const userRoleMap = {};
+        if (allUsers) {
+            allUsers.forEach(u => {
+                if (u.user_name) userRoleMap[u.user_name.toLowerCase()] = (u.role || "").toLowerCase();
+            });
+        }
+
+        // Filter tasks
         let filteredData = data || [];
         
+        // Superadmin logic: If task is given by superadmin, only superadmin can approve it
+        filteredData = filteredData.filter(task => {
+            const givenByName = (task.given_by || "").toLowerCase();
+            const givenByRole = userRoleMap[givenByName];
+            if (givenByRole === "superadmin") {
+                return currentUserRole === "superadmin";
+            }
+            return true;
+        });
+
         if (!isSystemAdmin) {
             // HOD and Users cannot approve their own tasks
-            filteredData = (data || []).filter(task => {
+            filteredData = filteredData.filter(task => {
                 const doerName = (task.doer_name || task.name || task.filled_by || "").toLowerCase();
                 return doerName !== currentUsername;
             });
@@ -421,6 +441,7 @@ export default function AdminApprovalPage() {
     return (
         <AdminLayout>
             <div className="space-y-4 sm:space-y-6">
+                <TaskManagementTabs activeTab="admin-approval" />
                 {/* Sticky Header and Controls */}
                 <div className="sticky top-0 z-40 bg-white/90 backdrop-blur-xl -mx-4 px-4 sm:mx-0 sm:px-0 py-3 sm:py-6 mb-3 sm:mb-6 border-b border-gray-100/50 shadow-sm transition-all duration-300">
                     <div className="max-w-7xl mx-auto space-y-3 sm:space-y-6">

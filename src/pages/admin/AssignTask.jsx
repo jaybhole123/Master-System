@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import AdminLayout from "../../components/layout/AdminLayout";
+import TaskManagementTabs from "../../components/TaskManagementTabs";
 import { ClipboardList, Wrench, Hammer, Plus, ArrowUpRight, LayoutGrid, Users } from "lucide-react";
 
 export default function AssignTask() {
@@ -87,7 +88,8 @@ export default function AssignTask() {
 
   return (
     <AdminLayout>
-      <div className="p-6 max-w-7xl mx-auto">
+      <div className="p-6 max-w-7xl mx-auto space-y-6">
+        <TaskManagementTabs activeTab="assign-task" />
 
         {/* System Header */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8 pb-6 border-b border-gray-100/80">
