@@ -301,7 +301,7 @@ export default function EmployeeMaster() {
         department: fullEmp.department || '',
         designation: fullEmp.Designation || fullEmp.designation || '',
         joiningDate: fullEmp.joining_date || '',
-        baseSalary: fullEmp.base_salary || '',
+        baseSalary: fullEmp.base_salary ? Number(fullEmp.base_salary).toLocaleString('en-IN') : '',
         address: fullEmp.address || '',
         aadharNo: fullEmp.aadhar_no || '',
         panNo: fullEmp.pan_no || '',
@@ -356,7 +356,12 @@ export default function EmployeeMaster() {
     } else if (e.target.type === 'checkbox') {
       setFormData({...formData, [e.target.name]: e.target.checked});
     } else {
-      let newFormData = { ...formData, [e.target.name]: e.target.value };
+      let value = e.target.value;
+      if (e.target.name === 'baseSalary') {
+        const rawValue = value.replace(/\D/g, '');
+        value = rawValue ? Number(rawValue).toLocaleString('en-IN') : '';
+      }
+      let newFormData = { ...formData, [e.target.name]: value };
       
       if (e.target.name === 'joiningDate' && e.target.value) {
         const joinDate = new Date(e.target.value);
@@ -458,7 +463,7 @@ export default function EmployeeMaster() {
         department: formData.department,
         designation: formData.designation,
         joining_date: formData.joiningDate,
-        base_salary: Number(formData.baseSalary) || 0,
+        base_salary: Number(String(formData.baseSalary).replace(/,/g, '')) || 0,
         address: formData.address,
         aadhar_no: formData.aadharNo,
         pan_no: formData.panNo,
@@ -611,7 +616,7 @@ export default function EmployeeMaster() {
               <tr>
                 <th style={{ width: '28px' }}></th>
                 <th>Photo</th>
-                <th>Emp ID</th>
+                {/* <th>Emp ID</th> */}
                 <th>Name</th>
                 <th>Phone Number</th>
                 <th>Department</th>
@@ -667,7 +672,7 @@ export default function EmployeeMaster() {
                       </div>
                     )}
                   </td>
-                  <td>{emp.employee_id}</td>
+                  {/* <td>{emp.employee_id}</td> */}
                   <td style={{ fontWeight: 500 }}>{emp.user_name}</td>
                   <td>{emp.number || '-'}</td>
                   <td>{emp.department}</td>
@@ -786,7 +791,7 @@ export default function EmployeeMaster() {
                 </div>
                 <div className="form-group">
                   <label>Base Salary (₹)</label>
-                  <input type="number" name="baseSalary" value={formData.baseSalary} onChange={handleAddChange} required placeholder="50000" />
+                  <input type="text" name="baseSalary" value={formData.baseSalary} onChange={handleAddChange} required placeholder="50,000" />
                 </div>
                 <div className="form-group">
                   <label>Experience</label>

@@ -528,3 +528,8 @@ CREATE TABLE public.help_slips (
   created_at timestamp with time zone DEFAULT now(),
   CONSTRAINT help_slips_pkey PRIMARY KEY (id)
 );
+
+-- ADDED FOR RENT MANAGEMENT SECOND REMINDER
+ALTER TABLE rent_records 
+ADD COLUMN second_reminder_date date DEFAULT null,
+ADD COLUMN second_reminder_sent boolean DEFAULT false;

@@ -989,6 +989,35 @@ export const sendNewHelpSlipNotification = async (details) => {
     }
 };
 
+/**
+ * Send premium due reminder notification
+ */
+export const sendPremiumReminderNotification = async (docDetails) => {
+    try {
+        const { pName, documentName, dueDateOfLastPremium, premium, concernPersonMobile } = docDetails;
+        
+        let phoneNumber = concernPersonMobile;
+        if (!phoneNumber && pName) {
+            phoneNumber = await getUserPhoneNumber(pName);
+        }
+
+        if (!phoneNumber) {
+            console.warn(`No phone number found for: ${pName || 'unknown'}`);
+            return false;
+        }
+
+        return await sendWhatsAppTemplate(
+            phoneNumber,
+            'premium_due_reminder',
+            [pName || 'User', documentName || 'Your Policy', dueDateOfLastPremium, premium || 'N/A', APP_LINK],
+            'en'
+        );
+    } catch (error) {
+        console.error('Error sending premium reminder:', error);
+        return false;
+    }
+};
+
 export default {
     sendUrgentTaskNotification,
     sendTaskExtensionNotification,
@@ -1009,5 +1038,6 @@ export default {
     sendRentPaymentReminder,
     sendCustomNotificationReminder,
     sendHelpSlipReplyNotification,
-    sendNewHelpSlipNotification
+    sendNewHelpSlipNotification,
+    sendPremiumReminderNotification
 };

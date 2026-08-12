@@ -222,7 +222,8 @@ const RentManagement = () => {
     electricity: '',
     maintenance: '',
     remarks: '',
-    broker_number: ''
+    broker_number: '',
+    second_reminder_date: ''
   });
   
   // Initialize data from Supabase
@@ -267,6 +268,30 @@ const RentManagement = () => {
 
           if (sent) {
             await supabase.from('rent_records').update({ reminder_sent: true }).eq('id', record.id);
+          }
+        }
+      }
+      
+      // -- SECOND REMINDER --
+      const pendingSecondReminders = formattedData.filter(record => 
+        record.status === 'Pending' && 
+        record.second_reminder_date === today && 
+        !record.second_reminder_sent
+      );
+
+      if (pendingSecondReminders.length > 0) {
+        for (const record of pendingSecondReminders) {
+          console.log(`Attempting to send second auto-reminder to ${record.name} for ${record.second_reminder_date}`);
+          const sent = await sendRentPaymentReminder({
+            phone: record.phone,
+            name: record.name,
+            propertyAndMonth: `${record.place} - ${record.month}`,
+            dueDate: record.second_reminder_date,
+            message: 'This is your second rent payment reminder.'
+          });
+
+          if (sent) {
+            await supabase.from('rent_records').update({ second_reminder_sent: true }).eq('id', record.id);
           }
         }
       }
@@ -328,7 +353,8 @@ const RentManagement = () => {
       electricity: formData.electricity || null,
       maintenance: formData.maintenance || null,
       remarks: formData.remarks,
-      broker_number: formData.broker_number
+      broker_number: formData.broker_number,
+      second_reminder_date: formData.second_reminder_date || null
     };
 
     if (editingId) {
@@ -395,7 +421,8 @@ const RentManagement = () => {
       electricity: record.electricity || '',
       maintenance: record.maintenance || '',
       remarks: record.remarks || '',
-      broker_number: record.broker_number || ''
+      broker_number: record.broker_number || '',
+      second_reminder_date: record.second_reminder_date || ''
     });
     setIsModalOpen(true);
   };
@@ -925,6 +952,15 @@ const RentManagement = () => {
                     required
                     value={formData.due_date}
                     onChange={(e) => setFormData({...formData, due_date: e.target.value})}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700">2nd Reminder Date</label>
+                  <input 
+                    type="date" 
+                    value={formData.second_reminder_date}
+                    onChange={(e) => setFormData({...formData, second_reminder_date: e.target.value})}
                     className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500"
                   />
                 </div>

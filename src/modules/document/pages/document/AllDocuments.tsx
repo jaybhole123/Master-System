@@ -12,8 +12,10 @@ import {
   MessageCircle,
   Share2,
   Upload,
-  Columns
+  Columns,
+  Bell
 } from "lucide-react";
+import { sendPremiumReminderNotification } from "../../../../services/whatsappService";
 import useDataStore from "../../store/dataStore";
 import useHeaderStore from "../../store/headerStore";
 import AddDocument from "./AddDocument";
@@ -107,8 +109,17 @@ const AllDocuments = () => {
 
       console.log(`Loaded ${uniqueDocs.length} documents from sheet`);
       setDocuments(uniqueDocs);
-      // Replace store data instead of appending to avoid staleness
       setStoreDocuments(uniqueDocs);
+      
+      // Auto check premium reminders once a day
+      const todayString = new Date().toDateString();
+      const lastCheck = localStorage.getItem("lastPremiumReminderSentDate");
+      if (lastCheck !== todayString && uniqueDocs.length > 0) {
+        localStorage.setItem("lastPremiumReminderSentDate", todayString);
+        // Using setTimeout to let state settle before checking
+        setTimeout(() => checkAndSendReminders(true, uniqueDocs), 2000);
+      }
+
     } catch (err: unknown) {
       console.error("Error loading documents from Google Sheets:", err);
       const errorMessage =
@@ -470,6 +481,45 @@ const AllDocuments = () => {
     }
   };
 
+  const checkAndSendReminders = async (isAuto = false, docsList = documents) => {
+    if (!isAuto) {
+      toast.loading("Checking for premium reminders...", { id: "reminders" });
+    }
+    const today = new Date();
+    let sentCount = 0;
+    
+    for (const doc of docsList) {
+      if (!doc.dueDateOfLastPremium) continue;
+      
+      try {
+        let parts = doc.dueDateOfLastPremium.split('.');
+        if (parts.length === 3) {
+           const docDate = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+           if (isNaN(docDate.getTime())) continue;
+
+           const reminderDate = new Date(docDate);
+           reminderDate.setMonth(reminderDate.getMonth() - 1);
+           
+           if (today.getDate() === reminderDate.getDate() && 
+               today.getMonth() === reminderDate.getMonth() && 
+               today.getFullYear() === reminderDate.getFullYear()) {
+               
+               const sent = await sendPremiumReminderNotification(doc);
+               if (sent) sentCount++;
+           }
+        }
+      } catch (err) {
+        console.error("Error parsing date for doc", doc.documentName);
+      }
+    }
+    
+    if (sentCount > 0) {
+       toast.success(`Auto-sent ${sentCount} premium reminders today!`, { id: "reminders" });
+    } else if (!isAuto) {
+       toast.success("No premium reminders due today.", { id: "reminders" });
+    }
+  };
+
   return (
     <>
       <div className="space-y-3">
@@ -565,6 +615,14 @@ const AllDocuments = () => {
             >
               <FileText className="h-5 w-5 text-red-600" />
               <span className="hidden sm:inline">Export PDF</span>
+            </button>
+            <button
+              onClick={() => checkAndSendReminders(false)}
+              className="flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-4 py-2.5 rounded-lg transition-all shadow-sm whitespace-nowrap"
+              title="Send Reminders"
+            >
+              <Bell className="h-5 w-5 text-green-600" />
+              <span className="hidden sm:inline">Check Reminders</span>
             </button>
             <button
               onClick={() => setIsAddModalOpen(true)}
