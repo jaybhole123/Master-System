@@ -42,7 +42,8 @@ import {
   CreditCard,
   Settings2,
   Shield,
-  HelpCircle
+  HelpCircle,
+  Users
 } from "lucide-react";
 
 // Helper: get module & page title from current pathname
@@ -64,6 +65,12 @@ const getHeaderTitle = (pathname, routes) => {
     const flat = routes.flatMap(r => r.subItems ? r.subItems : [r]);
     const match = flat.find(r => r.href && pathname === r.href);
     return { module: "Petty Cash", page: match?.label || "Petty Cash" };
+  }
+  // Check Daily Scheduler routes
+  if (pathname.startsWith("/daily-scheduler")) {
+    const flat = routes.flatMap(r => r.subItems ? r.subItems : [r]);
+    const match = flat.find(r => r.href && pathname === r.href);
+    return { module: "Daily Scheduler", page: match?.label || "Daily Scheduler" };
   }
   // Check Document & Substruction routes
   if (
@@ -146,6 +153,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       "Rent Management": path.includes("/dashboard/rent-management"),
       "HR System": path.startsWith("/hr"),
       "Petty Cash": path.startsWith("/petty-cash"),
+      "Daily Scheduler": path.startsWith("/daily-scheduler"),
       "Checklist & Delegation": path.startsWith("/dashboard") && !path.includes("/dashboard/profile") && !path.includes("/dashboard/global-settings") && !path.includes("/dashboard/rent-management") && !path.includes("/dashboard/help-slip"),
       "Help Slip": path.includes("/dashboard/help-slip"),
       "Document & Substruction": path.includes("/document") || path.includes("/doc-dashboard") || path.includes("/resource-manager") || path.includes("/loan") || path.includes("/subscription") || path.includes("/bg") || path === "/",
@@ -729,6 +737,40 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       showFor: ["admin", "user", "HOD"],
       module: "Help Slip",
     },
+    // Global Settings moved to after Daily Scheduler
+    // --- Daily Scheduler Module Routes ---
+    {
+      href: "/daily-scheduler/dashboard",
+      label: "Scheduler Dashboard",
+      icon: LayoutDashboard,
+      active: location.pathname === "/daily-scheduler/dashboard" || location.pathname === "/daily-scheduler",
+      showFor: ["admin", "user", "HOD"],
+      module: "Daily Scheduler",
+    },
+    {
+      href: "/daily-scheduler/waiting-list",
+      label: "Waiting List",
+      icon: List,
+      active: location.pathname === "/daily-scheduler/waiting-list",
+      showFor: ["admin", "user", "HOD"],
+      module: "Daily Scheduler",
+    },
+    {
+      href: "/daily-scheduler/someday",
+      label: "Someday Tasks",
+      icon: CalendarIcon,
+      active: location.pathname === "/daily-scheduler/someday",
+      showFor: ["admin", "user", "HOD"],
+      module: "Daily Scheduler",
+    },
+    {
+      href: "/daily-scheduler/reports",
+      label: "Reports",
+      icon: FileText,
+      active: location.pathname === "/daily-scheduler/reports",
+      showFor: ["admin", "user", "HOD"],
+      module: "Daily Scheduler",
+    },
     {
       href: "/dashboard/global-settings",
       label: "Global Settings",
@@ -736,7 +778,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname.includes("/dashboard/global-settings"),
       showFor: ["admin"],
       module: "Global Settings",
-    }
+    },
   ];
 
   const getAccessibleDepartments = () => {
@@ -877,6 +919,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                       {moduleName === "Document & Substruction" && <Database className="h-5 w-5 shrink-0" />}
                       {moduleName === "HR System" && <UserRound className="h-5 w-5 shrink-0" />}
                       {moduleName === "Petty Cash" && <Banknote className="h-5 w-5 shrink-0" />}
+                      {moduleName === "Daily Scheduler" && <CalendarCheck className="h-5 w-5 shrink-0" />}
                       <span className="text-left leading-tight">{moduleName}</span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -1118,6 +1161,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                           {moduleName === "Document & Substruction" && <Database className="h-5 w-5 shrink-0" />}
                           {moduleName === "HR System" && <UserRound className="h-5 w-5 shrink-0" />}
                           {moduleName === "Petty Cash" && <Banknote className="h-5 w-5 shrink-0" />}
+                          {moduleName === "Daily Scheduler" && <CalendarCheck className="h-5 w-5 shrink-0" />}
                           <span className="text-left leading-tight truncate">{moduleName}</span>
                         </div>
                         {openModules[moduleName] ? (

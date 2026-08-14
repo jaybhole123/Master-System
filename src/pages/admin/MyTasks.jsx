@@ -50,7 +50,7 @@ const MyTasks = () => {
   const { customDropdowns = [] } = useSelector((state) => state.setting || {});
   const { showToast } = useMagicToast();
   // Active tab state
-  const [activeTab, setActiveTab] = useState(location.state?.activeTab || "checklist"); // checklist, maintenance, repair, ea
+  const [activeTab, setActiveTab] = useState(location.state?.activeTab || "my-task"); // checklist, maintenance, repair, ea, my-task
   const [showHistory, setShowHistory] = useState(false);
 
   // Data states

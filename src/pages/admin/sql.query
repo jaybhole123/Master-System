@@ -268,6 +268,7 @@ CREATE TABLE public.users (
   dl_doc_url text,
   account_doc_url text,
   last_reminder_date date,
+  display_order integer DEFAULT 0,
   CONSTRAINT users_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.working_day_calender (
@@ -317,6 +318,8 @@ CREATE TABLE public.rent_records (
   maintenance numeric,
   remarks text,
   broker_number character varying,
+  second_reminder_date date,
+  second_reminder_sent boolean DEFAULT false,
   CONSTRAINT rent_records_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.monthly_attendance (
@@ -528,12 +531,32 @@ CREATE TABLE public.help_slips (
   created_at timestamp with time zone DEFAULT now(),
   CONSTRAINT help_slips_pkey PRIMARY KEY (id)
 );
+CREATE TABLE public.tasks (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  description text,
+  date date NOT NULL,
+  start_time time without time zone,
+  end_time time without time zone,
+  status text DEFAULT 'Pending'::text CHECK (status = ANY (ARRAY['Pending'::text, 'In Progress'::text, 'Completed'::text, 'Not Done'::text, 'Overdue'::text])),
+  assigned_staff bigint,
+  created_by text,
+  actual_done_date timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now(),
+  remark text,
+  attachments text,
+  CONSTRAINT tasks_pkey PRIMARY KEY (id),
+  CONSTRAINT tasks_assigned_staff_fkey FOREIGN KEY (assigned_staff) REFERENCES public.users(id)
+);
 
--- ADDED FOR RENT MANAGEMENT SECOND REMINDER
-ALTER TABLE rent_records 
-ADD COLUMN second_reminder_date date DEFAULT null,
-ADD COLUMN second_reminder_sent boolean DEFAULT false;
-
--- ADDED FOR EMPLOYEE MASTER ROW ORDERING
-ALTER TABLE users 
-ADD COLUMN display_order integer DEFAULT 0;
+-- 3. Someday Tasks Table (For Someday Tasks Page & Planning)
+CREATE TABLE public.someday_tasks (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  description text,
+  priority text DEFAULT 'Medium',
+  category text,
+  assigned_staff bigint REFERENCES public.users(id),
+  created_by text,
+  created_date date,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT someday_tasks_pkey PRIMARY KEY (id)
+);

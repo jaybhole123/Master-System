@@ -7,6 +7,8 @@ import "./index.css"
 import "./Hr-sysytem/src/index.css"
 import "./Hr-sysytem/src/App.css"
 import "./Petty-Cash/src/index.css"
+import "./Daily-Shedular/src/index.css"
+import "./Daily-Shedular/src/App.css"
 import DocumentRoutes from "./modules/document/DocumentRoutes"
 
 // --- Page Imports ---
@@ -50,6 +52,13 @@ import PettyLedger from "./Petty-Cash/src/pages/Ledger"
 import PettySummary from "./Petty-Cash/src/pages/Summary"
 import PettySettings from "./Petty-Cash/src/pages/Settings"
 import { initializeStorage } from "./Petty-Cash/src/utils/storageManager"
+
+// --- Daily Scheduler Imports ---
+import { SchedulerProvider } from "./Daily-Shedular/src/context/SchedulerContext"
+import DailyDashboard from "./Daily-Shedular/src/pages/Dashboard"
+import DailyWaitingList from "./Daily-Shedular/src/pages/WaitingList"
+import DailySomedayTasks from "./Daily-Shedular/src/pages/SomedayTasks"
+import DailyReports from "./Daily-Shedular/src/pages/Reports"
 
 // --- Data & Delegation Imports ---
 import DataPage from "./pages/admin/DataPage"
@@ -122,6 +131,18 @@ const PettyWrapper = ({ children }) => (
                 {children}
             </div>
         </AdminLayout>
+    </ProtectedRoute>
+);
+
+const DailySchedulerWrapper = ({ children }) => (
+    <ProtectedRoute>
+        <SchedulerProvider>
+            <AdminLayout>
+                <div className="daily-scheduler-container p-2 sm:p-4">
+                    {children}
+                </div>
+            </AdminLayout>
+        </SchedulerProvider>
     </ProtectedRoute>
 );
 
@@ -439,6 +460,13 @@ function App() {
                     <Route path="/petty-cash/ledger" element={<PettyWrapper><PettyLedger /></PettyWrapper>} />
                     <Route path="/petty-cash/summary" element={<PettyWrapper><PettySummary /></PettyWrapper>} />
                     <Route path="/petty-cash/settings" element={<PettyWrapper><PettySettings /></PettyWrapper>} />
+
+                    {/* --- Daily Scheduler System Routes --- */}
+                    <Route path="/daily-scheduler" element={<DailySchedulerWrapper><DailyDashboard /></DailySchedulerWrapper>} />
+                    <Route path="/daily-scheduler/dashboard" element={<DailySchedulerWrapper><DailyDashboard /></DailySchedulerWrapper>} />
+                    <Route path="/daily-scheduler/waiting-list" element={<DailySchedulerWrapper><DailyWaitingList /></DailySchedulerWrapper>} />
+                    <Route path="/daily-scheduler/someday" element={<DailySchedulerWrapper><DailySomedayTasks /></DailySchedulerWrapper>} />
+                    <Route path="/daily-scheduler/reports" element={<DailySchedulerWrapper><DailyReports /></DailySchedulerWrapper>} />
 
                     {/* --- Backward Compatibility Redirects (From Snippet 1) --- */}
                     {/* These catch old URLs and forward them to the new structure */}

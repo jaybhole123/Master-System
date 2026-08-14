@@ -15,7 +15,7 @@ export default function TaskManagementTabs({ activeTab, setActiveTab }) {
     const isMachineOperator = designation.includes("machin") || designation.includes("operat") || designation.includes("oprat");
 
     const allTabs = [
-        { id: 'checklist', label: 'Checklist', icon: ClipboardCheck, color: 'text-red-600', activeColor: 'bg-red-600' },
+        { id: 'checklist', label: 'Checklist', icon: ClipboardCheck, color: 'text-red-600', activeColor: 'bg-red-600', isRoute: true, route: '/dashboard/task' },
         { id: 'delegation', label: 'Delegation', icon: Send, color: 'text-blue-600', activeColor: 'bg-blue-600', isRoute: true, route: isMyTask ? '/dashboard/my-task/delegation' : '/dashboard/delegation' },
         { id: 'maintenance', label: 'Maintenance', icon: Hammer, color: 'text-blue-600', activeColor: 'bg-blue-600' },
         { id: 'repair', label: 'Repair', icon: Wrench, color: 'text-orange-600', activeColor: 'bg-orange-600' },

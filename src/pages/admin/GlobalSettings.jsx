@@ -47,6 +47,11 @@ const MODULES = [
     pages: ['Petty Dashboard', 'Add Credit / Case', 'Expenses', 'Ledger', 'Summary', 'Petty Settings']
   },
   {
+    id: 'Daily Scheduler',
+    name: 'Daily Scheduler',
+    pages: ['Scheduler Dashboard', 'Waiting List', 'Someday Tasks', 'Reports']
+  },
+  {
     id: 'Help Slip',
     name: 'Help Slip',
     pages: ['Help Slip', 'Submissions']
