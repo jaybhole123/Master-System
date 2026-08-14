@@ -207,16 +207,32 @@ export const SchedulerProvider = ({ children }) => {
   const addSomedayTask = async (task) => {
     const id = crypto.randomUUID();
     const newTask = { ...task, id };
-    setSomedayTasks(prev => [...prev, newTask]);
     
-    await supabase.from('someday_tasks').insert({
+    const dbPayload = {
       id: newTask.id,
-      title: newTask.title,
       description: newTask.description,
       priority: newTask.priority,
       category: newTask.category,
-      created_by: newTask.createdBy
-    });
+      created_by: newTask.createdBy,
+      created_date: newTask.createdDate
+    };
+    
+    // In case the DB expects 'title', we can use description or title if available
+    dbPayload.title = newTask.title || newTask.description;
+    
+    if (newTask.assignedStaff) {
+      dbPayload.assigned_staff = newTask.assignedStaff;
+    }
+
+    const { error } = await supabase.from('someday_tasks').insert(dbPayload);
+    
+    if (error) {
+      console.error("Someday task insert error:", error);
+      alert("Error adding someday task: " + error.message);
+      return;
+    }
+
+    setSomedayTasks(prev => [...prev, newTask]);
   };
   
   const scheduleSomedayTask = async (id, scheduleData) => {
@@ -229,6 +245,29 @@ export const SchedulerProvider = ({ children }) => {
         actualDoneDate: null,
         remark: ''
       });
+      setSomedayTasks(prev => prev.filter(t => t.id !== id));
+      await supabase.from('someday_tasks').delete().eq('id', id);
+    }
+  };
+
+  const updateSomedayTask = async (id, updates) => {
+    const dbUpdates = {};
+    if (updates.title !== undefined) dbUpdates.title = updates.title;
+    if (updates.description !== undefined) dbUpdates.description = updates.description;
+    if (updates.priority !== undefined) dbUpdates.priority = updates.priority;
+    if (updates.category !== undefined) dbUpdates.category = updates.category;
+
+    const { error } = await supabase.from('someday_tasks').update(dbUpdates).eq('id', id);
+    if (error) {
+      alert("Error updating task: " + error.message);
+      return;
+    }
+
+    setSomedayTasks(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+  };
+
+  const deleteSomedayTask = async (id) => {
+    if (window.confirm('Are you sure you want to delete this someday task?')) {
       setSomedayTasks(prev => prev.filter(t => t.id !== id));
       await supabase.from('someday_tasks').delete().eq('id', id);
     }
@@ -272,7 +311,7 @@ export const SchedulerProvider = ({ children }) => {
   const value = {
     staffList, setStaffList,
     tasks: filteredTasks, setTasks, addTask, updateTask, markTaskDone, markTaskNotDone, rescheduleTask, deleteTask,
-    somedayTasks: filteredSomedayTasks, setSomedayTasks, addSomedayTask, scheduleSomedayTask,
+    somedayTasks: filteredSomedayTasks, setSomedayTasks, addSomedayTask, scheduleSomedayTask, updateSomedayTask, deleteSomedayTask,
     recurringTasks: filteredRecurringTasks, setRecurringTasks,
     settings, setSettings: updateSettings,
     categories,

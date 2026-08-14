@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { useScheduler } from '../context/SchedulerContext';
-import { Plus, Calendar as CalendarIcon, MoreVertical } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, MoreVertical, Edit, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 
 const SomedayTasks = () => {
-  const { somedayTasks, scheduleSomedayTask, addSomedayTask, staffList, categories, currentUser, generateTimeSlots, settings, formatTime12h } = useScheduler();
+  const { somedayTasks, scheduleSomedayTask, addSomedayTask, updateSomedayTask, deleteSomedayTask, staffList, categories, currentUser, generateTimeSlots, settings, formatTime12h } = useScheduler();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingTaskId, setEditingTaskId] = useState(null);
   const [scheduleModal, setScheduleModal] = useState({ isOpen: false, taskId: null, date: '', startTime: '', endTime: '' });
   const timeSlots = generateTimeSlots();
 
@@ -17,6 +19,25 @@ const SomedayTasks = () => {
     e.preventDefault();
     addSomedayTask({ ...formData, createdBy: currentUser?.name || 'Unknown', createdDate: new Date().toISOString().split('T')[0] });
     setIsAddModalOpen(false);
+    setFormData({ description: '', priority: 'Medium', category: categories[0], assignedStaff: currentUser?.id || '' });
+  };
+
+  const handleEditClick = (task) => {
+    setFormData({ 
+      description: task.description || '', 
+      priority: task.priority || 'Medium', 
+      category: task.category || categories[0], 
+      assignedStaff: task.assignedStaff || '' 
+    });
+    setEditingTaskId(task.id);
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditSubmit = (e) => {
+    e.preventDefault();
+    updateSomedayTask(editingTaskId, formData);
+    setIsEditModalOpen(false);
+    setEditingTaskId(null);
     setFormData({ description: '', priority: 'Medium', category: categories[0], assignedStaff: currentUser?.id || '' });
   };
 
@@ -61,7 +82,15 @@ const SomedayTasks = () => {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
                 <h3 style={{ fontSize: '1.125rem', fontWeight: '600' }}>{task.description || 'No description'}</h3>
-                <span className={`badge ${task.priority === 'High' ? 'badge-notdone' : 'badge-progress'}`}>{task.priority}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span className={`badge ${task.priority === 'High' ? 'badge-notdone' : 'badge-progress'}`}>{task.priority}</span>
+                  <button onClick={() => handleEditClick(task)} className="btn btn-outline" style={{ padding: '0.25rem', border: 'none' }} title="Edit">
+                    <Edit size={16} />
+                  </button>
+                  <button onClick={() => deleteSomedayTask(task.id)} className="btn btn-outline" style={{ padding: '0.25rem', border: 'none', color: 'var(--danger-color)' }} title="Delete">
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               </div>
               <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: '1rem', minHeight: '2.5rem' }}></p>
               
@@ -106,8 +135,38 @@ const SomedayTasks = () => {
               </div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1.5rem' }}>
-              <button type="button" onClick={() => setIsAddModalOpen(false)} className="btn btn-outline">Cancel</button>
+              <button type="button" onClick={() => { setIsAddModalOpen(false); setFormData({ description: '', priority: 'Medium', category: categories[0], assignedStaff: currentUser?.id || '' }); }} className="btn btn-outline">Cancel</button>
               <button type="submit" className="btn btn-primary">Save Task</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {isEditModalOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <form onSubmit={handleEditSubmit} style={{ backgroundColor: 'var(--surface-color)', padding: '1.5rem', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '400px' }} className="animate-fade-in">
+            <h3 style={{ marginBottom: '1rem' }}>Edit Someday Task</h3>
+            <div className="input-group">
+              <label className="input-label">Task Description *</label>
+              <textarea required value={formData.description} onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))} className="input-field" rows="3" placeholder="Enter task details..."></textarea>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="input-group">
+                <label className="input-label">Priority</label>
+                <select value={formData.priority} onChange={e => setFormData(prev => ({ ...prev, priority: e.target.value }))} className="input-field">
+                  <option>High</option><option>Medium</option><option>Low</option>
+                </select>
+              </div>
+              <div className="input-group">
+                <label className="input-label">Category</label>
+                <select value={formData.category} onChange={e => setFormData(prev => ({ ...prev, category: e.target.value }))} className="input-field">
+                  {categories.map(c => <option key={c}>{c}</option>)}
+                </select>
+              </div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1.5rem' }}>
+              <button type="button" onClick={() => { setIsEditModalOpen(false); setEditingTaskId(null); setFormData({ description: '', priority: 'Medium', category: categories[0], assignedStaff: currentUser?.id || '' }); }} className="btn btn-outline">Cancel</button>
+              <button type="submit" className="btn btn-primary">Update Task</button>
             </div>
           </form>
         </div>
