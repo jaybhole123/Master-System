@@ -15,7 +15,6 @@ const TaskModal = ({ isOpen, onClose, task, selectedTime, selectedDate }) => {
     assignedStaff: currentUser?.id || '',
     priority: 'Medium',
     category: categories[0] || 'Meeting',
-    category: categories[0] || 'Meeting',
     remark: '',
     attachments: []
   });
