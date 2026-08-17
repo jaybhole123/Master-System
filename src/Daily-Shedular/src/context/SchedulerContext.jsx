@@ -304,13 +304,13 @@ export const SchedulerProvider = ({ children }) => {
                   (currentUser?.role || '').toLowerCase().trim() === 'superadmin' ||
                   (localStorage.getItem('role') || '').toLowerCase().trim() === 'superadmin';
   
-  const filteredTasks = isAdmin ? tasks : tasks.filter(t => t.assignedStaff === currentUser?.id || t.createdBy === currentUser?.name);
-  const filteredSomedayTasks = isAdmin ? somedayTasks : somedayTasks.filter(t => t.createdBy === currentUser?.name);
-  const filteredRecurringTasks = isAdmin ? recurringTasks : recurringTasks.filter(t => t.assignedStaff === currentUser?.id);
+  const myTasks = tasks.filter(t => String(t.assignedStaff) === String(currentUser?.id) || String(t.createdBy) === String(currentUser?.name));
+  const filteredSomedayTasks = isAdmin ? somedayTasks : somedayTasks.filter(t => String(t.createdBy) === String(currentUser?.name));
+  const filteredRecurringTasks = isAdmin ? recurringTasks : recurringTasks.filter(t => String(t.assignedStaff) === String(currentUser?.id));
 
   const value = {
     staffList, setStaffList,
-    tasks: filteredTasks, setTasks, addTask, updateTask, markTaskDone, markTaskNotDone, rescheduleTask, deleteTask,
+    tasks: myTasks, allTasks: tasks, setTasks, addTask, updateTask, markTaskDone, markTaskNotDone, rescheduleTask, deleteTask,
     somedayTasks: filteredSomedayTasks, setSomedayTasks, addSomedayTask, scheduleSomedayTask, updateSomedayTask, deleteSomedayTask,
     recurringTasks: filteredRecurringTasks, setRecurringTasks,
     settings, setSettings: updateSettings,

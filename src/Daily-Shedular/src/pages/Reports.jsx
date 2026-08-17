@@ -5,7 +5,7 @@ import TaskStatusChart from '../components/dashboard/TaskStatusChart';
 import { Paperclip, Image as ImageIcon, PlayCircle, ShieldCheck } from 'lucide-react';
 
 const Reports = () => {
-  const { tasks, staffList, formatTime12h, settings, currentUser } = useScheduler();
+  const { allTasks: tasks, staffList, formatTime12h, settings, currentUser } = useScheduler();
   const [filter, setFilter] = useState('Today');
   const [statusFilter, setStatusFilter] = useState('All');
   const [staffFilter, setStaffFilter] = useState('All');
