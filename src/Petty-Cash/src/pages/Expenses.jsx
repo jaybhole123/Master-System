@@ -608,7 +608,19 @@ export default function Expenses() {
                   {/* PAID */}
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-700 mb-1 uppercase tracking-wide">Paid (₹) *</label>
-                    <input type="number" step="0.01" min="0" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} placeholder="0.00" className="w-full border border-slate-300 rounded-md px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 text-[13px] bg-white transition-shadow" required />
+                    <input 
+                      type="text" 
+                      value={formData.amount !== '' && formData.amount != null ? formData.amount.toString().split('.').map((p, i) => i === 0 ? (p ? new Intl.NumberFormat('en-IN').format(p) : '0') : p).join('.') : ''} 
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/,/g, '');
+                        if (/^\d*\.?\d*$/.test(val)) {
+                          setFormData({ ...formData, amount: val });
+                        }
+                      }} 
+                      placeholder="0.00" 
+                      className="w-full border border-slate-300 rounded-md px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 text-[13px] bg-white transition-shadow" 
+                      required 
+                    />
                     {formData.personName && (
                       <p className="text-[10px] text-slate-500 mt-1 font-medium">
                         Available Balance: <span className={
@@ -621,7 +633,13 @@ export default function Expenses() {
                   {/* BALANCE */}
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-700 mb-1 uppercase tracking-wide">Balance (₹)</label>
-                    <input type="text" value={formData.balance || ''} readOnly placeholder="Auto calculated" className="w-full border border-slate-200 bg-slate-50 text-slate-500 font-medium rounded-md px-2.5 py-1.5 focus:outline-none text-[13px] cursor-not-allowed" />
+                    <input 
+                      type="text" 
+                      value={formData.balance !== '' && formData.balance != null ? new Intl.NumberFormat('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(formData.balance) : ''} 
+                      readOnly 
+                      placeholder="Auto calculated" 
+                      className="w-full border border-slate-200 bg-slate-50 text-slate-500 font-medium rounded-md px-2.5 py-1.5 focus:outline-none text-[13px] cursor-not-allowed" 
+                    />
                   </div>
 
                   {/* PAID TO */}
