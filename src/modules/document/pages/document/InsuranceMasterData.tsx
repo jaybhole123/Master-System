@@ -162,7 +162,7 @@ const InsuranceMasterData = () => {
                         <td className="border-r border-gray-200 px-3 py-1.5 font-mono text-gray-600 whitespace-nowrap">{formatDate(item.firstPremiumDate)}</td>
                         <td className="border-r border-gray-200 px-3 py-1.5 font-mono text-gray-600 whitespace-nowrap">{formatDate(item.dueDateOfLastPremium)}</td>
                         <td className="border-r border-gray-200 px-3 py-1.5 font-mono text-gray-600 whitespace-nowrap">{formatDate(item.maturityDate) || formatDate(item.renewalDate)}</td>
-                        <td className="border-r border-gray-200 px-3 py-1.5 text-gray-700">{item.coverageTill || '-'}</td>
+                        <td className="border-r border-gray-200 px-3 py-1.5 text-gray-700">{item.coverageTill ? (/^\d+$/.test(item.coverageTill.toString().trim()) ? `${item.coverageTill} Years` : new Date(item.coverageTill).toLocaleDateString('en-GB').replace(/\//g, '.')) : '-'}</td>
                         <td className="border-r border-gray-200 px-3 py-1.5 text-gray-600 text-left max-w-xs truncate" title={item.docRemarks}>{item.docRemarks || '-'}</td>
                         <td className="border-r border-gray-200 px-3 py-1.5 text-gray-700">-</td>
                         <td className="px-3 py-1.5 font-bold text-gray-700">{item.autoDebited || '-'}</td>

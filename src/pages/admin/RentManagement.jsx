@@ -25,7 +25,7 @@ import {
 
 const months = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
 
-const MISReportView = ({ data, selectedMonth }) => {
+const MISReportView = ({ data, selectedMonth, searchQuery }) => {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const getPaymentStatus = (record) => {
     if (record.status !== 'Done') {
@@ -71,6 +71,12 @@ const MISReportView = ({ data, selectedMonth }) => {
 
   const reportData = data
     .filter(item => selectedMonth === 'ALL' || item.month === selectedMonth)
+    .filter(item => {
+      if (!searchQuery) return true;
+      const lowerQuery = searchQuery.toLowerCase();
+      return (item.name && item.name.toLowerCase().includes(lowerQuery)) || 
+             (item.place && item.place.toLowerCase().includes(lowerQuery));
+    })
     .map(item => ({
       ...item,
       computedStatus: getPaymentStatus(item),
@@ -641,7 +647,7 @@ const RentManagement = () => {
             </div>
 
             {activeTab === 'MIS' ? (
-              <MISReportView data={rentData} selectedMonth={selectedMonth} />
+              <MISReportView data={rentData} selectedMonth={selectedMonth} searchQuery={searchQuery} />
             ) : (
               <>
             {/* Mobile Card View */}
@@ -741,7 +747,7 @@ const RentManagement = () => {
                       <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Due Date</th>
                       <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Payment Method</th>
                       <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Last Received</th>
-                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Pay Status</th>
+                      {/* <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Pay Status</th> */}
                       <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Rev. Date</th>
                       <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Electricity</th>
                       <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Maintenance</th>
@@ -806,9 +812,9 @@ const RentManagement = () => {
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-slate-700 text-sm">{record.last_rent_received || '-'}</div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          {/* <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-slate-700 text-sm">{record.payment_status || '-'}</div>
-                          </td>
+                          </td> */}
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-slate-700 text-sm">{record.rent_revision_date || '-'}</div>
                           </td>

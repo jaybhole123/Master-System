@@ -356,7 +356,7 @@ export const fetchDocumentsFromGoogleSheets = async (): Promise<DocumentItem[]> 
           policyTerm: (r?.[23] || "").toString().trim(), // Column X: Policy Term
           firstPremiumDate: getDateString(r?.[24]), // Column Y: First Premium Date
           dueDateOfLastPremium: getDateString(r?.[25]), // Column Z: Due Date of Last Premium
-          coverageTill: (r?.[26] || "").toString().trim(), // Column AA: Coverage Till
+          coverageTill: getDateString(r?.[26]), // Column AA: Coverage Till
           docRemarks: (r?.[27] || "").toString().trim(), // Column AB: Remarks
           maturityDate: getDateString(r?.[28]), // Column AC: Maturity Date
           mode: (r?.[29] || "").toString().trim(), // Column AD: Mode

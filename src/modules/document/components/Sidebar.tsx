@@ -99,7 +99,7 @@ interface SidebarProps {
         label: "Resource Manager",
         icon: <FileText size={20} />,
         subItems: [
-          { label: "All Resources", path: "/resource-manager", icon: <List size={16} /> },
+          { label: "Insurance", path: "/resource-manager", icon: <List size={16} /> },
           { 
               label: "Renewals", 
               icon: <RefreshCw size={16} />,

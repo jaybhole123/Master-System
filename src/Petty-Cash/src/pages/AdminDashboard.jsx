@@ -46,7 +46,7 @@ export default function AdminDashboard() {
     searchQuery: ''
   });
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(15);
+  const [itemsPerPage, setItemsPerPage] = useState(100);
   const [showImageModal, setShowImageModal] = useState(false);
   const [selectedImage, setSelectedImage] = useState('');
 
@@ -653,7 +653,7 @@ export default function AdminDashboard() {
                 }}
                 className="bg-white border border-gray-300 rounded-md px-1 py-1 text-[10px] md:text-xs focus:outline-none focus:border-indigo-500 shadow-sm font-medium"
               >
-                {[10, 15, 20, 50, 100].map(val => (
+                {[100, 200, 300, 400].map(val => (
                   <option key={val} value={val}>{val}</option>
                 ))}
               </select>

@@ -55,6 +55,7 @@ export const SchedulerProvider = ({ children }) => {
           assignedStaff: t.assigned_staff,
           createdBy: t.created_by,
           actualDoneDate: t.actual_done_date,
+          color: t.color,
           attachments: t.attachments ? JSON.parse(t.attachments) : []
         }));
         setTasks(camelCaseTasks);
@@ -179,6 +180,10 @@ export const SchedulerProvider = ({ children }) => {
     if (updates.date !== undefined) dbUpdates.date = updates.date;
     if (updates.startTime !== undefined) dbUpdates.start_time = updates.startTime;
     if (updates.endTime !== undefined) dbUpdates.end_time = updates.endTime;
+    if (updates.status !== undefined) dbUpdates.status = updates.status;
+    if (updates.remark !== undefined) dbUpdates.remark = updates.remark;
+    if (updates.attachments !== undefined) dbUpdates.attachments = JSON.stringify(updates.attachments);
+    if (updates.color !== undefined) dbUpdates.color = updates.color;
     
     const { error } = await supabase.from('tasks').update(dbUpdates).eq('id', id);
     if (error) {
@@ -195,6 +200,23 @@ export const SchedulerProvider = ({ children }) => {
       status: 'Completed',
       actualDoneDate: new Date().toISOString(),
     });
+  };
+
+  const markAllPendingDone = async (taskIds) => {
+    if (!taskIds || taskIds.length === 0) return;
+    const actualDoneDate = new Date().toISOString();
+    
+    // Update locally
+    setTasks(prev => prev.map(t => taskIds.includes(t.id) ? { ...t, status: 'Completed', actualDoneDate } : t));
+    
+    // Update in Supabase
+    const { error } = await supabase.from('tasks')
+      .update({ status: 'Completed', actual_done_date: actualDoneDate })
+      .in('id', taskIds);
+      
+    if (error) {
+      alert("Error updating tasks: " + error.message);
+    }
   };
 
   const markTaskNotDone = (id, remark) => {
@@ -310,7 +332,7 @@ export const SchedulerProvider = ({ children }) => {
 
   const value = {
     staffList, setStaffList,
-    tasks: myTasks, allTasks: tasks, setTasks, addTask, updateTask, markTaskDone, markTaskNotDone, rescheduleTask, deleteTask,
+    tasks: myTasks, allTasks: tasks, setTasks, addTask, updateTask, markTaskDone, markTaskNotDone, markAllPendingDone, rescheduleTask, deleteTask,
     somedayTasks: filteredSomedayTasks, setSomedayTasks, addSomedayTask, scheduleSomedayTask, updateSomedayTask, deleteSomedayTask,
     recurringTasks: filteredRecurringTasks, setRecurringTasks,
     settings, setSettings: updateSettings,

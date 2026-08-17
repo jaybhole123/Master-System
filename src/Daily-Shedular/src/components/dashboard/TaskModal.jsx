@@ -5,7 +5,7 @@ import { supabase } from '../../lib/supabase';
 import { format } from 'date-fns';
 
 const TaskModal = ({ isOpen, onClose, task, selectedTime, selectedDate }) => {
-  const { addTask, updateTask, staffList, categories, currentUser } = useScheduler();
+  const { addTask, updateTask, staffList, categories, currentUser, tasks } = useScheduler();
 
   const [formData, setFormData] = useState({
     description: '',
@@ -18,6 +18,24 @@ const TaskModal = ({ isOpen, onClose, task, selectedTime, selectedDate }) => {
     remark: '',
     attachments: []
   });
+
+  const textareaRef = React.useRef(null);
+  const [suggestions, setSuggestions] = useState([]);
+
+  // Generate dictionary from existing tasks
+  const dictionary = React.useMemo(() => {
+    const words = new Set();
+    if (tasks) {
+      tasks.forEach(t => {
+        if (t.description) {
+          t.description.split(/[\s,.-]+/).forEach(w => {
+            if (w.length > 2) words.add(w.toLowerCase());
+          });
+        }
+      });
+    }
+    return Array.from(words);
+  }, [tasks]);
 
   const [isListening, setIsListening] = useState(false);
   const [recognitionInstance, setRecognitionInstance] = useState(null);
@@ -184,6 +202,44 @@ const TaskModal = ({ isOpen, onClose, task, selectedTime, selectedDate }) => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleDescriptionChange = (e) => {
+    const value = e.target.value;
+    setFormData(prev => ({ ...prev, description: value }));
+
+    const cursorPosition = e.target.selectionStart;
+    const textBeforeCursor = value.substring(0, cursorPosition);
+    const wordsBeforeCursor = textBeforeCursor.split(/[\s,.-]+/);
+    const currentWord = wordsBeforeCursor[wordsBeforeCursor.length - 1];
+
+    if (currentWord.length > 1) {
+      const matched = dictionary.filter(w => w.startsWith(currentWord.toLowerCase()) && w !== currentWord.toLowerCase());
+      setSuggestions(matched.slice(0, 5));
+    } else {
+      setSuggestions([]);
+    }
+  };
+
+  const handleSuggestionClick = (suggestion) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const value = formData.description;
+    const cursorPosition = textarea.selectionStart;
+    const textBeforeCursor = value.substring(0, cursorPosition);
+    const textAfterCursor = value.substring(cursorPosition);
+    
+    const newTextBefore = textBeforeCursor.replace(/[^\s,.-]+$/, suggestion + ' ');
+    const newValue = newTextBefore + textAfterCursor;
+    
+    setFormData(prev => ({ ...prev, description: newValue }));
+    setSuggestions([]);
+    
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(newTextBefore.length, newTextBefore.length);
+    }, 0);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (task) {
@@ -248,7 +304,43 @@ const TaskModal = ({ isOpen, onClose, task, selectedTime, selectedDate }) => {
                 </button>
               </div>
             </div>
-            <textarea required name="description" value={formData.description} onChange={handleChange} className="input-field" rows="3" placeholder="Enter task details..."></textarea>
+            <textarea 
+              ref={textareaRef} 
+              required 
+              name="description" 
+              value={formData.description} 
+              onChange={handleDescriptionChange} 
+              className="input-field" 
+              rows="3" 
+              placeholder="Enter task details..."
+            ></textarea>
+            {suggestions.length > 0 && (
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', overflowX: 'auto', padding: '0.25rem 0', scrollbarWidth: 'none' }}>
+                {suggestions.map((s, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => handleSuggestionClick(s)}
+                    style={{
+                      padding: '0.25rem 0.75rem',
+                      backgroundColor: '#eff6ff',
+                      color: '#2563eb',
+                      border: '1px solid #bfdbfe',
+                      borderRadius: '9999px',
+                      fontSize: '0.75rem',
+                      fontWeight: '500',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#dbeafe'; }}
+                    onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#eff6ff'; }}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="input-group">

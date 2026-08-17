@@ -269,7 +269,7 @@ const Dashboard = () => {
                 <h2 className="text-lg font-bold text-gray-800 mb-4 px-1">Resource Overview</h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <StatCard
-                        title="Total Documents"
+                        title="Total Insurance"
                         value={totalDocuments}
                         icon={FileText}
                         color="bg-red-500 text-red-600"

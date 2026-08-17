@@ -497,76 +497,72 @@ const DocumentRenewal = () => {
                         <table className="w-full text-left border-collapse">
                             <thead className="sticky top-0 z-20 bg-gray-50 shadow-sm">
                                 <tr className="border-b border-gray-100 text-xs uppercase text-gray-500 font-semibold tracking-wider">
+                                    <th className="p-3 whitespace-nowrap bg-gray-50 text-center">Serial No</th>
+                                    <th className="p-3 whitespace-nowrap bg-gray-50 text-center">Name</th>
+                                    <th className="p-3 whitespace-nowrap bg-gray-50 text-center">Policy No</th>
+                                    <th className="p-3 whitespace-nowrap bg-gray-50 text-center">Company</th>
+                                    <th className="p-3 whitespace-nowrap bg-gray-50 text-center">TYPE</th>
+                                    <th className="p-3 whitespace-nowrap bg-gray-50 text-center">Sum Assured</th>
+                                    <th className="p-3 whitespace-nowrap bg-gray-50 text-center">Premium</th>
+                                    <th className="p-3 whitespace-nowrap bg-gray-50 text-center">Premium Paying Term</th>
+                                    <th className="p-3 whitespace-nowrap bg-gray-50 text-center">Policy Term</th>
+                                    <th className="p-3 whitespace-nowrap bg-gray-50 text-center">First Premium Date</th>
+                                    <th className="p-3 whitespace-nowrap bg-gray-50 text-center">Due Date of Last Premium</th>
+                                    <th className="p-3 whitespace-nowrap bg-gray-50 text-center">Coverage Till</th>
+                                    <th className="p-3 whitespace-nowrap bg-gray-50 text-center">Remarks</th>
+                                    <th className="p-3 whitespace-nowrap bg-gray-50 text-center">Renewal</th>
+                                    <th className="p-3 whitespace-nowrap bg-gray-50 text-center">Renewal Date</th>
+                                    <th className="p-3 whitespace-nowrap bg-gray-50 text-center">BANK</th>
+                                    <th className="p-3 whitespace-nowrap bg-gray-50 text-center">AUTO</th>
+                                    <th className="p-3 whitespace-nowrap bg-gray-50 text-center">File</th>
                                     <th className="p-3 text-center bg-gray-50">Action</th>
-                                    <th className="p-3 whitespace-nowrap bg-gray-50">Serial No</th>
-                                    <th className="p-3 whitespace-nowrap bg-gray-50">Document Name</th>
-                                    <th className="p-3 whitespace-nowrap bg-gray-50">Document Type</th>
-                                    <th className="p-3 whitespace-nowrap bg-gray-50">Category</th>
-                                    <th className="p-3 whitespace-nowrap bg-gray-50">Name</th>
-                                    <th className="p-3 whitespace-nowrap bg-gray-50">Due Date</th>
-                                    <th className="p-3 whitespace-nowrap bg-gray-50">Proposal Date</th>
-                                    <th className="p-3 whitespace-nowrap bg-gray-50">Sum Assured</th>
-                                    <th className="p-3 whitespace-nowrap bg-gray-50">Premium</th>
-                                    <th className="p-3 whitespace-nowrap bg-gray-50">PPT</th>
-                                    <th className="p-3 whitespace-nowrap bg-gray-50">Policy Term</th>
-                                    <th className="p-3 whitespace-nowrap bg-gray-50">First Premium Date</th>
-                                    <th className="p-3 whitespace-nowrap bg-gray-50">Last Premium Date</th>
-                                    <th className="p-3 whitespace-nowrap bg-gray-50">Coverage Till</th>
-                                    <th className="p-3 whitespace-nowrap bg-gray-50">Remarks</th>
-                                    <th className="p-3 whitespace-nowrap bg-gray-50">Entry Date</th>
-                                    <th className="p-3 whitespace-nowrap bg-gray-50">Renewal</th>
-                                    <th className="p-3 whitespace-nowrap bg-gray-50">Document File</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50 text-sm">
                                 {pendingDocuments.length > 0 ? pendingDocuments.map((doc) => (
                                     <tr key={doc.id} className="hover:bg-gray-50/80 transition-colors">
+                                        <td className="p-3 font-bold text-gray-700 text-xs text-center">{doc.sn}</td>
+                                        <td className="p-3 font-medium text-gray-900 text-center">{doc.pName || "-"}</td>
+                                        <td className="p-3 text-gray-900 text-center">{doc.documentName}</td>
+                                        <td className="p-3 font-medium text-gray-900 text-center">{doc.companyName || "-"}</td>
+                                        <td className="p-3 text-gray-600 text-center">{doc.documentType}</td>
+                                        <td className="p-3 text-gray-700 text-center">{doc.sumAssured || "-"}</td>
+                                        <td className="p-3 text-gray-700 text-center">{doc.premium || "-"}</td>
+                                        <td className="p-3 text-gray-700 text-center">{doc.premiumPayingTerm ? `${doc.premiumPayingTerm} Years` : "-"}</td>
+                                        <td className="p-3 text-gray-700 text-center">{doc.policyTerm ? `${doc.policyTerm} Years` : "-"}</td>
+                                        <td className="p-3 text-gray-700 font-mono text-xs text-center">{formatDate(doc.firstPremiumDate) || "-"}</td>
+                                        <td className="p-3 text-gray-700 font-mono text-xs text-center">{formatDate(doc.dueDateOfLastPremium) || "-"}</td>
+                                        <td className="p-3 text-gray-700 text-center">{doc.coverageTill ? (/^\d+$/.test(doc.coverageTill.toString().trim()) ? `${doc.coverageTill} Years` : formatDate(doc.coverageTill)) : "-"}</td>
+                                        <td className="p-3 text-gray-700 text-center max-w-[150px] truncate" title={doc.docRemarks}>{doc.docRemarks || "-"}</td>
+                                        <td className="p-3 text-center">
+                                            {doc.needsRenewal ? (
+                                                <span className="inline-flex items-center justify-center px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-100 rounded text-xs font-medium">Yes</span>
+                                            ) : (
+                                                <span className="inline-flex items-center justify-center px-2.5 py-1 bg-gray-50 text-gray-500 border border-gray-100 rounded text-xs font-medium">No</span>
+                                            )}
+                                        </td>
+                                        <td className="p-3 text-gray-500 font-mono text-xs text-center">{formatDate(doc.renewalDate) || "-"}</td>
+                                        <td className="p-3 text-gray-700 text-center">{doc.concernPersonName || "-"}</td>
+                                        <td className="p-3 font-bold text-gray-700 text-xs text-center">{doc.autoDebited || "-"}</td>
+                                        <td className="p-3 text-center">
+                                            {doc.fileContent ? (
+                                                <div
+                                                    onClick={() => handleDownload(doc.fileContent, doc.file || 'document')}
+                                                    className="flex items-center justify-center gap-1 text-red-600 text-xs cursor-pointer hover:underline"
+                                                >
+                                                    <Download size={14} /> View
+                                                </div>
+                                            ) : (
+                                                <span className="text-gray-400">-</span>
+                                            )}
+                                        </td>
                                         <td className="p-3 text-center">
                                             <button
                                                 onClick={() => handleOpenRenewal(doc)}
                                                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white text-xs font-semibold rounded-lg hover:bg-red-700 transition-colors shadow-sm shadow-red-200"
                                             >
-                                                <RotateCcw size={14} />
-                                                Renewal
+                                                <RotateCcw size={14} /> Renewal
                                             </button>
-                                        </td>
-                                        <td className="p-3 font-bold font-mono text-xs text-gray-700">{doc.sn}</td>
-                                        <td className="p-3 font-medium text-gray-900">{doc.documentName}</td>
-                                        <td className="p-3 text-gray-600">{doc.documentType}</td>
-                                        <td className="p-3">
-                                            <span className="px-2 py-1 bg-red-50 text-red-700 rounded text-xs font-medium">
-                                                {doc.category}
-                                            </span>
-                                        </td>
-                                        <td className="p-3 text-gray-900">{doc.companyName}</td>
-                                        <td className="p-3 text-gray-500 font-mono text-xs whitespace-nowrap">{formatDate(doc.dueDate) || '-'}</td>
-                                        <td className="p-3 text-gray-500 font-mono text-xs whitespace-nowrap">{formatDate(doc.dateOfProposal) || '-'}</td>
-                                        <td className="p-3 text-gray-500 text-xs whitespace-nowrap">{doc.sumAssured ? `₹${doc.sumAssured}` : '-'}</td>
-                                        <td className="p-3 text-gray-500 text-xs whitespace-nowrap">{doc.premium ? `₹${doc.premium}/yr` : '-'}</td>
-                                        <td className="p-3 text-gray-500 text-xs whitespace-nowrap">{doc.premiumPayingTerm ? `${doc.premiumPayingTerm} Years` : '-'}</td>
-                                        <td className="p-3 text-gray-500 text-xs whitespace-nowrap">{doc.policyTerm ? `${doc.policyTerm} Years` : '-'}</td>
-                                        <td className="p-3 text-gray-500 font-mono text-xs whitespace-nowrap">{formatDate(doc.firstPremiumDate) || '-'}</td>
-                                        <td className="p-3 text-gray-500 font-mono text-xs whitespace-nowrap">{formatDate(doc.dueDateOfLastPremium) || '-'}</td>
-                                        <td className="p-3 text-gray-500 text-xs whitespace-nowrap">{doc.coverageTill ? `${doc.coverageTill} Years` : '-'}</td>
-                                        <td className="p-3 text-gray-500 text-xs max-w-[150px] truncate" title={doc.docRemarks}>{doc.docRemarks || '-'}</td>
-                                        <td className="p-3 text-gray-500 font-mono text-xs">{formatDate(doc.date)}</td>
-                                        <td className="p-3 text-center">
-                                            <span className="inline-flex items-center justify-center px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-100 rounded text-xs font-medium">
-                                                {doc.planned1 ? formatDate(doc.planned1) : (doc.renewalDate ? formatDate(doc.renewalDate) : 'Pending')}
-                                            </span>
-                                        </td>
-                                        <td className="p-3">
-                                            {doc.fileContent ? (
-                                                <div
-                                                    onClick={() => handleDownload(doc.fileContent, doc.file || 'document')}
-                                                    className="flex items-center gap-2 text-red-600 text-xs cursor-pointer hover:underline"
-                                                >
-                                                    <Download size={14} />
-                                                    <span className="truncate max-w-[100px]">View</span>
-                                                </div>
-                                            ) : (
-                                                <span className="text-gray-400">-</span>
-                                            )}
                                         </td>
                                     </tr>
                                 )) : (
@@ -633,7 +629,7 @@ const DocumentRenewal = () => {
                                         <td className="p-3 text-gray-500 text-xs whitespace-nowrap">{item.policyTerm ? `${item.policyTerm} Years` : '-'}</td>
                                         <td className="p-3 text-gray-500 font-mono text-xs whitespace-nowrap">{formatDate(item.firstPremiumDate) || '-'}</td>
                                         <td className="p-3 text-gray-500 font-mono text-xs whitespace-nowrap">{formatDate(item.dueDateOfLastPremium) || '-'}</td>
-                                        <td className="p-3 text-gray-500 text-xs whitespace-nowrap">{item.coverageTill ? `${item.coverageTill} Years` : '-'}</td>
+                                        <td className="p-3 text-gray-500 text-xs whitespace-nowrap">{item.coverageTill ? (/^\d+$/.test(item.coverageTill.toString().trim()) ? `${item.coverageTill} Years` : new Date(item.coverageTill).toLocaleDateString('en-GB').replace(/\//g, '.')) : '-'}</td>
                                         <td className="p-3 text-gray-500 text-xs max-w-[150px] truncate" title={item.docRemarks}>{item.docRemarks || '-'}</td>
                                         <td className="p-3 text-gray-500 font-mono text-xs">{formatDate(item.entryDate)}</td>
                                         <td className="p-3 text-gray-500 font-mono text-xs line-through decoration-red-400">

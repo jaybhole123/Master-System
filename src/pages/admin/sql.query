@@ -560,3 +560,6 @@ CREATE TABLE public.someday_tasks (
   created_at timestamp with time zone DEFAULT now(),
   CONSTRAINT someday_tasks_pkey PRIMARY KEY (id)
 );
+
+-- Alter query to add color column to tasks table
+ALTER TABLE public.tasks ADD COLUMN color text;

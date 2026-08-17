@@ -6,7 +6,8 @@ import { Paperclip, Image as ImageIcon, PlayCircle, ShieldCheck } from 'lucide-r
 
 const Reports = () => {
   const { allTasks: tasks, staffList, formatTime12h, settings, currentUser } = useScheduler();
-  const [filter, setFilter] = useState('Today');
+  const [startDate, setStartDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [statusFilter, setStatusFilter] = useState('All');
   const [staffFilter, setStaffFilter] = useState('All');
 
@@ -15,31 +16,37 @@ const Reports = () => {
   const isSuperadmin = localRole === 'superadmin' || currentRole === 'superadmin' ||
     staffList.some(u => String(u.id) === String(currentUser?.id) && (u.role || '').toLowerCase().trim() === 'superadmin');
   
+  const isDateInRange = (dateString) => {
+    const taskDate = new Date(dateString);
+    taskDate.setHours(0,0,0,0);
+
+    let isValid = true;
+    if (startDate) {
+      const sDate = new Date(startDate);
+      sDate.setHours(0,0,0,0);
+      if (taskDate < sDate) isValid = false;
+    }
+    if (endDate) {
+      const eDate = new Date(endDate);
+      eDate.setHours(0,0,0,0);
+      if (taskDate > eDate) isValid = false;
+    }
+    return isValid;
+  };
+
   const getFilteredTasks = () => {
-    const today = new Date();
     return tasks.filter(t => {
-      // If no user info yet, show all tasks
-      if (!currentUser) {
-        const taskDate = new Date(t.date);
-        if (filter === 'Today') return isSameDay(taskDate, today);
-        if (filter === 'All Time') return true;
-        return true;
-      }
-      // Superadmin sees all tasks
-      if (isSuperadmin) {
-        const taskDate = new Date(t.date);
-        if (filter === 'Today') return isSameDay(taskDate, today);
-        if (filter === 'All Time') return true;
-        return true;
-      }
+      // Date filter
+      if (!isDateInRange(t.date)) return false;
+
+      // Role filter
+      if (!currentUser || isSuperadmin) return true;
+
       // Regular users see only their own
       if (String(t.assignedStaff) !== String(currentUser.id) &&
           String(t.createdBy) !== String(currentUser.id)) {
         return false;
       }
-      const taskDate = new Date(t.date);
-      if (filter === 'Today') return isSameDay(taskDate, today);
-      if (filter === 'All Time') return true;
       return true;
     });
   };
@@ -99,15 +106,36 @@ const Reports = () => {
         </div>
       </div>
 
-      <div className="table-container">
+      <div className="table-container" style={{ maxHeight: '600px', overflowY: 'auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem 1.5rem 0', flexWrap: 'wrap', gap: '0.75rem' }}>
           <h3 style={{ fontSize: '1.125rem', margin: 0 }}>Detailed Task History</h3>
           <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-            {/* Date Filter - always visible */}
-            <select value={filter} onChange={e => setFilter(e.target.value)} className="input-field" style={{ width: '130px' }}>
-              <option value="Today">Today</option>
-              <option value="All Time">All Time</option>
-            </select>
+            {/* Date Range Filter */}
+            <input 
+              type="date" 
+              value={startDate} 
+              onChange={e => setStartDate(e.target.value)} 
+              className="input-field" 
+              style={{ width: '150px' }} 
+              title="Start Date"
+            />
+            <span style={{ display: 'flex', alignItems: 'center', color: 'var(--text-secondary)' }}>to</span>
+            <input 
+              type="date" 
+              value={endDate} 
+              onChange={e => setEndDate(e.target.value)} 
+              className="input-field" 
+              style={{ width: '150px' }} 
+              title="End Date"
+            />
+            <button 
+              onClick={() => { setStartDate(''); setEndDate(''); }}
+              className="btn btn-outline"
+              style={{ padding: '0 0.75rem', height: '36px' }}
+              title="Clear Dates (Show All Time)"
+            >
+              Clear
+            </button>
             {/* Superadmin-only filters */}
             {isSuperadmin && (
               <>
@@ -132,14 +160,14 @@ const Reports = () => {
         <table className="table" style={{ marginTop: '1rem' }}>
           <thead>
             <tr>
-              <th style={{ width: '9%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center', whiteSpace: 'nowrap' }}>DATE</th>
-              <th style={{ width: '9%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>TIME</th>
-              <th style={{ width: '16%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>TASK DETAILS</th>
-              <th style={{ width: '10%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center', whiteSpace: 'nowrap' }}>SUBMITTED BY</th>
-              <th style={{ width: '12%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>IMAGE / ATTACHMENT</th>
-              <th style={{ width: '12%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>REMARKS</th>
-              <th style={{ width: '10%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>STATUS</th>
-              <th style={{ width: '11%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>COMPLETED AT</th>
+              <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '9%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center', whiteSpace: 'nowrap' }}>DATE</th>
+              <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '9%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>TIME</th>
+              <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '16%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>TASK DETAILS</th>
+              <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '10%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center', whiteSpace: 'nowrap' }}>SUBMITTED BY</th>
+              <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '12%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>IMAGE / ATTACHMENT</th>
+              <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '12%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>REMARKS</th>
+              <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '10%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>STATUS</th>
+              <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '11%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>COMPLETED AT</th>
             </tr>
           </thead>
           <tbody>

@@ -1,15 +1,24 @@
 import React, { useState } from 'react';
 import { useScheduler } from '../../context/SchedulerContext';
 import { format, parse, isSameDay } from 'date-fns';
-import { Plus, Check, X, Edit2, AlertCircle, Trash, Paperclip, ShieldCheck } from 'lucide-react';
+import { Plus, Check, X, Edit2, AlertCircle, Trash, Paperclip, ShieldCheck, Star } from 'lucide-react';
 
-const SchedulerTable = ({ currentDate, onAddTask }) => {
-  const { tasks, generateTimeSlots, markTaskDone, markTaskNotDone, staffList, deleteTask, settings, setSettings } = useScheduler();
+const SchedulerTable = ({ currentDate, onAddTask, selectedTaskIds = [], setSelectedTaskIds, todaysTasks = [], searchQuery = '' }) => {
+  const { tasks, generateTimeSlots, markTaskDone, markTaskNotDone, staffList, deleteTask, settings, setSettings, updateTask } = useScheduler();
   const timeSlots = generateTimeSlots();
 
   const [remarkModal, setRemarkModal] = useState({ isOpen: false, taskId: null, remark: '' });
   const [hiddenExtraRows, setHiddenExtraRows] = useState([]);
   const [previewMedia, setPreviewMedia] = useState({ isOpen: false, url: '', type: '' });
+  const [colorPickerTaskId, setColorPickerTaskId] = useState(null);
+
+  const colors = [
+    { name: 'Yellow', code: '#fef08a' },
+    { name: 'Red', code: '#fecaca' },
+    { name: 'Green', code: '#bbf7d0' },
+    { name: 'Blue', code: '#bfdbfe' },
+    { name: 'Purple', code: '#e9d5ff' }
+  ];
 
   const handleNotDoneSubmit = (e) => {
     e.preventDefault();
@@ -17,18 +26,40 @@ const SchedulerTable = ({ currentDate, onAddTask }) => {
     setRemarkModal({ isOpen: false, taskId: null, remark: '' });
   };
 
+  const highlightText = (text) => {
+    if (!searchQuery || !text) return text;
+    const parts = text.toString().split(new RegExp(`(${searchQuery})`, 'gi'));
+    return parts.map((part, index) => 
+      part.toLowerCase() === searchQuery.toLowerCase() ? <mark key={index} style={{ backgroundColor: '#fef08a', padding: '0 2px', borderRadius: '2px' }}>{part}</mark> : part
+    );
+  };
+
   return (
-    <div className="table-container animate-fade-in" style={{ marginTop: '1.5rem' }}>
+    <div className="table-container animate-fade-in" style={{ marginTop: '1.5rem', maxHeight: '600px', overflowY: 'auto' }}>
       <table className="table">
         <thead>
           <tr>
-            <th style={{ width: '10%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>TIME</th>
-            <th style={{ width: '20%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>TASK DESCRIPTION</th>
-            <th style={{ width: '10%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center', whiteSpace: 'nowrap' }}>SUBMITTED BY</th>
-            <th style={{ width: '12%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>REMARK</th>
-            <th style={{ width: '12%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>STATUS</th>
-            <th style={{ width: '13%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>ATTACHMENT</th>
-            <th style={{ width: '12%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>ACTIONS</th>
+            <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '9%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>TIME</th>
+            <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '4%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>
+              <input 
+                type="checkbox" 
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    const pending = todaysTasks.filter(t => t.status === 'Pending' || t.status === 'In Progress' || t.status === 'Scheduled');
+                    setSelectedTaskIds(pending.map(t => t.id));
+                  } else {
+                    setSelectedTaskIds([]);
+                  }
+                }} 
+                checked={todaysTasks.filter(t => t.status === 'Pending' || t.status === 'In Progress' || t.status === 'Scheduled').length > 0 && selectedTaskIds.length === todaysTasks.filter(t => t.status === 'Pending' || t.status === 'In Progress' || t.status === 'Scheduled').length} 
+              />
+            </th>
+            <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '20%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>TASK DESCRIPTION</th>
+            <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '10%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center', whiteSpace: 'nowrap' }}>SUBMITTED BY</th>
+            <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '12%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>REMARK</th>
+            <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '12%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>STATUS</th>
+            <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '13%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>ATTACHMENT</th>
+            <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '12%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>ACTIONS</th>
           </tr>
         </thead>
         <tbody>
@@ -46,32 +77,49 @@ const SchedulerTable = ({ currentDate, onAddTask }) => {
               <React.Fragment key={time}>
                 {slotTasks.length > 0 ? (
                   <>
-                    {slotTasks.map((task, idx) => (
+                    {slotTasks.map((task, idx) => {
+                      const isHighlighted = task.color || task.description?.startsWith('⭐ ');
+                      const displayDescription = task.description?.startsWith('⭐ ') ? task.description.replace('⭐ ', '') : task.description;
+                      const bgColor = task.color || (task.description?.startsWith('⭐ ') ? '#fef9c3' : 'transparent');
+                      return (
                       <tr key={task.id} style={{ borderTop: idx === 0 ? '1px solid var(--border-color)' : 'none' }}>
                         {idx === 0 && (
                           <td data-label="TIME" rowSpan={slotTasks.length + (hiddenExtraRows.includes(time) ? 0 : 1)} style={{ fontWeight: '600', color: 'var(--text-secondary)', textAlign: 'center', fontSize: '0.875rem', whiteSpace: 'nowrap' }}>
                             {timeRange}
                           </td>
                         )}
+                        {/* SELECT COLUMN */}
+                        <td data-label="SELECT" style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                          <input 
+                            type="checkbox" 
+                            checked={selectedTaskIds.includes(task.id)} 
+                            onChange={() => {
+                              if (setSelectedTaskIds) {
+                                setSelectedTaskIds(prev => prev.includes(task.id) ? prev.filter(id => id !== task.id) : [...prev, task.id]);
+                              }
+                            }} 
+                            disabled={task.status === 'Completed' || task.status === 'Not Done' || task.status === 'Overdue'}
+                          />
+                        </td>
                         {/* TASK DESCRIPTION COLUMN */}
-                        <td data-label="TASK DESCRIPTION" style={{ verticalAlign: 'top' }}>
-                          <div style={{ fontWeight: '500', color: 'var(--text-primary)' }}>{task.description || 'No description'}</div>
+                        <td data-label="TASK DESCRIPTION" style={{ verticalAlign: 'top', backgroundColor: bgColor, transition: 'background-color 0.2s ease' }}>
+                          <div style={{ fontWeight: '500', color: 'var(--text-primary)' }}>{highlightText(displayDescription) || 'No description'}</div>
                         </td>
                         {/* SUBMITTED BY COLUMN */}
                         <td data-label="SUBMITTED BY" style={{ verticalAlign: 'top', textAlign: 'center', whiteSpace: 'nowrap' }}>
                           <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: '500' }}>
-                            {task.createdBy || 'Admin'}
+                            {highlightText(task.createdBy) || 'Admin'}
                           </div>
                         </td>
 
                         {/* REMARK COLUMN */}
                         <td data-label="REMARK" style={{ verticalAlign: 'top' }}>
                           <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                            {task.remark && <div style={{ fontStyle: 'italic', marginBottom: task.adminRemark ? '0.5rem' : '0' }}>"{task.remark}"</div>}
+                            {task.remark && <div style={{ fontStyle: 'italic', marginBottom: task.adminRemark ? '0.5rem' : '0' }}>"{highlightText(task.remark)}"</div>}
                             {task.adminRemark && (
                               <div style={{ fontStyle: 'italic', color: 'var(--status-notdone)' }}>
                                 <span style={{ fontWeight: '600', fontSize: '0.75rem', textTransform: 'uppercase' }}>Admin Rejected:</span><br/>
-                                "{task.adminRemark}"
+                                "{highlightText(task.adminRemark)}"
                               </div>
                             )}
                             {!task.remark && !task.adminRemark && '-'}
@@ -152,6 +200,26 @@ const SchedulerTable = ({ currentDate, onAddTask }) => {
                                 </button>
                               </>
                             )}
+                            <div style={{ position: 'relative' }}>
+                              <button 
+                                onClick={() => setColorPickerTaskId(colorPickerTaskId === task.id ? null : task.id)} 
+                                className="btn btn-outline" 
+                                style={{ padding: '0.15rem 0.35rem', color: isHighlighted ? '#eab308' : 'var(--text-muted)', borderColor: isHighlighted ? '#eab308' : 'var(--text-muted)' }} 
+                                title={isHighlighted ? "Change Highlight Color" : "Highlight Task"}
+                              >
+                                <Star size={14} fill={isHighlighted ? '#eab308' : 'none'} />
+                              </button>
+                              {colorPickerTaskId === task.id && (
+                                <div style={{ position: 'absolute', right: '0', bottom: '100%', marginBottom: '0.5rem', backgroundColor: 'white', padding: '0.5rem', borderRadius: 'var(--radius-md)', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', display: 'flex', gap: '0.25rem', zIndex: 50, border: '1px solid var(--border-color)' }}>
+                                  <button onClick={() => { updateTask(task.id, { color: null, description: displayDescription }); setColorPickerTaskId(null); }} style={{ width: '20px', height: '20px', borderRadius: '50%', border: '1px solid #ccc', backgroundColor: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Remove Highlight">
+                                    <X size={12} color="#999" />
+                                  </button>
+                                  {colors.map(c => (
+                                    <button key={c.name} onClick={() => { updateTask(task.id, { color: c.code, description: displayDescription }); setColorPickerTaskId(null); }} style={{ width: '20px', height: '20px', borderRadius: '50%', border: '1px solid rgba(0,0,0,0.1)', backgroundColor: c.code, cursor: 'pointer' }} title={c.name} />
+                                  ))}
+                                </div>
+                              )}
+                            </div>
                             <button onClick={() => onAddTask(time, task)} className="btn btn-outline" style={{ padding: '0.15rem 0.35rem' }} title="Edit">
                               <Edit2 size={14} />
                             </button>
@@ -161,10 +229,10 @@ const SchedulerTable = ({ currentDate, onAddTask }) => {
                           </div>
                         </td>
                       </tr>
-                    ))}
+                    )})}
                     {!hiddenExtraRows.includes(time) && (
                       <tr style={{ backgroundColor: '#fef9c3' }}>
-                        <td colSpan="5">
+                        <td colSpan="6">
                           <button 
                             onClick={() => onAddTask(time)}
                             style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '0.875rem', cursor: 'pointer', padding: '0.25rem 0', width: '100%', textAlign: 'left' }}
@@ -186,7 +254,7 @@ const SchedulerTable = ({ currentDate, onAddTask }) => {
                       <td style={{ fontWeight: '600', color: 'var(--text-secondary)', textAlign: 'center', fontSize: '0.875rem', whiteSpace: 'nowrap' }}>
                         {timeRange}
                       </td>
-                      <td colSpan="5">
+                      <td colSpan="6">
                         <button 
                           onClick={() => onAddTask(time)}
                           style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '0.875rem', cursor: 'pointer', padding: '0.25rem 0', width: '100%', textAlign: 'left' }}

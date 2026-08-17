@@ -15,7 +15,7 @@ const MODULES = [
     name: 'Document & Substruction',
     pages: [
       'Dashboard', 
-      'All Resources', 
+      'Insurance', 
       'Document Renewal', 
       'Subscription Renewal', 
       'Document Shared', 

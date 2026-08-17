@@ -5,18 +5,28 @@ import TeamOverview from '../components/dashboard/TeamOverview';
 import TaskModal from '../components/dashboard/TaskModal';
 import TaskStatusChart from '../components/dashboard/TaskStatusChart';
 import { format, isSameDay, addDays, subDays } from 'date-fns';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Check, Search } from 'lucide-react';
 
 const Dashboard = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const { tasks, somedayTasks, staffList, markTaskDone, rescheduleTask, scheduleSomedayTask } = useScheduler();
+  const { tasks, somedayTasks, staffList, markTaskDone, markAllPendingDone, rescheduleTask, scheduleSomedayTask } = useScheduler();
 
   const [modalState, setModalState] = useState({ isOpen: false, time: null, task: null });
   const [rescheduleModal, setRescheduleModal] = useState({ isOpen: false, taskId: null, newDate: '', newStartTime: '', newEndTime: '' });
   const [scheduleModal, setScheduleModal] = useState({ isOpen: false, taskId: null, date: '', startTime: '', endTime: '' });
 
+  const [selectedTaskIds, setSelectedTaskIds] = useState([]);
+
+  const [searchQuery, setSearchQuery] = useState('');
+
   const overdueTasks = tasks.filter(t => t.status === 'Overdue');
-  const todaysTasks = tasks.filter(t => isSameDay(new Date(t.date), currentDate));
+  const todaysTasks = tasks.filter(t => isSameDay(new Date(t.date), currentDate)).filter(t => {
+    if (!searchQuery) return true;
+    const lowerQuery = searchQuery.toLowerCase();
+    return (t.description || '').toLowerCase().includes(lowerQuery) ||
+           (t.remark || '').toLowerCase().includes(lowerQuery) ||
+           (t.createdBy || '').toLowerCase().includes(lowerQuery);
+  });
 
   const handleAddTask = (time, task = null) => {
     setModalState({ isOpen: true, time, task });
@@ -24,6 +34,17 @@ const Dashboard = () => {
 
   const handleCloseModal = () => {
     setModalState({ isOpen: false, time: null, task: null });
+  };
+
+  const handleMarkSelectedDone = () => {
+    if (selectedTaskIds.length === 0) {
+      alert('Please select at least one task to mark as done!');
+      return;
+    }
+    if (window.confirm(`Are you sure you want to mark ${selectedTaskIds.length} selected tasks as done?`)) {
+      markAllPendingDone(selectedTaskIds);
+      setSelectedTaskIds([]);
+    }
   };
 
   const handleRescheduleSubmit = (e) => {
@@ -48,8 +69,14 @@ const Dashboard = () => {
     <div className="daily-scheduler-container">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
         <h1 style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--text-primary)' }}>Daily Scheduler</h1>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--surface-color)', padding: '0.25rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)' }}>
-          <button onClick={handlePrevDay} className="btn btn-outline" style={{ padding: '0.375rem', border: 'none' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          {selectedTaskIds.length > 0 && (
+            <button onClick={handleMarkSelectedDone} className="btn btn-primary" style={{ padding: '0.375rem 0.75rem', fontSize: '0.875rem' }}>
+              <Check size={16} /> Mark Selected Done ({selectedTaskIds.length})
+            </button>
+          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--surface-color)', padding: '0.25rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)' }}>
+            <button onClick={handlePrevDay} className="btn btn-outline" style={{ padding: '0.375rem', border: 'none' }}>
             <ChevronLeft size={16} />
           </button>
           <button onClick={handleToday} className="btn" style={{ padding: '0.375rem 0.75rem', border: 'none', backgroundColor: 'transparent', color: 'var(--text-primary)' }}>
@@ -62,9 +89,9 @@ const Dashboard = () => {
             <CalendarIcon size={16} color="var(--primary-color)" />
             {format(currentDate, 'dd MMM yyyy')}
           </div>
+          </div>
         </div>
       </div>
-      
       {/* Top Overview Section */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
         <div style={{ backgroundColor: 'var(--surface-color)', padding: '1.5rem', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-color)', height: '250px', overflowY: 'auto' }}>
@@ -81,7 +108,26 @@ const Dashboard = () => {
         
         {/* Main Scheduler */}
         <div>
-          <SchedulerTable currentDate={currentDate} onAddTask={handleAddTask} />
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', backgroundColor: 'var(--surface-color)', borderRadius: 'var(--radius-md)', padding: '0.25rem 0.75rem', border: '1px solid var(--border-color)', minWidth: '300px' }}>
+              <Search size={16} color="var(--text-muted)" style={{ marginRight: '0.5rem' }} />
+              <input 
+                type="text" 
+                placeholder="Search by description, remark, or staff..." 
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                style={{ border: 'none', background: 'transparent', width: '100%', outline: 'none', fontSize: '0.875rem', padding: '0.25rem 0' }}
+              />
+            </div>
+          </div>
+          <SchedulerTable 
+            currentDate={currentDate} 
+            onAddTask={handleAddTask} 
+            selectedTaskIds={selectedTaskIds}
+            setSelectedTaskIds={setSelectedTaskIds}
+            todaysTasks={todaysTasks}
+            searchQuery={searchQuery}
+          />
         </div>
 
       </div>

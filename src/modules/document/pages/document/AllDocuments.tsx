@@ -41,6 +41,7 @@ const AllDocuments = () => {
   const { setTitle } = useHeaderStore();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterName, setFilterName] = useState("");
+  const [filterMonth, setFilterMonth] = useState("");
   const [visibleColumns, setVisibleColumns] = useState({
     serialNo: true,
     name: true,
@@ -152,7 +153,26 @@ const AllDocuments = () => {
         ? item.pName === filterName
         : true;
 
-      return matchesSearch && matchesName;
+      let matchesMonth = true;
+      if (filterMonth !== "") {
+        if (!item.firstPremiumDate) {
+          matchesMonth = false;
+        } else {
+          let month = -1;
+          const parts = item.firstPremiumDate.split('.');
+          if (parts.length === 3) {
+            month = parseInt(parts[1], 10) - 1;
+          } else {
+            const d = new Date(item.firstPremiumDate);
+            if (!isNaN(d.getTime())) {
+              month = d.getMonth();
+            }
+          }
+          matchesMonth = month === parseInt(filterMonth, 10);
+        }
+      }
+
+      return matchesSearch && matchesName && matchesMonth;
     })
     .sort((a, b) => {
       const getSnNumber = (sn: string) => {
@@ -457,7 +477,7 @@ const AllDocuments = () => {
           item.policyTerm ? `${item.policyTerm} Yrs` : "-",
           item.firstPremiumDate ? formatDate(item.firstPremiumDate) : "-",
           item.dueDateOfLastPremium ? formatDate(item.dueDateOfLastPremium) : "-",
-          item.coverageTill ? `${item.coverageTill} Yrs` : "-",
+          item.coverageTill ? (/^\d+$/.test(item.coverageTill.toString().trim()) ? `${item.coverageTill} Yrs` : formatDate(item.coverageTill)) : "-",
           item.docRemarks || "-"
         ];
         tableRows.push(rowData);
@@ -603,6 +623,34 @@ const AllDocuments = () => {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 >
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </div>
+            </div>
+
+            {/* Month Filter Dropdown */}
+            <div className="relative">
+              <select
+                value={filterMonth}
+                onChange={(e) => setFilterMonth(e.target.value)}
+                className="appearance-none pl-4 pr-10 py-2.5 shadow-input border-none rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 bg-gray-50 text-gray-700 text-sm font-medium cursor-pointer hover:bg-gray-100 transition-colors"
+              >
+                <option value="">All Months</option>
+                <option value="0">January</option>
+                <option value="1">February</option>
+                <option value="2">March</option>
+                <option value="3">April</option>
+                <option value="4">May</option>
+                <option value="5">June</option>
+                <option value="6">July</option>
+                <option value="7">August</option>
+                <option value="8">September</option>
+                <option value="9">October</option>
+                <option value="10">November</option>
+                <option value="11">December</option>
+              </select>
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="m6 9 6 6 6-6" />
                 </svg>
               </div>
@@ -914,7 +962,7 @@ const AllDocuments = () => {
                         {formatDate(item.dueDateOfLastPremium) || "-"}
                       </td>
                       <td className="px-3 py-2 text-gray-700 text-center">
-                        {item.coverageTill ? `${item.coverageTill} Years` : "-"}
+                        {item.coverageTill ? (/^\d+$/.test(item.coverageTill.toString().trim()) ? `${item.coverageTill} Years` : formatDate(item.coverageTill)) : "-"}
                       </td>
                       <td className="px-3 py-2 text-gray-700 text-center max-w-[150px] truncate" title={item.docRemarks}>
                         {item.docRemarks || "-"}
@@ -1064,7 +1112,7 @@ const AllDocuments = () => {
                     </div>
                     <div>
                       <span className="text-gray-400 block">Coverage Till:</span>
-                      {item.coverageTill ? `${item.coverageTill} yrs` : "-"}
+                      {item.coverageTill ? (/^\d+$/.test(item.coverageTill.toString().trim()) ? `${item.coverageTill} yrs` : formatDate(item.coverageTill)) : "-"}
                     </div>
                   </div>
 

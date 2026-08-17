@@ -42,7 +42,7 @@ export default function Ledger() {
   });
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(15);
+  const [itemsPerPage, setItemsPerPage] = useState(100);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -485,11 +485,10 @@ export default function Ledger() {
                 }}
                 className="border border-gray-300 rounded px-1 flex-shrink-0 md:px-1.5 py-1 focus:outline-none focus:border-sky-500 bg-white font-medium text-[10px] md:text-sm shadow-sm"
               >
-                <option value={10}>10</option>
-                <option value={15}>15</option>
-                <option value={20}>20</option>
-                <option value={50}>50</option>
                 <option value={100}>100</option>
+                <option value={200}>200</option>
+                <option value={300}>300</option>
+                <option value={400}>400</option>
               </select>
               <span className="hidden md:inline text-[10px] md:text-sm text-gray-500 whitespace-nowrap ml-1 font-medium">
                 entries
