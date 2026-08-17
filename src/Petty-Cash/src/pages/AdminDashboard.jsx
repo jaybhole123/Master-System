@@ -6,6 +6,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import SearchableSelect from '../../../components/SearchableSelect';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 import {
   formatDate,
   formatCurrency,
@@ -192,6 +193,26 @@ export default function AdminDashboard() {
     link.click();
   };
 
+  const handleDownloadExcel = () => {
+    const headers = ['S.NO', 'DATE', 'PARTICULARS', 'RECEIVED (Rs)', 'PAID (Rs)', 'BALANCE (Rs)', 'PAID TO', 'APPROVED BY', 'REMARKS'];
+    const data = filteredTransactions.map((t, idx) => [
+      idx + 1,
+      formatDate(t.date),
+      'CASH',
+      t.type === 'CREDIT' ? Math.abs(t.amount) : '',
+      t.type === 'EXPENSE' ? Math.abs(t.amount) : '',
+      t.balance,
+      t.personName,
+      t.type === 'CREDIT' ? '-' : (t.groupHead || '-'),
+      t.remarks || '-'
+    ]);
+
+    const worksheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Transactions');
+    XLSX.writeFile(workbook, `transactions-report-${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
+
   const handleDownloadPDF = () => {
     const doc = new jsPDF('landscape');
     
@@ -317,12 +338,6 @@ export default function AdminDashboard() {
             >
               <TrendingUp size={16} className="rotate-90" />
             </button>
-            <button
-               onClick={handleDownloadPDF}
-               className="bg-red-600 hover:bg-red-700 text-white rounded-lg flex items-center justify-center lg:hidden h-[32px] w-[32px] flex-shrink-0 shadow-sm transition"
-            >
-              <Download size={16} />
-            </button>
           </div>
 
           {/* Filters */}
@@ -380,12 +395,6 @@ export default function AdminDashboard() {
              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 h-[38px] rounded-lg font-semibold flex items-center justify-center gap-2 transition shadow-sm"
           >
             <TrendingUp size={16} className="rotate-90" /> Export CSV
-          </button>
-          <button
-             onClick={handleDownloadPDF}
-             className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 h-[38px] rounded-lg font-semibold flex items-center justify-center gap-2 transition shadow-sm"
-          >
-            <Download size={16} /> Download PDF
           </button>
         </div>
       </div>
@@ -507,7 +516,21 @@ export default function AdminDashboard() {
       </div>
 
       {/* Transaction Details Report */}
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm flex flex-col mt-4">
+      <div className="flex justify-end mt-4 gap-2">
+        <button
+           onClick={handleDownloadExcel}
+           className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 h-[38px] rounded-lg font-semibold flex items-center justify-center gap-2 transition shadow-sm"
+        >
+          <Download size={16} /> Download Excel
+        </button>
+        <button
+           onClick={handleDownloadPDF}
+           className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 h-[38px] rounded-lg font-semibold flex items-center justify-center gap-2 transition shadow-sm"
+        >
+          <Download size={16} /> Download PDF
+        </button>
+      </div>
+      <div className="bg-white rounded-lg border border-gray-200 shadow-sm flex flex-col mt-2">
         <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
           <h3 className="text-lg font-bold text-gray-900">Transaction Details Report</h3>
           <span className="text-sm text-gray-500 font-medium whitespace-nowrap">

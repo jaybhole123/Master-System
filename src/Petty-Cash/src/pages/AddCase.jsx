@@ -414,7 +414,19 @@ export default function AddCase() {
                   {/* RECEIVED */}
                   <div>
                     <label className="block text-[11px] md:text-sm font-bold text-gray-700 mb-0.5 md:mb-2 uppercase">RECEIVED (₹) *</label>
-                    <input type="number" step="0.01" min="0" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} placeholder="0.00" className="w-full border border-gray-300 rounded-lg px-2 py-1.5 md:px-4 md:py-2 focus:outline-none focus:ring-2 focus:ring-sky-400 text-[11px] md:text-base appearance-none bg-white min-h-[30px] md:min-h-[42px]" required />
+                    <input 
+                      type="text" 
+                      value={formData.amount !== '' && formData.amount != null ? formData.amount.toString().split('.').map((p, i) => i === 0 ? (p ? new Intl.NumberFormat('en-IN').format(p) : '0') : p).join('.') : ''} 
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/,/g, '');
+                        if (/^\d*\.?\d*$/.test(val)) {
+                          setFormData({ ...formData, amount: val });
+                        }
+                      }} 
+                      placeholder="0.00" 
+                      className="w-full border border-gray-300 rounded-lg px-2 py-1.5 md:px-4 md:py-2 focus:outline-none focus:ring-2 focus:ring-sky-400 text-[11px] md:text-base appearance-none bg-white min-h-[30px] md:min-h-[42px]" 
+                      required 
+                    />
                   </div>
 
 

@@ -91,18 +91,16 @@ export default function Ledger() {
 
     entries.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-    const personBalances = {};
+    let runningBalance = 0;
     return entries.map(entry => {
-      const name = entry.personName.toLowerCase();
-      if (!personBalances[name]) personBalances[name] = 0;
       if (entry.type === 'CREDIT') {
-        personBalances[name] += entry.amount;
+        runningBalance += entry.amount;
       } else {
-        personBalances[name] -= entry.amount;
+        runningBalance -= entry.amount;
       }
       return {
         ...entry,
-        balance: personBalances[name]
+        balance: runningBalance
       };
     });
   }, [credits, expenses]);
