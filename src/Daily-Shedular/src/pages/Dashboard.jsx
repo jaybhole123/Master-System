@@ -67,7 +67,7 @@ const Dashboard = () => {
 
   return (
     <div className="daily-scheduler-container">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+      <div className="header-flex">
         <h1 style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--text-primary)' }}>Daily Scheduler</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           {selectedTaskIds.length > 0 && (
@@ -93,7 +93,7 @@ const Dashboard = () => {
         </div>
       </div>
       {/* Top Overview Section */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
+      <div className="dashboard-grid">
         <div style={{ backgroundColor: 'var(--surface-color)', padding: '1.5rem', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-color)', height: '250px', overflowY: 'auto' }}>
           <h2 style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '1rem' }}>Team Overview</h2>
           <TeamOverview currentDate={currentDate} />
@@ -149,7 +149,7 @@ const Dashboard = () => {
               <label className="input-label">New Date</label>
               <input required type="date" value={rescheduleModal.newDate} onChange={e => setRescheduleModal(prev => ({ ...prev, newDate: e.target.value }))} className="input-field" />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="form-grid">
               <div className="input-group">
                 <label className="input-label">Start Time</label>
                 <input required type="time" value={rescheduleModal.newStartTime} onChange={e => setRescheduleModal(prev => ({ ...prev, newStartTime: e.target.value }))} className="input-field" />
@@ -176,7 +176,7 @@ const Dashboard = () => {
               <label className="input-label">Date *</label>
               <input required type="date" value={scheduleModal.date} onChange={e => setScheduleModal(prev => ({ ...prev, date: e.target.value }))} className="input-field" />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="form-grid">
               <div className="input-group">
                 <label className="input-label">Start Time *</label>
                 <input required type="time" value={scheduleModal.startTime} onChange={e => setScheduleModal(prev => ({ ...prev, startTime: e.target.value }))} className="input-field" />

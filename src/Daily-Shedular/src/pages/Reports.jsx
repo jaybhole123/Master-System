@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { useScheduler } from '../context/SchedulerContext';
 import { format, isSameDay, parse } from 'date-fns';
 import TaskStatusChart from '../components/dashboard/TaskStatusChart';
-import { Paperclip, Image as ImageIcon, PlayCircle, ShieldCheck } from 'lucide-react';
+import { Paperclip, Image as ImageIcon, PlayCircle, ShieldCheck, Download } from 'lucide-react';
+import jsPDF from 'jspdf';
 
 const Reports = () => {
   const { allTasks: tasks, staffList, formatTime12h, settings, currentUser } = useScheduler();
-  const [startDate, setStartDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [staffFilter, setStaffFilter] = useState('All');
 
@@ -75,6 +76,45 @@ const Reports = () => {
   const overdueTasks = filteredTasks.filter(t => t.status === 'Overdue').length;
   
   const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+  const exportToPDF = () => {
+    const doc = new jsPDF();
+    
+    doc.setFontSize(18);
+    doc.text('Detailed Task History Report', 14, 22);
+    
+    const tableColumn = ["Date", "Time", "Task Details", "Submitted By", "Remarks", "Status", "Completed At"];
+    const tableRows = [];
+
+    tableTasks.slice().reverse().forEach(task => {
+      const timeDate = parse(task.startTime, 'HH:mm', new Date());
+      const endTimeDate = new Date(timeDate.getTime() + (settings?.intervalMinutes || 60) * 60000);
+      
+      const taskData = [
+        format(new Date(task.date), 'dd MMM yyyy'),
+        `${formatTime12h(task.startTime)} - ${format(endTimeDate, 'hh:mm a')}`,
+        task.description || 'No description',
+        task.createdBy || 'Admin',
+        task.remark || task.adminRemark || '-',
+        task.status,
+        task.actualDoneDate ? format(new Date(task.actualDoneDate), 'hh:mm a') : '-'
+      ];
+      tableRows.push(taskData);
+    });
+
+    import('jspdf-autotable').then(({ default: autoTable }) => {
+      autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY: 30,
+        theme: 'grid',
+        headStyles: { fillColor: [37, 99, 235] },
+        styles: { fontSize: 8 },
+      });
+      
+      doc.save(`Task_Report_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+    });
+  };
 
   return (
     <div className="daily-scheduler-container">
@@ -155,19 +195,27 @@ const Reports = () => {
                 </select>
               </>
             )}
+            <button 
+              onClick={exportToPDF}
+              className="btn btn-primary"
+              style={{ padding: '0 0.75rem', height: '36px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+              title="Download PDF"
+            >
+              <Download size={16} /> PDF
+            </button>
           </div>
         </div>
         <table className="table" style={{ marginTop: '1rem' }}>
           <thead>
             <tr>
-              <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '9%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center', whiteSpace: 'nowrap' }}>DATE</th>
-              <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '9%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>TIME</th>
-              <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '16%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>TASK DETAILS</th>
-              <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '10%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center', whiteSpace: 'nowrap' }}>SUBMITTED BY</th>
-              <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '12%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>IMAGE / ATTACHMENT</th>
-              <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '12%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>REMARKS</th>
-              <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '10%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>STATUS</th>
-              <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '11%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>COMPLETED AT</th>
+              <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '8%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center', whiteSpace: 'nowrap' }}>DATE</th>
+              <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '8%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>TIME</th>
+              <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '45%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>TASK DETAILS</th>
+              <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '9%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center', whiteSpace: 'nowrap' }}>SUBMITTED BY</th>
+              <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '8%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>IMAGE / ATTACHMENT</th>
+              <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '8%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>REMARKS</th>
+              <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '7%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>STATUS</th>
+              <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '7%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>COMPLETED AT</th>
             </tr>
           </thead>
           <tbody>

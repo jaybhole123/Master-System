@@ -239,3 +239,105 @@
 .daily-scheduler-container .animate-fade-in {
   animation: fadeIn 0.3s ease-out forwards;
 }
+
+/* Responsive Grid and Cards */
+.daily-scheduler-container .dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.daily-scheduler-container .header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.daily-scheduler-container .form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .daily-scheduler-container .dashboard-grid,
+  .daily-scheduler-container .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .daily-scheduler-container .header-flex {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .daily-scheduler-container .table-container {
+    border: none;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .daily-scheduler-container .table thead {
+    display: none;
+  }
+
+  .daily-scheduler-container .table tbody,
+  .daily-scheduler-container .table tr,
+  .daily-scheduler-container .table td {
+    display: block;
+    width: 100%;
+  }
+
+  .daily-scheduler-container .table tr {
+    margin-bottom: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    background-color: var(--surface-color);
+    box-shadow: var(--shadow-sm);
+    padding: 0.5rem;
+    position: relative;
+  }
+
+  .daily-scheduler-container .table td {
+    border: none;
+    border-bottom: 1px solid var(--border-color);
+    position: relative;
+    padding: 0.75rem 1rem 0.75rem 45%;
+    text-align: right;
+    min-height: 40px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+  }
+
+  .daily-scheduler-container .table td:last-child {
+    border-bottom: none;
+  }
+
+  .daily-scheduler-container .table td::before {
+    content: attr(data-label);
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    text-align: left;
+    width: 40%;
+    padding-right: 10px;
+  }
+
+  /* When there is no data-label, hide the pseudo-element and take full width */
+  .daily-scheduler-container .table td:not([data-label]) {
+    padding-left: 1rem;
+    justify-content: flex-start;
+  }
+  
+  .daily-scheduler-container .table td:not([data-label])::before {
+    display: none;
+  }
+}

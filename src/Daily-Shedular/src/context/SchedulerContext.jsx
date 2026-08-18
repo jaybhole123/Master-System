@@ -267,8 +267,6 @@ export const SchedulerProvider = ({ children }) => {
         actualDoneDate: null,
         remark: ''
       });
-      setSomedayTasks(prev => prev.filter(t => t.id !== id));
-      await supabase.from('someday_tasks').delete().eq('id', id);
     }
   };
 

@@ -1132,7 +1132,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                   }, {})
                 ).map(([moduleName, moduleRoutes]) => (
                   <div key={moduleName} className="mb-4">
-                    {moduleName === "Profile" || moduleName === "Global Settings" || moduleName === "Rent Management" ? (
+                    {moduleName === "Profile" || moduleName === "Global Settings" || moduleName === "Rent Management" || moduleName === "Help Slip" ? (
                       <Link
                         to={moduleRoutes[0].href}
                         onClick={() => setIsMobileMenuOpen(false)}
@@ -1145,6 +1145,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                           {moduleName === "Profile" && <UserRound className="h-5 w-5 shrink-0" />}
                           {moduleName === "Global Settings" && <Settings2 className="h-5 w-5 shrink-0" />}
                           {moduleName === "Rent Management" && <Banknote className="h-5 w-5 shrink-0" />}
+                          {moduleName === "Help Slip" && <HelpCircle className="h-5 w-5 shrink-0" />}
                           <span className="text-left leading-tight truncate">{moduleName}</span>
                         </div>
                       </Link>
@@ -1171,7 +1172,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                         )}
                       </button>
                     )}
-                    {moduleName !== "Profile" && moduleName !== "Global Settings" && moduleName !== "Rent Management" && openModules[moduleName] && moduleRoutes.map((route) => (
+                    {moduleName !== "Profile" && moduleName !== "Global Settings" && moduleName !== "Rent Management" && moduleName !== "Help Slip" && openModules[moduleName] && moduleRoutes.map((route) => (
                       <li key={route.label}>
                     {route.isSubmenu ? (
                       <div className="flex flex-col">

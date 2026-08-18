@@ -4,8 +4,9 @@ import { format, differenceInHours } from 'date-fns';
 import { Check, Calendar } from 'lucide-react';
 
 const WaitingList = () => {
-  const { tasks, markTaskDone, rescheduleTask, staffList } = useScheduler();
+  const { tasks, markTaskDone, rescheduleTask, staffList, generateTimeSlots, settings, formatTime12h } = useScheduler();
   const [rescheduleModal, setRescheduleModal] = useState({ isOpen: false, taskId: null, newDate: '', newStartTime: '', newEndTime: '' });
+  const timeSlots = generateTimeSlots();
 
   const overdueTasks = tasks.filter(t => t.status === 'Overdue');
 
@@ -13,6 +14,25 @@ const WaitingList = () => {
     e.preventDefault();
     rescheduleTask(rescheduleModal.taskId, rescheduleModal.newDate, rescheduleModal.newStartTime, rescheduleModal.newEndTime);
     setRescheduleModal({ isOpen: false, taskId: null, newDate: '', newStartTime: '', newEndTime: '' });
+  };
+
+  const handleStartTimeChange = (e) => {
+    const val = e.target.value;
+    if (!val) return;
+    
+    // Auto calculate end time based on settings
+    const [hours, minutes] = val.split(':');
+    const timeDate = new Date();
+    timeDate.setHours(parseInt(hours, 10));
+    timeDate.setMinutes(parseInt(minutes, 10));
+    
+    const interval = settings?.intervalMinutes || 60;
+    const end = new Date(timeDate.getTime() + interval * 60000);
+    
+    const endHours = String(end.getHours()).padStart(2, '0');
+    const endMinutes = String(end.getMinutes()).padStart(2, '0');
+    
+    setRescheduleModal(prev => ({ ...prev, newStartTime: val, newEndTime: `${endHours}:${endMinutes}` }));
   };
 
   return (
@@ -86,7 +106,10 @@ const WaitingList = () => {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div className="input-group">
                 <label className="input-label">Start Time</label>
-                <input required type="time" value={rescheduleModal.newStartTime} onChange={e => setRescheduleModal(prev => ({ ...prev, newStartTime: e.target.value }))} className="input-field" />
+                <select required value={rescheduleModal.newStartTime} onChange={handleStartTimeChange} className="input-field">
+                  <option value="">Select Time Slot</option>
+                  {timeSlots.map(t => <option key={t} value={t}>{formatTime12h(t)}</option>)}
+                </select>
               </div>
               <div className="input-group">
                 <label className="input-label">End Time</label>
