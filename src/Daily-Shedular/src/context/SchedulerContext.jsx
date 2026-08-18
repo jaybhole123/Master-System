@@ -179,14 +179,13 @@ export const SchedulerProvider = ({ children }) => {
   
   const updateTask = async (id, updates) => {
     const dbUpdates = {};
+    if (updates.description !== undefined) dbUpdates.description = updates.description;
     if (updates.status !== undefined) dbUpdates.status = updates.status;
     if (updates.actualDoneDate !== undefined) dbUpdates.actual_done_date = updates.actualDoneDate;
     if (updates.remark !== undefined) dbUpdates.remark = updates.remark;
     if (updates.date !== undefined) dbUpdates.date = updates.date;
     if (updates.startTime !== undefined) dbUpdates.start_time = updates.startTime;
     if (updates.endTime !== undefined) dbUpdates.end_time = updates.endTime;
-    if (updates.status !== undefined) dbUpdates.status = updates.status;
-    if (updates.remark !== undefined) dbUpdates.remark = updates.remark;
     if (updates.attachments !== undefined) dbUpdates.attachments = JSON.stringify(updates.attachments);
     if (updates.color !== undefined) dbUpdates.color = updates.color;
     
