@@ -22,6 +22,7 @@ const TaskModal = ({ isOpen, onClose, task, selectedTime, selectedDate }) => {
 
   const textareaRef = React.useRef(null);
   const [suggestions, setSuggestions] = useState([]);
+  const processedResultsRef = React.useRef(new Set());
 
   // Generate dictionary from existing tasks
   const dictionary = React.useMemo(() => {
@@ -65,19 +66,24 @@ const TaskModal = ({ isOpen, onClose, task, selectedTime, selectedDate }) => {
     }
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
-    recognition.interimResults = true;
+    recognition.interimResults = false;
+    
+    // Reset processed results tracker
+    processedResultsRef.current = new Set();
     
     recognition.onstart = () => setIsListening(true);
     
     recognition.onresult = (event) => {
       let finalTranscript = '';
       for (let i = event.resultIndex; i < event.results.length; ++i) {
-        if (event.results[i].isFinal) {
+        if (event.results[i].isFinal && !processedResultsRef.current.has(i)) {
           finalTranscript += event.results[i][0].transcript + ' ';
+          processedResultsRef.current.add(i);
         }
       }
       if (finalTranscript) {
-        setFormData(prev => ({ ...prev, description: (prev.description || '') + (prev.description && !prev.description.endsWith(' ') ? ' ' : '') + finalTranscript }));
+        const trimmed = finalTranscript.trim();
+        setFormData(prev => ({ ...prev, description: (prev.description || '') + (prev.description && !prev.description.endsWith(' ') ? ' ' : '') + trimmed }));
       }
     };
     

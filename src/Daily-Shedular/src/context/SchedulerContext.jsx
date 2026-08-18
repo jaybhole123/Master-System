@@ -329,7 +329,7 @@ export const SchedulerProvider = ({ children }) => {
                   (localStorage.getItem('role') || '').toLowerCase().trim() === 'superadmin';
   
   const myTasks = tasks.filter(t => String(t.assignedStaff) === String(currentUser?.id) || String(t.createdBy) === String(currentUser?.name));
-  const filteredSomedayTasks = isAdmin ? somedayTasks : somedayTasks.filter(t => String(t.createdBy) === String(currentUser?.name));
+  const filteredSomedayTasks = somedayTasks.filter(t => String(t.createdBy) === String(currentUser?.name));
   const filteredRecurringTasks = isAdmin ? recurringTasks : recurringTasks.filter(t => String(t.assignedStaff) === String(currentUser?.id));
 
   const value = {
