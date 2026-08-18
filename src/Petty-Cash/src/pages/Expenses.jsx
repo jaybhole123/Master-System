@@ -8,6 +8,7 @@ import {
   generateId,
   generateSerialNumber,
   formatDate,
+  formatDateForInput,
   formatCurrency,
   fileToBase64,
   getTodayDate,
@@ -85,10 +86,10 @@ export default function Expenses() {
   const [addModalType, setAddModalType] = useState('');
   const [addModalValue, setAddModalValue] = useState('');
   const [editingExpenseId, setEditingExpenseId] = useState(null);
+  const [selectedDateStr, setSelectedDateStr] = useState(getTodayDate());
+  const dateInputRef = useRef(null);
 
   const [filters, setFilters] = useState({
-    fromDate: '',
-    toDate: '',
     personName: '',
     mode: '',
     groupHead: '',
@@ -97,9 +98,60 @@ export default function Expenses() {
 
   const [visibleCount, setVisibleCount] = useState(50);
 
+  const handlePrevDay = () => {
+    if (!selectedDateStr) return;
+    const [year, month, day] = selectedDateStr.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    date.setDate(date.getDate() - 1);
+    setSelectedDateStr(formatDateForInput(date));
+  };
+
+  const handleNextDay = () => {
+    if (!selectedDateStr) return;
+    const [year, month, day] = selectedDateStr.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    date.setDate(date.getDate() + 1);
+    setSelectedDateStr(formatDateForInput(date));
+  };
+
+  const handleToday = () => {
+    setSelectedDateStr(getTodayDate());
+  };
+
+  const formatSelectedDateDisplay = (dateStr) => {
+    if (!dateStr) return '';
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    return date.toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    });
+  };
+
+  const handleOpenAddModal = () => {
+    setFormData({
+      personName: '',
+      date: selectedDateStr,
+      amount: '',
+      paymentMode: '',
+      groupHead: '',
+      remarks: '',
+      particulars: '',
+      received: '',
+      balance: ''
+    });
+    setEditingExpenseId(null);
+    setImage(null);
+    setImagePreview('');
+    setShowFormModal(true);
+  };
+
+
+
   useEffect(() => {
     setVisibleCount(50);
-  }, [filters, activeTab, statusFilter]);
+  }, [filters, activeTab, statusFilter, selectedDateStr]);
 
   useEffect(() => {
     if (formData.received !== '' || formData.amount !== '') {
@@ -133,6 +185,15 @@ export default function Expenses() {
   const approvedExpenses = expenses.filter(e => e.status === 'APPROVED');
   const rejectedExpenses = expenses.filter(e => e.status === 'REJECTED');
 
+  const pendingOnOtherDates = useMemo(() => {
+    return pendingExpenses.filter(e => e.date !== selectedDateStr);
+  }, [pendingExpenses, selectedDateStr]);
+
+  const otherPendingDates = useMemo(() => {
+    const dates = pendingOnOtherDates.map(e => e.date).filter(Boolean);
+    return Array.from(new Set(dates)).sort();
+  }, [pendingOnOtherDates]);
+
   const displayExpenses = useMemo(() => {
     if (activeTab === 'pending') {
       return pendingExpenses;
@@ -146,8 +207,7 @@ export default function Expenses() {
   }, [activeTab, statusFilter, pendingExpenses, approvedExpenses, rejectedExpenses]);
 
   const filteredExpenses = displayExpenses.filter(expense => {
-    if (filters.fromDate && expense.date < filters.fromDate) return false;
-    if (filters.toDate && expense.date > filters.toDate) return false;
+    if (expense.date !== selectedDateStr) return false;
     if (filters.personName && (expense.person_name || expense.personName) !== filters.personName) return false;
     if (filters.mode && (expense.payment_mode || expense.paymentMode) !== filters.mode) return false;
     if (filters.groupHead && (expense.group_head || expense.groupHead) !== filters.groupHead) return false;
@@ -496,7 +556,7 @@ export default function Expenses() {
             </button>
             {/* Mobile Add Button */}
             <button
-               onClick={() => setShowFormModal(true)}
+               onClick={handleOpenAddModal}
                className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg flex items-center justify-center lg:hidden h-[32px] w-[32px] flex-shrink-0 shadow-sm transition"
             >
               <Plus size={16} />
@@ -505,24 +565,60 @@ export default function Expenses() {
 
           {/* Filters */}
           <div className={`${showMobileFilters ? 'grid' : 'hidden'} lg:flex grid-cols-2 md:grid-cols-4 lg:flex-row lg:flex-wrap gap-2 w-full lg:w-auto lg:flex-[5] items-center`}>
-            <input
-              type="text"
-              placeholder="From Date"
-              onFocus={(e) => (e.target.type = 'date')}
-              onBlur={(e) => { if (!e.target.value) e.target.type = 'text'; }}
-              value={filters.fromDate}
-              onChange={(e) => setFilters({ ...filters, fromDate: e.target.value })}
-              className="w-full lg:min-w-[110px] lg:flex-1 bg-white border border-gray-300 rounded-lg lg:rounded px-2 py-1.5 focus:outline-none focus:border-indigo-500 text-[11px] md:text-sm h-[32px] md:h-[38px]"
-            />
-            <input
-              type="text"
-              placeholder="To Date"
-              onFocus={(e) => (e.target.type = 'date')}
-              onBlur={(e) => { if (!e.target.value) e.target.type = 'text'; }}
-              value={filters.toDate}
-              onChange={(e) => setFilters({ ...filters, toDate: e.target.value })}
-              className="w-full lg:min-w-[110px] lg:flex-1 bg-white border border-gray-300 rounded-lg lg:rounded px-2 py-1.5 focus:outline-none focus:border-indigo-500 text-[11px] md:text-sm h-[32px] md:h-[38px]"
-            />
+            {/* Day Navigation Control */}
+            <div className="col-span-2 lg:flex-1 w-full lg:min-w-[270px] flex-shrink-0">
+              <div className="flex items-center justify-between bg-white border border-gray-300 rounded-lg lg:rounded p-1 text-gray-700 h-[32px] md:h-[38px] relative w-full shadow-sm overflow-hidden">
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <button
+                    type="button"
+                    onClick={handlePrevDay}
+                    className="flex items-center justify-center w-6 h-6 md:w-7 md:h-7 hover:bg-gray-100 active:bg-gray-200 rounded border border-gray-200 transition text-gray-600 flex-shrink-0"
+                    title="Previous Day"
+                  >
+                    <ChevronLeft size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleToday}
+                    className="hover:bg-gray-100 active:bg-gray-200 px-2 py-0.5 rounded transition text-[11px] md:text-xs font-semibold text-indigo-700 bg-indigo-50/50 flex-shrink-0"
+                  >
+                    Today
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleNextDay}
+                    className="flex items-center justify-center w-6 h-6 md:w-7 md:h-7 hover:bg-gray-100 active:bg-gray-200 rounded border border-gray-200 transition text-gray-600 flex-shrink-0"
+                    title="Next Day"
+                  >
+                    <ChevronRight size={14} />
+                  </button>
+                </div>
+                <div className="h-5 w-px bg-gray-200 mx-1 flex-shrink-0"></div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (dateInputRef.current) {
+                      if (typeof dateInputRef.current.showPicker === 'function') {
+                        dateInputRef.current.showPicker();
+                      } else {
+                        dateInputRef.current.click();
+                      }
+                    }
+                  }}
+                  className="flex items-center gap-1.5 px-2 py-1 hover:bg-gray-50 rounded transition text-xs md:text-sm font-semibold text-gray-700 cursor-pointer flex-shrink-0"
+                >
+                  <Calendar size={14} className="text-indigo-600 flex-shrink-0" />
+                  <span className="font-semibold text-gray-800 whitespace-nowrap flex-shrink-0">{formatSelectedDateDisplay(selectedDateStr)}</span>
+                </button>
+                <input
+                  ref={dateInputRef}
+                  type="date"
+                  value={selectedDateStr}
+                  onChange={(e) => setSelectedDateStr(e.target.value)}
+                  style={{ position: 'absolute', width: 0, height: 0, opacity: 0, pointerEvents: 'none' }}
+                />
+              </div>
+            </div>
             <SearchableSelect
               value={filters.personName}
               onChange={(val) => setFilters({ ...filters, personName: val })}
@@ -567,7 +663,7 @@ export default function Expenses() {
 
         {/* Desktop Add Button */}
         <button
-           onClick={() => setShowFormModal(true)}
+           onClick={handleOpenAddModal}
            className="hidden lg:flex bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 h-[38px] rounded-lg font-semibold items-center justify-center gap-2 transition shadow-sm w-full lg:w-auto flex-shrink-0 whitespace-nowrap"
         >
           <Plus size={16} /> Add Expense
@@ -767,6 +863,33 @@ export default function Expenses() {
         </div>
       )}
 
+      {/* Smart Pending Banner */}
+      {activeTab === 'pending' && otherPendingDates.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-amber-800 text-xs md:text-sm flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-sm">
+          <div className="flex items-center gap-2">
+            <span className="text-base">⚠️</span>
+            <span>
+              You have pending expenses on other dates:{" "}
+              <span className="font-semibold">
+                {otherPendingDates.map(d => formatDate(d)).join(', ')}
+              </span>
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-1">
+            {otherPendingDates.map(d => (
+              <button
+                key={d}
+                type="button"
+                onClick={() => setSelectedDateStr(d)}
+                className="bg-amber-100 hover:bg-amber-200 text-amber-900 px-2 py-0.5 rounded font-medium transition text-[10px] md:text-xs"
+              >
+                Go to {formatDate(d)}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Expenses List Container */}
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm flex flex-col pt-1 mt-2 flex-1 min-h-0">
 
@@ -873,7 +996,7 @@ export default function Expenses() {
         </div>
 
         {/* Desktop View: Table */}
-        <div onScroll={handleScroll} className="hidden md:block overflow-x-auto overflow-y-auto flex-1 min-h-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <div onScroll={handleScroll} className="hidden md:block overflow-x-auto overflow-y-auto max-h-[calc(100vh-270px)] flex-1 min-h-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           <div className="bg-red-600 border-b-2 border-red-700 p-2 text-center shadow-sm sticky top-0 z-20">
             <h1 className="text-white font-bold text-lg md:text-2xl tracking-wider uppercase">JAI BHOLE GROUPS OF COMPANIES</h1>
           </div>

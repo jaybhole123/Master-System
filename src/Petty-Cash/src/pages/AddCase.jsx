@@ -11,6 +11,7 @@ import {
   generateId,
   generateSerialNumber,
   formatDate,
+  formatDateForInput,
   formatCurrency,
   fileToBase64,
   getTodayDate,
@@ -47,15 +48,65 @@ export default function AddCase() {
   const [selectedImage, setSelectedImage] = useState('');
   const [showFormModal, setShowFormModal] = useState(false);
   const [editingCreditId, setEditingCreditId] = useState(null);
+  const [selectedDateStr, setSelectedDateStr] = useState(getTodayDate());
+  const dateInputRef = useRef(null);
+
   const [filters, setFilters] = useState({
-    fromDate: '',
-    toDate: '',
     personName: '',
     mode: '',
     searchQuery: ''
   });
 
   const [visibleCount, setVisibleCount] = useState(50);
+
+  const handlePrevDay = () => {
+    if (!selectedDateStr) return;
+    const [year, month, day] = selectedDateStr.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    date.setDate(date.getDate() - 1);
+    setSelectedDateStr(formatDateForInput(date));
+  };
+
+  const handleNextDay = () => {
+    if (!selectedDateStr) return;
+    const [year, month, day] = selectedDateStr.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    date.setDate(date.getDate() + 1);
+    setSelectedDateStr(formatDateForInput(date));
+  };
+
+  const handleToday = () => {
+    setSelectedDateStr(getTodayDate());
+  };
+
+  const formatSelectedDateDisplay = (dateStr) => {
+    if (!dateStr) return '';
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    return date.toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    });
+  };
+
+  const handleOpenAddModal = () => {
+    setFormData({
+      personName: '',
+      date: selectedDateStr,
+      amount: '',
+      paymentMode: '',
+      remarks: '',
+      particulars: 'CASH',
+      paid: '',
+      balance: '',
+      approvedBy: ''
+    });
+    setEditingCreditId(null);
+    setImage(null);
+    setImagePreview('');
+    setShowFormModal(true);
+  };
 
   const fetchCredits = async () => {
     try {
@@ -86,14 +137,13 @@ export default function AddCase() {
 
   useEffect(() => {
     setVisibleCount(50);
-  }, [filters]);
+  }, [filters, selectedDateStr]);
 
   const filteredCredits = credits.filter(credit => {
     const personName = credit.person_name || credit.personName;
     const paymentMode = credit.payment_mode || credit.paymentMode;
 
-    if (filters.fromDate && credit.date < filters.fromDate) return false;
-    if (filters.toDate && credit.date > filters.toDate) return false;
+    if (credit.date !== selectedDateStr) return false;
     if (filters.personName && personName !== filters.personName) return false;
     if (filters.mode && paymentMode !== filters.mode) return false;
 
@@ -325,7 +375,7 @@ export default function AddCase() {
             </button>
             {/* Mobile Add Button */}
             <button
-              onClick={() => setShowFormModal(true)}
+              onClick={handleOpenAddModal}
               className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg flex items-center justify-center lg:hidden h-[32px] w-[32px] flex-shrink-0 shadow-sm transition"
             >
               <Plus size={16} />
@@ -334,24 +384,60 @@ export default function AddCase() {
 
           {/* Filters */}
           <div className={`${showMobileFilters ? 'grid' : 'hidden'} lg:flex grid-cols-2 md:grid-cols-4 lg:flex-row gap-2 w-full lg:w-auto lg:flex-[4] items-center`}>
-             <input
-               type="text"
-               placeholder="From Date"
-               onFocus={(e) => (e.target.type = 'date')}
-               onBlur={(e) => { if (!e.target.value) e.target.type = 'text'; }}
-               value={filters.fromDate}
-               onChange={(e) => setFilters({ ...filters, fromDate: e.target.value })}
-               className="w-full bg-white border border-gray-300 rounded-lg lg:rounded px-2 py-1.5 focus:outline-none focus:border-sky-500 text-[11px] md:text-sm h-[32px] md:h-[38px]"
-             />
-             <input
-               type="text"
-               placeholder="To Date"
-               onFocus={(e) => (e.target.type = 'date')}
-               onBlur={(e) => { if (!e.target.value) e.target.type = 'text'; }}
-               value={filters.toDate}
-               onChange={(e) => setFilters({ ...filters, toDate: e.target.value })}
-               className="w-full bg-white border border-gray-300 rounded-lg lg:rounded px-2 py-1.5 focus:outline-none focus:border-sky-500 text-[11px] md:text-sm h-[32px] md:h-[38px]"
-             />
+            {/* Day Navigation Control */}
+            <div className="col-span-2 lg:flex-1 w-full lg:min-w-[270px] flex-shrink-0">
+              <div className="flex items-center justify-between bg-white border border-gray-300 rounded-lg lg:rounded p-1 text-gray-700 h-[32px] md:h-[38px] relative w-full shadow-sm overflow-hidden">
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <button
+                    type="button"
+                    onClick={handlePrevDay}
+                    className="flex items-center justify-center w-6 h-6 md:w-7 md:h-7 hover:bg-gray-100 active:bg-gray-200 rounded border border-gray-200 transition text-gray-600 flex-shrink-0"
+                    title="Previous Day"
+                  >
+                    <ChevronLeft size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleToday}
+                    className="hover:bg-gray-100 active:bg-gray-200 px-2 py-0.5 rounded transition text-[11px] md:text-xs font-semibold text-indigo-700 bg-indigo-50/50 flex-shrink-0"
+                  >
+                    Today
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleNextDay}
+                    className="flex items-center justify-center w-6 h-6 md:w-7 md:h-7 hover:bg-gray-100 active:bg-gray-200 rounded border border-gray-200 transition text-gray-600 flex-shrink-0"
+                    title="Next Day"
+                  >
+                    <ChevronRight size={14} />
+                  </button>
+                </div>
+                <div className="h-5 w-px bg-gray-200 mx-1 flex-shrink-0"></div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (dateInputRef.current) {
+                      if (typeof dateInputRef.current.showPicker === 'function') {
+                        dateInputRef.current.showPicker();
+                      } else {
+                        dateInputRef.current.click();
+                      }
+                    }
+                  }}
+                  className="flex items-center gap-1.5 px-2 py-1 hover:bg-gray-50 rounded transition text-xs md:text-sm font-semibold text-gray-700 cursor-pointer flex-shrink-0"
+                >
+                  <Calendar size={14} className="text-indigo-600 flex-shrink-0" />
+                  <span className="font-semibold text-gray-800 whitespace-nowrap flex-shrink-0">{formatSelectedDateDisplay(selectedDateStr)}</span>
+                </button>
+                <input
+                  ref={dateInputRef}
+                  type="date"
+                  value={selectedDateStr}
+                  onChange={(e) => setSelectedDateStr(e.target.value)}
+                  style={{ position: 'absolute', width: 0, height: 0, opacity: 0, pointerEvents: 'none' }}
+                />
+              </div>
+            </div>
              <SearchableSelect
                value={filters.personName}
                onChange={(val) => setFilters({ ...filters, personName: val })}
@@ -375,7 +461,7 @@ export default function AddCase() {
 
         {/* Desktop Add Button */}
         <button
-          onClick={() => setShowFormModal(true)}
+          onClick={handleOpenAddModal}
           className="hidden lg:flex bg-red-600 hover:bg-red-700 text-white px-4 py-2 h-[38px] rounded-lg font-semibold items-center justify-center gap-2 transition shadow-sm w-full lg:w-auto flex-shrink-0 mt-2 lg:mt-0"
         >
           <Plus size={16} /> Add Cash

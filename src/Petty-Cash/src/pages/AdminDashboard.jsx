@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { TrendingUp, TrendingDown, AlertCircle, Eye, ChevronLeft, ChevronRight, Search, Filter, Download } from 'lucide-react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { TrendingUp, TrendingDown, AlertCircle, Eye, ChevronLeft, ChevronRight, Search, Filter, Download, Calendar } from 'lucide-react';
 import supabase from '../../../SupabaseClient';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -9,6 +9,8 @@ import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import {
   formatDate,
+  formatDateForInput,
+  getTodayDate,
   formatCurrency,
   getTotalBalance,
   getPendingCount,
@@ -41,18 +43,51 @@ export default function AdminDashboard() {
     fetchExpenses();
   }, []);
 
+  const [selectedDateStr, setSelectedDateStr] = useState(getTodayDate());
+  const dateInputRef = useRef(null);
+
   const [filters, setFilters] = useState({
-    dateFrom: '',
-    dateTo: '',
     personName: '',
     groupHead: '',
     paymentMode: '',
     searchQuery: ''
   });
+
+  const handlePrevDay = () => {
+    if (!selectedDateStr) return;
+    const [year, month, day] = selectedDateStr.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    date.setDate(date.getDate() - 1);
+    setSelectedDateStr(formatDateForInput(date));
+  };
+
+  const handleNextDay = () => {
+    if (!selectedDateStr) return;
+    const [year, month, day] = selectedDateStr.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    date.setDate(date.getDate() + 1);
+    setSelectedDateStr(formatDateForInput(date));
+  };
+
+  const handleToday = () => {
+    setSelectedDateStr(getTodayDate());
+  };
+
+  const formatSelectedDateDisplay = (dateStr) => {
+    if (!dateStr) return '';
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    return date.toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    });
+  };
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(100);
   const [showImageModal, setShowImageModal] = useState(false);
   const [selectedImage, setSelectedImage] = useState('');
+  const [summaryType, setSummaryType] = useState('DAILY');
 
   // Calculate statistics
   const totalCredit = credits.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
@@ -64,6 +99,20 @@ export default function AdminDashboard() {
   const todaysExpense = getTodaysExpenses(expenses);
   const todaysCredit = getTodaysCredits(credits);
   const totalTransactions = credits.length + expenses.length;
+
+  // Calculate statistics for selected day
+  const dayCredit = credits
+    .filter(c => c.date === selectedDateStr)
+    .reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
+
+  const dayExpense = expenses
+    .filter(e => e.date === selectedDateStr && e.status === 'APPROVED')
+    .reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
+
+  const dayAvailableBalance = dayCredit - dayExpense;
+
+  const dayPendingApprovals = expenses
+    .filter(e => e.date === selectedDateStr && e.status === 'PENDING').length;
 
   const filteredTransactions = useMemo(() => {
     // First, compute chronological running balance for all approved transactions
@@ -87,8 +136,7 @@ export default function AdminDashboard() {
       const pMode = c.payment_mode || c.paymentMode || '';
       const pImg = c.receipt_url || c.image || '';
 
-      if (!filters.dateFrom || !filters.dateTo || 
-          isDateInRange(c.date, filters.dateFrom, filters.dateTo)) {
+      if (c.date === selectedDateStr) {
         if (!filters.personName || pName.toLowerCase().includes(filters.personName.toLowerCase())) {
           if (!filters.paymentMode || pMode === filters.paymentMode) {
             transactions.push({
@@ -117,8 +165,7 @@ export default function AdminDashboard() {
       const pGroup = e.group_head || e.groupHead || '';
       const pImg = e.receipt_url || e.image || '';
 
-      if (!filters.dateFrom || !filters.dateTo || 
-          isDateInRange(e.date, filters.dateFrom, filters.dateTo)) {
+      if (e.date === selectedDateStr) {
         if (!filters.personName || pName.toLowerCase().includes(filters.personName.toLowerCase())) {
           if (!filters.groupHead || pGroup === filters.groupHead) {
             if (!filters.paymentMode || pMode === filters.paymentMode) {
@@ -162,7 +209,7 @@ export default function AdminDashboard() {
 
     // Sort by date descending
     return filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
-  }, [filters, credits, expenses]);
+  }, [filters, credits, expenses, selectedDateStr]);
 
   // Paginated Transactions
   const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
@@ -346,24 +393,60 @@ export default function AdminDashboard() {
 
           {/* Filters */}
           <div className={`${showMobileFilters ? 'grid' : 'hidden'} lg:flex grid-cols-2 lg:flex-row lg:flex-wrap gap-2 w-full lg:w-auto lg:flex-[5] items-center`}>
-              <input
-                type="text"
-                placeholder="From Date"
-                onFocus={(e) => (e.target.type = 'date')}
-                onBlur={(e) => { if (!e.target.value) e.target.type = 'text'; }}
-                value={filters.dateFrom}
-                onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
-                className="w-full lg:min-w-[110px] lg:flex-1 bg-white border border-gray-300 rounded-lg lg:rounded px-2 py-1.5 focus:outline-none focus:border-indigo-500 text-[11px] md:text-sm h-[32px] md:h-[38px]"
-              />
-              <input
-                type="text"
-                placeholder="To Date"
-                onFocus={(e) => (e.target.type = 'date')}
-                onBlur={(e) => { if (!e.target.value) e.target.type = 'text'; }}
-                value={filters.dateTo}
-                onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
-                className="w-full lg:min-w-[110px] lg:flex-1 bg-white border border-gray-300 rounded-lg lg:rounded px-2 py-1.5 focus:outline-none focus:border-indigo-500 text-[11px] md:text-sm h-[32px] md:h-[38px]"
-              />
+            {/* Day Navigation Control */}
+            <div className="col-span-2 lg:flex-1 w-full lg:min-w-[270px] flex-shrink-0">
+              <div className="flex items-center justify-between bg-white border border-gray-300 rounded-lg lg:rounded p-1 text-gray-700 h-[32px] md:h-[38px] relative w-full shadow-sm overflow-hidden">
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <button
+                    type="button"
+                    onClick={handlePrevDay}
+                    className="flex items-center justify-center w-6 h-6 md:w-7 md:h-7 hover:bg-gray-100 active:bg-gray-200 rounded border border-gray-200 transition text-gray-600 flex-shrink-0"
+                    title="Previous Day"
+                  >
+                    <ChevronLeft size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleToday}
+                    className="hover:bg-gray-100 active:bg-gray-200 px-2 py-0.5 rounded transition text-[11px] md:text-xs font-semibold text-indigo-700 bg-indigo-50/50 flex-shrink-0"
+                  >
+                    Today
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleNextDay}
+                    className="flex items-center justify-center w-6 h-6 md:w-7 md:h-7 hover:bg-gray-100 active:bg-gray-200 rounded border border-gray-200 transition text-gray-600 flex-shrink-0"
+                    title="Next Day"
+                  >
+                    <ChevronRight size={14} />
+                  </button>
+                </div>
+                <div className="h-5 w-px bg-gray-200 mx-1 flex-shrink-0"></div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (dateInputRef.current) {
+                      if (typeof dateInputRef.current.showPicker === 'function') {
+                        dateInputRef.current.showPicker();
+                      } else {
+                        dateInputRef.current.click();
+                      }
+                    }
+                  }}
+                  className="flex items-center gap-1.5 px-2 py-1 hover:bg-gray-50 rounded transition text-xs md:text-sm font-semibold text-gray-700 cursor-pointer flex-shrink-0"
+                >
+                  <Calendar size={14} className="text-indigo-600 flex-shrink-0" />
+                  <span className="font-semibold text-gray-800 whitespace-nowrap flex-shrink-0">{formatSelectedDateDisplay(selectedDateStr)}</span>
+                </button>
+                <input
+                  ref={dateInputRef}
+                  type="date"
+                  value={selectedDateStr}
+                  onChange={(e) => setSelectedDateStr(e.target.value)}
+                  style={{ position: 'absolute', width: 0, height: 0, opacity: 0, pointerEvents: 'none' }}
+                />
+              </div>
+            </div>
               <input
                 type="text"
                 value={filters.personName}
@@ -403,66 +486,142 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Total Credit */}
-        <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-6 border border-green-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 text-sm font-medium">Total Credit</p>
-              <p className="text-2xl font-bold text-green-700 mt-2">
-                {formatCurrency(totalCredit)}
-              </p>
-            </div>
-            <TrendingUp className="text-green-600" size={32} />
-          </div>
-        </div>
-
-        {/* Total Expense */}
-        <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-lg p-6 border border-red-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 text-sm font-medium">Total Expense</p>
-              <p className="text-2xl font-bold text-red-700 mt-2">
-                {formatCurrency(totalExpense)}
-              </p>
-            </div>
-            <TrendingDown className="text-red-600" size={32} />
-          </div>
-        </div>
-
-        {/* Available Balance */}
-        <div className={`rounded-lg p-6 border bg-gradient-to-br ${
-          availableBalance >= 0 
-            ? 'from-blue-50 to-blue-100 border-blue-200' 
-            : 'from-orange-50 to-orange-100 border-orange-200'
-        }`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 text-sm font-medium">Available Balance</p>
-              <p className={`text-2xl font-bold mt-2 ${
-                availableBalance >= 0 ? 'text-blue-700' : 'text-orange-700'
-              }`}>
-                {formatCurrency(availableBalance)}
-              </p>
-            </div>
-            {availableBalance < 0 && <AlertCircle className="text-orange-600" size={32} />}
-          </div>
-        </div>
-
-        {/* Pending Approvals */}
-        <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-6 border border-purple-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 text-sm font-medium">Pending Approvals</p>
-              <p className="text-2xl font-bold text-purple-700 mt-2">
-                {pendingApprovals}
-              </p>
-            </div>
-            <AlertCircle className="text-purple-600" size={32} />
-          </div>
-        </div>
+      {/* Statistics Section Header with Toggle Dropdown */}
+      <div className="flex justify-between items-center bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 mt-2 shadow-sm">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 leading-none">
+          {summaryType === 'DAILY' ? `Daily Summary (${formatSelectedDateDisplay(selectedDateStr)})` : 'Overall Summary'}
+        </h3>
+        <select
+          value={summaryType}
+          onChange={(e) => setSummaryType(e.target.value)}
+          className="bg-white border border-gray-300 rounded px-2 py-1 text-xs font-semibold text-gray-700 focus:outline-none focus:border-indigo-500 shadow-sm cursor-pointer"
+        >
+          <option value="DAILY">Daily Summary</option>
+          <option value="OVERALL">Overall Summary</option>
+        </select>
       </div>
+
+      {summaryType === 'OVERALL' ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Total Credit */}
+          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-6 border border-green-200 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-600 text-sm font-medium">Total Credit</p>
+                <p className="text-2xl font-bold text-green-700 mt-2">
+                  {formatCurrency(totalCredit)}
+                </p>
+              </div>
+              <TrendingUp className="text-green-600" size={32} />
+            </div>
+          </div>
+
+          {/* Total Expense */}
+          <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-lg p-6 border border-red-200 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-600 text-sm font-medium">Total Expense</p>
+                <p className="text-2xl font-bold text-red-700 mt-2">
+                  {formatCurrency(totalExpense)}
+                </p>
+              </div>
+              <TrendingDown className="text-red-600" size={32} />
+            </div>
+          </div>
+
+          {/* Available Balance */}
+          <div className={`rounded-lg p-6 border shadow-sm bg-gradient-to-br ${
+            availableBalance >= 0 
+              ? 'from-blue-50 to-blue-100 border-blue-200' 
+              : 'from-orange-50 to-orange-100 border-orange-200'
+          }`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-600 text-sm font-medium">Available Balance</p>
+                <p className={`text-2xl font-bold mt-2 ${
+                  availableBalance >= 0 ? 'text-blue-700' : 'text-orange-700'
+                }`}>
+                  {formatCurrency(availableBalance)}
+                </p>
+              </div>
+              {availableBalance < 0 && <AlertCircle className="text-orange-600" size={32} />}
+            </div>
+          </div>
+
+          {/* Pending Approvals */}
+          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-6 border border-purple-200 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-600 text-sm font-medium">Pending Approvals</p>
+                <p className="text-2xl font-bold text-purple-700 mt-2">
+                  {pendingApprovals}
+                </p>
+              </div>
+              <AlertCircle className="text-purple-600" size={32} />
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Day Total Credit */}
+          <div className="bg-gradient-to-br from-emerald-50/50 to-emerald-100/50 rounded-lg p-6 border border-emerald-200 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-600 text-sm font-medium">Day Credit</p>
+                <p className="text-2xl font-bold text-emerald-700 mt-2">
+                  {formatCurrency(dayCredit)}
+                </p>
+              </div>
+              <TrendingUp className="text-emerald-600" size={32} />
+            </div>
+          </div>
+
+          {/* Day Total Expense */}
+          <div className="bg-gradient-to-br from-rose-50/50 to-rose-100/50 rounded-lg p-6 border border-rose-200 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-600 text-sm font-medium">Day Expense</p>
+                <p className="text-2xl font-bold text-rose-700 mt-2">
+                  {formatCurrency(dayExpense)}
+                </p>
+              </div>
+              <TrendingDown className="text-rose-600" size={32} />
+            </div>
+          </div>
+
+          {/* Day Available Balance */}
+          <div className={`rounded-lg p-6 border shadow-sm bg-gradient-to-br ${
+            dayAvailableBalance >= 0 
+              ? 'from-sky-50/50 to-sky-100/50 border-sky-200' 
+              : 'from-amber-50/50 to-amber-100/50 border-amber-200'
+          }`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-600 text-sm font-medium">Day Net Balance</p>
+                <p className={`text-2xl font-bold mt-2 ${
+                  dayAvailableBalance >= 0 ? 'text-sky-700' : 'text-amber-700'
+                }`}>
+                  {formatCurrency(dayAvailableBalance)}
+                </p>
+              </div>
+              {dayAvailableBalance < 0 && <AlertCircle className="text-amber-600" size={32} />}
+            </div>
+          </div>
+
+          {/* Day Pending Approvals */}
+          <div className="bg-gradient-to-br from-fuchsia-50/50 to-fuchsia-100/50 rounded-lg p-6 border border-fuchsia-200 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-600 text-sm font-medium">Day Pending</p>
+                <p className="text-2xl font-bold text-fuchsia-700 mt-2">
+                  {dayPendingApprovals}
+                </p>
+              </div>
+              <AlertCircle className="text-fuchsia-600" size={32} />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
