@@ -90,7 +90,7 @@ export default function GlobalSettings() {
 
   const fetchUsers = async () => {
     setLoading(true);
-    const { data, error } = await supabase.from('users').select('id, created_at, user_name, password, employee_id, email_id, number, role, status, department, Designation, system_access, page_access').order('created_at', { ascending: false });
+    const { data, error } = await supabase.from('users').select('id, created_at, user_name, password, employee_id, email_id, number, role, status, department, Designation, system_access, page_access, profile_image').order('created_at', { ascending: false });
     if (error) {
       showToast('Error fetching users', 'error');
     } else {
@@ -370,8 +370,12 @@ export default function GlobalSettings() {
                                         <td className="p-4 font-mono text-sm text-slate-600">{user.employee_id || '-'}</td>
                                         <td className="p-4">
                                             <div className="flex items-center gap-3">
-                                                <div className="h-8 w-8 rounded-full bg-red-100 text-red-700 flex items-center justify-center font-bold text-sm shrink-0">
-                                                    {user.user_name?.charAt(0).toUpperCase()}
+                                                <div className="h-8 w-8 rounded-full bg-red-100 text-red-700 flex items-center justify-center font-bold text-sm shrink-0 overflow-hidden">
+                                                    {user.profile_image ? (
+                                                        <img src={user.profile_image} alt={user.user_name} className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        user.user_name?.charAt(0).toUpperCase()
+                                                    )}
                                                 </div>
                                                 <div>
                                                     <p className="font-bold text-slate-800">{user.user_name}</p>

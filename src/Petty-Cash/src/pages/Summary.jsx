@@ -149,35 +149,6 @@ export default function Summary() {
     return result.filter(day => day.dateKey === selectedDateStr);
   }, [credits, expenses, filters, user, selectedDateStr]);
 
-  const handleDownloadCSV = () => {
-    const headers = ['Date', 'Opening Balance', 'Total Received', 'Total Expense', 'Closing Balance'];
-    const rows = [];
-    
-    dailySummary.forEach(day => {
-      rows.push([day.date, day.openingBalance, '', '', '']);
-      if (day.received > 0) {
-        rows.push(['', '', day.received, '', '']);
-        rows.push(['', day.openingBalance + day.received, '', '', '']);
-      }
-      if (day.expense > 0) {
-        rows.push(['', '', '', day.expense, day.closingBalance]);
-      }
-      rows.push(['', '', '', '', '']); // empty row
-    });
-
-    const csv = [
-      headers.join(','),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
-    ].join('\n');
-
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `petty-cash-summary-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-  };
-
   const handleDownloadPDF = () => {
     const doc = new jsPDF('landscape');
     
@@ -304,12 +275,6 @@ export default function Summary() {
         </div>
 
         <div className="flex gap-2 w-full lg:w-auto">
-          <button
-             onClick={handleDownloadCSV}
-             className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 h-[32px] md:h-[38px] rounded-lg font-semibold flex items-center justify-center gap-2 transition shadow-sm flex-1 lg:flex-none"
-          >
-            <Download size={16} /> CSV
-          </button>
           <button
              onClick={handleDownloadPDF}
              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 h-[32px] md:h-[38px] rounded-lg font-semibold flex items-center justify-center gap-2 transition shadow-sm flex-1 lg:flex-none"

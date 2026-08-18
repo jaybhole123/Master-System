@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { TrendingUp, TrendingDown, AlertCircle, Eye, ChevronLeft, ChevronRight, Search, Filter, Download, Calendar } from 'lucide-react';
+import { TrendingUp, TrendingDown, AlertCircle, Eye, ChevronLeft, ChevronRight, Search, Filter, Download, Calendar, History } from 'lucide-react';
 import supabase from '../../../SupabaseClient';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -101,6 +101,19 @@ export default function AdminDashboard() {
   const totalTransactions = credits.length + expenses.length;
 
   // Calculate statistics for selected day
+  const previousDayBalance = useMemo(() => {
+    if (!selectedDateStr) return 0;
+    const prevCredits = credits
+      .filter(c => c.date < selectedDateStr)
+      .reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
+
+    const prevExpenses = expenses
+      .filter(e => e.status === 'APPROVED' && e.date < selectedDateStr)
+      .reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
+
+    return prevCredits - prevExpenses;
+  }, [credits, expenses, selectedDateStr]);
+
   const dayCredit = credits
     .filter(c => c.date === selectedDateStr)
     .reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
@@ -109,7 +122,9 @@ export default function AdminDashboard() {
     .filter(e => e.date === selectedDateStr && e.status === 'APPROVED')
     .reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
 
-  const dayAvailableBalance = dayCredit - dayExpense;
+  const dayAvailableBalance = previousDayBalance + dayCredit - dayExpense;
+
+  const totalDayLimit = previousDayBalance + dayCredit;
 
   const dayPendingApprovals = expenses
     .filter(e => e.date === selectedDateStr && e.status === 'PENDING').length;
@@ -562,7 +577,20 @@ export default function AdminDashboard() {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+          {/* Previous Day Balance */}
+          <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg p-6 border border-slate-200 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-600 text-sm font-medium">Prev Day Balance</p>
+                <p className="text-2xl font-bold text-slate-700 mt-2">
+                  {formatCurrency(previousDayBalance)}
+                </p>
+              </div>
+              <History className="text-slate-500" size={32} />
+            </div>
+          </div>
+
           {/* Day Total Credit */}
           <div className="bg-gradient-to-br from-emerald-50/50 to-emerald-100/50 rounded-lg p-6 border border-emerald-200 shadow-sm">
             <div className="flex items-center justify-between">
@@ -573,6 +601,19 @@ export default function AdminDashboard() {
                 </p>
               </div>
               <TrendingUp className="text-emerald-600" size={32} />
+            </div>
+          </div>
+
+          {/* Prev Bal + Credit */}
+          <div className="bg-gradient-to-br from-cyan-50/50 to-cyan-100/50 border border-cyan-200 rounded-lg p-6 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-600 text-sm font-medium">Prev Bal + Credit</p>
+                <p className="text-2xl font-bold text-cyan-700 mt-2">
+                  {formatCurrency(totalDayLimit)}
+                </p>
+              </div>
+              <TrendingUp className="text-cyan-600 rotate-45" size={32} />
             </div>
           </div>
 
