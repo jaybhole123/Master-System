@@ -1,15 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useScheduler } from '../context/SchedulerContext';
 import { Plus, Calendar as CalendarIcon, MoreVertical, Edit, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 
 const SomedayTasks = () => {
-  const { somedayTasks, scheduleSomedayTask, addSomedayTask, updateSomedayTask, deleteSomedayTask, staffList, categories, currentUser, generateTimeSlots, settings, formatTime12h } = useScheduler();
+  const { somedayTasks, scheduleSomedayTask, addSomedayTask, updateSomedayTask, deleteSomedayTask, staffList, categories, currentUser, generateTimeSlots, settings, formatTime12h, fetchSomedayTasks } = useScheduler();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState(null);
   const [scheduleModal, setScheduleModal] = useState({ isOpen: false, taskId: null, date: '', startTime: '', endTime: '' });
   const timeSlots = generateTimeSlots();
+
+  useEffect(() => {
+    fetchSomedayTasks();
+  }, []);
 
   const [formData, setFormData] = useState({
     description: '', priority: 'Medium', category: categories[0] || 'Meeting', assignedStaff: currentUser?.id || ''

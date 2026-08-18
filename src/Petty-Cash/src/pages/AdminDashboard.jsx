@@ -22,19 +22,23 @@ export default function AdminDashboard() {
   const [credits, setCredits] = useState([]);
   const [expenses, setExpenses] = useState([]);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const { data: creditsData } = await supabase.from('petty_cash_addcash_credits').select('*');
-        if (creditsData) setCredits(creditsData);
-      } catch (e) {}
+  const fetchCredits = async () => {
+    try {
+      const { data: creditsData } = await supabase.from('petty_cash_addcash_credits').select('*');
+      if (creditsData) setCredits(creditsData);
+    } catch (e) {}
+  };
 
-      try {
-        const { data: expensesData } = await supabase.from('petty_cash_expenses').select('*');
-        if (expensesData) setExpenses(expensesData);
-      } catch (e) {}
-    };
-    fetchData();
+  const fetchExpenses = async () => {
+    try {
+      const { data: expensesData } = await supabase.from('petty_cash_expenses').select('*');
+      if (expensesData) setExpenses(expensesData);
+    } catch (e) {}
+  };
+
+  useEffect(() => {
+    fetchCredits();
+    fetchExpenses();
   }, []);
 
   const [filters, setFilters] = useState({

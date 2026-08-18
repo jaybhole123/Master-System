@@ -39,8 +39,7 @@ export default function EmployeeJoin() {
   const [scrollLeft, setScrollLeft] = useState(0);
 
   useEffect(() => {
-    fetchDepartments();
-    fetchRecentEmployees();
+    Promise.all([fetchDepartments(), fetchRecentEmployees()]);
   }, []);
 
   async function fetchDepartments() {

@@ -17,17 +17,13 @@ export default function PayrollProcess() {
   const activeEmployees = employees.filter(emp => !emp.status || emp.status.toLowerCase() === 'active');
 
   useEffect(() => {
-    fetchPayrollData();
+    setLoading(true);
+    Promise.all([fetchSalaries(), fetchSettings(), fetchProcessed()]).finally(() => setLoading(false));
   }, []);
 
-  const fetchPayrollData = async () => {
+  const fetchSalaries = async () => {
     try {
-      const [salariesRes, settingsRes, processedRes] = await Promise.all([
-        supabase.from('salary_structures').select('*'),
-        supabase.from('payroll_settings').select('*').limit(1).single(),
-        supabase.from('processed_payroll').select('*')
-      ]);
-
+      const salariesRes = await supabase.from('salary_structures').select('*');
       if (salariesRes.error) throw salariesRes.error;
       
       const salMap = {};
@@ -50,7 +46,16 @@ export default function PayrollProcess() {
         });
       }
       setSalaries(salMap);
+    } catch (err) {
+      console.error('Error fetching salaries data:', err);
+    }
+  };
 
+  const fetchSettings = async () => {
+    try {
+      const settingsRes = await supabase.from('payroll_settings').select('*').limit(1).single();
+      if (settingsRes.error) throw settingsRes.error;
+      
       if (settingsRes.data) {
         setSettings({
           pf: settingsRes.data.pf_percentage || 12,
@@ -58,14 +63,21 @@ export default function PayrollProcess() {
           esic: 0.75
         });
       }
+    } catch (err) {
+      console.error('Error fetching settings data:', err);
+    }
+  };
+  
+  const fetchProcessed = async () => {
+    try {
+      const processedRes = await supabase.from('processed_payroll').select('*');
+      if (processedRes.error) throw processedRes.error;
       
       if (processedRes.data) {
         setProcessedPayroll(processedRes.data);
       }
     } catch (err) {
-      console.error('Error fetching payroll data:', err);
-    } finally {
-      setLoading(false);
+      console.error('Error fetching processed payroll data:', err);
     }
   };
 

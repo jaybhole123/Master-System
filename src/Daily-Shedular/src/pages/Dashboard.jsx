@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useScheduler } from '../context/SchedulerContext';
 import SchedulerTable from '../components/dashboard/SchedulerTable';
 import TeamOverview from '../components/dashboard/TeamOverview';
@@ -9,7 +9,12 @@ import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Check, Search } fr
 
 const Dashboard = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const { tasks, somedayTasks, staffList, markTaskDone, markAllPendingDone, rescheduleTask, scheduleSomedayTask } = useScheduler();
+  const { tasks, somedayTasks, staffList, markTaskDone, markAllPendingDone, rescheduleTask, scheduleSomedayTask, fetchTasks, fetchSomedayTasks } = useScheduler();
+
+  useEffect(() => {
+    fetchTasks();
+    fetchSomedayTasks();
+  }, []);
 
   const [modalState, setModalState] = useState({ isOpen: false, time: null, task: null });
   const [rescheduleModal, setRescheduleModal] = useState({ isOpen: false, taskId: null, newDate: '', newStartTime: '', newEndTime: '' });

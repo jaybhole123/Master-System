@@ -15,81 +15,88 @@ export default function Dashboard() {
   });
   const [loading, setLoading] = useState(true);
 
+  const fetchEmployeeCount = async () => {
+    const { count, error } = await supabase.from('users').select('*', { count: 'exact', head: true });
+    if (error) {
+      console.error("Error fetching employees", error);
+      return 0;
+    }
+    return count || 0;
+  };
+
+  const fetchPendingLeaves = async () => {
+    const { count, error } = await supabase.from('leave_requests').select('*', { count: 'exact', head: true }).eq('status', 'Pending');
+    if (error) {
+      console.error("Error fetching leaves", error);
+      return 0;
+    }
+    return count || 0;
+  };
+
+  const fetchRecentActivities = async () => {
+    const { data, error } = await supabase.from('users').select('user_name, department, created_at').order('created_at', { ascending: false }).limit(4);
+    if (error) {
+      console.error("Error fetching recent employees", error);
+      return [];
+    }
+    
+    const activities = (data || []).map(u => ({
+      text: `${u.user_name || 'New Employee'} joined the ${u.department || 'organization'}.`,
+      date: new Date(u.created_at)
+    }));
+    return activities.sort((a, b) => b.date - a.date);
+  };
+
+  const fetchDepartmentData = async () => {
+    const { data } = await supabase.from('users').select('department');
+    let deptCounts = {};
+    if (data) {
+      data.forEach(u => {
+        const dept = u.department || 'Unassigned';
+        deptCounts[dept] = (deptCounts[dept] || 0) + 1;
+      });
+    }
+    return Object.keys(deptCounts).map(key => ({ name: key, value: deptCounts[key] }));
+  };
+
+  const fetchPayrollData = async () => {
+    const { data } = await supabase.from('processed_payroll').select('month_year, net');
+    let monthAgg = {};
+    if (data) {
+      data.forEach(p => {
+        monthAgg[p.month_year] = (monthAgg[p.month_year] || 0) + p.net;
+      });
+    }
+    return Object.keys(monthAgg).map(key => ({ month: key, total: monthAgg[key] }));
+  };
+
   useEffect(() => {
-    async function fetchDashboardData() {
+    const loadDashboard = async () => {
+      setLoading(true);
       try {
-        setLoading(true);
-        // 1. Fetch total employees
-        const { count: employeeCount, error: employeeError } = await supabase
-          .from('users')
-          .select('*', { count: 'exact', head: true });
-          
-        if (employeeError) console.error("Error fetching employees", employeeError);
-
-        // 2. Fetch pending leaves
-        const { count: leaveCount, error: leaveError } = await supabase
-          .from('leave_requests')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'Pending');
-          
-        if (leaveError) console.error("Error fetching leaves", leaveError);
-
-        // 3. Fetch recent employees for activity
-        const { data: recentUsers, error: usersError } = await supabase
-          .from('users')
-          .select('user_name, department, created_at')
-          .order('created_at', { ascending: false })
-          .limit(4);
-
-        const activities = [];
-        if (recentUsers) {
-          recentUsers.forEach(u => {
-            activities.push({
-              text: `${u.user_name || 'New Employee'} joined the ${u.department || 'organization'}.`,
-              date: new Date(u.created_at)
-            });
-          });
-        }
+        const [totalEmployees, pendingLeaves, recentActivities, departmentData, payrollData] = await Promise.all([
+          fetchEmployeeCount(),
+          fetchPendingLeaves(),
+          fetchRecentActivities(),
+          fetchDepartmentData(),
+          fetchPayrollData()
+        ]);
         
-        // sort activities
-        activities.sort((a, b) => b.date - a.date);
-
-        // 4. Fetch Department Distribution
-        const { data: allUsers } = await supabase.from('users').select('department');
-        let deptCounts = {};
-        if (allUsers) {
-          allUsers.forEach(u => {
-            const dept = u.department || 'Unassigned';
-            deptCounts[dept] = (deptCounts[dept] || 0) + 1;
-          });
-        }
-        const deptData = Object.keys(deptCounts).map(key => ({ name: key, value: deptCounts[key] }));
-
-        // 5. Fetch Payroll Trends (Total Net Salary per month)
-        const { data: payroll } = await supabase.from('processed_payroll').select('month_year, net');
-        let monthAgg = {};
-        if (payroll) {
-          payroll.forEach(p => {
-            monthAgg[p.month_year] = (monthAgg[p.month_year] || 0) + p.net;
-          });
-        }
-        const payData = Object.keys(monthAgg).map(key => ({ month: key, total: monthAgg[key] }));
-
         setMetrics({
-          totalEmployees: employeeCount || 0,
-          pendingLeaves: leaveCount || 0,
-          recentActivities: activities.slice(0, 4),
-          departmentData: deptData,
-          payrollData: payData
+          totalEmployees,
+          pendingLeaves,
+          recentActivities,
+          departmentData,
+          payrollData
         });
       } catch (error) {
-        console.error("Error fetching dashboard data", error);
+        console.error("Error loading dashboard data", error);
       } finally {
         setLoading(false);
       }
-    }
+    };
 
-    fetchDashboardData();
+    loadDashboard();
   }, []);
 
   return (

@@ -1,12 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useScheduler } from '../context/SchedulerContext';
 import { format, differenceInHours } from 'date-fns';
 import { Check, Calendar } from 'lucide-react';
 
 const WaitingList = () => {
-  const { tasks, markTaskDone, rescheduleTask, staffList, generateTimeSlots, settings, formatTime12h } = useScheduler();
+  const { tasks, markTaskDone, rescheduleTask, staffList, generateTimeSlots, settings, formatTime12h, fetchTasks } = useScheduler();
   const [rescheduleModal, setRescheduleModal] = useState({ isOpen: false, taskId: null, newDate: '', newStartTime: '', newEndTime: '' });
   const timeSlots = generateTimeSlots();
+
+  useEffect(() => {
+    fetchTasks();
+  }, []);
 
   const overdueTasks = tasks.filter(t => t.status === 'Overdue');
 

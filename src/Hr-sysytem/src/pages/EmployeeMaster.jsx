@@ -198,8 +198,7 @@ export default function EmployeeMaster() {
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
 
   useEffect(() => {
-    fetchEmployees();
-    fetchDepartments();
+    Promise.all([fetchEmployees(), fetchDepartments()]);
   }, []);
 
   useEffect(() => {

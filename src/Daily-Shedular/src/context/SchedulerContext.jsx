@@ -16,87 +16,91 @@ export const SchedulerProvider = ({ children }) => {
   
   const [currentUser, setCurrentUser] = useState(null);
 
+  const fetchStaffAndSettings = async () => {
+    // Fetch Staff (mapped from users)
+    const { data: staffData } = await supabase.from('users').select('*');
+    if (staffData) {
+      const mappedStaff = staffData.map(u => ({
+        ...u,
+        name: u.user_name || 'Unknown',
+        designation: u.Designation || 'Staff'
+      }));
+      setStaffList(mappedStaff);
+      
+      // Match with logged in user from localStorage
+      const storedUserId = localStorage.getItem('user-id');
+      const storedUserName = localStorage.getItem('user-name');
+      
+      if (storedUserId) {
+        const matchedUser = mappedStaff.find(s => String(s.id) === String(storedUserId));
+        if (matchedUser) {
+          setCurrentUser(matchedUser);
+        } else {
+          setCurrentUser({ id: storedUserId, name: storedUserName || 'Admin' });
+        }
+      } else if (mappedStaff.length > 0) {
+        setCurrentUser(mappedStaff[0]);
+      }
+    }
+
+    // Fetch Settings
+    const { data: settingsData } = await supabase.from('settings').select('*').single();
+    if (settingsData) {
+      setSettings({
+        ...settingsData,
+        startTime: settingsData.start_time.substring(0, 5),
+        endTime: settingsData.end_time.substring(0, 5),
+        intervalMinutes: settingsData.interval_minutes
+      });
+    }
+  };
+
+  const fetchTasks = async () => {
+    const { data: tasksData } = await supabase.from('tasks').select('*');
+    if (tasksData) {
+      const camelCaseTasks = tasksData.map(t => ({
+        ...t,
+        startTime: t.start_time.substring(0, 5),
+        endTime: t.end_time ? t.end_time.substring(0, 5) : null,
+        assignedStaff: t.assigned_staff,
+        createdBy: t.created_by,
+        actualDoneDate: t.actual_done_date,
+        color: t.color,
+        attachments: t.attachments ? JSON.parse(t.attachments) : []
+      }));
+      setTasks(camelCaseTasks);
+    }
+  };
+
+  const fetchSomedayTasks = async () => {
+    const { data: somedayData } = await supabase.from('someday_tasks').select('*');
+    if (somedayData) {
+      const camelSomeday = somedayData.map(t => ({
+        ...t,
+        createdBy: t.created_by,
+        createdDate: t.created_date || new Date().toISOString().split('T')[0]
+      }));
+      setSomedayTasks(camelSomeday);
+    }
+  };
+
+  const fetchRecurringTasks = async () => {
+    const { data: recurringData } = await supabase.from('recurring_tasks').select('*');
+    if (recurringData) {
+      const camelRecurring = recurringData.map(t => ({
+        ...t,
+        startTime: t.start_time.substring(0, 5),
+        endTime: t.end_time ? t.end_time.substring(0, 5) : null,
+        assignedStaff: t.assigned_staff,
+        repeatType: t.repeat_type
+      }));
+      setRecurringTasks(camelRecurring);
+    }
+  };
+
   // Fetch initial data
   useEffect(() => {
-    const fetchData = async () => {
-      // Fetch Staff (mapped from users)
-      const { data: staffData } = await supabase.from('users').select('*');
-      if (staffData) {
-        const mappedStaff = staffData.map(u => ({
-          ...u,
-          name: u.user_name || 'Unknown',
-          designation: u.Designation || 'Staff'
-        }));
-        setStaffList(mappedStaff);
-        
-        // Match with logged in user from localStorage
-        const storedUserId = localStorage.getItem('user-id');
-        const storedUserName = localStorage.getItem('user-name');
-        
-        if (storedUserId) {
-          const matchedUser = mappedStaff.find(s => String(s.id) === String(storedUserId));
-          if (matchedUser) {
-            setCurrentUser(matchedUser);
-          } else {
-            setCurrentUser({ id: storedUserId, name: storedUserName || 'Admin' });
-          }
-        } else if (mappedStaff.length > 0) {
-          setCurrentUser(mappedStaff[0]);
-        }
-      }
-
-      // Fetch Tasks
-      const { data: tasksData } = await supabase.from('tasks').select('*');
-      if (tasksData) {
-        const camelCaseTasks = tasksData.map(t => ({
-          ...t,
-          startTime: t.start_time.substring(0, 5),
-          endTime: t.end_time ? t.end_time.substring(0, 5) : null,
-          assignedStaff: t.assigned_staff,
-          createdBy: t.created_by,
-          actualDoneDate: t.actual_done_date,
-          color: t.color,
-          attachments: t.attachments ? JSON.parse(t.attachments) : []
-        }));
-        setTasks(camelCaseTasks);
-      }
-
-      // Fetch Someday Tasks
-      const { data: somedayData } = await supabase.from('someday_tasks').select('*');
-      if (somedayData) {
-        const camelSomeday = somedayData.map(t => ({
-          ...t,
-          createdBy: t.created_by,
-          createdDate: t.created_date || new Date().toISOString().split('T')[0]
-        }));
-        setSomedayTasks(camelSomeday);
-      }
-
-      // Fetch Recurring Tasks
-      const { data: recurringData } = await supabase.from('recurring_tasks').select('*');
-      if (recurringData) {
-        const camelRecurring = recurringData.map(t => ({
-          ...t,
-          startTime: t.start_time.substring(0, 5),
-          endTime: t.end_time ? t.end_time.substring(0, 5) : null,
-          assignedStaff: t.assigned_staff,
-          repeatType: t.repeat_type
-        }));
-        setRecurringTasks(camelRecurring);
-      }
-
-      // Fetch Settings
-      const { data: settingsData } = await supabase.from('settings').select('*').single();
-      if (settingsData) {
-        setSettings({
-          ...settingsData,
-          startTime: settingsData.start_time.substring(0, 5),
-          endTime: settingsData.end_time.substring(0, 5),
-          intervalMinutes: settingsData.interval_minutes
-        });
-      }
-    };
-    fetchData();
+    fetchStaffAndSettings();
   }, []);
 
   // Generate Time Slots based on settings
@@ -331,9 +335,9 @@ export const SchedulerProvider = ({ children }) => {
 
   const value = {
     staffList, setStaffList,
-    tasks: myTasks, allTasks: tasks, setTasks, addTask, updateTask, markTaskDone, markTaskNotDone, markAllPendingDone, rescheduleTask, deleteTask,
-    somedayTasks: filteredSomedayTasks, setSomedayTasks, addSomedayTask, scheduleSomedayTask, updateSomedayTask, deleteSomedayTask,
-    recurringTasks: filteredRecurringTasks, setRecurringTasks,
+    tasks: myTasks, allTasks: tasks, setTasks, addTask, updateTask, markTaskDone, markTaskNotDone, markAllPendingDone, rescheduleTask, deleteTask, fetchTasks,
+    somedayTasks: filteredSomedayTasks, setSomedayTasks, addSomedayTask, scheduleSomedayTask, updateSomedayTask, deleteSomedayTask, fetchSomedayTasks,
+    recurringTasks: filteredRecurringTasks, setRecurringTasks, fetchRecurringTasks,
     settings, setSettings: updateSettings,
     categories,
     currentUser, setCurrentUser,

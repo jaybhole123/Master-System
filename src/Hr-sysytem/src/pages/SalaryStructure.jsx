@@ -50,16 +50,12 @@ export default function SalaryStructure() {
   const activeEmployees = employees.filter(emp => !emp.status || emp.status.toLowerCase() === 'active');
 
   useEffect(() => {
-    fetchPayrollData();
+    Promise.all([fetchSalaries(), fetchSettings()]);
   }, []);
 
-  const fetchPayrollData = async () => {
+  const fetchSalaries = async () => {
     try {
-      const [salariesRes, settingsRes] = await Promise.all([
-        supabase.from('salary_structures').select('*'),
-        supabase.from('payroll_settings').select('*').limit(1).single()
-      ]);
-
+      const salariesRes = await supabase.from('salary_structures').select('*');
       if (salariesRes.error) throw salariesRes.error;
       
       const salMap = {};
@@ -89,7 +85,16 @@ export default function SalaryStructure() {
         });
       }
       setSalaries(salMap);
+    } catch (err) {
+      console.error('Error fetching salaries data:', err);
+    }
+  };
 
+  const fetchSettings = async () => {
+    try {
+      const settingsRes = await supabase.from('payroll_settings').select('*').limit(1).single();
+      if (settingsRes.error) throw settingsRes.error;
+      
       if (settingsRes.data) {
         setSettings({
           pf: settingsRes.data.pf_percentage || 12,
@@ -98,7 +103,7 @@ export default function SalaryStructure() {
         });
       }
     } catch (err) {
-      console.error('Error fetching salary structures data:', err);
+      console.error('Error fetching settings data:', err);
     }
   };
 

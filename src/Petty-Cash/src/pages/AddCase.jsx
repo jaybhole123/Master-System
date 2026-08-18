@@ -57,15 +57,10 @@ export default function AddCase() {
 
   const [visibleCount, setVisibleCount] = useState(50);
 
-  const fetchCreditsAndExpenses = async () => {
+  const fetchCredits = async () => {
     try {
       const { data: creditsData } = await supabase.from('petty_cash_addcash_credits').select('*');
       if (creditsData) setCredits(creditsData);
-    } catch (err) {}
-    
-    try {
-      const { data: expensesData } = await supabase.from('petty_cash_expenses').select('*');
-      if (expensesData) setExpenses(expensesData);
     } catch (err) {}
   };
 
@@ -85,7 +80,7 @@ export default function AddCase() {
   };
 
   useEffect(() => {
-    fetchCreditsAndExpenses();
+    fetchCredits();
     fetchPaymentModes();
   }, []);
 
@@ -208,7 +203,7 @@ export default function AddCase() {
           remarks: formData.remarks
         };
         await supabase.from('petty_cash_addcash_credits').update(updateData).eq('id', editingCreditId);
-        await fetchCreditsAndExpenses();
+        await fetchCredits();
         toast.success('Credit updated successfully!');
       } else {
         const newCredit = {
@@ -234,11 +229,18 @@ export default function AddCase() {
           console.error('Supabase credit insert error:', creditError);
         }
 
+        // Fetch expenses on demand for balance calculation
+        let currentExpenses = [];
+        try {
+          const { data: expensesData } = await supabase.from('petty_cash_expenses').select('*').eq('status', 'APPROVED');
+          if (expensesData) currentExpenses = expensesData;
+        } catch (err) {}
+
         // Calculate new balance
         const newBalance = calculateBalance(
           formData.personName,
           [...credits, { ...newCredit, personName: newCredit.person_name }], // optimistic
-          expenses
+          currentExpenses
         );
 
         // Create ledger entry
@@ -257,7 +259,7 @@ export default function AddCase() {
           await supabase.from('ledger').insert([ledgerEntry]);
         } catch(e) {}
 
-        await fetchCreditsAndExpenses();
+        await fetchCredits();
         toast.success(`Credit of ${formatCurrency(formData.amount)} added successfully!`);
       }
 

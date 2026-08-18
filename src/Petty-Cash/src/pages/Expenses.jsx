@@ -23,12 +23,14 @@ export default function Expenses() {
   const [credits, setCredits] = useState([]);
   const [expenses, setExpenses] = useState([]);
 
-  const fetchCreditsAndExpenses = async () => {
+  const fetchTotalCredits = async () => {
     try {
-      const { data: creditsData } = await supabase.from('petty_cash_addcash_credits').select('*');
+      const { data: creditsData } = await supabase.from('petty_cash_addcash_credits').select('amount');
       if (creditsData) setCredits(creditsData);
     } catch (e) {}
+  };
 
+  const fetchExpenses = async () => {
     try {
       const { data: expensesData } = await supabase.from('petty_cash_expenses').select('*');
       if (expensesData) setExpenses(expensesData);
@@ -39,7 +41,8 @@ export default function Expenses() {
   const [paymentModes, setPaymentModes] = useState([]);
 
   useEffect(() => {
-    fetchCreditsAndExpenses();
+    fetchExpenses();
+    fetchTotalCredits();
     fetchSettings();
   }, []);
 
@@ -296,7 +299,7 @@ export default function Expenses() {
           receipt_url: image || ''
         };
         await supabase.from('petty_cash_expenses').update(updateData).eq('id', editingExpenseId);
-        await fetchCreditsAndExpenses();
+        await fetchExpenses();
         toast.success('Expense updated successfully!');
       } else {
         const newExpense = {
@@ -335,7 +338,7 @@ export default function Expenses() {
           console.error('Supabase expense insert error:', e);
         }
 
-        await fetchCreditsAndExpenses();
+        await fetchExpenses();
         toast.success(`Expense of ${formatCurrency(formData.amount)} submitted for approval!`);
       }
 

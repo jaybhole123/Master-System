@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useScheduler } from '../context/SchedulerContext';
 import { format, isSameDay, parse } from 'date-fns';
 import TaskStatusChart from '../components/dashboard/TaskStatusChart';
@@ -6,11 +6,20 @@ import { Paperclip, Image as ImageIcon, PlayCircle, ShieldCheck, Download } from
 import jsPDF from 'jspdf';
 
 const Reports = () => {
-  const { allTasks: tasks, staffList, formatTime12h, settings, currentUser } = useScheduler();
+  const { allTasks: tasks, staffList, formatTime12h, settings, currentUser, fetchTasks } = useScheduler();
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [staffFilter, setStaffFilter] = useState('All');
+  const [visibleCount, setVisibleCount] = useState(50);
+
+  useEffect(() => {
+    setVisibleCount(50);
+  }, [startDate, endDate, statusFilter, staffFilter]);
+
+  useEffect(() => {
+    fetchTasks();
+  }, []);
 
   const localRole = (localStorage.getItem('role') || '').toLowerCase().trim();
   const currentRole = (currentUser?.role || '').toLowerCase().trim();
@@ -146,7 +155,14 @@ const Reports = () => {
         </div>
       </div>
 
-      <div className="table-container" style={{ maxHeight: '600px', overflowY: 'auto' }}>
+      <div className="table-container" style={{ maxHeight: '600px', overflowY: 'auto' }} onScroll={(e) => {
+        const { scrollTop, clientHeight, scrollHeight } = e.currentTarget;
+        if (scrollHeight - scrollTop <= clientHeight + 50) {
+          if (visibleCount < tableTasks.length) {
+            setVisibleCount(prev => prev + 50);
+          }
+        }
+      }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem 1.5rem 0', flexWrap: 'wrap', gap: '0.75rem' }}>
           <h3 style={{ fontSize: '1.125rem', margin: 0 }}>Detailed Task History</h3>
           <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
@@ -220,7 +236,7 @@ const Reports = () => {
           </thead>
           <tbody>
             {tableTasks.length > 0 ? (
-              tableTasks.slice().reverse().map(task => {
+              tableTasks.slice().reverse().slice(0, visibleCount).map(task => {
                 const timeDate = parse(task.startTime, 'HH:mm', new Date());
                 const endTimeDate = new Date(timeDate.getTime() + (settings?.intervalMinutes || 60) * 60000);
                 return (
@@ -308,6 +324,11 @@ const Reports = () => {
             )}
           </tbody>
         </table>
+        {visibleCount < tableTasks.length && (
+          <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)' }}>
+            Loading more...
+          </div>
+        )}
       </div>
     </div>
   );

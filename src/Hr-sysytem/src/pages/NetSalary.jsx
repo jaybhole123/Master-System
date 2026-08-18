@@ -91,57 +91,61 @@ export default function NetSalary() {
 
   const isDataLoading = loading || empLoading;
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [salariesRes, settingsRes] = await Promise.all([
-          supabase.from('salary_structures').select('*'),
-          supabase.from('payroll_settings').select('*').limit(1).single()
-        ]);
-
-        if (salariesRes.error) throw salariesRes.error;
-        
-        const salMap = {};
-        if (salariesRes.data) {
-          salariesRes.data.forEach(s => {
-            salMap[s.employee_id] = {
-              basic: s.basic || 0,
-              hra: s.hra || 0,
-              allowances: s.allowances || 0,
-              profTax: s.prof_tax || 0,
-              otherDeductions: s.other_deductions || 0,
-              paymentStatus: s.payment_status || 'Pending',
-              bankAccount: s.bank_account || '',
-              pfApplicable: s.pf_applicable !== false,
-              esicApplicable: s.esic_applicable !== false,
-              totalDays: s.total_days || 0,
-              presentDays: s.present_days || 0,
-              absent: s.absent || 0,
-              leaves: s.leaves || 0,
-              leaveDeduction: s.leave_deduction || 0,
-              monthAdvance: s.month_advance || 0,
-              monthRecovery: s.month_recovery || 0,
-              prevAdvanceDeduction: s.prev_advance_deduction || 0
-            };
-          });
-        }
-        setSalaries(salMap);
-
-        if (settingsRes.data) {
-          setSettings({
-            pf: settingsRes.data.pf_percentage || 12,
-            ptax: settingsRes.data.ptax_amount || 200,
-            esic: 0.75
-          });
-        }
-      } catch (err) {
-        console.error('Error fetching net salary data:', err);
-      } finally {
-        setLoading(false);
+  const fetchSalaries = async () => {
+    try {
+      const salariesRes = await supabase.from('salary_structures').select('*');
+      if (salariesRes.error) throw salariesRes.error;
+      
+      const salMap = {};
+      if (salariesRes.data) {
+        salariesRes.data.forEach(s => {
+          salMap[s.employee_id] = {
+            basic: s.basic || 0,
+            hra: s.hra || 0,
+            allowances: s.allowances || 0,
+            profTax: s.prof_tax || 0,
+            otherDeductions: s.other_deductions || 0,
+            paymentStatus: s.payment_status || 'Pending',
+            bankAccount: s.bank_account || '',
+            pfApplicable: s.pf_applicable !== false,
+            esicApplicable: s.esic_applicable !== false,
+            totalDays: s.total_days || 0,
+            presentDays: s.present_days || 0,
+            absent: s.absent || 0,
+            leaves: s.leaves || 0,
+            leaveDeduction: s.leave_deduction || 0,
+            monthAdvance: s.month_advance || 0,
+            monthRecovery: s.month_recovery || 0,
+            prevAdvanceDeduction: s.prev_advance_deduction || 0
+          };
+        });
       }
-    };
+      setSalaries(salMap);
+    } catch (err) {
+      console.error('Error fetching salaries data:', err);
+    }
+  };
 
-    fetchData();
+  const fetchSettings = async () => {
+    try {
+      const settingsRes = await supabase.from('payroll_settings').select('*').limit(1).single();
+      if (settingsRes.error) throw settingsRes.error;
+      
+      if (settingsRes.data) {
+        setSettings({
+          pf: settingsRes.data.pf_percentage || 12,
+          ptax: settingsRes.data.ptax_amount || 200,
+          esic: 0.75
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching settings data:', err);
+    }
+  };
+
+  useEffect(() => {
+    setLoading(true);
+    Promise.all([fetchSalaries(), fetchSettings()]).finally(() => setLoading(false));
   }, []);
 
   const uniqueDepartments = useMemo(() => {

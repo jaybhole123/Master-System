@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Paperclip, Trash2, UploadCloud, FileText, Image as ImageIcon, Mic, Square, Radio, PlayCircle } from 'lucide-react';
+import { X, Paperclip, Trash2, UploadCloud, FileText, Image as ImageIcon, Mic, Square, Radio, PlayCircle, Star } from 'lucide-react';
 import { useScheduler } from '../../context/SchedulerContext';
 import { supabase } from '../../lib/supabase';
 import { format } from 'date-fns';
@@ -16,7 +16,8 @@ const TaskModal = ({ isOpen, onClose, task, selectedTime, selectedDate }) => {
     priority: 'Medium',
     category: categories[0] || 'Meeting',
     remark: '',
-    attachments: []
+    attachments: [],
+    color: null
   });
 
   const textareaRef = React.useRef(null);
@@ -41,6 +42,15 @@ const TaskModal = ({ isOpen, onClose, task, selectedTime, selectedDate }) => {
   const [recognitionInstance, setRecognitionInstance] = useState(null);
   const [isRecordingAudio, setIsRecordingAudio] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState(null);
+
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const colors = [
+    { name: 'Yellow', code: '#fef08a' },
+    { name: 'Red', code: '#fecaca' },
+    { name: 'Green', code: '#bbf7d0' },
+    { name: 'Blue', code: '#bfdbfe' },
+    { name: 'Purple', code: '#e9d5ff' }
+  ];
 
   const toggleSpeechToText = () => {
     if (isListening) {
@@ -180,7 +190,8 @@ const TaskModal = ({ isOpen, onClose, task, selectedTime, selectedDate }) => {
         endTime: task.endTime,
         assignedStaff: task.assignedStaff,
         remark: task.remark || '',
-        attachments: task.attachments || []
+        attachments: task.attachments || [],
+        color: task.color || null
       });
     } else {
       setFormData(prev => ({
@@ -190,7 +201,8 @@ const TaskModal = ({ isOpen, onClose, task, selectedTime, selectedDate }) => {
         assignedStaff: currentUser?.id || '',
         description: '',
         remark: '',
-        attachments: []
+        attachments: [],
+        color: null
       }));
     }
   }, [task, selectedTime, selectedDate, isOpen, currentUser]);
@@ -284,6 +296,27 @@ const TaskModal = ({ isOpen, onClose, task, selectedTime, selectedDate }) => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
               <label className="input-label" style={{ marginBottom: 0 }}>Task Description *</label>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <div style={{ position: 'relative' }}>
+                  <button type="button" onClick={() => setShowColorPicker(!showColorPicker)} title="Highlight Task" style={{ 
+                    display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.25rem 0.5rem', 
+                    borderRadius: 'var(--radius-sm)', border: `1px solid ${formData.color ? formData.color : 'var(--border-color)'}`,
+                    backgroundColor: formData.color || 'var(--bg-color)', 
+                    color: formData.color ? '#000' : 'var(--text-secondary)',
+                    cursor: 'pointer', fontSize: '0.75rem', transition: 'all 0.2s'
+                  }}>
+                    <Star size={14} fill={formData.color ? '#eab308' : 'none'} /> Highlight
+                  </button>
+                  {showColorPicker && (
+                    <div style={{ position: 'absolute', right: '0', top: '100%', marginTop: '0.5rem', backgroundColor: 'white', padding: '0.5rem', borderRadius: 'var(--radius-md)', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', display: 'flex', gap: '0.25rem', zIndex: 50, border: '1px solid var(--border-color)' }}>
+                      <button type="button" onClick={() => { setFormData(prev => ({ ...prev, color: null })); setShowColorPicker(false); }} style={{ width: '20px', height: '20px', borderRadius: '50%', border: '1px solid #ccc', backgroundColor: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Remove Highlight">
+                        <X size={12} color="#999" />
+                      </button>
+                      {colors.map(c => (
+                        <button type="button" key={c.name} onClick={() => { setFormData(prev => ({ ...prev, color: c.code })); setShowColorPicker(false); }} style={{ width: '20px', height: '20px', borderRadius: '50%', border: '1px solid rgba(0,0,0,0.1)', backgroundColor: c.code, cursor: 'pointer' }} title={c.name} />
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <button type="button" onClick={toggleSpeechToText} title="Speech to Text" style={{ 
                   display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.25rem 0.5rem', 
                   borderRadius: 'var(--radius-sm)', border: `1px solid ${isListening ? 'var(--status-notdone)' : 'var(--border-color)'}`,
@@ -392,9 +425,12 @@ const TaskModal = ({ isOpen, onClose, task, selectedTime, selectedDate }) => {
                           <span style={{ fontSize: '0.875rem', fontWeight: '500', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {file.name}
                           </span>
-                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: file.type && file.type.startsWith('audio/') ? '4px' : '0' }}>
                             {file.size ? (file.size / 1024).toFixed(1) + ' KB' : 'Unknown size'}
                           </span>
+                          {file.type && file.type.startsWith('audio/') && file.url && (
+                            <audio src={file.url} controls style={{ height: '28px', width: '100%', maxWidth: '250px' }} />
+                          )}
                         </div>
                       </div>
                       <button type="button" onClick={() => removeAttachment(idx)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '0.25rem' }}

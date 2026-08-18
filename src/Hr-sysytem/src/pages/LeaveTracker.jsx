@@ -175,24 +175,28 @@ export default function LeaveTracker() {
   }, [leaveRequests, employees, searchQuery, designationFilter, departmentFilter, leaveTypeFilter, statusFilter]);
 
   useEffect(() => {
-    fetchLeaveData();
+    Promise.all([fetchAllotments(), fetchRequests()]);
   }, []);
 
-  const fetchLeaveData = async () => {
+  const fetchAllotments = async () => {
     try {
-      const [allotmentsRes, requestsRes] = await Promise.all([
-        supabase.from('leave_allotments').select('*'),
-        supabase.from('leave_requests').select('*').order('created_at', { ascending: false })
-      ]);
-      
+      const allotmentsRes = await supabase.from('leave_allotments').select('*');
       if (allotmentsRes.error) throw allotmentsRes.error;
-      if (requestsRes.error) throw requestsRes.error;
       
       const allotmentsMap = {};
       allotmentsRes.data.forEach(row => {
         allotmentsMap[row.employee_id] = { cl: row.cl, sl: row.sl, el: row.el };
       });
       setLeaveAllotments(allotmentsMap);
+    } catch (err) {
+      console.error('Error fetching allotments:', err);
+    }
+  };
+
+  const fetchRequests = async () => {
+    try {
+      const requestsRes = await supabase.from('leave_requests').select('*').order('created_at', { ascending: false });
+      if (requestsRes.error) throw requestsRes.error;
       
       const reqs = requestsRes.data.map(row => ({
         id: row.id,
@@ -206,8 +210,8 @@ export default function LeaveTracker() {
       }));
       setLeaveRequests(reqs);
     } catch (err) {
-      console.error('Error fetching leave data:', err);
-      toast.error('Failed to load leave data');
+      console.error('Error fetching leave requests:', err);
+      toast.error('Failed to load leave requests');
     }
   };
 
