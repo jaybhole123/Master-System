@@ -1,8 +1,8 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useAuthStore } from '../store/authStore';
 import supabase from '../../../SupabaseClient';
-import { isDateInRange } from '../utils/helpers';
-import { Download, Calendar, FileText } from 'lucide-react';
+import { isDateInRange, getTodayDate, formatDateForInput } from '../utils/helpers';
+import { Download, Calendar, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import SearchableSelect from '../../../components/SearchableSelect';
@@ -37,11 +37,43 @@ export default function Summary() {
     fetchExpenses();
   }, []);
   
+  const [selectedDateStr, setSelectedDateStr] = useState(getTodayDate());
+  const dateInputRef = useRef(null);
+
   const [filters, setFilters] = useState({
-    dateFrom: '',
-    dateTo: '',
     personName: '',
   });
+
+  const handlePrevDay = () => {
+    if (!selectedDateStr) return;
+    const [year, month, day] = selectedDateStr.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    date.setDate(date.getDate() - 1);
+    setSelectedDateStr(formatDateForInput(date));
+  };
+
+  const handleNextDay = () => {
+    if (!selectedDateStr) return;
+    const [year, month, day] = selectedDateStr.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    date.setDate(date.getDate() + 1);
+    setSelectedDateStr(formatDateForInput(date));
+  };
+
+  const handleToday = () => {
+    setSelectedDateStr(getTodayDate());
+  };
+
+  const formatSelectedDateDisplay = (dateStr) => {
+    if (!dateStr) return '';
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    return date.toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    });
+  };
 
   const dailySummary = useMemo(() => {
     const ledgerData = [];
@@ -65,11 +97,6 @@ export default function Summary() {
     });
     // Apply filters first
     const filtered = ledgerData.filter(entry => {
-      if (filters.dateFrom || filters.dateTo) {
-        if (!isDateInRange(entry.date, filters.dateFrom, filters.dateTo)) {
-          return false;
-        }
-      }
       if (filters.personName && entry.personName && entry.personName.toLowerCase() !== filters.personName.toLowerCase()) {
         return false;
       }
@@ -84,7 +111,7 @@ export default function Summary() {
     sorted.forEach(entry => {
       const d = new Date(entry.date);
       const dateStr = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
-      const mapKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const mapKey = entry.date;
 
       if (!summaryMap.has(mapKey)) {
         summaryMap.set(mapKey, { displayDate: dateStr, dateObj: d, received: 0, expense: 0 });
@@ -108,6 +135,7 @@ export default function Summary() {
       const closing = opening + dayData.received - dayData.expense;
       
       result.push({
+        dateKey: key,
         date: dayData.displayDate,
         openingBalance: opening,
         received: dayData.received,
@@ -118,8 +146,8 @@ export default function Summary() {
       runningBalance = closing;
     }
     
-    return result;
-  }, [credits, expenses, filters, user]);
+    return result.filter(day => day.dateKey === selectedDateStr);
+  }, [credits, expenses, filters, user, selectedDateStr]);
 
   const handleDownloadCSV = () => {
     const headers = ['Date', 'Opening Balance', 'Total Received', 'Total Expense', 'Closing Balance'];
@@ -202,28 +230,60 @@ export default function Summary() {
       {/* Header with Filters */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-2 lg:gap-4 w-full pb-2 border-b border-gray-100">
         <div className="flex flex-col lg:flex-row w-full gap-2 items-center">
-             <div className="relative w-full lg:w-44">
-               <input
-                 type="text"
-                 placeholder="From Date"
-                 onFocus={(e) => (e.target.type = 'date')}
-                 onBlur={(e) => { if (!e.target.value) e.target.type = 'text'; }}
-                 value={filters.dateFrom}
-                 onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
-                 className="w-full bg-white border border-gray-300 rounded-lg lg:rounded px-2 py-1.5 focus:outline-none focus:border-indigo-500 text-[11px] md:text-sm h-[32px] md:h-[38px] transition-all"
-               />
-             </div>
-             <div className="relative w-full lg:w-44">
-               <input
-                 type="text"
-                 placeholder="To Date"
-                 onFocus={(e) => (e.target.type = 'date')}
-                 onBlur={(e) => { if (!e.target.value) e.target.type = 'text'; }}
-                 value={filters.dateTo}
-                 onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
-                 className="w-full bg-white border border-gray-300 rounded-lg lg:rounded px-2 py-1.5 focus:outline-none focus:border-indigo-500 text-[11px] md:text-sm h-[32px] md:h-[38px] transition-all"
-               />
-             </div>
+            {/* Day Navigation Control */}
+            <div className="w-full lg:w-72 flex-shrink-0">
+              <div className="flex items-center justify-between bg-white border border-gray-300 rounded-lg lg:rounded p-1 text-gray-700 h-[32px] md:h-[38px] relative w-full shadow-sm overflow-hidden">
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <button
+                    type="button"
+                    onClick={handlePrevDay}
+                    className="flex items-center justify-center w-6 h-6 md:w-7 md:h-7 hover:bg-gray-100 active:bg-gray-200 rounded border border-gray-200 transition text-gray-600 flex-shrink-0"
+                    title="Previous Day"
+                  >
+                    <ChevronLeft size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleToday}
+                    className="hover:bg-gray-100 active:bg-gray-200 px-2 py-0.5 rounded transition text-[11px] md:text-xs font-semibold text-indigo-700 bg-indigo-50/50 flex-shrink-0"
+                  >
+                    Today
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleNextDay}
+                    className="flex items-center justify-center w-6 h-6 md:w-7 md:h-7 hover:bg-gray-100 active:bg-gray-200 rounded border border-gray-200 transition text-gray-600 flex-shrink-0"
+                    title="Next Day"
+                  >
+                    <ChevronRight size={14} />
+                  </button>
+                </div>
+                <div className="h-5 w-px bg-gray-200 mx-1 flex-shrink-0"></div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (dateInputRef.current) {
+                      if (typeof dateInputRef.current.showPicker === 'function') {
+                        dateInputRef.current.showPicker();
+                      } else {
+                        dateInputRef.current.click();
+                      }
+                    }
+                  }}
+                  className="flex items-center gap-1.5 px-2 py-1 hover:bg-gray-50 rounded transition text-xs md:text-sm font-semibold text-gray-700 cursor-pointer flex-shrink-0"
+                >
+                  <Calendar size={14} className="text-indigo-600 flex-shrink-0" />
+                  <span className="font-semibold text-gray-800 whitespace-nowrap flex-shrink-0">{formatSelectedDateDisplay(selectedDateStr)}</span>
+                </button>
+                <input
+                  ref={dateInputRef}
+                  type="date"
+                  value={selectedDateStr}
+                  onChange={(e) => setSelectedDateStr(e.target.value)}
+                  style={{ position: 'absolute', width: 0, height: 0, opacity: 0, pointerEvents: 'none' }}
+                />
+              </div>
+            </div>
              <div className="w-full lg:w-56">
                {user?.role === 'ADMIN' ? (
                  <SearchableSelect
@@ -261,7 +321,7 @@ export default function Summary() {
 
       {/* Summary Table */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 flex-1 min-h-0 overflow-hidden flex flex-col relative mt-2">
-        <div className="overflow-x-auto overflow-y-auto flex-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-270px)] flex-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           <div className="min-w-[850px] w-full">
             {/* Table Headers (Sticky) */}
             <div className="bg-red-600 border-b-2 border-red-700 p-2 text-center shadow-sm sticky top-0 z-30">
