@@ -889,9 +889,9 @@ export default function Expenses() {
                 <th className="px-2 py-2 text-center text-xs font-bold text-red-900 uppercase border border-red-200">RECEIVED</th>
                 <th className="px-2 py-2 text-center text-xs font-bold text-red-900 uppercase border border-red-200">PAID</th>
                 <th className="px-2 py-2 text-center text-xs font-bold text-red-900 uppercase border border-red-200">BALANCE</th>
+                <th className="px-2 py-2 text-center text-xs font-bold text-red-900 uppercase border border-red-200">REMARKS</th>
                 <th className="px-2 py-2 text-center text-xs font-bold text-red-900 uppercase border border-red-200">PAID TO</th>
                 <th className="px-2 py-2 text-center text-xs font-bold text-red-900 uppercase border border-red-200">APPROVED BY</th>
-                <th className="px-2 py-2 text-center text-xs font-bold text-red-900 uppercase border border-red-200">REMARKS</th>
                 <th className="px-2 py-2 text-center text-xs font-bold text-red-900 uppercase border border-red-200">ACTION / STATUS</th>
               </tr>
             </thead>
@@ -910,9 +910,9 @@ export default function Expenses() {
                       {formatCurrency(expense.amount)}
                     </td>
                     <td className="px-2 py-1.5 text-right text-xs border border-gray-300 font-medium text-blue-700">{expense.balance ? formatCurrency(expense.balance) : '-'}</td>
+                    <td className="px-2 py-1.5 text-left text-xs border border-gray-300 uppercase">{expense.remarks || '-'}</td>
                     <td className="px-2 py-1.5 text-center text-xs border border-gray-300 uppercase">{expense.person_name || expense.personName}</td>
                     <td className="px-2 py-1.5 text-center text-xs border border-gray-300 uppercase">{expense.group_head || expense.groupHead || '-'}</td>
-                    <td className="px-2 py-1.5 text-left text-xs border border-gray-300 truncate max-w-[150px] uppercase">{expense.remarks || '-'}</td>
                     <td className="px-2 py-1.5 text-center text-xs border border-gray-300">
                       {activeTab === 'pending' ? (
                         <div className="flex flex-col items-center gap-2">

@@ -416,9 +416,9 @@ export default function Ledger() {
                 <th className="px-2 py-2 text-center text-xs font-bold text-red-900 uppercase border border-red-200">RECEIVED</th>
                 <th className="px-2 py-2 text-center text-xs font-bold text-red-900 uppercase border border-red-200">PAID</th>
                 <th className="px-2 py-2 text-center text-xs font-bold text-red-900 uppercase border border-red-200">BALANCE</th>
+                <th className="px-2 py-2 text-center text-xs font-bold text-red-900 uppercase border border-red-200">REMARKS</th>
                 <th className="px-2 py-2 text-center text-xs font-bold text-red-900 uppercase border border-red-200">PAID TO</th>
                 <th className="px-2 py-2 text-center text-xs font-bold text-red-900 uppercase border border-red-200">APPROVED BY</th>
-                <th className="px-2 py-2 text-center text-xs font-bold text-red-900 uppercase border border-red-200">REMARKS</th>
               </tr>
             </thead>
             <tbody>
@@ -460,9 +460,9 @@ export default function Ledger() {
                     }`}>
                       {formatCurrency(entry.balance !== undefined ? entry.balance : entry.balanceAfter)}
                     </td>
+                    <td className="px-2 py-1.5 text-left text-xs border border-gray-300 uppercase">{remarks || '-'}</td>
                     <td className="px-2 py-1.5 text-center text-xs border border-gray-300 uppercase">{entry.personName}</td>
                     <td className="px-2 py-1.5 text-center text-xs border border-gray-300 uppercase">{approvedBy}</td>
-                    <td className="px-2 py-1.5 text-left text-xs border border-gray-300 truncate max-w-[150px] uppercase">{remarks || '-'}</td>
                   </tr>
                 );
               })}

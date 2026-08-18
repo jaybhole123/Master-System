@@ -283,8 +283,6 @@ export default function Summary() {
                   <th className="border border-red-200 px-2 py-2 text-center font-bold text-red-900 w-44 uppercase text-xs">Total Received</th>
                   <th className="border border-red-200 px-2 py-2 text-center font-bold text-red-900 w-44 uppercase text-xs">Total Expense</th>
                   <th className="border border-red-200 px-2 py-2 text-center font-bold text-red-900 w-44 uppercase text-xs">Closing Balance</th>
-                  <th className="border border-red-200 px-2 py-2 w-16"></th>
-                  <th className="border border-red-200 px-2 py-2 w-16"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-300">
@@ -294,8 +292,6 @@ export default function Summary() {
                     <tr className="bg-white hover:bg-red-50/50 transition-colors">
                       <td className="border border-gray-300 px-2 py-1.5 font-bold text-gray-800 text-center text-xs">{day.date}</td>
                       <td className="border border-gray-300 px-2 py-1.5 text-center font-bold text-gray-800 text-xs">{formatNum(day.openingBalance)}</td>
-                      <td className="border border-gray-300 px-2 py-1.5"></td>
-                      <td className="border border-gray-300 px-2 py-1.5"></td>
                       <td className="border border-gray-300 px-2 py-1.5"></td>
                       <td className="border border-gray-300 px-2 py-1.5"></td>
                       <td className="border border-gray-300 px-2 py-1.5"></td>
@@ -310,8 +306,6 @@ export default function Summary() {
                           <td className="border border-gray-300 px-2 py-1.5 text-center font-bold text-green-600 text-xs bg-blue-50/30">{formatNum(day.received)}</td>
                           <td className="border border-gray-300 px-2 py-1.5"></td>
                           <td className="border border-gray-300 px-2 py-1.5"></td>
-                          <td className="border border-gray-300 px-2 py-1.5"></td>
-                          <td className="border border-gray-300 px-2 py-1.5"></td>
                         </tr>
                         <tr className="bg-white hover:bg-blue-50 transition-colors">
                           <td className="border border-gray-300 px-2 py-1.5"></td>
@@ -319,17 +313,9 @@ export default function Summary() {
                           <td className="border border-gray-300 px-2 py-1.5"></td>
                           <td className="border border-gray-300 px-2 py-1.5"></td>
                           {day.expense === 0 ? (
-                            <>
-                              <td className="border border-gray-300 px-2 py-1.5 text-center font-bold text-blue-700 text-xs">{formatNum(day.openingBalance + day.received)}</td>
-                              <td className="border border-gray-300 px-2 py-1.5"></td>
-                              <td className="border border-gray-300 px-2 py-1.5"></td>
-                            </>
+                            <td className="border border-gray-300 px-2 py-1.5 text-center font-bold text-blue-700 text-xs">{formatNum(day.openingBalance + day.received)}</td>
                           ) : (
-                            <>
-                              <td className="border border-gray-300 px-2 py-1.5"></td>
-                              <td className="border border-gray-300 px-2 py-1.5"></td>
-                              <td className="border border-gray-300 px-2 py-1.5"></td>
-                            </>
+                            <td className="border border-gray-300 px-2 py-1.5"></td>
                           )}
                         </tr>
                       </>
@@ -343,19 +329,17 @@ export default function Summary() {
                         <td className="border border-gray-300 px-2 py-1.5"></td>
                         <td className="border border-gray-300 px-2 py-1.5 text-center font-bold text-red-600 text-xs">{formatNum(day.expense)}</td>
                         <td className="border border-gray-300 px-2 py-1.5 text-center font-bold text-blue-700 text-xs">{formatNum(day.closingBalance)}</td>
-                        <td className="border border-gray-300 px-2 py-1.5"></td>
-                        <td className="border border-gray-300 px-2 py-1.5"></td>
                       </tr>
                     )}
                     
                     {/* Visual Separator matching Ledger style */}
                     <tr className="bg-gray-100 h-2 border-y border-gray-300">
-                      <td colSpan="7" className="border border-gray-300"></td>
+                      <td colSpan="5" className="border border-gray-300"></td>
                     </tr>
                   </React.Fragment>
                 )) : (
                   <tr>
-                    <td colSpan="7" className="text-center py-16 text-gray-500 border border-gray-300">
+                    <td colSpan="5" className="text-center py-16 text-gray-500 border border-gray-300">
                       <div className="flex flex-col items-center justify-center gap-3">
                         <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center">
                           <Calendar size={32} className="text-gray-400" />
