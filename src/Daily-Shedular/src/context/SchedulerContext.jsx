@@ -66,7 +66,8 @@ export const SchedulerProvider = ({ children }) => {
       if (somedayData) {
         const camelSomeday = somedayData.map(t => ({
           ...t,
-          createdBy: t.created_by
+          createdBy: t.created_by,
+          createdDate: t.created_date || new Date().toISOString().split('T')[0]
         }));
         setSomedayTasks(camelSomeday);
       }
