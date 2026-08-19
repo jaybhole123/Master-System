@@ -5,7 +5,8 @@ import { supabase } from '../../lib/supabase';
 import { format } from 'date-fns';
 
 const TaskModal = ({ isOpen, onClose, task, selectedTime, selectedDate }) => {
-  const { addTask, updateTask, staffList, categories, currentUser, tasks } = useScheduler();
+  const { addTask, updateTask, staffList, categories, currentUser, tasks, generateTimeSlots, formatTime12h } = useScheduler();
+  const timeSlots = generateTimeSlots();
 
   const [formData, setFormData] = useState({
     description: '',
@@ -200,10 +201,15 @@ const TaskModal = ({ isOpen, onClose, task, selectedTime, selectedDate }) => {
         color: task.color || null
       });
     } else {
+      const currentStartTime = selectedTime || formData.startTime;
+      const currentIndex = timeSlots.indexOf(currentStartTime);
+      const nextEndTime = (currentIndex !== -1 && currentIndex + 1 < timeSlots.length) ? timeSlots[currentIndex + 1] : formData.endTime;
+      
       setFormData(prev => ({
         ...prev,
         date: selectedDate || prev.date,
-        startTime: selectedTime || prev.startTime,
+        startTime: currentStartTime,
+        endTime: nextEndTime,
         assignedStaff: currentUser?.id || '',
         description: '',
         remark: '',
@@ -217,7 +223,16 @@ const TaskModal = ({ isOpen, onClose, task, selectedTime, selectedDate }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => {
+      const updates = { [name]: value };
+      if (name === 'startTime') {
+        const currentIndex = timeSlots.indexOf(value);
+        if (currentIndex !== -1 && currentIndex + 1 < timeSlots.length) {
+          updates.endTime = timeSlots[currentIndex + 1];
+        }
+      }
+      return { ...prev, ...updates };
+    });
   };
 
   const handleDescriptionChange = (e) => {
@@ -295,6 +310,27 @@ const TaskModal = ({ isOpen, onClose, task, selectedTime, selectedDate }) => {
             <div className="input-group">
               <label className="input-label">Task Date</label>
               <input type="text" value={format(new Date(formData.date), 'dd MMM yyyy')} readOnly className="input-field" style={{ backgroundColor: 'var(--bg-color)', color: 'var(--text-secondary)' }} />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="input-group">
+              <label className="input-label">Start Time *</label>
+              <select name="startTime" value={formData.startTime} onChange={handleChange} className="input-field" required disabled={!task} style={!task ? { backgroundColor: 'var(--bg-color)', color: 'var(--text-secondary)', appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none' } : {}}>
+                <option value="">Select Time Slot</option>
+                {timeSlots.map(time => (
+                  <option key={time} value={time}>{formatTime12h(time)}</option>
+                ))}
+              </select>
+            </div>
+            <div className="input-group">
+              <label className="input-label">End Time *</label>
+              <select name="endTime" value={formData.endTime} onChange={handleChange} className="input-field" required disabled={!task} style={!task ? { backgroundColor: 'var(--bg-color)', color: 'var(--text-secondary)', appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none' } : {}}>
+                <option value="">Select Time Slot</option>
+                {timeSlots.map(time => (
+                  <option key={time} value={time}>{formatTime12h(time)}</option>
+                ))}
+              </select>
             </div>
           </div>
 
