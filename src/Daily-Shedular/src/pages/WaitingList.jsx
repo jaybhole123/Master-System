@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useScheduler } from '../context/SchedulerContext';
 import { format, differenceInHours } from 'date-fns';
-import { Check, Calendar } from 'lucide-react';
+import { Check, Calendar, Search } from 'lucide-react';
 
 const WaitingList = () => {
   const { tasks, markTaskDone, rescheduleTask, staffList, generateTimeSlots, settings, formatTime12h, fetchTasks } = useScheduler();
@@ -12,7 +12,24 @@ const WaitingList = () => {
     fetchTasks();
   }, []);
 
-  const overdueTasks = tasks.filter(t => t.status === 'Overdue');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const overdueTasks = tasks.filter(t => {
+    if (t.status !== 'Overdue') return false;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      return (t.description || '').toLowerCase().includes(q);
+    }
+    return true;
+  });
+
+  const highlightText = (text) => {
+    if (!searchQuery || !text) return text;
+    const parts = text.toString().split(new RegExp(`(${searchQuery})`, 'gi'));
+    return parts.map((part, index) => 
+      part.toLowerCase() === searchQuery.toLowerCase() ? <mark key={index} style={{ backgroundColor: '#fef08a', padding: '0 2px', borderRadius: '2px' }}>{part}</mark> : part
+    );
+  };
 
   const handleRescheduleSubmit = (e) => {
     e.preventDefault();
@@ -41,6 +58,18 @@ const WaitingList = () => {
 
   return (
     <div className="daily-scheduler-container">
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', backgroundColor: 'var(--surface-color)', borderRadius: 'var(--radius-md)', padding: '0.25rem 0.75rem', border: '1px solid var(--border-color)', minWidth: '300px' }}>
+          <Search size={16} color="var(--text-muted)" style={{ marginRight: '0.5rem' }} />
+          <input 
+            type="text" 
+            placeholder="Search by description..." 
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            style={{ border: 'none', background: 'transparent', width: '100%', outline: 'none', fontSize: '0.875rem', padding: '0.25rem 0' }}
+          />
+        </div>
+      </div>
       <div className="table-container">
         <table className="table">
           <thead>
@@ -56,7 +85,7 @@ const WaitingList = () => {
               overdueTasks.map(task => (
                 <tr key={task.id}>
                   <td data-label="Task">
-                    <div style={{ fontWeight: '500' }}>{task.description || 'No description'}</div>
+                    <div style={{ fontWeight: '500' }}>{highlightText(task.description || 'No description')}</div>
                   </td>
                   <td data-label="Original Schedule">
                     <div style={{ color: 'var(--text-primary)' }}>{format(new Date(task.date), 'dd MMM yyyy')}</div>

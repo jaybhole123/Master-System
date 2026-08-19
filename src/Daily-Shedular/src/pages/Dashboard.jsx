@@ -75,11 +75,7 @@ const Dashboard = () => {
       <div className="header-flex">
         <h1 style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--text-primary)' }}>Daily Scheduler</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          {selectedTaskIds.length > 0 && (
-            <button onClick={handleMarkSelectedDone} className="btn btn-primary" style={{ padding: '0.375rem 0.75rem', fontSize: '0.875rem' }}>
-              <Check size={16} /> Mark Selected Done ({selectedTaskIds.length})
-            </button>
-          )}
+
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--surface-color)', padding: '0.25rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)' }}>
             <button onClick={handlePrevDay} className="btn btn-outline" style={{ padding: '0.375rem', border: 'none' }}>
             <ChevronLeft size={16} />
@@ -107,13 +103,29 @@ const Dashboard = () => {
           <h2 style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '1rem' }}>Today's Progress</h2>
           <TaskStatusChart tasks={todaysTasks} />
         </div>
+        <div style={{ backgroundColor: 'var(--surface-color)', padding: '1.5rem', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-color)', height: '250px', display: 'flex', flexDirection: 'column' }}>
+          <h2 style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '1rem' }}>Selected Tasks</h2>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ fontSize: '5rem', fontWeight: '800', color: 'var(--primary-color)', lineHeight: '1' }}>
+              {selectedTaskIds.length}
+            </div>
+            <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem', fontWeight: '500' }}>Tasks currently selected</p>
+          </div>
+        </div>
       </div>
 
       <div style={{ display: 'block', width: '100%' }}>
         
         {/* Main Scheduler */}
         <div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
+            <div>
+              {selectedTaskIds.length > 0 && (
+                <button onClick={handleMarkSelectedDone} className="btn btn-primary" style={{ padding: '0.375rem 0.75rem', fontSize: '0.875rem' }}>
+                  <Check size={16} /> Mark Selected Done ({selectedTaskIds.length})
+                </button>
+              )}
+            </div>
             <div style={{ display: 'flex', alignItems: 'center', backgroundColor: 'var(--surface-color)', borderRadius: 'var(--radius-md)', padding: '0.25rem 0.75rem', border: '1px solid var(--border-color)', minWidth: '300px' }}>
               <Search size={16} color="var(--text-muted)" style={{ marginRight: '0.5rem' }} />
               <input 

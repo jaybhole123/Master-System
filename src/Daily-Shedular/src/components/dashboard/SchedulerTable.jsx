@@ -43,6 +43,7 @@ const SchedulerTable = ({ currentDate, onAddTask, selectedTaskIds = [], setSelec
             <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '4%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>
               <input 
                 type="checkbox" 
+                style={{ width: '18px', height: '18px', cursor: 'pointer' }}
                 onChange={(e) => {
                   if (e.target.checked) {
                     const pending = todaysTasks.filter(t => t.status === 'Pending' || t.status === 'In Progress' || t.status === 'Scheduled');
@@ -92,6 +93,7 @@ const SchedulerTable = ({ currentDate, onAddTask, selectedTaskIds = [], setSelec
                         <td data-label="SELECT" style={{ textAlign: 'center', verticalAlign: 'middle' }}>
                           <input 
                             type="checkbox" 
+                            style={{ width: '18px', height: '18px', cursor: 'pointer' }}
                             checked={selectedTaskIds.includes(task.id)} 
                             onChange={() => {
                               if (setSelectedTaskIds) {

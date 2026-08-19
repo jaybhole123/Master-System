@@ -29,6 +29,7 @@ const Setting = () => {
   const [currentUserId, setCurrentUserId] = useState(null);
   const [currentDeptId, setCurrentDeptId] = useState(null);
   const [usernameFilter, setUsernameFilter] = useState('');
+  const [designationFilter, setDesignationFilter] = useState('');
   const [usernameDropdownOpen, setUsernameDropdownOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const lastSyncError = useRef({ status: null, timestamp: 0 });
@@ -1474,21 +1475,36 @@ const Setting = () => {
                   </button>
                 </div>
 
-                <div className="relative w-full sm:w-auto">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                  <input
-                    type="text"
-                    list="usernameOptions"
-                    placeholder="Search users..."
-                    value={usernameFilter}
-                    onChange={(e) => setUsernameFilter(e.target.value)}
-                    className="w-full sm:w-48 pl-10 pr-8 py-2 border border-red-200 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 text-sm shadow-sm"
-                  />
-                  <datalist id="usernameOptions">
-                    {(userData || []).filter(u => u && u.user_name).map(user => (
-                      <option key={`opt-user-${user.id}`} value={user.user_name} />
-                    ))}
-                  </datalist>
+                <div className="flex gap-3 w-full sm:w-auto flex-col sm:flex-row">
+                  <div className="relative w-full sm:w-auto">
+                    <select
+                      value={designationFilter}
+                      onChange={(e) => setDesignationFilter(e.target.value)}
+                      className="w-full sm:w-48 px-3 py-2 border border-red-200 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 text-sm shadow-sm appearance-none bg-white"
+                    >
+                      <option value="">All Designations</option>
+                      {[...new Set((userData || []).map(u => u?.Designation).filter(Boolean))].map((designation, idx) => (
+                        <option key={`opt-desig-${idx}`} value={designation}>{designation}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+                  </div>
+                  <div className="relative w-full sm:w-auto">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                    <input
+                      type="text"
+                      list="usernameOptions"
+                      placeholder="Search users..."
+                      value={usernameFilter}
+                      onChange={(e) => setUsernameFilter(e.target.value)}
+                      className="w-full sm:w-48 pl-10 pr-8 py-2 border border-red-200 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 text-sm shadow-sm"
+                    />
+                    <datalist id="usernameOptions">
+                      {(userData || []).filter(u => u && u.user_name).map(user => (
+                        <option key={`opt-user-${user.id}`} value={user.user_name} />
+                      ))}
+                    </datalist>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1535,11 +1551,12 @@ const Setting = () => {
                     <tbody className="bg-white divide-y divide-gray-200">
                       {(() => {
                         const filtered = (userData || [])
-                          .filter(user =>
-                            user &&
-                            user.user_name && (
-                              !usernameFilter || user.user_name.toLowerCase().includes(usernameFilter.toLowerCase()))
-                          );
+                          .filter(user => {
+                            if (!user || !user.user_name) return false;
+                            const matchesUsername = !usernameFilter || user.user_name.toLowerCase().includes(usernameFilter.toLowerCase());
+                            const matchesDesignation = !designationFilter || user.Designation === designationFilter;
+                            return matchesUsername && matchesDesignation;
+                          });
                         console.log("Setting Page - Filtered Users COUNT:", filtered.length);
                         return filtered;
                       })().map((user, index) => (
@@ -1642,13 +1659,12 @@ const Setting = () => {
                 {/* Mobile View Cards */}
                 <div className="md:hidden space-y-4 p-4 bg-gray-50/50">
                   {(userData || [])
-                    .filter(user =>
-                      user &&
-                      user.user_name &&
-                      user.user_name !== 'admin' &&
-                      user.user_name !== 'DSMC' && (
-                        !usernameFilter || user.user_name.toLowerCase().includes(usernameFilter.toLowerCase()))
-                    )
+                    .filter(user => {
+                      if (!user || !user.user_name || user.user_name === 'admin' || user.user_name === 'DSMC') return false;
+                      const matchesUsername = !usernameFilter || user.user_name.toLowerCase().includes(usernameFilter.toLowerCase());
+                      const matchesDesignation = !designationFilter || user.Designation === designationFilter;
+                      return matchesUsername && matchesDesignation;
+                    })
                     .map((user, index) => (
                       <div key={`user-card-${user?.id || index}`} className="bg-white rounded-xl border border-red-100 shadow-sm overflow-hidden animate-fade-in">
                         <div className="bg-red-50/50 px-4 py-3 border-b border-red-100 flex justify-between items-center">

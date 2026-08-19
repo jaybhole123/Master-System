@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useScheduler } from '../context/SchedulerContext';
-import { Plus, Calendar as CalendarIcon, MoreVertical, Edit, Trash2 } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, MoreVertical, Edit, Trash2, Search } from 'lucide-react';
 import { format } from 'date-fns';
 
 const SomedayTasks = () => {
@@ -14,6 +14,24 @@ const SomedayTasks = () => {
   useEffect(() => {
     fetchSomedayTasks();
   }, []);
+
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredSomedayTasks = somedayTasks.filter(task => {
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      return (task.description || '').toLowerCase().includes(q);
+    }
+    return true;
+  });
+
+  const highlightText = (text) => {
+    if (!searchQuery || !text) return text;
+    const parts = text.toString().split(new RegExp(`(${searchQuery})`, 'gi'));
+    return parts.map((part, index) => 
+      part.toLowerCase() === searchQuery.toLowerCase() ? <mark key={index} style={{ backgroundColor: '#fef08a', padding: '0 2px', borderRadius: '2px' }}>{part}</mark> : part
+    );
+  };
 
   const [formData, setFormData] = useState({
     description: '', priority: 'Medium', category: categories[0] || 'Meeting', assignedStaff: currentUser?.id || ''
@@ -74,20 +92,30 @@ const SomedayTasks = () => {
 
   return (
     <div className="daily-scheduler-container">
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1.5rem' }}>
-        <button onClick={() => setIsAddModalOpen(true)} className="btn btn-primary">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', backgroundColor: 'var(--surface-color)', borderRadius: 'var(--radius-md)', padding: '0.25rem 0.75rem', border: '1px solid var(--border-color)', minWidth: '300px', flex: 1 }}>
+          <Search size={16} color="var(--text-muted)" style={{ marginRight: '0.5rem' }} />
+          <input 
+            type="text" 
+            placeholder="Search by description..." 
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            style={{ border: 'none', background: 'transparent', width: '100%', outline: 'none', fontSize: '0.875rem', padding: '0.25rem 0' }}
+          />
+        </div>
+        <button onClick={() => setIsAddModalOpen(true)} className="btn btn-primary" style={{ whiteSpace: 'nowrap' }}>
           <Plus size={18} /> Add Someday Task
         </button>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
-        {somedayTasks.length > 0 ? somedayTasks.map(task => (
+        {filteredSomedayTasks.length > 0 ? filteredSomedayTasks.map(task => (
           <div key={task.id} style={{ backgroundColor: 'var(--surface-color)', padding: '1.5rem', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-                <h3 style={{ fontSize: '1.125rem', fontWeight: '600' }}>{task.description || 'No description'}</h3>
+                <h3 style={{ fontSize: '1.125rem', fontWeight: '600' }}>{highlightText(task.description || 'No description')}</h3>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span className={`badge ${task.priority === 'High' ? 'badge-notdone' : 'badge-progress'}`}>{task.priority}</span>
+                  <span style={{ display: 'none' }} className={`badge ${task.priority === 'High' ? 'badge-notdone' : 'badge-progress'}`}>{task.priority}</span>
                   <button onClick={() => handleEditClick(task)} className="btn btn-outline" style={{ padding: '0.25rem', border: 'none' }} title="Edit">
                     <Edit size={16} />
                   </button>
@@ -124,7 +152,7 @@ const SomedayTasks = () => {
               <label className="input-label">Task Description *</label>
               <textarea required value={formData.description} onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))} className="input-field" rows="3" placeholder="Enter task details..."></textarea>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div style={{ display: 'none', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div className="input-group">
                 <label className="input-label">Priority</label>
                 <select value={formData.priority} onChange={e => setFormData(prev => ({ ...prev, priority: e.target.value }))} className="input-field">
@@ -154,7 +182,7 @@ const SomedayTasks = () => {
               <label className="input-label">Task Description *</label>
               <textarea required value={formData.description} onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))} className="input-field" rows="3" placeholder="Enter task details..."></textarea>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div style={{ display: 'none', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div className="input-group">
                 <label className="input-label">Priority</label>
                 <select value={formData.priority} onChange={e => setFormData(prev => ({ ...prev, priority: e.target.value }))} className="input-field">

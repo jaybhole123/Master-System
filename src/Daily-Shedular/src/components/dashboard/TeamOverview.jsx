@@ -23,52 +23,62 @@ const TeamOverview = ({ currentDate }) => {
     };
   };
 
+  const localRole = localStorage.getItem('userRole');
+  const currentRole = currentUser?.role?.toLowerCase();
+  const isSuperadmin = localRole === 'superadmin' || currentRole === 'superadmin' || 
+                       (currentUser?.designation && currentUser.designation.toLowerCase() === 'superadmin');
+
+  const displayStaffList = isSuperadmin && staffList && staffList.length > 0 
+    ? staffList 
+    : (currentUser ? [currentUser] : []);
+
   return (
-    <div className="table-container">
-      <table className="table" style={{ minWidth: '800px' }}>
-        <thead>
-          <tr>
-            <th>Staff Member</th>
-            <th style={{ textAlign: 'center' }}>Total Tasks</th>
-            <th style={{ textAlign: 'center' }}>Completed</th>
-            <th style={{ textAlign: 'center' }}>Pending</th>
-            <th style={{ textAlign: 'center' }}>Not Done</th>
-            <th style={{ textAlign: 'center' }}>Overdue</th>
-          </tr>
-        </thead>
-        <tbody>
-          {currentUser && [currentUser].map(staff => {
-            const stats = getStaffStats(staff.id, staff.name);
-            return (
-              <tr key={staff.id}>
-                <td data-label="Staff Member">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'var(--primary-color)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '600', fontSize: '0.875rem' }}>
-                      {staff.name ? staff.name.charAt(0) : 'U'}
-                    </div>
-                    <div>
-                      <div style={{ fontWeight: '600' }}>{staff.name || 'Unknown User'}</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{staff.designation || 'System Admin'}</div>
-                    </div>
-                  </div>
-                </td>
-                <td data-label="Total Tasks" style={{ textAlign: 'center', fontWeight: '500' }}>{stats.total}</td>
-                <td data-label="Completed" style={{ textAlign: 'center', color: stats.completed > 0 ? 'var(--status-completed)' : 'inherit', fontWeight: stats.completed > 0 ? '600' : 'normal' }}>{stats.completed}</td>
-                <td data-label="Pending" style={{ textAlign: 'center', color: stats.pending > 0 ? 'var(--status-progress)' : 'inherit', fontWeight: stats.pending > 0 ? '600' : 'normal' }}>{stats.pending}</td>
-                <td data-label="Not Done" style={{ textAlign: 'center', color: stats.notDone > 0 ? 'var(--status-notdone)' : 'inherit', fontWeight: stats.notDone > 0 ? '600' : 'normal' }}>{stats.notDone}</td>
-                <td data-label="Overdue" style={{ textAlign: 'center', color: stats.overdue > 0 ? 'var(--status-overdue)' : 'inherit', fontWeight: stats.overdue > 0 ? '600' : 'normal' }}>{stats.overdue}</td>
-              </tr>
-            );
-          })}
-          {!currentUser && (
-            <tr>
-              <td colSpan="6" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
-                No staff members found.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      {displayStaffList.length > 0 && displayStaffList.map(staff => {
+        const stats = getStaffStats(staff.id, staff.name);
+        return (
+          <div key={staff.id} style={{ padding: '1rem', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-color)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+              <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'var(--primary-color)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '600', fontSize: '1rem' }}>
+                {staff.name ? staff.name.charAt(0) : 'U'}
+              </div>
+              <div>
+                <div style={{ fontWeight: '600', fontSize: '0.95rem' }}>{staff.name || 'Unknown User'}</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{staff.designation || 'System Admin'}</div>
+              </div>
+            </div>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: '0.25rem', textAlign: 'center' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', padding: '0.25rem', backgroundColor: 'var(--surface-color)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
+                <span style={{ color: 'var(--text-secondary)', marginBottom: '0.25rem', fontSize: '0.6rem', fontWeight: '600', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Total</span>
+                <span style={{ fontWeight: '700', fontSize: '0.9rem' }}>{stats.total}</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', padding: '0.25rem', backgroundColor: 'var(--surface-color)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
+                <span style={{ color: 'var(--text-secondary)', marginBottom: '0.25rem', fontSize: '0.6rem', fontWeight: '600', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Done</span>
+                <span style={{ fontWeight: '700', fontSize: '0.9rem', color: stats.completed > 0 ? 'var(--status-completed)' : 'inherit' }}>{stats.completed}</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', padding: '0.25rem', backgroundColor: 'var(--surface-color)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
+                <span style={{ color: 'var(--text-secondary)', marginBottom: '0.25rem', fontSize: '0.6rem', fontWeight: '600', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Pending</span>
+                <span style={{ fontWeight: '700', fontSize: '0.9rem', color: stats.pending > 0 ? 'var(--status-progress)' : 'inherit' }}>{stats.pending}</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', padding: '0.25rem', backgroundColor: 'var(--surface-color)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
+                <span style={{ color: 'var(--text-secondary)', marginBottom: '0.25rem', fontSize: '0.6rem', fontWeight: '600', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Not Done</span>
+                <span style={{ fontWeight: '700', fontSize: '0.9rem', color: stats.notDone > 0 ? 'var(--status-notdone)' : 'inherit' }}>{stats.notDone}</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', padding: '0.25rem', backgroundColor: 'var(--surface-color)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
+                <span style={{ color: 'var(--text-secondary)', marginBottom: '0.25rem', fontSize: '0.6rem', fontWeight: '600', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Overdue</span>
+                <span style={{ fontWeight: '700', fontSize: '0.9rem', color: stats.overdue > 0 ? 'var(--status-overdue)' : 'inherit' }}>{stats.overdue}</span>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+      
+      {displayStaffList.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+          No staff members found.
+        </div>
+      )}
     </div>
   );
 };

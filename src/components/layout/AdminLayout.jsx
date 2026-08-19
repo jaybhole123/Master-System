@@ -437,7 +437,6 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/dashboard/quick-task",
       // Show for super admin OR anyone with 'admin' role
       showFor: (isSuperAdmin || userRole.toLowerCase() === "admin") ? ["admin"] : [],
-      badge: pageCounts.taskManager,
     },
     {
       href: "/dashboard/my-task",
