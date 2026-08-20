@@ -38,15 +38,6 @@ export default function NetSalary() {
   const [isMouseDown, setIsMouseDown] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
-  const [draggedIndex, setDraggedIndex] = useState(null);
-  const [orderedIds, setOrderedIds] = useState(() => {
-    try {
-      const saved = localStorage.getItem('hr_netsalary_row_order');
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-      return [];
-    }
-  });
 
   const handleMouseDown = (e) => {
     if (['BUTTON', 'INPUT', 'A', 'SVG', 'PATH'].includes(e.target.tagName)) return;
@@ -64,29 +55,6 @@ export default function NetSalary() {
     const x = e.pageX - tableRef.current.offsetLeft;
     const walk = (x - startX) * 1.5;
     tableRef.current.scrollLeft = scrollLeft - walk;
-  };
-
-  const handleDragStart = (e, index) => {
-    setDraggedIndex(index);
-    e.dataTransfer.effectAllowed = 'move';
-  };
-
-  const handleDragOver = (e, index) => {
-    e.preventDefault();
-    if (draggedIndex === null || draggedIndex === index) return;
-    const currentList = records.map(r => r.id);
-    const item = currentList[draggedIndex];
-    currentList.splice(draggedIndex, 1);
-    currentList.splice(index, 0, item);
-    setDraggedIndex(index);
-    setOrderedIds(currentList);
-    try {
-      localStorage.setItem('hr_netsalary_row_order', JSON.stringify(currentList));
-    } catch (err) {}
-  };
-
-  const handleDragEnd = () => {
-    setDraggedIndex(null);
   };
 
   const isDataLoading = loading || empLoading;
@@ -201,18 +169,8 @@ export default function NetSalary() {
       currentRecords = currentRecords.filter(r => r.department === selectedDepartment);
     }
 
-    if (!orderedIds || orderedIds.length === 0) return currentRecords;
-    
-    const map = new Map(currentRecords.map(r => [r.id, r]));
-    const result = [];
-    orderedIds.forEach(id => {
-      if (map.has(id)) {
-        result.push(map.get(id));
-        map.delete(id);
-      }
-    });
-    return [...result, ...Array.from(map.values())];
-  }, [baseRecords, orderedIds, selectedDepartment]);
+    return currentRecords;
+  }, [baseRecords, selectedDepartment]);
 
   // Calculations
   const totalGross = records.reduce((acc, curr) => acc + curr.gross, 0);
@@ -520,7 +478,6 @@ export default function NetSalary() {
                       }}
                     />
                   </th>
-                  <th style={{...thStyle, width: '28px'}}></th>
                   <th style={{...thStyle, width: '60px'}}>Sr. No.</th>
                   {visibleCols.empName && <th style={thStyle}>Employee Name</th>}
                   {visibleCols.department && <th style={thStyle}>Department</th>}
@@ -556,14 +513,8 @@ export default function NetSalary() {
                     return (
                       <tr 
                         key={rec.id} 
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, idx)}
-                        onDragOver={(e) => handleDragOver(e, idx)}
-                        onDragEnd={handleDragEnd}
                         style={{ 
                           backgroundColor: idx % 2 === 0 ? 'var(--bg-card)' : 'rgba(0,0,0,0.02)',
-                          opacity: draggedIndex === idx ? 0.4 : 1,
-                          cursor: 'grab',
                           transition: 'background-color 0.15s ease'
                         }}
                       >
@@ -577,9 +528,6 @@ export default function NetSalary() {
                               else setSelectedRows(selectedRows.filter(id => id !== rec.id));
                             }}
                           />
-                        </td>
-                        <td style={{...tdStyle, textAlign: 'center', color: '#9ca3af', cursor: 'grab', paddingRight: '4px' }} title="Drag to reorder">
-                          <GripVertical size={16} />
                         </td>
                         <td style={{...tdStyle, textAlign: 'center', color: 'var(--text-secondary)'}}>{idx + 1}</td>
                         {visibleCols.empName && <td style={{...tdStyle, fontWeight: 500, color: 'var(--text-primary)'}}>{rec.name}</td>}

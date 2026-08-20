@@ -201,9 +201,9 @@ const ReminderCalendar = () => {
         </div>
 
         <div className="hidden md:flex flex-col bg-white rounded-xl shadow-input overflow-hidden">
-          <div className="overflow-auto">
+          <div className="overflow-auto max-h-[calc(100vh-220px)]">
             <table className="w-full text-left border-collapse">
-              <thead className="sticky top-0 z-10 bg-gray-50">
+              <thead className="sticky top-0 z-10 bg-gray-50 shadow-sm">
                 <tr className="border-b border-gray-100 text-xs uppercase text-gray-500 font-semibold tracking-wider whitespace-nowrap">
                   <th className="px-3 py-2">Month</th>
                   <th className="px-3 py-2">Date</th>

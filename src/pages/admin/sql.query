@@ -563,3 +563,6 @@ CREATE TABLE public.someday_tasks (
 
 -- Alter query to add color column to tasks table
 ALTER TABLE public.tasks ADD COLUMN color text;
+
+-- Query to drop the Designation column from users table
+ALTER TABLE public.users DROP COLUMN "Designation";

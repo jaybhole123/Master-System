@@ -11,17 +11,19 @@ export function useEmployees() {
       try {
         const { data, error: fetchError } = await supabase
           .from('users')
-          .select('id, employee_id, user_name, department, designation, Designation, status, created_at, base_salary, account_no')
+          .select('id, employee_id, user_name, department, designation, status, created_at, base_salary, account_no, display_order')
+          .order('display_order', { ascending: true })
           .order('created_at', { ascending: false });
 
         if (fetchError) throw fetchError;
 
         if (data) {
-          const formattedEmployees = data.map(u => ({
+          const activeData = data.filter(u => !u.status || u.status.toLowerCase() === 'active');
+          const formattedEmployees = activeData.map(u => ({
             id: u.employee_id || `EMP-${u.id}`,
             name: u.user_name || 'Unknown',
             department: u.department,
-            designation: u.Designation || u.designation,
+            designation: u.designation,
             status: u.status || 'Active',
             baseSalary: u.base_salary || 0,
             accountNo: u.account_no || '',

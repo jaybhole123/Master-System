@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
-import { Plus, X, Pencil, Trash2, Loader, GripVertical, Filter } from 'lucide-react';
+import { Plus, X, Pencil, Trash2, Loader, Filter } from 'lucide-react';
 import Cropper from 'react-easy-crop';
 import getCroppedImg from '../utils/cropImage';
 import { sendBirthdayWishes } from '../../../services/whatsappService';
@@ -48,6 +48,21 @@ const calculateDynamicExperience = (joiningDate, fallbackExperience) => {
   return expStr.trim();
 };
 
+const getDesignationStyle = (desg) => {
+  if (!desg) return { color: 'var(--text-secondary)' };
+  const d = desg.toUpperCase().trim();
+  switch (d) {
+    case 'HELPING HANDS': return { backgroundColor: '#dbeafe', color: '#1d4ed8', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' };
+    case 'JAI BHOLE ENTERPRISE': return { backgroundColor: '#fef3c7', color: '#b45309', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' };
+    case 'ASAK COAL PVT.LTD.': return { backgroundColor: '#d1fae5', color: '#047857', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' };
+    case 'JAI BHOLE LOGISTICS': return { backgroundColor: '#ede9fe', color: '#6d28d9', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' };
+    case 'BOTIVATE': return { backgroundColor: '#ffe4e6', color: '#be123c', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' };
+    case 'JAI BHOLE TRADERS': return { backgroundColor: '#ffedd5', color: '#c2410c', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' };
+    case 'ASAK COAL LOGISTICS': return { backgroundColor: '#ccfbf1', color: '#0f766e', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' };
+    default: return { backgroundColor: '#f3f4f6', color: '#4b5563', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' };
+  }
+};
+
 export default function EmployeeMaster() {
   // Main state
   const [employees, setEmployees] = useState([]);
@@ -81,7 +96,6 @@ export default function EmployeeMaster() {
   const [isMouseDown, setIsMouseDown] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
-  const [draggedIndex, setDraggedIndex] = useState(null);
 
   const handleMouseDown = (e) => {
     if (['BUTTON', 'INPUT', 'A', 'SVG', 'PATH'].includes(e.target.tagName)) return;
@@ -105,36 +119,6 @@ export default function EmployeeMaster() {
     const x = e.pageX - tableRef.current.offsetLeft;
     const walk = (x - startX) * 1.5;
     tableRef.current.scrollLeft = scrollLeft - walk;
-  };
-
-  const handleDragStart = (e, index) => {
-    setDraggedIndex(index);
-    e.dataTransfer.effectAllowed = 'move';
-  };
-
-  // Database-backed ordering logic
-
-  const handleDragOver = (e, index) => {
-    e.preventDefault();
-    if (draggedIndex === null || draggedIndex === index) return;
-    const newEmployees = [...employees];
-    const draggedItem = newEmployees[draggedIndex];
-    newEmployees.splice(draggedIndex, 1);
-    newEmployees.splice(index, 0, draggedItem);
-    setDraggedIndex(index);
-    setEmployees(newEmployees);
-  };
-
-  const handleDragEnd = async () => {
-    setDraggedIndex(null);
-    try {
-      const promises = employees.map((emp, index) => 
-        supabase.from('users').update({ display_order: index }).eq('id', emp.id)
-      );
-      await Promise.all(promises);
-    } catch (err) {
-      console.error("Error saving sequence to DB:", err);
-    }
   };
 
   // Edit state
@@ -175,7 +159,7 @@ export default function EmployeeMaster() {
     experience: '',
     pfApplicable: false,
     esicApplicable: false,
-    status: 'Active',
+    status: 'active',
     displayOrder: ''
   };
   
@@ -247,13 +231,14 @@ export default function EmployeeMaster() {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('id, employee_id, user_name, department, designation, Designation, status, created_at, number, joining_date, fathers_name, experience, photo, display_order, date_of_birth')
+        .select('id, employee_id, user_name, department, designation, status, created_at, number, joining_date, fathers_name, experience, photo, display_order, date_of_birth')
         .order('display_order', { ascending: true })
         .order('created_at', { ascending: false });
         
       if (error) throw error;
       const fetchedEmployees = data || [];
-      setEmployees(fetchedEmployees);
+      const activeEmployees = fetchedEmployees.filter(emp => !emp.status || emp.status.toLowerCase() === 'active');
+      setEmployees(activeEmployees);
 
       // Check for birthdays today
       const today = new Date();
@@ -310,11 +295,11 @@ export default function EmployeeMaster() {
       try {
         const { error } = await supabase
           .from('users')
-          .update({ status: 'Inactive' })
+          .update({ status: 'inactive' })
           .eq('id', emp.id);
           
         if (error) throw error;
-        setEmployees(employees.map(e => e.id === emp.id ? { ...e, status: 'Inactive' } : e));
+        setEmployees(employees.filter(e => e.id !== emp.id));
         toast.success('Employee marked as Inactive successfully');
       } catch (error) {
         console.error('Error deactivating employee:', error);
@@ -507,7 +492,7 @@ export default function EmployeeMaster() {
         number: parseInt(formData.phone.replace(/\D/g, ''), 10) || null,
         department: formData.department,
         designation: formData.designation,
-        joining_date: formData.joiningDate,
+        joining_date: formData.joiningDate || null,
         base_salary: Number(String(formData.baseSalary).replace(/,/g, '')) || 0,
         address: formData.address,
         aadhar_no: formData.aadharNo,
@@ -674,11 +659,9 @@ export default function EmployeeMaster() {
             userSelect: isMouseDown ? 'none' : 'auto'
           }}
         >
-          <table>
+          <table style={{ whiteSpace: 'nowrap' }}>
             <thead>
               <tr>
-                <th style={{ width: '28px' }}></th>
-                <th>Seq. No.</th>
                 <th>Photo</th>
                 {/* <th>Emp ID</th> */}
                 <th>Name</th>
@@ -712,24 +695,7 @@ export default function EmployeeMaster() {
                 });
 
                 return filteredEmployees.length > 0 ? filteredEmployees.map((emp, idx) => (
-                <tr 
-                  key={emp.id}
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, idx)}
-                  onDragOver={(e) => handleDragOver(e, idx)}
-                  onDragEnd={handleDragEnd}
-                  style={{
-                    opacity: draggedIndex === idx ? 0.4 : 1,
-                    backgroundColor: draggedIndex === idx ? '#f0f4ff' : undefined,
-                    transition: 'background-color 0.15s ease'
-                  }}
-                >
-                  <td style={{ cursor: 'grab', color: '#9ca3af', paddingRight: '4px', textAlign: 'center' }} title="Drag to reorder">
-                    <GripVertical size={16} />
-                  </td>
-                  <td style={{ fontWeight: 500, color: 'var(--primary-color)', textAlign: 'center' }}>
-                    {emp.display_order ?? 0}
-                  </td>
+                <tr key={emp.id}>
                   <td>
                     {emp.photo ? (
                       <img src={emp.photo} alt={emp.user_name} style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
@@ -743,7 +709,11 @@ export default function EmployeeMaster() {
                   <td style={{ fontWeight: 500 }}>{emp.user_name}</td>
                   <td>{emp.number || '-'}</td>
                   <td>{emp.department}</td>
-                  <td style={{ color: 'var(--text-secondary)' }}>{emp.Designation || emp.designation || '-'}</td>
+                  <td>
+                    <span style={getDesignationStyle(emp.designation)}>
+                      {emp.designation || '-'}
+                    </span>
+                  </td>
                   {/* <td>{emp.joining_date ? new Date(emp.joining_date).toLocaleDateString() : '-'}</td> */}
                   <td>{calculateDynamicExperience(emp.joining_date, emp.experience)}</td>
                   <td>{emp.fathers_name || '-'}</td>
@@ -826,19 +796,19 @@ export default function EmployeeMaster() {
                 </div>
                 <div className="form-group">
                   <label>Name</label>
-                  <input type="text" name="name" value={formData.name} onChange={handleAddChange} required placeholder="name" />
+                  <input type="text" name="name" value={formData.name} onChange={handleAddChange} placeholder="name" />
                 </div>
                 <div className="form-group">
                   <label>Email Address</label>
-                  <input type="email" name="email" value={formData.email} onChange={handleAddChange} required placeholder="john.doe@company.com" />
+                  <input type="email" name="email" value={formData.email} onChange={handleAddChange} placeholder="john.doe@company.com" />
                 </div>
                 <div className="form-group">
                   <label>Phone Number</label>
-                  <input type="tel" name="phone" value={formData.phone} onChange={handleAddChange} required placeholder="+1 234 567 8900" />
+                  <input type="tel" name="phone" value={formData.phone} onChange={handleAddChange} placeholder="+1 234 567 8900" />
                 </div>
                 <div className="form-group">
                   <label>Department</label>
-                  <select name="department" value={formData.department} onChange={handleAddChange} required>
+                  <select name="department" value={formData.department} onChange={handleAddChange}>
                     <option value="">Select Department</option>
                     {departments.map((dep, idx) => (
                       <option key={idx} value={dep}>{dep}</option>
@@ -848,21 +818,26 @@ export default function EmployeeMaster() {
                 <div className="form-group">
                   <label>Status</label>
                   <select name="status" value={formData.status} onChange={handleAddChange}>
-                    <option value="Active">Active</option>
-                    <option value="Inactive">Inactive</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
                   </select>
                 </div>
-                <div className="form-group">
+                <div className="form-group" style={{ display: 'none' }}>
                   <label>Display Order (Seq. No.)</label>
                   <input type="number" name="displayOrder" value={formData.displayOrder} onChange={handleAddChange} placeholder="e.g. 1" />
                 </div>
                 <div className="form-group">
                   <label>Designation</label>
-                  <input type="text" name="designation" value={formData.designation} onChange={handleAddChange} required placeholder="Software Engineer" />
+                  <input type="text" name="designation" list="designation-options" value={formData.designation} onChange={handleAddChange} placeholder="Software Engineer" />
+                  <datalist id="designation-options">
+                    {uniqueDesignations.map((desg, idx) => (
+                      <option key={idx} value={desg} />
+                    ))}
+                  </datalist>
                 </div>
                 <div className="form-group">
                   <label>Base Salary (₹)</label>
-                  <input type="text" name="baseSalary" value={formData.baseSalary} onChange={handleAddChange} required placeholder="50,000" />
+                  <input type="text" name="baseSalary" value={formData.baseSalary} onChange={handleAddChange} placeholder="50,000" />
                 </div>
                 <div className="form-group">
                   <label>Experience</label>
@@ -882,11 +857,11 @@ export default function EmployeeMaster() {
                 </div>
                 <div className="form-group">
                   <label>Date of Birth</label>
-                  <input type="date" name="dateOfBirth" value={formData.dateOfBirth} onChange={handleAddChange} required />
+                  <input type="date" name="dateOfBirth" value={formData.dateOfBirth} onChange={handleAddChange} />
                 </div>
                 <div className="form-group">
                   <label>Date of Joining</label>
-                  <input type="date" name="joiningDate" value={formData.joiningDate} onChange={handleAddChange} required />
+                  <input type="date" name="joiningDate" value={formData.joiningDate} onChange={handleAddChange} />
                 </div>
                 <div className="form-group">
                   <label>Father's Name</label>
@@ -927,7 +902,7 @@ export default function EmployeeMaster() {
                 </div>
                 <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                   <label>Address</label>
-                  <textarea name="address" value={formData.address} onChange={handleAddChange} required placeholder="Full Address" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', resize: 'vertical' }} rows="3" />
+                  <textarea name="address" value={formData.address} onChange={handleAddChange} placeholder="Full Address" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', resize: 'vertical' }} rows="3" />
                 </div>
               </div>
 
@@ -936,7 +911,7 @@ export default function EmployeeMaster() {
                 <div className="form-group">
                   <label>Aadhar Document (No.)</label>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <input type="text" name="aadharNo" value={formData.aadharNo} onChange={handleAddChange} required placeholder="1234 5678 9012" />
+                    <input type="text" name="aadharNo" value={formData.aadharNo} onChange={handleAddChange} placeholder="1234 5678 9012" />
                     {formData.aadharNo && formData.aadharNo.replace(/\s/g, '').length < 12 && (
                       <small style={{ color: '#ef4444' }}>Aadhar Number must be at least 12 characters</small>
                     )}
@@ -952,7 +927,7 @@ export default function EmployeeMaster() {
                 <div className="form-group">
                   <label>PAN Card No.</label>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <input type="text" name="panNo" value={formData.panNo} onChange={handleAddChange} required placeholder="ABCDE1234F" style={{ textTransform: 'uppercase' }} />
+                    <input type="text" name="panNo" value={formData.panNo} onChange={handleAddChange} placeholder="ABCDE1234F" style={{ textTransform: 'uppercase' }} />
                     {formData.panNo && formData.panNo.replace(/\s/g, '').length < 10 && (
                       <small style={{ color: '#ef4444' }}>PAN Card Number must be at least 10 characters</small>
                     )}
@@ -984,12 +959,12 @@ export default function EmployeeMaster() {
               <div className="form-grid">
                 <div className="form-group">
                   <label>Bank Name</label>
-                  <input type="text" name="bankName" value={formData.bankName} onChange={handleAddChange} required placeholder="e.g. HDFC Bank" />
+                  <input type="text" name="bankName" value={formData.bankName} onChange={handleAddChange} placeholder="e.g. HDFC Bank" />
                 </div>
                 <div className="form-group">
                   <label>Account Number</label>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <input type="text" name="accountNo" value={formData.accountNo} onChange={handleAddChange} required placeholder="123456789012" />
+                    <input type="text" name="accountNo" value={formData.accountNo} onChange={handleAddChange} placeholder="123456789012" />
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <label style={{ cursor: 'pointer', backgroundColor: 'var(--bg-main)', border: '1px solid var(--border-color)', padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                         Upload Passbook/Cheque
@@ -1001,11 +976,11 @@ export default function EmployeeMaster() {
                 </div>
                 <div className="form-group">
                   <label>IFSC Code</label>
-                  <input type="text" name="ifscCode" value={formData.ifscCode} onChange={handleAddChange} required placeholder="HDFC0001234" style={{ textTransform: 'uppercase' }} />
+                  <input type="text" name="ifscCode" value={formData.ifscCode} onChange={handleAddChange} placeholder="HDFC0001234" style={{ textTransform: 'uppercase' }} />
                 </div>
                 <div className="form-group">
                   <label>Branch Name</label>
-                  <input type="text" name="branchName" value={formData.branchName} onChange={handleAddChange} required placeholder="e.g. Connaught Place" />
+                  <input type="text" name="branchName" value={formData.branchName} onChange={handleAddChange} placeholder="e.g. Connaught Place" />
                 </div>
               </div>
 

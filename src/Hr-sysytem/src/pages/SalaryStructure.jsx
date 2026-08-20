@@ -348,7 +348,7 @@ export default function SalaryStructure() {
               <select value={selectedEmp} onChange={handleSelectChange}>
                 <option value="">-- Select Employee --</option>
                 {activeEmployees.map(emp => (
-                  <option key={emp.id} value={emp.id}>{emp.id} - {emp.name}</option>
+                  <option key={emp.id} value={emp.id}>{emp.name}</option>
                 ))}
               </select>
             </div>
