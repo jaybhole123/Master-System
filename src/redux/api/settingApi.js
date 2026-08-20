@@ -22,7 +22,7 @@ export const fetchUserDetailsApi = async () => {
 
     const { data, error } = await supabase
       .from("users")
-      .select('id, created_at, user_name, password, employee_id, email_id, number, role, status, department, user_access, Designation, reported_by, can_self_assign, leave_date, leave_end_date, remark');
+      .select('id, created_at, user_name, password, employee_id, email_id, number, role, status, department, user_access, designation, reported_by, can_self_assign, leave_date, leave_end_date, remark');
 
     if (error) {
       console.error("❌ Error fetching user details:", error);
@@ -124,8 +124,8 @@ export const createUserApi = async (newUser) => {
     };
 
     // Add designation if provided
-    if (newUser.Designation) {
-      insertData.Designation = newUser.Designation;
+    if (newUser.designation) {
+      insertData.designation = newUser.designation;
     }
 
     let { data, error } = await supabase
@@ -134,10 +134,10 @@ export const createUserApi = async (newUser) => {
       .select()
       .maybeSingle();
 
-    // Fallback if Designation column doesn't exist
-    if (error && (error.code === 'PGRST204' || error.message?.includes('Designation') || error.code === '42703')) {
-      console.warn("⚠️ Column 'Designation' likely missing, retrying without it:", error.message);
-      const { Designation, ...fallbackData } = insertData;
+    // Fallback if designation column doesn't exist
+    if (error && (error.code === 'PGRST204' || error.message?.includes('designation') || error.code === '42703')) {
+      console.warn("⚠️ Column 'designation' likely missing, retrying without it:", error.message);
+      const { designation, ...fallbackData } = insertData;
       const retry = await supabase.from("users").insert([fallbackData]).select().maybeSingle();
       data = retry.data;
       error = retry.error;
@@ -172,9 +172,9 @@ export const updateUserDataApi = async ({ id, updatedUser }) => {
       can_self_assign: updatedUser.can_self_assign ?? false
     };
 
-    // Only include Designation if explicitly set
-    if ('Designation' in updatedUser && updatedUser.Designation !== undefined) {
-      updateData.Designation = updatedUser.Designation || null;
+    // Only include designation if explicitly set
+    if ('designation' in updatedUser && updatedUser.designation !== undefined) {
+      updateData.designation = updatedUser.designation || null;
     }
 
     // Only update password if a new one is provided
@@ -202,9 +202,9 @@ export const updateUserDataApi = async ({ id, updatedUser }) => {
     // If 400 error (column not found or invalid column reference)
     // PGRST204: column not found in select
     // 42703: column does not exist in update
-    if (error && (error.code === 'PGRST204' || error.code === '42703' || error.message?.toLowerCase().includes('Designation'.toLowerCase()))) {
-      console.warn("⚠️ Designation update failed, retrying without Designation field. Error:", error.message);
-      const { Designation, ...fallbackData } = updateData;
+    if (error && (error.code === 'PGRST204' || error.code === '42703' || error.message?.toLowerCase().includes('designation'.toLowerCase()))) {
+      console.warn("⚠️ Designation update failed, retrying without designation field. Error:", error.message);
+      const { designation, ...fallbackData } = updateData;
       const retry = await supabase.from("users").update(fallbackData).eq("id", id).select().maybeSingle();
       data = retry.data;
       error = retry.error;

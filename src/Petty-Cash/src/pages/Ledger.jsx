@@ -13,6 +13,7 @@ const DEFAULT_USERS = [
 
 export default function Ledger() {
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [summaryType, setSummaryType] = useState('DAILY');
   const { user } = useAuthStore();
   const [credits, setCredits] = useState([]);
   const [expenses, setExpenses] = useState([]);
@@ -154,7 +155,7 @@ export default function Ledger() {
   const filteredLedger = useMemo(() => {
     return ledgerData.filter(entry => {
       // Apply date filter
-      if (entry.date !== selectedDateStr) {
+      if (summaryType === 'DAILY' && entry.date !== selectedDateStr) {
         return false;
       }
 
@@ -189,7 +190,7 @@ export default function Ledger() {
 
       return true;
     }).sort((a, b) => new Date(b.date) - new Date(a.date));
-  }, [ledgerData, filters, selectedDateStr]);
+  }, [ledgerData, filters, selectedDateStr, summaryType]);
 
   const totalPages = Math.ceil(filteredLedger.length / itemsPerPage);
   const paginatedLedger = filteredLedger.slice(
@@ -376,6 +377,21 @@ export default function Ledger() {
         >
           <Download size={16} /> Export
         </button>
+      </div>
+
+      {/* Summary Toggle */}
+      <div className="flex justify-between items-center bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 mt-2 shadow-sm">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 leading-none">
+          {summaryType === 'DAILY' ? `Daily Ledger (${formatSelectedDateDisplay(selectedDateStr)})` : 'Overall Ledger'}
+        </h3>
+        <select
+          value={summaryType}
+          onChange={(e) => setSummaryType(e.target.value)}
+          className="bg-white border border-gray-300 rounded px-2 py-1 text-xs font-semibold text-gray-700 focus:outline-none focus:border-indigo-500 shadow-sm cursor-pointer"
+        >
+          <option value="DAILY">Daily Summary</option>
+          <option value="OVERALL">Overall Summary</option>
+        </select>
       </div>
 
       {/* Statistics Cards */}

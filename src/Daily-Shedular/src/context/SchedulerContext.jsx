@@ -324,9 +324,11 @@ export const SchedulerProvider = ({ children }) => {
 
   // Role-based filtering: Admin sees all, Staff sees only their tasks
   const isAdmin = currentUser?.designation === 'System Admin' || 
+                  (currentUser?.designation || '').toLowerCase().trim() === 'superadmin' ||
                   currentUser?.name === 'Admin' ||
                   (currentUser?.role || '').toLowerCase().trim() === 'superadmin' ||
-                  (localStorage.getItem('role') || '').toLowerCase().trim() === 'superadmin';
+                  (localStorage.getItem('role') || '').toLowerCase().trim() === 'superadmin' ||
+                  (localStorage.getItem('userRole') || '').toLowerCase().trim() === 'superadmin';
   
   const myTasks = tasks.filter(t => String(t.assignedStaff) === String(currentUser?.id) || String(t.createdBy) === String(currentUser?.name));
   const filteredSomedayTasks = somedayTasks.filter(t => String(t.createdBy) === String(currentUser?.name));

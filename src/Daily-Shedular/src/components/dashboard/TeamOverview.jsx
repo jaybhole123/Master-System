@@ -3,10 +3,10 @@ import { useScheduler } from '../../context/SchedulerContext';
 import { isSameDay } from 'date-fns';
 
 const TeamOverview = ({ currentDate }) => {
-  const { staffList, tasks, currentUser } = useScheduler();
+  const { staffList, allTasks, currentUser } = useScheduler();
 
   const getStaffStats = (staffId, staffName) => {
-    const staffTasks = tasks.filter(t => {
+    const staffTasks = allTasks.filter(t => {
       const isAssigned = String(t.assignedStaff) === String(staffId);
       const isCreatedBySelfAndUnassigned = (!t.assignedStaff || t.assignedStaff === '') && 
                                            (String(t.createdBy).toLowerCase().trim() === String(staffName).toLowerCase().trim());

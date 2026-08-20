@@ -151,7 +151,7 @@ export default function AdminDashboard() {
       const pMode = c.payment_mode || c.paymentMode || '';
       const pImg = c.receipt_url || c.image || '';
 
-      if (c.date === selectedDateStr) {
+      if (summaryType === 'OVERALL' || c.date === selectedDateStr) {
         if (!filters.personName || pName.toLowerCase().includes(filters.personName.toLowerCase())) {
           if (!filters.paymentMode || pMode === filters.paymentMode) {
             transactions.push({
@@ -180,7 +180,7 @@ export default function AdminDashboard() {
       const pGroup = e.group_head || e.groupHead || '';
       const pImg = e.receipt_url || e.image || '';
 
-      if (e.date === selectedDateStr) {
+      if (summaryType === 'OVERALL' || e.date === selectedDateStr) {
         if (!filters.personName || pName.toLowerCase().includes(filters.personName.toLowerCase())) {
           if (!filters.groupHead || pGroup === filters.groupHead) {
             if (!filters.paymentMode || pMode === filters.paymentMode) {
@@ -224,7 +224,7 @@ export default function AdminDashboard() {
 
     // Sort by date descending
     return filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
-  }, [filters, credits, expenses, selectedDateStr]);
+  }, [filters, credits, expenses, selectedDateStr, summaryType]);
 
   // Paginated Transactions
   const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);

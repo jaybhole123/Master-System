@@ -90,7 +90,7 @@ export default function GlobalSettings() {
 
   const fetchUsers = async () => {
     setLoading(true);
-    const { data, error } = await supabase.from('users').select('id, created_at, user_name, password, employee_id, email_id, number, role, status, department, Designation, system_access, page_access, profile_image').order('created_at', { ascending: false });
+    const { data, error } = await supabase.from('users').select('id, created_at, user_name, password, employee_id, email_id, number, role, status, department, designation, system_access, page_access, profile_image').order('created_at', { ascending: false });
     if (error) {
       showToast('Error fetching users', 'error');
     } else {
@@ -127,7 +127,7 @@ export default function GlobalSettings() {
         role: user.role || 'user',
         status: user.status || 'active',
         department: user.department || '',
-        Designation: user.Designation || '',
+        Designation: user.designation || user.Designation || '',
         system_access: parsedSystemAccess,
         page_access: parsedPageAccess,
         profile_image: '' // fetched asynchronously below
@@ -388,7 +388,7 @@ export default function GlobalSettings() {
                                                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${user.role?.toLowerCase() === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-700'}`}>
                                                     {user.role}
                                                 </span>
-                                                <span className="text-xs text-slate-500">{user.Designation || '-'}</span>
+                                                <span className="text-xs text-slate-500">{user.designation || user.Designation || '-'}</span>
                                             </div>
                                         </td>
                                         <td className="p-4 text-sm text-slate-600">{user.department || '-'}</td>
