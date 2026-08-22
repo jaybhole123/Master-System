@@ -35,6 +35,7 @@ interface SidebarProps {
     path?: string;
     icon?: React.ReactNode;
     subItems?: MenuItem[];
+    badgeCount?: number | null;
   }
 
   const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
@@ -52,6 +53,42 @@ interface SidebarProps {
     };
 
     const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
+    const [insuranceCount, setInsuranceCount] = useState<number | null>(null);
+    const [carInsuranceCount, setCarInsuranceCount] = useState<number | null>(null);
+    const [reminderCount, setReminderCount] = useState<number | null>(null);
+    const [vehicleReportCount, setVehicleReportCount] = useState<number | null>(null);
+
+    useEffect(() => {
+        const fetchCounts = async () => {
+            const GOOGLE_SCRIPT_URL = import.meta.env.VITE_GOOGLE_SCRIPT_URL || "";
+            if (!GOOGLE_SCRIPT_URL) return;
+
+            try {
+                const res = await fetch(`${GOOGLE_SCRIPT_URL}?sheet=Documents&_t=${Date.now()}`);
+                const json = await res.json();
+                if (json.success && json.data) setInsuranceCount(Math.max(0, json.data.length - 1));
+            } catch (err) {}
+
+            try {
+                const res = await fetch(`${GOOGLE_SCRIPT_URL}?sheet=Car Insurance&_t=${Date.now()}`);
+                const json = await res.json();
+                if (json.success && json.data) setCarInsuranceCount(Math.max(0, json.data.length - 1));
+            } catch (err) {}
+
+            try {
+                const res = await fetch(`${GOOGLE_SCRIPT_URL}?sheet=Reminder Calender&_t=${Date.now()}`);
+                const json = await res.json();
+                if (json.success && json.data) setReminderCount(Math.max(0, json.data.length - 1));
+            } catch (err) {}
+
+            try {
+                const res = await fetch(`${GOOGLE_SCRIPT_URL}?sheet=VEHICLE&_t=${Date.now()}`);
+                const json = await res.json();
+                if (json.success && json.data) setVehicleReportCount(Math.max(0, json.data.length - 1));
+            } catch (err) {}
+        };
+        fetchCounts();
+    }, []);
   
     // Sync open sections with current URL
     useEffect(() => {
@@ -99,7 +136,8 @@ interface SidebarProps {
         label: "Resource Manager",
         icon: <FileText size={20} />,
         subItems: [
-          { label: "Insurance", path: "/resource-manager", icon: <List size={16} /> },
+          { label: "Insurance", path: "/resource-manager", icon: <List size={16} />, badgeCount: insuranceCount },
+          { label: "Car Insurance", path: "/document/car-insurance", icon: <Car size={16} />, badgeCount: carInsuranceCount },
           { 
               label: "Renewals", 
               icon: <RefreshCw size={16} />,
@@ -109,9 +147,9 @@ interface SidebarProps {
               ]
           },
           { label: "Document Shared", path: "/document/shared", icon: <Share2 size={16} /> },
-          { label: "Reminder Calendar", path: "/document/reminder-calendar", icon: <Calendar size={16} /> },
+          { label: "Reminder Calendar", path: "/document/reminder-calendar", icon: <Calendar size={16} />, badgeCount: reminderCount },
           { label: "Insurance Master Data", path: "/document/insurance-master-data", icon: <Database size={16} /> },
-          { label: "Vehicle Reports", path: "/document/vehicle-reports", icon: <Car size={16} /> },
+          { label: "Vehicle Reports", path: "/document/vehicle-reports", icon: <Car size={16} />, badgeCount: vehicleReportCount },
           { label: "Subscription Approval", path: "/subscription/approval", icon: <CheckCircle size={16} /> },
           { label: "Subscription Payment", path: "/subscription/payment", icon: <DollarSign size={16} /> },
         ]
@@ -197,7 +235,14 @@ interface SidebarProps {
                             {item.icon}
                             <span className="font-medium text-sm whitespace-nowrap">{item.label}</span>
                         </div>
-                        {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                        <div className="flex items-center gap-2">
+                            {item.badgeCount != null && item.badgeCount > 0 && (
+                                <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                    {item.badgeCount}
+                                </span>
+                            )}
+                            {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                        </div>
                     </button>
                     
                     {isOpen && (
@@ -213,15 +258,22 @@ interface SidebarProps {
                 <div key={item.path || item.label} className="mb-1">
                      <button
                         onClick={() => handleNavigation(item.path!)}
-                        className={`w-full flex items-center gap-3 py-2.5 pr-4 rounded-xl transition-all duration-200 ${
+                        className={`w-full flex justify-between items-center py-2.5 pr-4 rounded-xl transition-all duration-200 ${
                             isActiveLink
                             ? "bg-red-600 text-white shadow-md shadow-red-200 font-medium"
                             : "text-gray-600 hover:text-red-600 hover:bg-gray-100"
                         }`}
                         style={{ paddingLeft: depth === 0 ? '1rem' : paddingLeft }}
                     >
-                        {item.icon}
-                        <span className={`text-sm whitespace-nowrap ${isActiveLink ? 'font-semibold' : 'font-medium'}`}>{item.label}</span>
+                        <div className="flex items-center gap-3">
+                            {item.icon}
+                            <span className={`text-sm whitespace-nowrap ${isActiveLink ? 'font-semibold' : 'font-medium'}`}>{item.label}</span>
+                        </div>
+                        {item.badgeCount != null && item.badgeCount > 0 && (
+                            <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                {item.badgeCount}
+                            </span>
+                        )}
                     </button>
                 </div>
             );

@@ -25,8 +25,7 @@ import {
 
 const months = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
 
-const MISReportView = ({ data, selectedMonth, searchQuery }) => {
-  const [statusFilter, setStatusFilter] = useState('ALL');
+const MISReportView = ({ data, selectedMonth, searchQuery, globalStatusFilter, setGlobalStatusFilter }) => {
   const getPaymentStatus = (record) => {
     if (record.status !== 'Done') {
       const today = new Date().toISOString().split('T')[0];
@@ -88,44 +87,44 @@ const MISReportView = ({ data, selectedMonth, searchQuery }) => {
   const overdue = reportData.filter(i => i.computedStatus === 'Overdue');
   const pending = reportData.filter(i => i.computedStatus === 'Pending');
 
-  const displayData = statusFilter === 'ALL' 
+  const displayData = globalStatusFilter === 'ALL' 
     ? reportData 
-    : reportData.filter(i => i.computedStatus === statusFilter);
+    : reportData.filter(i => i.computedStatus === globalStatusFilter);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div 
-          onClick={() => setStatusFilter('ALL')}
-          className={`bg-white p-4 rounded-xl border ${statusFilter === 'ALL' ? 'border-slate-800 ring-1 ring-slate-800 shadow-md' : 'border-slate-200 shadow-sm'} cursor-pointer hover:shadow-md transition-all`}
+          onClick={() => setGlobalStatusFilter('ALL')}
+          className={`bg-white p-4 rounded-xl border ${globalStatusFilter === 'ALL' ? 'border-slate-800 ring-1 ring-slate-800 shadow-md' : 'border-slate-200 shadow-sm'} cursor-pointer hover:shadow-md transition-all`}
         >
           <p className="text-sm text-slate-500 font-medium mb-1">Total</p>
           <p className="text-2xl font-bold text-slate-800">{reportData.length}</p>
         </div>
         <div 
-          onClick={() => setStatusFilter('On Time')}
-          className={`bg-white p-4 rounded-xl border ${statusFilter === 'On Time' ? 'border-green-600 ring-1 ring-green-600 shadow-md' : 'border-slate-200 shadow-sm'} cursor-pointer hover:shadow-md transition-all`}
+          onClick={() => setGlobalStatusFilter('On Time')}
+          className={`bg-white p-4 rounded-xl border ${globalStatusFilter === 'On Time' ? 'border-green-600 ring-1 ring-green-600 shadow-md' : 'border-slate-200 shadow-sm'} cursor-pointer hover:shadow-md transition-all`}
         >
           <p className="text-sm text-slate-500 font-medium mb-1">On Time</p>
           <p className="text-2xl font-bold text-green-600">{onTime.length}</p>
         </div>
         <div 
-          onClick={() => setStatusFilter('Late')}
-          className={`bg-white p-4 rounded-xl border ${statusFilter === 'Late' ? 'border-orange-500 ring-1 ring-orange-500 shadow-md' : 'border-slate-200 shadow-sm'} cursor-pointer hover:shadow-md transition-all`}
+          onClick={() => setGlobalStatusFilter('Late')}
+          className={`bg-white p-4 rounded-xl border ${globalStatusFilter === 'Late' ? 'border-orange-500 ring-1 ring-orange-500 shadow-md' : 'border-slate-200 shadow-sm'} cursor-pointer hover:shadow-md transition-all`}
         >
           <p className="text-sm text-slate-500 font-medium mb-1">Late</p>
           <p className="text-2xl font-bold text-orange-600">{late.length}</p>
         </div>
         <div 
-          onClick={() => setStatusFilter('Overdue')}
-          className={`bg-white p-4 rounded-xl border ${statusFilter === 'Overdue' ? 'border-red-600 ring-1 ring-red-600 shadow-md' : 'border-slate-200 shadow-sm'} cursor-pointer hover:shadow-md transition-all`}
+          onClick={() => setGlobalStatusFilter('Overdue')}
+          className={`bg-white p-4 rounded-xl border ${globalStatusFilter === 'Overdue' ? 'border-red-600 ring-1 ring-red-600 shadow-md' : 'border-slate-200 shadow-sm'} cursor-pointer hover:shadow-md transition-all`}
         >
           <p className="text-sm text-slate-500 font-medium mb-1">Overdue</p>
           <p className="text-2xl font-bold text-red-600">{overdue.length}</p>
         </div>
         <div 
-          onClick={() => setStatusFilter('Pending')}
-          className={`bg-white p-4 rounded-xl border ${statusFilter === 'Pending' ? 'border-blue-600 ring-1 ring-blue-600 shadow-md' : 'border-slate-200 shadow-sm'} cursor-pointer hover:shadow-md transition-all`}
+          onClick={() => setGlobalStatusFilter('Pending')}
+          className={`bg-white p-4 rounded-xl border ${globalStatusFilter === 'Pending' ? 'border-blue-600 ring-1 ring-blue-600 shadow-md' : 'border-slate-200 shadow-sm'} cursor-pointer hover:shadow-md transition-all`}
         >
           <p className="text-sm text-slate-500 font-medium mb-1">Pending</p>
           <p className="text-2xl font-bold text-blue-600">{pending.length}</p>
@@ -647,7 +646,7 @@ const RentManagement = () => {
             </div>
 
             {activeTab === 'MIS' ? (
-              <MISReportView data={rentData} selectedMonth={selectedMonth} searchQuery={searchQuery} />
+              <MISReportView data={rentData} selectedMonth={selectedMonth} searchQuery={searchQuery} globalStatusFilter={globalStatusFilter} setGlobalStatusFilter={setGlobalStatusFilter} />
             ) : (
               <>
             {/* Mobile Card View */}

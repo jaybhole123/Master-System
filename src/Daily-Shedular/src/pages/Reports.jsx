@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useScheduler } from '../context/SchedulerContext';
 import { format, isSameDay, parse } from 'date-fns';
 import TaskStatusChart from '../components/dashboard/TaskStatusChart';
-import { Paperclip, Image as ImageIcon, PlayCircle, ShieldCheck, Download, Search } from 'lucide-react';
+import { Paperclip, Image as ImageIcon, PlayCircle, ShieldCheck, Download, Search, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import jsPDF from 'jspdf';
 
 const Reports = () => {
@@ -13,6 +13,40 @@ const Reports = () => {
   const [staffFilter, setStaffFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [visibleCount, setVisibleCount] = useState(50);
+
+  const handlePrevDay = () => {
+    const current = startDate ? new Date(startDate) : new Date();
+    current.setDate(current.getDate() - 1);
+    const dateStr = format(current, 'yyyy-MM-dd');
+    setStartDate(dateStr);
+    setEndDate(dateStr);
+  };
+
+  const handleNextDay = () => {
+    const current = startDate ? new Date(startDate) : new Date();
+    current.setDate(current.getDate() + 1);
+    const dateStr = format(current, 'yyyy-MM-dd');
+    setStartDate(dateStr);
+    setEndDate(dateStr);
+  };
+
+  const handleToday = () => {
+    const dateStr = format(new Date(), 'yyyy-MM-dd');
+    setStartDate(dateStr);
+    setEndDate(dateStr);
+  };
+
+  const getDisplayDate = () => {
+    if (startDate && startDate === endDate) {
+      return format(new Date(startDate), 'dd MMM yyyy');
+    }
+    if (startDate && endDate) {
+      return 'Date Range';
+    }
+    if (startDate) return 'From ' + format(new Date(startDate), 'dd MMM');
+    if (endDate) return 'Up to ' + format(new Date(endDate), 'dd MMM');
+    return 'All Time';
+  };
 
   useEffect(() => {
     setVisibleCount(50);
@@ -112,19 +146,20 @@ const Reports = () => {
   const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   const exportToPDF = () => {
-    const doc = new jsPDF();
+    const doc = new jsPDF('landscape');
     
     doc.setFontSize(18);
     doc.text('Detailed Task History Report', 14, 22);
     
-    const tableColumn = ["Date", "Time", "Task Details", "Submitted By", "Remarks", "Status", "Completed At"];
+    const tableColumn = ["S.NO", "Date", "Time", "Task Details", "Submitted By", "Remarks", "Status", "Completed At"];
     const tableRows = [];
 
-    tableTasks.slice().reverse().forEach(task => {
+    tableTasks.slice().reverse().forEach((task, index) => {
       const timeDate = parse(task.startTime, 'HH:mm', new Date());
       const endTimeDate = new Date(timeDate.getTime() + (settings?.intervalMinutes || 60) * 60000);
       
       const taskData = [
+        index + 1,
         format(new Date(task.date), 'dd MMM yyyy'),
         `${formatTime12h(task.startTime)} - ${format(endTimeDate, 'hh:mm a')}`,
         task.description || 'No description',
@@ -142,8 +177,18 @@ const Reports = () => {
         body: tableRows,
         startY: 30,
         theme: 'grid',
-        headStyles: { fillColor: [37, 99, 235] },
+        headStyles: { fillColor: [37, 99, 235], halign: 'center' },
         styles: { fontSize: 8 },
+        columnStyles: {
+          0: { cellWidth: 12, halign: 'center' },
+          1: { cellWidth: 24, halign: 'center' },
+          2: { cellWidth: 32, halign: 'center' },
+          3: { cellWidth: 'auto' },
+          4: { cellWidth: 30, halign: 'center' },
+          5: { cellWidth: 'auto' },
+          6: { cellWidth: 20, halign: 'center' },
+          7: { cellWidth: 25, halign: 'center' }
+        }
       });
       
       doc.save(`Task_Report_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
@@ -212,37 +257,53 @@ const Reports = () => {
                 style={{ border: 'none', background: 'transparent', width: '100%', outline: 'none', fontSize: '0.875rem', padding: '0.25rem 0' }}
               />
             </div>
-            {/* Date Range Filter */}
-            <input 
-              type="date" 
-              value={startDate} 
-              onChange={e => setStartDate(e.target.value)} 
-              className="input-field" 
-              style={{ width: '150px' }} 
-              title="Start Date"
-            />
-            <span style={{ display: 'flex', alignItems: 'center', color: 'var(--text-secondary)' }}>to</span>
-            <input 
-              type="date" 
-              value={endDate} 
-              onChange={e => setEndDate(e.target.value)} 
-              className="input-field" 
-              style={{ width: '150px' }} 
-              title="End Date"
-            />
-            <button 
-              onClick={() => { setStartDate(''); setEndDate(''); }}
-              className="btn btn-outline"
-              style={{ padding: '0 0.75rem', height: '36px' }}
-              title="Clear Dates (Show All Time)"
-            >
-              Clear
-            </button>
+
+            {/* Day Navigator */}
+            <div style={{ display: 'flex', alignItems: 'center', backgroundColor: 'var(--surface-color)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', padding: '0.15rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <button onClick={handlePrevDay} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', borderRadius: '4px', border: '1px solid var(--border-color)', backgroundColor: 'transparent', cursor: 'pointer' }}><ChevronLeft size={16} color="var(--text-secondary)" /></button>
+                <button onClick={handleToday} style={{ padding: '0 0.5rem', height: '28px', borderRadius: '4px', border: '1px solid var(--border-color)', backgroundColor: 'transparent', cursor: 'pointer', fontSize: '0.875rem', fontWeight: '500', color: 'var(--primary-color)' }}>Today</button>
+                <button onClick={handleNextDay} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', borderRadius: '4px', border: '1px solid var(--border-color)', backgroundColor: 'transparent', cursor: 'pointer' }}><ChevronRight size={16} color="var(--text-secondary)" /></button>
+              </div>
+              <div style={{ width: '1px', height: '20px', backgroundColor: 'var(--border-color)', margin: '0 0.5rem' }}></div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', paddingRight: '0.5rem' }}>
+                <Calendar size={16} color="var(--primary-color)" />
+                <span style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>{getDisplayDate()}</span>
+              </div>
+            </div>
+
+            {/* Date Range Filter Group */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'nowrap' }}>
+              <input 
+                type="date" 
+                value={startDate} 
+                onChange={e => setStartDate(e.target.value)} 
+                className="input-field" 
+                style={{ width: '120px' }} 
+                title="Start Date"
+              />
+              <span style={{ display: 'flex', alignItems: 'center', color: 'var(--text-secondary)' }}>to</span>
+              <input 
+                type="date" 
+                value={endDate} 
+                onChange={e => setEndDate(e.target.value)} 
+                className="input-field" 
+                style={{ width: '120px' }} 
+                title="End Date"
+              />
+              <button 
+                onClick={() => { setStartDate(''); setEndDate(''); }}
+                className="btn btn-outline"
+                style={{ padding: '0 0.75rem', height: '36px', whiteSpace: 'nowrap' }}
+                title="Clear Dates (Show All Time)"
+              >
+                Clear
+              </button>
+            </div>
             {/* Status filter available to everyone */}
             <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="input-field" style={{ width: '145px' }}>
               <option value="All">All Status</option>
               <option value="Pending">Pending</option>
-              <option value="In Progress">In Progress</option>
               <option value="Completed">Completed</option>
               <option value="Not Done">Not Done</option>
               <option value="Overdue">Overdue</option>

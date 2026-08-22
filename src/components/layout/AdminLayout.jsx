@@ -546,6 +546,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       module: "Document & Substruction",
       subItems: [
         { href: "/resource-manager", label: "Insuranace", badge: documents?.length || null, active: location.pathname === "/resource-manager", showFor: ["admin", "user", "HOD"] },
+        { href: "/document/car-insurance", label: "Car Insurance", active: location.pathname === "/document/car-insurance", showFor: ["admin", "user", "HOD"] },
         { href: "/document/renewal", label: "Document Renewal", badge: docRenewalCount, active: location.pathname === "/document/renewal", showFor: ["admin", "user", "HOD"] },
         { href: "/subscription/renewal", label: "Subscription Renewal", badge: subRenewalCount, active: location.pathname === "/subscription/renewal", showFor: ["admin", "user", "HOD"] },
         { href: "/document/shared", label: "Document Shared", badge: shareHistory?.length || null, active: location.pathname === "/document/shared", showFor: ["admin", "user", "HOD"] },

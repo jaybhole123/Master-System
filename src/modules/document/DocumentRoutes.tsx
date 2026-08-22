@@ -24,6 +24,7 @@ import LoanForeclosure from "./pages/loan/Foreclosure";
 import LoanNOC from "./pages/loan/NOC";
 import AllBG from "./pages/bg/AllBG";
 import MasterPage from "./pages/master/MasterPage";
+import CarInsurance from "./pages/insurance/CarInsurance";
 
 // A wrapper to apply the layout to document pages
 const DocumentLayout = ({ children }: { children: React.ReactNode }) => {
@@ -51,6 +52,7 @@ export default function DocumentRoutes() {
           <Route path="shared" element={<DocumentLayout><SharedDocuments /></DocumentLayout>} />
           <Route path="insurance-master-data" element={<DocumentLayout><InsuranceMasterData /></DocumentLayout>} />
           <Route path="vehicle-reports" element={<DocumentLayout><VehicleReports /></DocumentLayout>} />
+          <Route path="car-insurance" element={<DocumentLayout><CarInsurance /></DocumentLayout>} />
         </Route>
 
         {/* Subscription Routes */}

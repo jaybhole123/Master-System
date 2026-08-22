@@ -1,6 +1,24 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+export interface CarInsuranceItem {
+  id: string;
+  sn: string;
+  vehicleNo: string;
+  ownerName: string;
+  insuranceCompany: string;
+  policyNo: string;
+  policyStartDate: string;
+  policyExpiryDate: string;
+  daysRemaining: string;
+  status: string;
+  idv: string;
+  premium: string;
+  agentContact: string;
+  remarks: string;
+  rowIndex?: number;
+}
+
 export interface DocumentItem {
   sharedExpiryDate: any;
   lastSharedAt: string;
@@ -213,6 +231,7 @@ interface DataState {
   subscriptions: SubscriptionItem[];
   loans: LoanItem[];
   bgs: BGItem[];
+  carInsurances: CarInsuranceItem[];
   masterData: MasterItem[];
   renewalHistory: RenewalItem[];
   subscriptionRenewalHistory: SubscriptionRenewalItem[];
@@ -227,6 +246,10 @@ interface DataState {
   addBG: (item: BGItem) => void;
   setBgs: (items: BGItem[]) => void;
   updateBG: (id: string, updatedItem: Partial<BGItem>) => void;
+  setCarInsurances: (items: CarInsuranceItem[]) => void;
+  addCarInsurance: (item: CarInsuranceItem) => void;
+  updateCarInsurance: (id: string, updatedItem: Partial<CarInsuranceItem>) => void;
+  deleteCarInsurance: (id: string) => void;
   addMasterData: (item: MasterItem) => void;
   addRenewalHistory: (item: RenewalItem) => void;
   addSubscriptionRenewalHistory: (item: SubscriptionRenewalItem) => void;
@@ -251,6 +274,7 @@ const useDataStore = create<DataState>()(
       subscriptions: [],
       loans: [],
       bgs: [],
+      carInsurances: [],
       masterData: [],
       renewalHistory: [],
       shareHistory: [],
@@ -271,6 +295,18 @@ const useDataStore = create<DataState>()(
           bgs: state.bgs.map((bg) =>
             bg.id === id ? { ...bg, ...updatedItem } : bg
           ),
+        })),
+      setCarInsurances: (items) => set({ carInsurances: items }),
+      addCarInsurance: (item) => set((state) => ({ carInsurances: [...state.carInsurances, item] })),
+      updateCarInsurance: (id, updatedItem) =>
+        set((state) => ({
+          carInsurances: state.carInsurances.map((ci) =>
+            ci.id === id ? { ...ci, ...updatedItem } : ci
+          ),
+        })),
+      deleteCarInsurance: (id) =>
+        set((state) => ({
+          carInsurances: state.carInsurances.filter((ci) => ci.id !== id),
         })),
       addMasterData: (item) =>
         set((state) => ({ masterData: [...state.masterData, item] })),

@@ -568,6 +568,70 @@ export const fetchLoansFromGoogleSheets = async (): Promise<LoanItem[]> => {
   }
 };
 
+export const fetchCarInsuranceFromGoogleSheets = async () => {
+  const GOOGLE_SCRIPT_URL = import.meta.env.VITE_GOOGLE_SCRIPT_URL || "";
+
+  if (!GOOGLE_SCRIPT_URL) {
+    throw new Error(
+      "Google Script URL is not defined in environment variables"
+    );
+  }
+
+  const url = new URL(GOOGLE_SCRIPT_URL);
+
+  url.searchParams.set("sheet", "Car Insurance");
+  url.searchParams.set("_t", new Date().getTime().toString());
+
+  try {
+    const res = await fetch(url.toString(), {
+      method: "GET",
+      mode: "cors",
+    });
+
+    if (!res.ok) {
+      throw new Error(
+        `Failed to fetch car insurance: ${res.status} ${res.statusText}`
+      );
+    }
+
+    const json = (await res.json()) as any;
+    const rows = json.data;
+    const body = rows.length > 0 ? rows.slice(1) : rows; // skipping header
+
+    return body
+      .map((r: any, index: number) => {
+        const lastVal = r[r.length - 1];
+        const serverRowIndex = (typeof lastVal === 'number' && lastVal > 1) ? lastVal : null;
+        const rowIndex = serverRowIndex || (index + 2);
+
+        return {
+          id: `ci-${index}-${Date.now()}`,
+          sn: (r?.[0] || "").toString().trim(), // S.No
+          vehicleNo: (r?.[1] || "").toString().trim(),
+          ownerName: (r?.[2] || "").toString().trim(),
+          insuranceCompany: (r?.[3] || "").toString().trim(),
+          policyNo: (r?.[4] || "").toString().trim(),
+          policyStartDate: (r?.[5] || "").toString().trim(),
+          policyExpiryDate: (r?.[6] || "").toString().trim(),
+          daysRemaining: (r?.[7] || "").toString().trim(),
+          status: (r?.[8] || "").toString().trim(),
+          idv: (r?.[9] || "").toString().trim(),
+          premium: (r?.[10] || "").toString().trim(),
+          agentContact: (r?.[11] || "").toString().trim(),
+          remarks: (r?.[12] || "").toString().trim(),
+          rowIndex: rowIndex,
+        };
+      })
+      .filter((r: any) =>
+        r.sn && r.sn.toString() !== "S.No"
+      );
+  } catch (error) {
+    console.error("Fetch Car Insurance Sheet Error:", error);
+    throw error;
+  }
+};
+
+
 export interface EmailData {
   to: string;
   subject: string;

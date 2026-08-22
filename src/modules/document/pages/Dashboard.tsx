@@ -6,11 +6,13 @@ import {
     CheckCircle,
     FileCheck,
     RotateCcw,
-    X
+    X,
+    Calendar,
+    Car
 } from 'lucide-react';
 import useDataStore from '../store/dataStore';
 import useHeaderStore from '../store/headerStore';
-import { fetchDocumentsFromGoogleSheets, fetchLoansFromGoogleSheets } from '../utils/googleSheetsService';
+import { fetchDocumentsFromGoogleSheets, fetchLoansFromGoogleSheets, fetchCarInsuranceFromGoogleSheets } from '../utils/googleSheetsService';
 import { syncSubscriptions } from '../utils/subscriptionSync';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -46,6 +48,9 @@ const Dashboard = () => {
     const { documents, subscriptions, loans, setDocuments, setLoans, setSubscriptions } = useDataStore();
     const navigate = useNavigate();
     const [selectedStat, setSelectedStat] = useState<{ type: string, title: string, data: { label: string, count: number }[], link: string } | null>(null);
+    const [carInsuranceCount, setCarInsuranceCount] = useState(0);
+    const [reminderCount, setReminderCount] = useState(0);
+    const [vehicleReportCount, setVehicleReportCount] = useState(0);
 
     useEffect(() => {
         setTitle('Overview');
@@ -72,6 +77,40 @@ const Dashboard = () => {
                  setSubscriptions(subsData);
              } catch (err) {
                  console.error("Error fetching subs", err);
+             }
+
+             // Fetch Additional Metrics for Cards
+             const GOOGLE_SCRIPT_URL = import.meta.env.VITE_GOOGLE_SCRIPT_URL || "";
+             
+             try {
+                 const carDocs = await fetchCarInsuranceFromGoogleSheets();
+                 setCarInsuranceCount(carDocs.length);
+             } catch (err) {
+                 console.error("Error fetching car insurance", err);
+             }
+             
+             try {
+                 if (GOOGLE_SCRIPT_URL) {
+                     const res = await fetch(`${GOOGLE_SCRIPT_URL}?sheet=Reminder Calender&_t=${Date.now()}`);
+                     const json = await res.json();
+                     if (json.success && json.data) {
+                         setReminderCount(Math.max(0, json.data.length - 1));
+                     }
+                 }
+             } catch (err) {
+                 console.error("Error fetching reminders", err);
+             }
+             
+             try {
+                 if (GOOGLE_SCRIPT_URL) {
+                     const res = await fetch(`${GOOGLE_SCRIPT_URL}?sheet=VEHICLE&_t=${Date.now()}`);
+                     const json = await res.json();
+                     if (json.success && json.data) {
+                         setVehicleReportCount(Math.max(0, json.data.length - 1));
+                     }
+                 }
+             } catch (err) {
+                 console.error("Error fetching vehicle reports", err);
              }
         };
         loadData();
@@ -291,6 +330,30 @@ const Dashboard = () => {
                         color="bg-emerald-500 text-emerald-600"
                         subtext="Active financial records"
                         onClick={() => handleStatClick('loans')}
+                    />
+                    <StatCard
+                        title="Car Insurance"
+                        value={carInsuranceCount}
+                        icon={Car}
+                        color="bg-blue-500 text-blue-600"
+                        subtext="Active car policies"
+                        onClick={() => navigate('/document/car-insurance')}
+                    />
+                    <StatCard
+                        title="Reminder Calendar"
+                        value={reminderCount}
+                        icon={Calendar}
+                        color="bg-purple-500 text-purple-600"
+                        subtext="Scheduled reminders"
+                        onClick={() => navigate('/document/reminder-calendar')}
+                    />
+                    <StatCard
+                        title="Vehicle Reports"
+                        value={vehicleReportCount}
+                        icon={FileText}
+                        color="bg-indigo-500 text-indigo-600"
+                        subtext="Tracked vehicles"
+                        onClick={() => navigate('/document/vehicle-reports')}
                     />
                 </div>
             </div>
