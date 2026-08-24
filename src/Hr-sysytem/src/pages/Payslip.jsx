@@ -419,7 +419,7 @@ export default function Payslip() {
             <label style={{ fontWeight: 600, marginBottom: '6px', display: 'block' }}>Select Employee *</label>
             <select value={selectedEmp} onChange={(e) => setSelectedEmp(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
               <option value="">-- Select Employee --</option>
-              {records.map(r => <option key={r.id} value={r.id}>{r.id} - {r.name}</option>)}
+              {records.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
             </select>
           </div>
 

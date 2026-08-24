@@ -4,6 +4,21 @@ import AdminLayout from '../../components/layout/AdminLayout';
 import supabase from '../../SupabaseClient';
 import { useMagicToast } from '../../context/MagicToastContext';
 
+const getDesignationStyle = (desg) => {
+  if (!desg) return { color: '#64748b' };
+  const d = desg.toUpperCase().trim();
+  switch (d) {
+    case 'HELPING HANDS': return { backgroundColor: '#dbeafe', color: '#1d4ed8', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' };
+    case 'JAI BHOLE ENTERPRISE': return { backgroundColor: '#fef3c7', color: '#b45309', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' };
+    case 'ASAK COAL PVT.LTD.': return { backgroundColor: '#d1fae5', color: '#047857', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' };
+    case 'JAI BHOLE LOGISTICS': return { backgroundColor: '#ede9fe', color: '#6d28d9', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' };
+    case 'BOTIVATE': return { backgroundColor: '#ffe4e6', color: '#be123c', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' };
+    case 'JAI BHOLE TRADERS': return { backgroundColor: '#ffedd5', color: '#c2410c', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' };
+    case 'ASAK COAL LOGISTICS': return { backgroundColor: '#ccfbf1', color: '#0f766e', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' };
+    default: return { backgroundColor: '#f3f4f6', color: '#4b5563', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' };
+  }
+};
+
 const MODULES = [
   {
     id: 'Checklist & Delegation',
@@ -90,7 +105,7 @@ export default function GlobalSettings() {
 
   const fetchUsers = async () => {
     setLoading(true);
-    const { data, error } = await supabase.from('users').select('id, created_at, user_name, password, employee_id, email_id, number, role, status, department, designation, system_access, page_access, profile_image').order('created_at', { ascending: false });
+    const { data, error } = await supabase.from('users').select('id, created_at, user_name, password, employee_id, email_id, number, role, status, department, designation, system_access, page_access, profile_image, display_order').order('display_order', { ascending: true }).order('created_at', { ascending: false });
     if (error) {
       showToast('Error fetching users', 'error');
     } else {
@@ -350,7 +365,7 @@ export default function GlobalSettings() {
                     <table className="w-full relative">
                         <thead className="sticky top-0 z-10 bg-slate-50 shadow-sm">
                             <tr className="text-left text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">
-                                <th className="p-4">Employee ID</th>
+                                {/* <th className="p-4">Employee ID</th> */}
                                 <th className="p-4">Name</th>
                                 <th className="p-4">Role / Designation</th>
                                 <th className="p-4">Department</th>
@@ -367,7 +382,7 @@ export default function GlobalSettings() {
                             ) : (
                                 filteredUsers.map(user => (
                                     <tr key={user.id} className="hover:bg-slate-50/50 transition-colors">
-                                        <td className="p-4 font-mono text-sm text-slate-600">{user.employee_id || '-'}</td>
+                                        {/* <td className="p-4 font-mono text-sm text-slate-600">{user.employee_id || '-'}</td> */}
                                         <td className="p-4">
                                             <div className="flex items-center gap-3">
                                                 <div className="h-8 w-8 rounded-full bg-red-100 text-red-700 flex items-center justify-center font-bold text-sm shrink-0 overflow-hidden">
@@ -388,7 +403,7 @@ export default function GlobalSettings() {
                                                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${user.role?.toLowerCase() === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-700'}`}>
                                                     {user.role}
                                                 </span>
-                                                <span className="text-xs text-slate-500">{user.designation || user.Designation || '-'}</span>
+                                                <span style={getDesignationStyle(user.designation || user.Designation)}>{user.designation || user.Designation || '-'}</span>
                                             </div>
                                         </td>
                                         <td className="p-4 text-sm text-slate-600">{user.department || '-'}</td>
