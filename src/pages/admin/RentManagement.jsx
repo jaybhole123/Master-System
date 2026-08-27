@@ -20,7 +20,12 @@ import {
   Printer,
   FileSpreadsheet,
   Check,
-  History
+  History,
+  Building2,
+  TrendingUp,
+  TrendingDown,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 
 const months = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
@@ -333,6 +338,12 @@ const RentManagement = () => {
     (globalStatusFilter === 'ALL' || item.computedStatus === globalStatusFilter)
   );
 
+  const currentMonthData = rentData.filter(item => selectedMonth === 'ALL' || item.month === selectedMonth);
+  const totalProperties = new Set(currentMonthData.map(i => i.place)).size;
+  const expectedRent = currentMonthData.reduce((acc, curr) => acc + (Number(curr.monthly_rent) || 0), 0);
+  const collectedRent = currentMonthData.filter(i => i.status === 'Done').reduce((acc, curr) => acc + (Number(curr.monthly_rent) || 0), 0);
+  const pendingRent = currentMonthData.filter(i => i.status !== 'Done').reduce((acc, curr) => acc + (Number(curr.monthly_rent) || 0), 0);
+
   const handleSaveRecord = async (e) => {
     e.preventDefault();
     
@@ -543,6 +554,65 @@ const RentManagement = () => {
 
         <div className="space-y-6">
           <div className="max-w-7xl mx-auto space-y-6">
+
+            {/* Summary Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="bg-white rounded-2xl p-5 shadow-sm border border-indigo-100 flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden group">
+                <div className="absolute -right-4 -top-4 w-16 h-16 bg-indigo-50 rounded-full group-hover:scale-150 transition-transform duration-500 z-0"></div>
+                <div className="relative z-10 flex items-center justify-between mb-4">
+                  <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Properties</p>
+                  <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg">
+                    <Building2 className="h-5 w-5" />
+                  </div>
+                </div>
+                <div className="relative z-10">
+                  <h3 className="text-2xl font-black text-slate-800">{totalProperties}</h3>
+                  <p className="text-xs text-indigo-600 font-medium mt-1">Total active units</p>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl p-5 shadow-sm border border-blue-100 flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden group">
+                <div className="absolute -right-4 -top-4 w-16 h-16 bg-blue-50 rounded-full group-hover:scale-150 transition-transform duration-500 z-0"></div>
+                <div className="relative z-10 flex items-center justify-between mb-4">
+                  <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Expected</p>
+                  <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+                    <TrendingUp className="h-5 w-5" />
+                  </div>
+                </div>
+                <div className="relative z-10">
+                  <h3 className="text-2xl font-black text-slate-800">₹{expectedRent.toLocaleString('en-IN')}</h3>
+                  <p className="text-xs text-blue-600 font-medium mt-1">Total expected rent</p>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl p-5 shadow-sm border border-green-100 flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden group">
+                <div className="absolute -right-4 -top-4 w-16 h-16 bg-green-50 rounded-full group-hover:scale-150 transition-transform duration-500 z-0"></div>
+                <div className="relative z-10 flex items-center justify-between mb-4">
+                  <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Collected</p>
+                  <div className="p-2 bg-green-100 text-green-600 rounded-lg">
+                    <CheckCircle2 className="h-5 w-5" />
+                  </div>
+                </div>
+                <div className="relative z-10">
+                  <h3 className="text-2xl font-black text-slate-800">₹{collectedRent.toLocaleString('en-IN')}</h3>
+                  <p className="text-xs text-green-600 font-medium mt-1">Rent received</p>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl p-5 shadow-sm border border-orange-100 flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden group">
+                <div className="absolute -right-4 -top-4 w-16 h-16 bg-orange-50 rounded-full group-hover:scale-150 transition-transform duration-500 z-0"></div>
+                <div className="relative z-10 flex items-center justify-between mb-4">
+                  <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Pending</p>
+                  <div className="p-2 bg-orange-100 text-orange-600 rounded-lg">
+                    <AlertCircle className="h-5 w-5" />
+                  </div>
+                </div>
+                <div className="relative z-10">
+                  <h3 className="text-2xl font-black text-slate-800">₹{pendingRent.toLocaleString('en-IN')}</h3>
+                  <p className="text-xs text-orange-600 font-medium mt-1">Yet to be collected</p>
+                </div>
+              </div>
+            </div>
             
             {/* Controls Bar */}
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200">

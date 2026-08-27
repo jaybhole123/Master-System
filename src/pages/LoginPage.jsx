@@ -11,6 +11,8 @@ import supabase from "../SupabaseClient"
 import { sendPasswordResetOTP } from "../services/whatsappService"
 import { KeyRound, ShieldCheck, User as UserIcon, ArrowLeft, RefreshCw, Smartphone, Eye, EyeOff } from "lucide-react"
 import jbtLogo from "../assets/jbt.png"
+import jbeLogo from "../assets/jbe.png"
+import ganeshLogo from "../assets/ganesh.jpg"
 
 const LoginPage = () => {
   const navigate = useNavigate()
@@ -104,8 +106,13 @@ const LoginPage = () => {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 p-4 font-sans">
-      <div className="w-full max-w-[420px] bg-white rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.06)] p-8 sm:p-10 relative z-10">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-red-50 via-slate-50 to-blue-50 p-4 font-sans relative overflow-hidden">
+      {/* Decorative background blobs */}
+      <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-red-200 rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob"></div>
+      <div className="absolute top-[20%] right-[-10%] w-96 h-96 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob animation-delay-2000"></div>
+      <div className="absolute bottom-[-20%] left-[20%] w-96 h-96 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob animation-delay-4000"></div>
+
+      <div className="w-full max-w-[420px] bg-white/80 backdrop-blur-xl rounded-[2rem] shadow-2xl border border-white/50 p-8 sm:p-10 relative z-10">
         <style>
           {`
             @keyframes float {
@@ -116,18 +123,55 @@ const LoginPage = () => {
             .animate-float {
               animation: float 3s ease-in-out infinite;
             }
+            @keyframes blob {
+              0% { transform: translate(0px, 0px) scale(1); }
+              33% { transform: translate(30px, -50px) scale(1.1); }
+              66% { transform: translate(-20px, 20px) scale(0.9); }
+              100% { transform: translate(0px, 0px) scale(1); }
+            }
+            .animate-blob {
+              animation: blob 7s infinite;
+            }
+            .animation-delay-2000 {
+              animation-delay: 2s;
+            }
+            .animation-delay-4000 {
+              animation-delay: 4s;
+            }
           `}
         </style>
         <div className="flex flex-col items-center justify-center mb-8">
-          <div className="bg-slate-50 p-2.5 rounded-2xl border border-slate-100 shadow-sm mb-5 animate-float hover:scale-105 transition-transform duration-300">
-            <img
-              src={jbtLogo}
-              alt="JBT Logo"
-              className="h-10 w-auto object-contain"
-            />
+          <div className="w-full overflow-hidden mb-6 relative py-2">
+            <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none"></div>
+            <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none"></div>
+            
+            <div className="flex w-max animate-marquee-seamless gap-4">
+              <div className="flex items-center gap-4 shrink-0">
+                <div className="bg-white p-1.5 rounded-xl shadow-sm border border-slate-100 transition-transform hover:scale-110">
+                  <img src={ganeshLogo} alt="Ganesh Logo" className="h-10 w-auto object-contain rounded-md" />
+                </div>
+                <div className="bg-white p-1.5 rounded-xl shadow-sm border border-slate-100 transition-transform hover:scale-110">
+                  <img src={jbtLogo} alt="JBT Logo" className="h-10 w-auto object-contain" />
+                </div>
+                <div className="bg-white p-1.5 rounded-xl shadow-sm border border-slate-100 transition-transform hover:scale-110">
+                  <img src={jbeLogo} alt="JBE Logo" className="h-10 w-auto object-contain" />
+                </div>
+              </div>
+              <div className="flex items-center gap-4 shrink-0">
+                <div className="bg-white p-1.5 rounded-xl shadow-sm border border-slate-100 transition-transform hover:scale-110">
+                  <img src={ganeshLogo} alt="Ganesh Logo" className="h-10 w-auto object-contain rounded-md" />
+                </div>
+                <div className="bg-white p-1.5 rounded-xl shadow-sm border border-slate-100 transition-transform hover:scale-110">
+                  <img src={jbtLogo} alt="JBT Logo" className="h-10 w-auto object-contain" />
+                </div>
+                <div className="bg-white p-1.5 rounded-xl shadow-sm border border-slate-100 transition-transform hover:scale-110">
+                  <img src={jbeLogo} alt="JBE Logo" className="h-10 w-auto object-contain" />
+                </div>
+              </div>
+            </div>
           </div>
-          <h2 className="text-[22px] font-bold text-slate-900 text-center leading-tight">Jai Bhole Traders and Enterprises</h2>
-          <p className="text-sm text-slate-500 mt-2 text-center">Welcome back! Please enter your details.</p>
+          <h2 className="text-[22px] font-extrabold text-center leading-tight bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">Jai Bhole Traders & Enterprises</h2>
+          <p className="text-sm text-slate-500 mt-2 text-center font-medium">Welcome back! Please enter your details.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">

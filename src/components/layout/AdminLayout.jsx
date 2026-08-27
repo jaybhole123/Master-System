@@ -8,6 +8,8 @@ import { fetchNotifications } from "../../redux/slice/notificationSlice";
 import supabase from "../../SupabaseClient";
 import { processDailyReminders } from "../../services/dailyReminderService";
 import jbtLogo from "../../assets/jbt.png";
+import jbeLogo from "../../assets/jbe.png";
+import ganeshLogo from "../../assets/ganesh.jpg";
 import useDataStore from "../../modules/document/store/dataStore";
 import {
   CheckSquare,
@@ -404,6 +406,14 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/dashboard/profile",
       showFor: ["admin", "user", "HOD"],
       module: "Profile",
+    },
+    {
+      href: "/master-dashboard",
+      label: "Master Dashboard",
+      icon: LayoutDashboard,
+      active: location.pathname === "/master-dashboard",
+      showFor: ["admin", "user", "HOD"],
+      module: "Master Dashboard",
     },
 
     {
@@ -867,16 +877,27 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       className={`flex h-screen overflow-hidden bg-gradient-to-br from-blue-50 to-purple-50`}
     >
       {/* Sidebar for desktop */}
-      <aside className="hidden w-56 flex-shrink-0 border-r border-slate-100 bg-white shadow-[4px_0_24px_rgba(0,0,0,0.06)] md:flex md:flex-col z-20 relative">
-        <div className="flex h-16 items-center border-b border-slate-100 px-4 bg-white">
+      <aside className="hidden w-56 flex-shrink-0 border-r border-slate-100 bg-white shadow-[4px_0_24px_rgba(0,0,0,0.06)] md:flex md:flex-col z-20 relative overflow-hidden">
+        <div className="flex h-20 items-center border-b border-slate-100 bg-white relative w-full overflow-hidden shrink-0">
+          <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none"></div>
+          <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none"></div>
           <Link
             to="/master-dashboard"
-            className="flex items-center gap-3 hover:opacity-90 transition-opacity"
+            className="flex items-center h-full w-full relative group cursor-pointer"
           >
-            <img src={jbtLogo} alt="JBT Logo" className="h-9 w-auto object-contain shrink-0" />
-            <span className="text-sm font-bold tracking-tight leading-tight text-slate-800 whitespace-nowrap">
-              Jai Bhole
-            </span>
+            <div className="flex w-max animate-marquee-seamless gap-6">
+              <div className="flex items-center gap-6 shrink-0">
+                <img src={ganeshLogo} alt="Ganesh" className="h-11 w-auto object-contain rounded-lg shadow-sm border border-slate-100 p-0.5 bg-white transition-transform hover:scale-110" />
+                <img src={jbtLogo} alt="JBT" className="h-9 w-auto object-contain drop-shadow-sm transition-transform hover:scale-110" />
+                <img src={jbeLogo} alt="JBE" className="h-12 w-auto object-contain drop-shadow-sm transition-transform hover:scale-110" />
+              </div>
+              {/* Duplicated for seamless scrolling */}
+              <div className="flex items-center gap-6 shrink-0">
+                <img src={ganeshLogo} alt="Ganesh" className="h-11 w-auto object-contain rounded-lg shadow-sm border border-slate-100 p-0.5 bg-white transition-transform hover:scale-110" />
+                <img src={jbtLogo} alt="JBT" className="h-9 w-auto object-contain drop-shadow-sm transition-transform hover:scale-110" />
+                <img src={jbeLogo} alt="JBE" className="h-12 w-auto object-contain drop-shadow-sm transition-transform hover:scale-110" />
+              </div>
+            </div>
           </Link>
         </div>
         <nav className="flex-1 overflow-y-auto p-2">
@@ -890,7 +911,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
               }, {})
             ).map(([moduleName, moduleRoutes]) => (
               <div key={moduleName} className="mb-4">
-                {moduleName === "Profile" || moduleName === "Global Settings" || moduleName === "Rent Management" || moduleName === "Help Slip" ? (
+                {moduleName === "Master Dashboard" || moduleName === "Profile" || moduleName === "Global Settings" || moduleName === "Rent Management" || moduleName === "Help Slip" ? (
                   <Link
                     to={moduleRoutes[0].href}
                     className={`group w-full flex items-center justify-between px-4 py-3 text-[14px] font-semibold rounded-xl transition-all relative overflow-hidden ${location.pathname.includes(moduleRoutes[0].href) ? 'text-red-600 bg-slate-100' : 'text-slate-600 hover:text-red-600 hover:bg-slate-50'}`}
@@ -899,6 +920,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                       <div className="absolute left-0 top-1/2 -translate-y-1/2 h-2/3 w-1.5 bg-red-600 rounded-r-full"></div>
                     )}
                     <div className="flex items-center gap-3">
+                      {moduleName === "Master Dashboard" && <LayoutDashboard className="h-5 w-5 shrink-0" />}
                       {moduleName === "Profile" && <UserRound className="h-5 w-5 shrink-0" />}
                       {moduleName === "Global Settings" && <Settings2 className="h-5 w-5 shrink-0" />}
                       {moduleName === "Rent Management" && <Banknote className="h-5 w-5 shrink-0" />}
@@ -949,7 +971,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                     </div>
                   </button>
                 )}
-                {moduleName !== "Profile" && moduleName !== "Global Settings" && moduleName !== "Rent Management" && moduleName !== "Help Slip" && openModules[moduleName] && moduleRoutes.map((route) => (
+                {moduleName !== "Master Dashboard" && moduleName !== "Profile" && moduleName !== "Global Settings" && moduleName !== "Rent Management" && moduleName !== "Help Slip" && openModules[moduleName] && moduleRoutes.map((route) => (
                   <li key={route.label}>
                 {route.isSubmenu ? (
                   <div className="flex flex-col">
