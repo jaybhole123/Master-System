@@ -93,8 +93,11 @@ export default function Expenses() {
     personName: '',
     mode: '',
     groupHead: '',
+    remarks: '',
     searchQuery: ''
   });
+
+  const [showRemarksDropdown, setShowRemarksDropdown] = useState(false);
 
   const [visibleCount, setVisibleCount] = useState(50);
 
@@ -207,10 +210,11 @@ export default function Expenses() {
   }, [activeTab, statusFilter, pendingExpenses, approvedExpenses, rejectedExpenses]);
 
   const filteredExpenses = displayExpenses.filter(expense => {
-    if (expense.date !== selectedDateStr) return false;
+    if (selectedDateStr && expense.date !== selectedDateStr) return false;
     if (filters.personName && (expense.person_name || expense.personName) !== filters.personName) return false;
     if (filters.mode && (expense.payment_mode || expense.paymentMode) !== filters.mode) return false;
     if (filters.groupHead && (expense.group_head || expense.groupHead) !== filters.groupHead) return false;
+    if (filters.remarks && !(expense.remarks || '').toLowerCase().includes(filters.remarks.toLowerCase())) return false;
 
     if (filters.searchQuery) {
       const q = filters.searchQuery.toLowerCase();
@@ -566,7 +570,7 @@ export default function Expenses() {
           {/* Filters */}
           <div className={`${showMobileFilters ? 'grid' : 'hidden'} lg:flex grid-cols-2 md:grid-cols-4 lg:flex-row lg:flex-wrap gap-2 w-full lg:w-auto lg:flex-[5] items-center`}>
             {/* Day Navigation Control */}
-            <div className="col-span-2 lg:flex-1 w-full lg:min-w-[270px] flex-shrink-0">
+            <div className="col-span-2 lg:flex-1 w-full lg:min-w-[320px] flex-shrink-0">
               <div className="flex items-center justify-between bg-white border border-gray-300 rounded-lg lg:rounded p-1 text-gray-700 h-[32px] md:h-[38px] relative w-full shadow-sm overflow-hidden">
                 <div className="flex items-center gap-1 flex-shrink-0">
                   <button
@@ -580,9 +584,16 @@ export default function Expenses() {
                   <button
                     type="button"
                     onClick={handleToday}
-                    className="hover:bg-gray-100 active:bg-gray-200 px-2 py-0.5 rounded transition text-[11px] md:text-xs font-semibold text-indigo-700 bg-indigo-50/50 flex-shrink-0"
+                    className={`px-2 py-0.5 rounded transition text-[11px] md:text-xs font-semibold flex-shrink-0 ${selectedDateStr === getTodayDate() ? 'text-indigo-700 bg-indigo-50/50' : 'text-gray-600 hover:bg-gray-100'}`}
                   >
                     Today
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedDateStr('')}
+                    className={`px-2 py-0.5 rounded transition text-[11px] md:text-xs font-semibold flex-shrink-0 ${!selectedDateStr ? 'text-indigo-700 bg-indigo-50/50' : 'text-gray-600 hover:bg-gray-100'}`}
+                  >
+                    All
                   </button>
                   <button
                     type="button"
@@ -608,7 +619,7 @@ export default function Expenses() {
                   className="flex items-center gap-1.5 px-2 py-1 hover:bg-gray-50 rounded transition text-xs md:text-sm font-semibold text-gray-700 cursor-pointer flex-shrink-0"
                 >
                   <Calendar size={14} className="text-indigo-600 flex-shrink-0" />
-                  <span className="font-semibold text-gray-800 whitespace-nowrap flex-shrink-0">{formatSelectedDateDisplay(selectedDateStr)}</span>
+                  <span className="font-semibold text-gray-800 whitespace-nowrap flex-shrink-0">{selectedDateStr ? formatSelectedDateDisplay(selectedDateStr) : 'All Dates'}</span>
                 </button>
                 <input
                   ref={dateInputRef}
@@ -646,6 +657,48 @@ export default function Expenses() {
                 ...Array.from(new Set(groupHeads.map(gh => gh.group_head))).map(gh => ({ value: gh, label: gh }))
               ]}
             />
+            <div className="w-full lg:min-w-[130px] lg:flex-1 relative">
+              <div className="flex items-center bg-white border border-gray-300 rounded-lg lg:rounded px-2 min-h-[32px] md:min-h-[38px] transition-shadow focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500">
+                <input
+                  type="text"
+                  placeholder="Search Remarks..."
+                  value={filters.remarks}
+                  onChange={(e) => {
+                    setFilters({ ...filters, remarks: e.target.value });
+                    setShowRemarksDropdown(true);
+                  }}
+                  onFocus={() => setShowRemarksDropdown(true)}
+                  onBlur={() => setTimeout(() => setShowRemarksDropdown(false), 200)}
+                  className="w-full bg-transparent outline-none text-[11px] md:text-sm text-gray-800 placeholder-gray-400"
+                />
+                {filters.remarks && (
+                  <button onClick={() => setFilters({ ...filters, remarks: '' })} className="text-gray-400 hover:text-gray-600">
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+              {showRemarksDropdown && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-[9999] max-h-48 overflow-y-auto custom-scrollbar p-1">
+                  {Array.from(new Set(expenses.map(e => e.remarks).filter(Boolean)))
+                    .filter(rem => rem.toLowerCase().includes(filters.remarks.toLowerCase()))
+                    .map(rem => (
+                    <div
+                      key={rem}
+                      onClick={() => {
+                        setFilters({ ...filters, remarks: rem });
+                        setShowRemarksDropdown(false);
+                      }}
+                      className="px-3 py-2 text-[11px] md:text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 rounded-md cursor-pointer truncate"
+                    >
+                      {rem}
+                    </div>
+                  ))}
+                  {Array.from(new Set(expenses.map(e => e.remarks).filter(Boolean))).filter(rem => rem.toLowerCase().includes(filters.remarks.toLowerCase())).length === 0 && (
+                    <div className="px-3 py-2 text-[11px] md:text-sm text-gray-500 text-center">No matching remarks</div>
+                  )}
+                </div>
+              )}
+            </div>
             {activeTab === 'history' && (
               <SearchableSelect
                 value={statusFilter}

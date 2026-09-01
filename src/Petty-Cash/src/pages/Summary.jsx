@@ -146,7 +146,7 @@ export default function Summary() {
       runningBalance = closing;
     }
     
-    return result.filter(day => day.dateKey === selectedDateStr);
+    return selectedDateStr ? result.filter(day => day.dateKey === selectedDateStr) : result;
   }, [credits, expenses, filters, user, selectedDateStr]);
 
   const handleDownloadPDF = () => {
@@ -202,7 +202,7 @@ export default function Summary() {
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-2 lg:gap-4 w-full pb-2 border-b border-gray-100">
         <div className="flex flex-col lg:flex-row w-full gap-2 items-center">
             {/* Day Navigation Control */}
-            <div className="w-full lg:w-72 flex-shrink-0">
+            <div className="w-full lg:w-[320px] flex-shrink-0">
               <div className="flex items-center justify-between bg-white border border-gray-300 rounded-lg lg:rounded p-1 text-gray-700 h-[32px] md:h-[38px] relative w-full shadow-sm overflow-hidden">
                 <div className="flex items-center gap-1 flex-shrink-0">
                   <button
@@ -216,9 +216,16 @@ export default function Summary() {
                   <button
                     type="button"
                     onClick={handleToday}
-                    className="hover:bg-gray-100 active:bg-gray-200 px-2 py-0.5 rounded transition text-[11px] md:text-xs font-semibold text-indigo-700 bg-indigo-50/50 flex-shrink-0"
+                    className={`px-2 py-0.5 rounded transition text-[11px] md:text-xs font-semibold flex-shrink-0 ${selectedDateStr === getTodayDate() ? 'text-indigo-700 bg-indigo-50/50' : 'text-gray-600 hover:bg-gray-100'}`}
                   >
                     Today
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedDateStr('')}
+                    className={`px-2 py-0.5 rounded transition text-[11px] md:text-xs font-semibold flex-shrink-0 ${!selectedDateStr ? 'text-indigo-700 bg-indigo-50/50' : 'text-gray-600 hover:bg-gray-100'}`}
+                  >
+                    All
                   </button>
                   <button
                     type="button"
@@ -244,7 +251,7 @@ export default function Summary() {
                   className="flex items-center gap-1.5 px-2 py-1 hover:bg-gray-50 rounded transition text-xs md:text-sm font-semibold text-gray-700 cursor-pointer flex-shrink-0"
                 >
                   <Calendar size={14} className="text-indigo-600 flex-shrink-0" />
-                  <span className="font-semibold text-gray-800 whitespace-nowrap flex-shrink-0">{formatSelectedDateDisplay(selectedDateStr)}</span>
+                  <span className="font-semibold text-gray-800 whitespace-nowrap flex-shrink-0">{selectedDateStr ? formatSelectedDateDisplay(selectedDateStr) : 'All Dates'}</span>
                 </button>
                 <input
                   ref={dateInputRef}

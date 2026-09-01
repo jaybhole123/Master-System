@@ -155,7 +155,7 @@ export default function Ledger() {
   const filteredLedger = useMemo(() => {
     return ledgerData.filter(entry => {
       // Apply date filter
-      if (summaryType === 'DAILY' && entry.date !== selectedDateStr) {
+      if (summaryType === 'DAILY' && selectedDateStr && entry.date !== selectedDateStr) {
         return false;
       }
 
@@ -280,7 +280,7 @@ export default function Ledger() {
           {/* Filters */}
           <div className={`${showMobileFilters ? 'grid' : 'hidden'} lg:flex grid-cols-2 lg:flex-row gap-2 w-full lg:w-auto lg:flex-[4] items-center`}>
             {/* Day Navigation Control */}
-            <div className="col-span-2 lg:flex-1 w-full lg:min-w-[270px] flex-shrink-0">
+            <div className="col-span-2 lg:flex-1 w-full lg:min-w-[320px] flex-shrink-0">
               <div className="flex items-center justify-between bg-white border border-gray-300 rounded-lg lg:rounded p-1 text-gray-700 h-[32px] md:h-[38px] relative w-full shadow-sm overflow-hidden">
                 <div className="flex items-center gap-1 flex-shrink-0">
                   <button
@@ -294,9 +294,16 @@ export default function Ledger() {
                   <button
                     type="button"
                     onClick={handleToday}
-                    className="hover:bg-gray-100 active:bg-gray-200 px-2 py-0.5 rounded transition text-[11px] md:text-xs font-semibold text-indigo-700 bg-indigo-50/50 flex-shrink-0"
+                    className={`px-2 py-0.5 rounded transition text-[11px] md:text-xs font-semibold flex-shrink-0 ${selectedDateStr === getTodayDate() ? 'text-indigo-700 bg-indigo-50/50' : 'text-gray-600 hover:bg-gray-100'}`}
                   >
                     Today
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedDateStr('')}
+                    className={`px-2 py-0.5 rounded transition text-[11px] md:text-xs font-semibold flex-shrink-0 ${!selectedDateStr ? 'text-indigo-700 bg-indigo-50/50' : 'text-gray-600 hover:bg-gray-100'}`}
+                  >
+                    All
                   </button>
                   <button
                     type="button"
@@ -322,7 +329,7 @@ export default function Ledger() {
                   className="flex items-center gap-1.5 px-2 py-1 hover:bg-gray-50 rounded transition text-xs md:text-sm font-semibold text-gray-700 cursor-pointer flex-shrink-0"
                 >
                   <Calendar size={14} className="text-indigo-600 flex-shrink-0" />
-                  <span className="font-semibold text-gray-800 whitespace-nowrap flex-shrink-0">{formatSelectedDateDisplay(selectedDateStr)}</span>
+                  <span className="font-semibold text-gray-800 whitespace-nowrap flex-shrink-0">{selectedDateStr ? formatSelectedDateDisplay(selectedDateStr) : 'All Dates'}</span>
                 </button>
                 <input
                   ref={dateInputRef}
@@ -382,7 +389,7 @@ export default function Ledger() {
       {/* Summary Toggle */}
       <div className="flex justify-between items-center bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 mt-2 shadow-sm">
         <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 leading-none">
-          {summaryType === 'DAILY' ? `Daily Ledger (${formatSelectedDateDisplay(selectedDateStr)})` : 'Overall Ledger'}
+          {summaryType === 'DAILY' && selectedDateStr ? `Daily Ledger (${formatSelectedDateDisplay(selectedDateStr)})` : 'Overall Ledger'}
         </h3>
         <select
           value={summaryType}
