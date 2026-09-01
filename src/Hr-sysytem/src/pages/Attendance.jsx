@@ -422,7 +422,7 @@ export default function Attendance() {
       try {
         const { data, error } = await supabase
           .from('monthly_attendance')
-          .select('employee_id, attendance_data')
+          .select('employee_id, day_1, day_2, day_3, day_4, day_5, day_6, day_7, day_8, day_9, day_10, day_11, day_12, day_13, day_14, day_15, day_16, day_17, day_18, day_19, day_20, day_21, day_22, day_23, day_24, day_25, day_26, day_27, day_28, day_29, day_30, day_31')
           .eq('month_year', getFormattedMonth(selectedMonth));
           
         if (error) throw error;
@@ -430,7 +430,11 @@ export default function Attendance() {
         const dataMap = {};
         if (data) {
           data.forEach(row => {
-            dataMap[row.employee_id] = row.attendance_data;
+            const att = {};
+            for(let i=1; i<=31; i++) {
+               if(row[`day_${i}`]) att[i] = row[`day_${i}`];
+            }
+            dataMap[row.employee_id] = att;
           });
         }
         
@@ -493,11 +497,17 @@ export default function Attendance() {
     setSaving(true);
     try {
       const formattedMonth = getFormattedMonth(selectedMonth);
-      const upsertData = employees.map(emp => ({
-        employee_id: emp.id,
-        month_year: formattedMonth,
-        attendance_data: currentMonthData[emp.id] || {}
-      }));
+      const upsertData = employees.map(emp => {
+        const row = {
+          employee_id: emp.id,
+          month_year: formattedMonth
+        };
+        const empData = currentMonthData[emp.id] || {};
+        for(let i=1; i<=31; i++) {
+           row[`day_${i}`] = empData[i] || null;
+        }
+        return row;
+      });
       
       const { error } = await supabase
         .from('monthly_attendance')
@@ -573,22 +583,25 @@ export default function Attendance() {
              continue; // Skip if we couldn't resolve an employee ID
           }
           
-          const attendance_data = {};
+          const rowToInsert = {
+            employee_id: empId,
+            month_year: monthYearStr
+          };
           for (let j = 0; j < headers.length; j++) {
             if (j !== empIdIndex && j !== nameIndex) {
-              const day = headers[j]; // Should be a number 1-31
-              const val = columns[j] ? columns[j].toUpperCase() : '';
-              if (['P', 'A', 'L', 'HD'].includes(val)) {
-                 attendance_data[day] = val;
+              const dayStr = headers[j]; 
+              const match = dayStr.match(/\d+/);
+              const day = match ? parseInt(match[0], 10) : NaN;
+              if (!isNaN(day) && day >= 1 && day <= 31) {
+                const val = columns[j] ? columns[j].toUpperCase() : '';
+                if (['P', 'A', 'L', 'HD'].includes(val)) {
+                   rowToInsert[`day_${day}`] = val;
+                }
               }
             }
           }
           
-          upsertData.push({
-            employee_id: empId,
-            month_year: monthYearStr,
-            attendance_data
-          });
+          upsertData.push(rowToInsert);
         }
         
         if (upsertData.length === 0) {
@@ -631,12 +644,12 @@ export default function Attendance() {
   const handleCopyChatGptPrompt = () => {
     const promptText = `Please convert my attendance data/Excel sheet into a clean CSV format with the exact following header structure:
 
-S.NO,NAME,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31
+S.NO,NAME,day_1,day_2,day_3,day_4,day_5,day_6,day_7,day_8,day_9,day_10,day_11,day_12,day_13,day_14,day_15,day_16,day_17,day_18,day_19,day_20,day_21,day_22,day_23,day_24,day_25,day_26,day_27,day_28,day_29,day_30,day_31
 
 Instructions:
 1. S.NO: Serial Number (1, 2, 3...)
 2. NAME: Employee Full Name
-3. 1 to 31: Attendance status for each date of the month:
+3. day_1 to day_31: Attendance status for each date of the month:
    - P = Present
    - A = Absent
    - L = Leave
@@ -1517,7 +1530,7 @@ Instructions:
                   <button
                     type="button"
                     onClick={() => {
-                      navigator.clipboard.writeText('S.NO,NAME,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31');
+                      navigator.clipboard.writeText('S.NO,NAME,day_1,day_2,day_3,day_4,day_5,day_6,day_7,day_8,day_9,day_10,day_11,day_12,day_13,day_14,day_15,day_16,day_17,day_18,day_19,day_20,day_21,day_22,day_23,day_24,day_25,day_26,day_27,day_28,day_29,day_30,day_31');
                       toast.success('CSV Header copied!');
                     }}
                     style={{ background: 'none', border: 'none', color: 'var(--primary-color)', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', padding: 0 }}
@@ -1526,7 +1539,7 @@ Instructions:
                   </button>
                 </div>
                 <code style={{ display: 'block', padding: '6px', backgroundColor: 'var(--bg-card)', borderRadius: '4px', fontSize: '0.72rem', color: 'var(--text-secondary)', overflowX: 'auto', whiteSpace: 'nowrap' }}>
-                  S.NO,NAME,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31
+                  S.NO,NAME,day_1,day_2,day_3,day_4,day_5,day_6,day_7,day_8,day_9,day_10,day_11,day_12,day_13,day_14,day_15,day_16,day_17,day_18,day_19,day_20,day_21,day_22,day_23,day_24,day_25,day_26,day_27,day_28,day_29,day_30,day_31
                 </code>
               </div>
 
@@ -1566,12 +1579,12 @@ Instructions:
                   rows={2}
                   value={`Please convert my attendance data/Excel sheet into a clean CSV format with the exact following header structure:
 
-S.NO,NAME,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31
+S.NO,NAME,day_1,day_2,day_3,day_4,day_5,day_6,day_7,day_8,day_9,day_10,day_11,day_12,day_13,day_14,day_15,day_16,day_17,day_18,day_19,day_20,day_21,day_22,day_23,day_24,day_25,day_26,day_27,day_28,day_29,day_30,day_31
 
 Instructions:
 1. S.NO: Serial Number (1, 2, 3...)
 2. NAME: Employee Full Name
-3. 1 to 31: Attendance status (P = Present, A = Absent, L = Leave, HD = Half Day)
+3. day_1 to day_31: Attendance status (P = Present, A = Absent, L = Leave, HD = Half Day)
 4. Output strictly clean raw CSV text block.`}
                   style={{
                     width: '100%',

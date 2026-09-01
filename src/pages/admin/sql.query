@@ -566,3 +566,51 @@ ALTER TABLE public.tasks ADD COLUMN color text;
 
 -- Query to drop the Designation column from users table
 ALTER TABLE public.users DROP COLUMN "Designation";
+
+-- ==========================================
+-- MIGRATION: monthly_attendance JSON to Columns
+-- ==========================================
+
+-- 1. Add 31 day columns to the monthly_attendance table
+DO $$
+BEGIN
+    FOR i IN 1..31 LOOP
+        EXECUTE format('ALTER TABLE public.monthly_attendance ADD COLUMN IF NOT EXISTS day_%s text;', i);
+    END LOOP;
+END
+$$;
+
+-- 2. Migrate existing JSON data into the new columns
+UPDATE public.monthly_attendance
+SET 
+  day_1 = attendance_data->>'1',
+  day_2 = attendance_data->>'2',
+  day_3 = attendance_data->>'3',
+  day_4 = attendance_data->>'4',
+  day_5 = attendance_data->>'5',
+  day_6 = attendance_data->>'6',
+  day_7 = attendance_data->>'7',
+  day_8 = attendance_data->>'8',
+  day_9 = attendance_data->>'9',
+  day_10 = attendance_data->>'10',
+  day_11 = attendance_data->>'11',
+  day_12 = attendance_data->>'12',
+  day_13 = attendance_data->>'13',
+  day_14 = attendance_data->>'14',
+  day_15 = attendance_data->>'15',
+  day_16 = attendance_data->>'16',
+  day_17 = attendance_data->>'17',
+  day_18 = attendance_data->>'18',
+  day_19 = attendance_data->>'19',
+  day_20 = attendance_data->>'20',
+  day_21 = attendance_data->>'21',
+  day_22 = attendance_data->>'22',
+  day_23 = attendance_data->>'23',
+  day_24 = attendance_data->>'24',
+  day_25 = attendance_data->>'25',
+  day_26 = attendance_data->>'26',
+  day_27 = attendance_data->>'27',
+  day_28 = attendance_data->>'28',
+  day_29 = attendance_data->>'29',
+  day_30 = attendance_data->>'30',
+  day_31 = attendance_data->>'31';

@@ -83,11 +83,7 @@ const LoginPage = () => {
         console.log("Stored email:", userData.email_id || userData.email); // Debug log
 
         showToast(`Welcome back, ${userData.user_name || userData.username}!`, "success");
-        if (userData.role === 'superadmin') {
-          navigate("/dashboard/admin");
-        } else {
-          navigate("/dashboard/profile");
-        }
+        navigate("/master-dashboard");
       } else if (error) {
         showToast(error, "error");
         setIsLoginLoading(false);

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { 
   CheckSquare, Banknote, UserRound, HelpCircle, CalendarCheck, Settings2, Wallet,
-  Loader2, ArrowRight, FileText
+  Loader2, ArrowRight, FileText, Shield, Calendar, Car, Repeat, Landmark,
+  Users, Briefcase, Building2, Activity
 } from "lucide-react";
 import AdminLayout from "../components/layout/AdminLayout";
 import supabase from "../SupabaseClient";
@@ -11,6 +12,8 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend,
   AreaChart, Area, ComposedChart, Line
 } from 'recharts';
+import { fetchDocumentsFromGoogleSheets, fetchLoansFromGoogleSheets, fetchCarInsuranceFromGoogleSheets } from "../modules/document/utils/googleSheetsService";
+import { syncSubscriptions } from "../modules/document/utils/subscriptionSync";
 
 export default function MasterDashboard() {
   const username = localStorage.getItem("user-name") || "User";
@@ -86,11 +89,19 @@ export default function MasterDashboard() {
           { name: 'Rent Status', Expected: expectedRent, Collected: collectedRent }
         ];
 
-        // 3. HR
-        const { data: usersData } = await supabase.from('users').select('department');
+        // 3. HR & Global Settings Stats
+        const { data: usersData, error: usersError } = await supabase.from('users').select('*');
+        if (usersError) console.error("Error fetching users:", usersError);
         const users = usersData || [];
         
         const totalEmployees = users.length;
+        const uniqueNames = new Set(users.map(u => u.user_name || u.username || u.name).filter(Boolean)).size;
+        const uniqueRoles = new Set(users.map(u => u.Designation || u.designation || u.role).filter(Boolean)).size;
+        const uniqueDepts = new Set(users.map(u => u.department || u.Department).filter(Boolean)).size;
+        const activeStatusCount = users.filter(u => {
+          const s = u.status || u.Status || '';
+          return s.toLowerCase() === 'active';
+        }).length;
         const departmentCounts = {};
         
         users.forEach(u => {
@@ -123,10 +134,13 @@ export default function MasterDashboard() {
           { name: 'Pending', value: pendingSlips }
         ];
 
-        // 6. Daily Scheduler (Day-wise)
+        // 6. Daily Scheduler (Overall Stats + Day-wise)
         const { data: dailyTasksData } = await supabase.from('tasks').select('date, status');
         const dailyTasks = dailyTasksData || [];
         
+        let dailyTotalTasks = dailyTasks.length;
+        let dailyCompletedTasks = 0;
+
         const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         const dayWiseData = {
           Mon: { name: 'Mon', Scheduled: 0, Completed: 0 },
@@ -139,13 +153,17 @@ export default function MasterDashboard() {
         };
 
         dailyTasks.forEach(t => {
+          const statusLower = (t.status || "").toLowerCase();
+          const isComp = statusLower === 'completed' || statusLower === 'done';
+          if (isComp) {
+            dailyCompletedTasks += 1;
+          }
+
           if (t.date) {
             const d = new Date(t.date);
             if (!isNaN(d.getTime())) {
               const dayName = daysOfWeek[d.getDay()];
               dayWiseData[dayName].Scheduled += 1;
-              const statusLower = (t.status || "").toLowerCase();
-              const isComp = statusLower === 'completed' || statusLower === 'done';
               if (isComp) {
                 dayWiseData[dayName].Completed += 1;
               }
@@ -154,6 +172,8 @@ export default function MasterDashboard() {
         });
         
         const dailySchedulerChart = Object.values(dayWiseData);
+        const dailyCompletionRate = dailyTotalTasks > 0 ? Math.round((dailyCompletedTasks / dailyTotalTasks) * 100) : 0;
+        const dailyTasksNotDone = dailyTotalTasks - dailyCompletedTasks;
 
         setStats({
           tasksData: tasksChart,
@@ -164,6 +184,13 @@ export default function MasterDashboard() {
           helpSlipData: helpSlipChart,
           helpSlipTotal: slips.length,
           dailySchedulerData: dailySchedulerChart,
+          dailyTotalTasks,
+          dailyCompletionRate,
+          dailyTasksNotDone,
+          uniqueNames,
+          uniqueRoles,
+          uniqueDepts,
+          activeStatusCount,
           loading: false
         });
       } catch (error) {
@@ -173,6 +200,57 @@ export default function MasterDashboard() {
     };
 
     fetchStats();
+  }, []);
+
+  // Fetch Document Module Stats Independently
+  useEffect(() => {
+    const fetchDocStats = async () => {
+      try {
+        setStats(prev => ({ ...prev, docStatsLoading: true }));
+        const [docs, loans, subs, carDocs] = await Promise.all([
+          fetchDocumentsFromGoogleSheets().catch(() => []),
+          fetchLoansFromGoogleSheets().catch(() => []),
+          syncSubscriptions().catch(() => []),
+          fetchCarInsuranceFromGoogleSheets().catch(() => [])
+        ]);
+        
+        let reminderCount = 0;
+        let vehicleReportCount = 0;
+        const GOOGLE_SCRIPT_URL = import.meta.env.VITE_GOOGLE_SCRIPT_URL || "";
+        
+        if (GOOGLE_SCRIPT_URL) {
+          try {
+            const resRem = await fetch(`${GOOGLE_SCRIPT_URL}?sheet=Reminder Calender&_t=${Date.now()}`);
+            const jsonRem = await resRem.json();
+            if (jsonRem.success && jsonRem.data) reminderCount = Math.max(0, jsonRem.data.length - 1);
+          } catch (e) { console.error("Error fetching reminders", e); }
+          
+          try {
+            const resVeh = await fetch(`${GOOGLE_SCRIPT_URL}?sheet=VEHICLE&_t=${Date.now()}`);
+            const jsonVeh = await resVeh.json();
+            if (jsonVeh.success && jsonVeh.data) vehicleReportCount = Math.max(0, jsonVeh.data.length - 1);
+          } catch (e) { console.error("Error fetching vehicle reports", e); }
+        }
+        
+        const docTotal = docs.filter(doc => doc.sn && doc.sn.trim().length > 0).length;
+        const subTotal = subs.filter(sub => sub.sn && sub.sn.trim().length > 0).length;
+        
+        setStats(prev => ({
+          ...prev,
+          docTotal,
+          subTotal,
+          loanTotal: loans.length,
+          carTotal: carDocs.length,
+          reminderCount,
+          vehicleReportCount,
+          docStatsLoading: false
+        }));
+      } catch (error) {
+        console.error("Error fetching document stats:", error);
+        setStats(prev => ({ ...prev, docStatsLoading: false }));
+      }
+    };
+    fetchDocStats();
   }, []);
 
   const CustomTooltip = ({ active, payload }) => {
@@ -436,55 +514,128 @@ export default function MasterDashboard() {
                 </div>
               </div>
               
-              <div className="h-48 w-full mb-4">
+              <div className="flex-1 mb-4 flex flex-col justify-center gap-3">
                 {stats.loading ? (
                   <div className="w-full h-full flex items-center justify-center">
                     <Loader2 className="animate-spin text-violet-300 h-8 w-8" />
                   </div>
                 ) : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={stats.dailySchedulerData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                      <XAxis dataKey="name" tick={{fontSize: 10}} interval={0} />
-                      <YAxis tick={{fontSize: 10}} allowDecimals={false} />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
-                      <Bar dataKey="Scheduled" fill="#c4b5fd" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="Completed" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
+                  <div className="space-y-3 px-2">
+                    <div className="flex justify-between items-center bg-violet-50/50 p-2.5 rounded-lg border border-violet-100/50">
+                      <span className="text-sm font-medium text-slate-600">Total Tasks Generated</span>
+                      <span className="text-lg font-bold text-violet-700">{stats.dailyTotalTasks || 0}</span>
+                    </div>
+                    <div className="flex justify-between items-center bg-violet-50/50 p-2.5 rounded-lg border border-violet-100/50">
+                      <span className="text-sm font-medium text-slate-600">Overall Completion Rate</span>
+                      <span className="text-lg font-bold text-emerald-600">{stats.dailyCompletionRate || 0}%</span>
+                    </div>
+                    <div className="flex justify-between items-center bg-violet-50/50 p-2.5 rounded-lg border border-violet-100/50">
+                      <span className="text-sm font-medium text-slate-600">Tasks Not Done</span>
+                      <span className="text-lg font-bold text-rose-600">{stats.dailyTasksNotDone || 0}</span>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
-            <Link to="/daily-scheduler/dashboard" className="flex items-center justify-center w-full py-3 px-4 bg-violet-50 text-violet-700 font-bold rounded-xl hover:bg-violet-600 hover:text-white transition-all">
+            <Link to="/daily-scheduler/dashboard" className="flex items-center justify-center w-full py-3 px-4 bg-violet-50 text-violet-700 font-bold rounded-xl hover:bg-violet-600 hover:text-white transition-all mt-auto">
               Open Module <ArrowRight size={16} className="ml-2" />
             </Link>
           </div>
 
-          {/* 7. Static Modules (Without Charts) */}
+          {/* 7. Document & Substruction */}
+          <div className="bg-white rounded-3xl p-6 shadow-sm border border-cyan-100 hover:shadow-xl transition-all duration-300 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center gap-4 mb-4">
+                <div className="h-12 w-12 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center shrink-0">
+                  <FileText size={24} />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900 leading-tight">Document & Substruction</h2>
+                  <p className="text-xs text-gray-500">Manage Files & Company Docs</p>
+                </div>
+              </div>
+              
+              <div className="flex-1 mb-4 w-full">
+                <div className="grid grid-cols-2 gap-2 h-full content-start pt-1">
+                  <div className="flex flex-col items-center justify-center bg-cyan-50/50 p-2 rounded-xl border border-cyan-100/50 text-center hover:bg-cyan-100/50 transition-colors cursor-pointer">
+                    <Shield size={16} className="text-cyan-600 mb-1" />
+                    <span className="text-[10px] font-bold text-slate-700 leading-tight">Total Insurance</span>
+                    <span className="text-xs font-black text-cyan-700 mt-0.5">{stats.docStatsLoading ? <Loader2 className="animate-spin h-3 w-3 inline" /> : stats.docTotal || 0}</span>
+                  </div>
+                  <div className="flex flex-col items-center justify-center bg-cyan-50/50 p-2 rounded-xl border border-cyan-100/50 text-center hover:bg-cyan-100/50 transition-colors cursor-pointer">
+                    <Calendar size={16} className="text-cyan-600 mb-1" />
+                    <span className="text-[10px] font-bold text-slate-700 leading-tight">Reminder Calendar</span>
+                    <span className="text-xs font-black text-cyan-700 mt-0.5">{stats.docStatsLoading ? <Loader2 className="animate-spin h-3 w-3 inline" /> : stats.reminderCount || 0}</span>
+                  </div>
+                  <div className="flex flex-col items-center justify-center bg-cyan-50/50 p-2 rounded-xl border border-cyan-100/50 text-center hover:bg-cyan-100/50 transition-colors cursor-pointer">
+                    <FileText size={16} className="text-cyan-600 mb-1" />
+                    <span className="text-[10px] font-bold text-slate-700 leading-tight">Vehicle Reports</span>
+                    <span className="text-xs font-black text-cyan-700 mt-0.5">{stats.docStatsLoading ? <Loader2 className="animate-spin h-3 w-3 inline" /> : stats.vehicleReportCount || 0}</span>
+                  </div>
+                  <div className="flex flex-col items-center justify-center bg-cyan-50/50 p-2 rounded-xl border border-cyan-100/50 text-center hover:bg-cyan-100/50 transition-colors cursor-pointer">
+                    <Car size={16} className="text-cyan-600 mb-1" />
+                    <span className="text-[10px] font-bold text-slate-700 leading-tight">Car Insurance</span>
+                    <span className="text-xs font-black text-cyan-700 mt-0.5">{stats.docStatsLoading ? <Loader2 className="animate-spin h-3 w-3 inline" /> : stats.carTotal || 0}</span>
+                  </div>
+                  <div className="flex flex-col items-center justify-center bg-cyan-50/50 p-2 rounded-xl border border-cyan-100/50 text-center hover:bg-cyan-100/50 transition-colors cursor-pointer">
+                    <Repeat size={16} className="text-cyan-600 mb-1" />
+                    <span className="text-[10px] font-bold text-slate-700 leading-tight">Total Subscriptions</span>
+                    <span className="text-xs font-black text-cyan-700 mt-0.5">{stats.docStatsLoading ? <Loader2 className="animate-spin h-3 w-3 inline" /> : stats.subTotal || 0}</span>
+                  </div>
+                  <div className="flex flex-col items-center justify-center bg-cyan-50/50 p-2 rounded-xl border border-cyan-100/50 text-center hover:bg-cyan-100/50 transition-colors cursor-pointer">
+                    <Landmark size={16} className="text-cyan-600 mb-1" />
+                    <span className="text-[10px] font-bold text-slate-700 leading-tight">Total Loans</span>
+                    <span className="text-xs font-black text-cyan-700 mt-0.5">{stats.docStatsLoading ? <Loader2 className="animate-spin h-3 w-3 inline" /> : stats.loanTotal || 0}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <Link to="/doc-dashboard" className="flex items-center justify-center w-full py-3 px-4 bg-cyan-50 text-cyan-700 font-bold rounded-xl hover:bg-cyan-600 hover:text-white transition-all mt-auto">
+              Open Module <ArrowRight size={16} className="ml-2" />
+            </Link>
+          </div>
+
+          {/* 8. Global Settings */}
           <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 hover:shadow-xl transition-all duration-300 flex flex-col justify-between">
             <div>
               <div className="flex items-center gap-4 mb-4">
                 <div className="h-12 w-12 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
-                  <FileText size={24} />
+                  <Settings2 size={24} />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-gray-900 leading-tight">Other Modules</h2>
-                  <p className="text-xs text-gray-500">Documents, Settings</p>
+                  <h2 className="text-lg font-bold text-gray-900 leading-tight">Global Settings</h2>
+                  <p className="text-xs text-gray-500">System Configuration</p>
                 </div>
               </div>
               
-              <div className="h-48 w-full mb-4 space-y-3 pt-2">
-                <Link to="/doc-dashboard" className="flex items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-purple-50 hover:text-purple-700 transition-colors group">
-                  <div className="flex items-center gap-3"><FileText size={18} className="text-slate-400 group-hover:text-purple-600" /> <span className="font-medium text-sm">Documents</span></div>
-                  <ArrowRight size={14} className="text-slate-400 group-hover:text-purple-600" />
-                </Link>
-                <Link to="/dashboard/global-settings" className="flex items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors group">
-                  <div className="flex items-center gap-3"><Settings2 size={18} className="text-slate-400 group-hover:text-slate-700" /> <span className="font-medium text-sm">Global Settings</span></div>
-                  <ArrowRight size={14} className="text-slate-400 group-hover:text-slate-700" />
-                </Link>
+              <div className="flex-1 mb-4 w-full">
+                <div className="grid grid-cols-2 gap-2 h-full content-start pt-1">
+                  <div className="flex flex-col items-center justify-center bg-slate-50/80 p-3 rounded-xl border border-slate-200/50 text-center hover:bg-slate-100 transition-colors cursor-pointer">
+                    <Users size={18} className="text-slate-600 mb-1.5" />
+                    <span className="text-[11px] font-bold text-slate-700 leading-tight">Total Name</span>
+                    <span className="text-sm font-black text-slate-800 mt-1">{stats.loading ? <Loader2 className="animate-spin h-3 w-3 inline" /> : stats.uniqueNames || 0}</span>
+                  </div>
+                  <div className="flex flex-col items-center justify-center bg-slate-50/80 p-3 rounded-xl border border-slate-200/50 text-center hover:bg-slate-100 transition-colors cursor-pointer">
+                    <Briefcase size={18} className="text-slate-600 mb-1.5" />
+                    <span className="text-[11px] font-bold text-slate-700 leading-tight">Total Role / Desig.</span>
+                    <span className="text-sm font-black text-slate-800 mt-1">{stats.loading ? <Loader2 className="animate-spin h-3 w-3 inline" /> : stats.uniqueRoles || 0}</span>
+                  </div>
+                  <div className="flex flex-col items-center justify-center bg-slate-50/80 p-3 rounded-xl border border-slate-200/50 text-center hover:bg-slate-100 transition-colors cursor-pointer">
+                    <Building2 size={18} className="text-slate-600 mb-1.5" />
+                    <span className="text-[11px] font-bold text-slate-700 leading-tight">Total Department</span>
+                    <span className="text-sm font-black text-slate-800 mt-1">{stats.loading ? <Loader2 className="animate-spin h-3 w-3 inline" /> : stats.uniqueDepts || 0}</span>
+                  </div>
+                  <div className="flex flex-col items-center justify-center bg-slate-50/80 p-3 rounded-xl border border-slate-200/50 text-center hover:bg-slate-100 transition-colors cursor-pointer">
+                    <Activity size={18} className="text-slate-600 mb-1.5" />
+                    <span className="text-[11px] font-bold text-slate-700 leading-tight">Total Status (Active)</span>
+                    <span className="text-sm font-black text-emerald-600 mt-1">{stats.loading ? <Loader2 className="animate-spin h-3 w-3 inline" /> : stats.activeStatusCount || 0}</span>
+                  </div>
+                </div>
               </div>
             </div>
+            <Link to="/dashboard/global-settings" className="flex items-center justify-center w-full py-3 px-4 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-600 hover:text-white transition-all mt-auto">
+              Open Module <ArrowRight size={16} className="ml-2" />
+            </Link>
           </div>
 
         </div>

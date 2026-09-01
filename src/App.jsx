@@ -97,7 +97,7 @@ export const ProtectedRoute = ({ children, allowedRoles = [] }) => {
     const isSuperAdmin = role === 'superadmin';
 
     if (!isSuperAdmin && !hasCustomPermissions && allowedRoles.length > 0 && !allowedRoles.map(r => r.toLowerCase()).includes(role)) {
-        return <Navigate to="/dashboard/admin" replace />
+        return <Navigate to="/master-dashboard" replace />
     }
 
     return children
@@ -108,7 +108,7 @@ const SuperAdminRoute = ({ children }) => {
     const role = (localStorage.getItem("role") || "").toLowerCase();
 
     if (!username || username !== "admin" || role !== "admin") {
-        return <Navigate to="/dashboard/admin" replace />
+        return <Navigate to="/master-dashboard" replace />
     }
 
     return children
@@ -161,7 +161,7 @@ function App() {
 
                     {/* --- Main Dashboard Redirect --- */}
                     {/* Redirects /dashboard to /dashboard/admin to ensure canonical URL */}
-                    <Route path="/dashboard" element={<Navigate to="/dashboard/admin" replace />} />
+                    <Route path="/dashboard" element={<Navigate to="/master-dashboard" replace />} />
 
                     {/* --- Master Dashboard --- */}
                     <Route 
