@@ -1160,7 +1160,7 @@ export default function Expenses() {
           )}
           
           {displayedExpenses.length > 0 && (
-            <div className="text-[10px] md:text-sm text-gray-500 w-full lg:w-auto text-center lg:text-left mt-1 lg:mt-0 font-medium">
+            <div className="text-[10px] md:text-sm text-gray-500 w-full lg:w-auto text-center lg:text-left mt-1 lg:mt-0 font-medium whitespace-nowrap flex-shrink-0">
               Showing {displayedExpenses.length} of {sortedExpenses.length}
             </div>
           )}

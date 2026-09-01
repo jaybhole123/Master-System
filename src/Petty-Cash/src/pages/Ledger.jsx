@@ -198,6 +198,16 @@ export default function Ledger() {
     currentPage * itemsPerPage
   );
 
+  const prevDayBalance = useMemo(() => {
+    if (summaryType !== 'DAILY' || !selectedDateStr) return null;
+    
+    const previousEntries = ledgerData.filter(entry => entry.date < selectedDateStr);
+    if (previousEntries.length > 0) {
+      return previousEntries[previousEntries.length - 1].balance;
+    }
+    return 0;
+  }, [ledgerData, selectedDateStr, summaryType]);
+
   // Calculate statistics
   const statistics = useMemo(() => {
     const filtered = filteredLedger;
@@ -208,13 +218,15 @@ export default function Ledger() {
       .filter(e => e.type === 'EXPENSE')
       .reduce((sum, e) => sum + e.amount, 0);
 
+    const openingBalance = prevDayBalance || 0;
+
     return {
       totalDebit,
       totalCredit,
-      balance: totalDebit - totalCredit,
+      balance: openingBalance + totalDebit - totalCredit,
       entries: filtered.length
     };
-  }, [filteredLedger]);
+  }, [filteredLedger, prevDayBalance]);
 
   const handleDownloadCSV = () => {
     const headers = ['Date', 'Person Name', 'Type', 'Amount', 'Balance After', 'Description'];
@@ -402,7 +414,18 @@ export default function Ledger() {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+      <div className={`grid grid-cols-2 ${prevDayBalance !== null ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-3 md:gap-4`}>
+        {prevDayBalance !== null && (
+          <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg p-4 md:p-6 border border-slate-200 shadow-sm flex flex-col justify-center">
+            <p className="text-gray-600 text-[10px] md:text-sm font-bold uppercase tracking-wider flex items-center justify-between">
+              Prev Day Balance
+              <svg xmlns="http://www.w3.org/2000/ applicable" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
+            </p>
+            <p className="text-lg md:text-2xl font-black text-slate-700 mt-1">
+              {formatCurrency(prevDayBalance)}
+            </p>
+          </div>
+        )}
         <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 md:p-6 border border-green-200 shadow-sm flex flex-col justify-center">
           <p className="text-gray-600 text-[10px] md:text-sm font-bold uppercase tracking-wider">Total Credits</p>
           <p className="text-lg md:text-2xl font-black text-green-700 mt-1">
