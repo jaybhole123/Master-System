@@ -260,7 +260,7 @@ export default function AdminDashboard() {
   };
 
   const handleDownloadExcel = () => {
-    const headers = ['S.NO', 'DATE', 'PARTICULARS', 'RECEIVED (Rs)', 'PAID (Rs)', 'BALANCE (Rs)', 'PAID TO', 'APPROVED BY', 'REMARKS'];
+    const headers = ['S.NO', 'DATE', 'PARTICULARS', 'RECEIVED (Rs)', 'PAID (Rs)', 'BALANCE (Rs)', 'REMARKS', 'PAID TO', 'APPROVED BY'];
     const data = filteredTransactions.map((t, idx) => [
       idx + 1,
       formatDate(t.date),
@@ -268,9 +268,9 @@ export default function AdminDashboard() {
       t.type === 'CREDIT' ? Math.abs(t.amount) : '',
       t.type === 'EXPENSE' ? Math.abs(t.amount) : '',
       t.balance,
+      t.remarks || '-',
       t.personName,
-      t.type === 'CREDIT' ? '-' : (t.groupHead || '-'),
-      t.remarks || '-'
+      t.type === 'CREDIT' ? '-' : (t.groupHead || '-')
     ]);
 
     const worksheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
@@ -279,83 +279,11 @@ export default function AdminDashboard() {
     XLSX.writeFile(workbook, `transactions-report-${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
-  const handleDownloadPDF = () => {
-    const doc = new jsPDF('landscape');
-    
-    const formatPDFCurrency = (val) => {
-      return Number(val).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    };
-
-    const headers = [['S.NO', 'DATE', 'PARTICULARS', 'RECEIVED (Rs)', 'PAID (Rs)', 'BALANCE (Rs)', 'PAID TO', 'APPROVED BY', 'REMARKS']];
-    
-    const chunks = [];
-    for (let i = 0; i < filteredTransactions.length; i += 20) {
-      chunks.push(filteredTransactions.slice(i, i + 20));
-    }
-    
-    if (chunks.length === 0) {
-      doc.setFontSize(14);
-      doc.text('No transactions found', doc.internal.pageSize.width / 2, 20, { align: 'center' });
-      doc.save(`transactions-report-${new Date().toISOString().split('T')[0]}.pdf`);
-      return;
-    }
-
-    chunks.forEach((chunk, pageIndex) => {
-      if (pageIndex > 0) {
-        doc.addPage();
-      }
-
-      // Add title
-      doc.setFontSize(18);
-      doc.setTextColor(23, 37, 84); // blue-900
-      doc.text('JAI BHOLE GROUPS OF COMPANIES', doc.internal.pageSize.width / 2, 15, { align: 'center' });
-      doc.setFontSize(14);
-      doc.setTextColor(30, 64, 175); // blue-800
-      doc.text('PETTY CASH REGISTER (TRANSACTIONS)', doc.internal.pageSize.width / 2, 22, { align: 'center' });
-      
-      const data = chunk.map((t, idx) => [
-        (pageIndex * 20) + idx + 1,
-        formatDate(t.date),
-        'CASH',
-        t.type === 'CREDIT' ? formatPDFCurrency(Math.abs(t.amount)) : '',
-        t.type === 'EXPENSE' ? formatPDFCurrency(Math.abs(t.amount)) : '',
-        formatPDFCurrency(t.balance),
-        t.personName,
-        t.type === 'CREDIT' ? '-' : (t.groupHead || '-'),
-        t.remarks || '-'
-      ]);
-
-      // Create table
-      autoTable(doc, {
-        head: headers,
-        body: data,
-        startY: 30,
-        margin: { bottom: 10, left: 14, right: 14 },
-        theme: 'grid',
-        headStyles: { fillColor: [37, 99, 235], textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center', cellPadding: 2 },
-        columnStyles: {
-          0: { halign: 'center', cellWidth: 12 },
-          1: { halign: 'center', cellWidth: 23 },
-          2: { halign: 'center', fontStyle: 'bold', cellWidth: 28 },
-          3: { halign: 'right', cellWidth: 32 },
-          4: { halign: 'right', textColor: [220, 38, 38], cellWidth: 32 },
-          5: { halign: 'right', fontStyle: 'bold', textColor: [29, 78, 216], cellWidth: 32 },
-          6: { halign: 'center', cellWidth: 35 },
-          7: { halign: 'center', cellWidth: 35 },
-          8: { halign: 'left', cellWidth: 'auto' }
-        },
-        styles: { fontSize: 9, cellPadding: 1.5, overflow: 'linebreak' }
-      });
-    });
-
-    doc.save(`transactions-report-${new Date().toISOString().split('T')[0]}.pdf`);
-  };
-
   // Chart data - Expense by Group Head
   const expenseByGroupHead = useMemo(() => {
     const groupData = {};
     expenses
-      .filter(e => e.status === 'APPROVED')
+      .filter(e => e.status === 'APPROVED' && (summaryType === 'OVERALL' || e.date === selectedDateStr))
       .forEach(e => {
         const group = e.group_head || e.groupHead || 'Unassigned';
         if (!groupData[group]) {
@@ -364,7 +292,173 @@ export default function AdminDashboard() {
         groupData[group] += parseFloat(e.amount || 0);
       });
     return groupData;
-  }, [expenses]);
+  }, [expenses, summaryType, selectedDateStr]);
+
+  const stats = useMemo(() => {
+    if (summaryType === 'OVERALL') {
+      return {
+        totalCredits: credits.length,
+        totalExpenses: expenses.length,
+        approvedExpenses: expenses.filter(e => e.status === 'APPROVED').length,
+        pendingExpenses: pendingApprovals
+      };
+    } else {
+      const dayCredits = credits.filter(c => c.date === selectedDateStr);
+      const dayExpenses = expenses.filter(e => e.date === selectedDateStr);
+      return {
+        totalCredits: dayCredits.length,
+        totalExpenses: dayExpenses.length,
+        approvedExpenses: dayExpenses.filter(e => e.status === 'APPROVED').length,
+        pendingExpenses: dayExpenses.filter(e => e.status === 'PENDING').length
+      };
+    }
+  }, [credits, expenses, summaryType, selectedDateStr, pendingApprovals]);
+
+  const handleDownloadPDF = () => {
+    const doc = new jsPDF('landscape');
+    
+    const formatPDFCurrency = (val) => {
+      return Number(val).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
+
+    // Add Title
+    doc.setFontSize(18);
+    doc.setTextColor(23, 37, 84);
+    doc.text('JAI BHOLE GROUPS OF COMPANIES', doc.internal.pageSize.width / 2, 15, { align: 'center' });
+    
+    doc.setFontSize(14);
+    doc.setTextColor(30, 64, 175);
+    const summaryTitle = summaryType === 'DAILY' ? `Daily Summary (${formatSelectedDateDisplay(selectedDateStr)})` : 'Overall Summary';
+    doc.text(summaryTitle, doc.internal.pageSize.width / 2, 22, { align: 'center' });
+
+    let currentY = 32;
+
+    // --- SUMMARY CARDS ---
+    let summaryCardsData = [];
+    let summaryCardsHeaders = [];
+    if (summaryType === 'OVERALL') {
+      summaryCardsHeaders = ['Total Credit', 'Total Expense', 'Available Balance', 'Pending Approvals'];
+      summaryCardsData = [[
+        formatPDFCurrency(totalCredit),
+        formatPDFCurrency(totalExpense),
+        formatPDFCurrency(availableBalance),
+        pendingApprovals.toString()
+      ]];
+    } else {
+      summaryCardsHeaders = ['Prev Day Bal', 'Day Credit', 'Prev Bal + Credit', 'Day Expense', 'Day Net Bal', 'Day Pending'];
+      summaryCardsData = [[
+        formatPDFCurrency(previousDayBalance),
+        formatPDFCurrency(dayCredit),
+        formatPDFCurrency(totalDayLimit),
+        formatPDFCurrency(dayExpense),
+        formatPDFCurrency(dayAvailableBalance),
+        dayPendingApprovals.toString()
+      ]];
+    }
+
+    autoTable(doc, {
+      head: [summaryCardsHeaders],
+      body: summaryCardsData,
+      startY: currentY,
+      margin: { left: 14, right: 14 },
+      theme: 'grid',
+      headStyles: { fillColor: [241, 245, 249], textColor: [51, 65, 85], fontStyle: 'bold', halign: 'center' },
+      bodyStyles: { halign: 'center', fontStyle: 'bold', textColor: [15, 23, 42] }
+    });
+
+    currentY = doc.lastAutoTable.finalY + 10;
+
+    // --- EXPENSE BY GROUP HEAD & SUMMARY STATISTICS ---
+    const groupHeadData = Object.entries(expenseByGroupHead).map(([group, amount]) => [
+      group,
+      formatPDFCurrency(amount)
+    ]);
+    
+    const statsData = [
+      ['Total Credits', stats.totalCredits.toString()],
+      ['Total Expenses', stats.totalExpenses.toString()],
+      ['Approved Expenses', stats.approvedExpenses.toString()],
+      ['Pending Expenses', stats.pendingExpenses.toString()]
+    ];
+
+    let leftTableY = currentY;
+    if (groupHeadData.length > 0) {
+      autoTable(doc, {
+        head: [['Expense by Group Head', 'Amount (Rs)']],
+        body: groupHeadData,
+        startY: currentY,
+        margin: { left: 14, right: doc.internal.pageSize.width / 2 + 5 },
+        theme: 'grid',
+        headStyles: { fillColor: [226, 232, 240], textColor: [30, 41, 59] },
+        columnStyles: { 1: { halign: 'right', fontStyle: 'bold' } }
+      });
+      leftTableY = doc.lastAutoTable.finalY;
+    }
+
+    autoTable(doc, {
+      head: [['Summary Statistics', 'Value']],
+      body: statsData,
+      startY: currentY,
+      margin: { left: doc.internal.pageSize.width / 2 + 5, right: 14 },
+      theme: 'grid',
+      headStyles: { fillColor: [226, 232, 240], textColor: [30, 41, 59] },
+      columnStyles: { 1: { halign: 'right', fontStyle: 'bold' } }
+    });
+    let rightTableY = doc.lastAutoTable.finalY;
+
+    currentY = Math.max(leftTableY, rightTableY) + 15;
+
+    // Add Transactions Title
+    doc.setFontSize(14);
+    doc.setTextColor(30, 64, 175);
+    doc.text('PETTY CASH REGISTER (TRANSACTIONS)', doc.internal.pageSize.width / 2, currentY, { align: 'center' });
+    currentY += 8;
+
+    const headers = [['S.NO', 'DATE', 'PARTICULARS', 'RECEIVED (Rs)', 'PAID (Rs)', 'BALANCE (Rs)', 'REMARKS', 'PAID TO', 'APPROVED BY']];
+    
+    if (filteredTransactions.length === 0) {
+      doc.setFontSize(12);
+      doc.setTextColor(100, 100, 100);
+      doc.text('No transactions found', doc.internal.pageSize.width / 2, currentY + 10, { align: 'center' });
+      doc.save(`transactions-report-${new Date().toISOString().split('T')[0]}.pdf`);
+      return;
+    }
+
+    const data = filteredTransactions.map((t, idx) => [
+      idx + 1,
+      formatDate(t.date),
+      'CASH',
+      t.type === 'CREDIT' ? formatPDFCurrency(Math.abs(t.amount)) : '',
+      t.type === 'EXPENSE' ? formatPDFCurrency(Math.abs(t.amount)) : '',
+      formatPDFCurrency(t.balance),
+      t.remarks || '-',
+      t.personName,
+      t.type === 'CREDIT' ? '-' : (t.groupHead || '-')
+    ]);
+
+    autoTable(doc, {
+      head: headers,
+      body: data,
+      startY: currentY,
+      margin: { bottom: 10, left: 14, right: 14 },
+      theme: 'grid',
+      headStyles: { fillColor: [37, 99, 235], textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center', cellPadding: 2 },
+      columnStyles: {
+        0: { halign: 'center', cellWidth: 12 },
+        1: { halign: 'center', cellWidth: 23 },
+        2: { halign: 'center', fontStyle: 'bold', cellWidth: 28 },
+        3: { halign: 'right', cellWidth: 32 },
+        4: { halign: 'right', textColor: [220, 38, 38], cellWidth: 32 },
+        5: { halign: 'right', fontStyle: 'bold', textColor: [29, 78, 216], cellWidth: 32 },
+        6: { halign: 'left', cellWidth: 'auto' },
+        7: { halign: 'center', cellWidth: 35 },
+        8: { halign: 'center', cellWidth: 35 }
+      },
+      styles: { fontSize: 9, cellPadding: 1.5, overflow: 'linebreak' }
+    });
+
+    doc.save(`transactions-report-${new Date().toISOString().split('T')[0]}.pdf`);
+  };
 
   const handleImageView = (image) => {
     setSelectedImage(image);
@@ -520,9 +614,9 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Total Credit */}
           <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-6 border border-green-200 shadow-sm">
-            <div className="flex items-center justify-between">
+            <div className="flex items-start justify-between">
               <div>
-                <p className="text-gray-600 text-sm font-medium">Total Credit</p>
+                <p className="text-gray-600 text-sm font-medium min-h-[40px] leading-tight">Total Credit</p>
                 <p className="text-2xl font-bold text-green-700 mt-2">
                   {formatCurrency(totalCredit)}
                 </p>
@@ -533,9 +627,9 @@ export default function AdminDashboard() {
 
           {/* Total Expense */}
           <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-lg p-6 border border-red-200 shadow-sm">
-            <div className="flex items-center justify-between">
+            <div className="flex items-start justify-between">
               <div>
-                <p className="text-gray-600 text-sm font-medium">Total Expense</p>
+                <p className="text-gray-600 text-sm font-medium min-h-[40px] leading-tight">Total Expense</p>
                 <p className="text-2xl font-bold text-red-700 mt-2">
                   {formatCurrency(totalExpense)}
                 </p>
@@ -550,9 +644,9 @@ export default function AdminDashboard() {
               ? 'from-blue-50 to-blue-100 border-blue-200' 
               : 'from-orange-50 to-orange-100 border-orange-200'
           }`}>
-            <div className="flex items-center justify-between">
+            <div className="flex items-start justify-between">
               <div>
-                <p className="text-gray-600 text-sm font-medium">Available Balance</p>
+                <p className="text-gray-600 text-sm font-medium min-h-[40px] leading-tight">Available Balance</p>
                 <p className={`text-2xl font-bold mt-2 ${
                   availableBalance >= 0 ? 'text-blue-700' : 'text-orange-700'
                 }`}>
@@ -565,9 +659,9 @@ export default function AdminDashboard() {
 
           {/* Pending Approvals */}
           <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-6 border border-purple-200 shadow-sm">
-            <div className="flex items-center justify-between">
+            <div className="flex items-start justify-between">
               <div>
-                <p className="text-gray-600 text-sm font-medium">Pending Approvals</p>
+                <p className="text-gray-600 text-sm font-medium min-h-[40px] leading-tight">Pending Approvals</p>
                 <p className="text-2xl font-bold text-purple-700 mt-2">
                   {pendingApprovals}
                 </p>
@@ -580,9 +674,9 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
           {/* Previous Day Balance */}
           <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg p-6 border border-slate-200 shadow-sm">
-            <div className="flex items-center justify-between">
+            <div className="flex items-start justify-between">
               <div>
-                <p className="text-gray-600 text-sm font-medium">Prev Day Balance</p>
+                <p className="text-gray-600 text-sm font-medium min-h-[40px] leading-tight">Prev Day Balance</p>
                 <p className="text-2xl font-bold text-slate-700 mt-2">
                   {formatCurrency(previousDayBalance)}
                 </p>
@@ -593,9 +687,9 @@ export default function AdminDashboard() {
 
           {/* Day Total Credit */}
           <div className="bg-gradient-to-br from-emerald-50/50 to-emerald-100/50 rounded-lg p-6 border border-emerald-200 shadow-sm">
-            <div className="flex items-center justify-between">
+            <div className="flex items-start justify-between">
               <div>
-                <p className="text-gray-600 text-sm font-medium">Day Credit</p>
+                <p className="text-gray-600 text-sm font-medium min-h-[40px] leading-tight">Day Credit</p>
                 <p className="text-2xl font-bold text-emerald-700 mt-2">
                   {formatCurrency(dayCredit)}
                 </p>
@@ -606,9 +700,9 @@ export default function AdminDashboard() {
 
           {/* Prev Bal + Credit */}
           <div className="bg-gradient-to-br from-cyan-50/50 to-cyan-100/50 border border-cyan-200 rounded-lg p-6 shadow-sm">
-            <div className="flex items-center justify-between">
+            <div className="flex items-start justify-between">
               <div>
-                <p className="text-gray-600 text-sm font-medium">Prev Bal + Credit</p>
+                <p className="text-gray-600 text-sm font-medium min-h-[40px] leading-tight">Prev Bal + Credit</p>
                 <p className="text-2xl font-bold text-cyan-700 mt-2">
                   {formatCurrency(totalDayLimit)}
                 </p>
@@ -619,9 +713,9 @@ export default function AdminDashboard() {
 
           {/* Day Total Expense */}
           <div className="bg-gradient-to-br from-rose-50/50 to-rose-100/50 rounded-lg p-6 border border-rose-200 shadow-sm">
-            <div className="flex items-center justify-between">
+            <div className="flex items-start justify-between">
               <div>
-                <p className="text-gray-600 text-sm font-medium">Day Expense</p>
+                <p className="text-gray-600 text-sm font-medium min-h-[40px] leading-tight">Day Expense</p>
                 <p className="text-2xl font-bold text-rose-700 mt-2">
                   {formatCurrency(dayExpense)}
                 </p>
@@ -636,9 +730,9 @@ export default function AdminDashboard() {
               ? 'from-sky-50/50 to-sky-100/50 border-sky-200' 
               : 'from-amber-50/50 to-amber-100/50 border-amber-200'
           }`}>
-            <div className="flex items-center justify-between">
+            <div className="flex items-start justify-between">
               <div>
-                <p className="text-gray-600 text-sm font-medium">Day Net Balance</p>
+                <p className="text-gray-600 text-sm font-medium min-h-[40px] leading-tight">Day Net Balance</p>
                 <p className={`text-2xl font-bold mt-2 ${
                   dayAvailableBalance >= 0 ? 'text-sky-700' : 'text-amber-700'
                 }`}>
@@ -651,9 +745,9 @@ export default function AdminDashboard() {
 
           {/* Day Pending Approvals */}
           <div className="bg-gradient-to-br from-fuchsia-50/50 to-fuchsia-100/50 rounded-lg p-6 border border-fuchsia-200 shadow-sm">
-            <div className="flex items-center justify-between">
+            <div className="flex items-start justify-between">
               <div>
-                <p className="text-gray-600 text-sm font-medium">Day Pending</p>
+                <p className="text-gray-600 text-sm font-medium min-h-[40px] leading-tight">Day Pending</p>
                 <p className="text-2xl font-bold text-fuchsia-700 mt-2">
                   {dayPendingApprovals}
                 </p>
@@ -701,19 +795,19 @@ export default function AdminDashboard() {
           <div className="space-y-3">
             <div className="flex justify-between items-center pb-3 border-b border-gray-200">
               <span className="text-gray-700">Total Credits</span>
-              <span className="font-semibold text-green-600">{credits.length}</span>
+              <span className="font-semibold text-green-600">{stats.totalCredits}</span>
             </div>
             <div className="flex justify-between items-center pb-3 border-b border-gray-200">
               <span className="text-gray-700">Total Expenses</span>
-              <span className="font-semibold text-red-600">{expenses.length}</span>
+              <span className="font-semibold text-red-600">{stats.totalExpenses}</span>
             </div>
             <div className="flex justify-between items-center pb-3 border-b border-gray-200">
               <span className="text-gray-700">Approved Expenses</span>
-              <span className="font-semibold">{expenses.filter(e => e.status === 'APPROVED').length}</span>
+              <span className="font-semibold">{stats.approvedExpenses}</span>
             </div>
             <div className="flex justify-between items-center pt-3">
               <span className="text-gray-700">Pending Expenses</span>
-              <span className="font-semibold text-orange-600">{pendingApprovals}</span>
+              <span className="font-semibold text-orange-600">{stats.pendingExpenses}</span>
             </div>
           </div>
         </div>
@@ -759,9 +853,9 @@ export default function AdminDashboard() {
                 <th className="px-2 py-2 text-center text-xs font-bold text-blue-900 uppercase border border-blue-300">RECEIVED</th>
                 <th className="px-2 py-2 text-center text-xs font-bold text-blue-900 uppercase border border-blue-300">PAID</th>
                 <th className="px-2 py-2 text-center text-xs font-bold text-blue-900 uppercase border border-blue-300">BALANCE</th>
+                <th className="px-2 py-2 text-center text-xs font-bold text-blue-900 uppercase border border-blue-300">REMARKS</th>
                 <th className="px-2 py-2 text-center text-xs font-bold text-blue-900 uppercase border border-blue-300">PAID TO</th>
                 <th className="px-2 py-2 text-center text-xs font-bold text-blue-900 uppercase border border-blue-300">APPROVED BY</th>
-                <th className="px-2 py-2 text-center text-xs font-bold text-blue-900 uppercase border border-blue-300">REMARKS</th>
               </tr>
             </thead>
             <tbody>
@@ -783,9 +877,9 @@ export default function AdminDashboard() {
                       {t.type === 'EXPENSE' ? formatCurrency(Math.abs(t.amount)) : ''}
                     </td>
                     <td className="px-2 py-1.5 text-right text-xs border border-gray-300 font-bold text-blue-700">{formatCurrency(t.balance)}</td>
+                    <td className="px-2 py-1.5 text-left text-xs border border-gray-300 truncate max-w-[150px] uppercase">{t.remarks || '-'}</td>
                     <td className="px-2 py-1.5 text-center text-xs border border-gray-300 uppercase">{t.personName}</td>
                     <td className="px-2 py-1.5 text-center text-xs border border-gray-300 uppercase">{t.type === 'CREDIT' ? '-' : (t.groupHead || '-')}</td>
-                    <td className="px-2 py-1.5 text-left text-xs border border-gray-300 truncate max-w-[150px] uppercase">{t.remarks || '-'}</td>
                   </tr>
                 );
               })}
