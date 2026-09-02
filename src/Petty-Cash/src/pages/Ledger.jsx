@@ -4,6 +4,8 @@ import { useAuthStore } from '../store/authStore';
 import supabase from '../../../SupabaseClient';
 import { formatDate, formatDateForInput, getTodayDate, formatCurrency, isDateInRange } from '../utils/helpers';
 import SearchableSelect from '../../../components/SearchableSelect';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const DEFAULT_USERS = [
   { id: 'admin', name: 'Admin User', password: 'admin123', role: 'ADMIN' },
@@ -252,6 +254,132 @@ export default function Ledger() {
     a.click();
   };
 
+  const handleDownloadPDF = () => {
+    const doc = new jsPDF('landscape');
+    
+    const formatPDFCurrency = (val) => {
+      return Number(val).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
+
+    // Add Title
+    doc.setFontSize(18);
+    doc.setTextColor(23, 37, 84);
+    doc.text('JAI BHOLE GROUPS OF COMPANIES', doc.internal.pageSize.width / 2, 15, { align: 'center' });
+    
+    doc.setFontSize(14);
+    doc.setTextColor(30, 64, 175);
+    const summaryTitle = summaryType === 'DAILY' && selectedDateStr ? `DAILY LEDGER (${formatSelectedDateDisplay(selectedDateStr)})` : 'OVERALL LEDGER';
+    doc.text(summaryTitle, doc.internal.pageSize.width / 2, 22, { align: 'center' });
+
+    let currentY = 32;
+
+    // --- SUMMARY CARDS ---
+    let summaryCardsData = [];
+    let summaryCardsHeaders = [];
+    if (prevDayBalance !== null) {
+      summaryCardsHeaders = ['Prev Day Balance', 'Total Credits', 'Total Expenses', 'Net Balance', 'Total Entries'];
+      summaryCardsData = [[
+        formatPDFCurrency(prevDayBalance),
+        formatPDFCurrency(statistics.totalDebit),
+        formatPDFCurrency(statistics.totalCredit),
+        formatPDFCurrency(statistics.balance),
+        statistics.entries.toString()
+      ]];
+    } else {
+      summaryCardsHeaders = ['Total Credits', 'Total Expenses', 'Net Balance', 'Total Entries'];
+      summaryCardsData = [[
+        formatPDFCurrency(statistics.totalDebit),
+        formatPDFCurrency(statistics.totalCredit),
+        formatPDFCurrency(statistics.balance),
+        statistics.entries.toString()
+      ]];
+    }
+
+    autoTable(doc, {
+      head: [summaryCardsHeaders],
+      body: summaryCardsData,
+      startY: currentY,
+      margin: { left: 14, right: 14 },
+      theme: 'grid',
+      headStyles: { fillColor: [241, 245, 249], textColor: [51, 65, 85], fontStyle: 'bold', halign: 'center' },
+      bodyStyles: { halign: 'center', fontStyle: 'bold', textColor: [15, 23, 42] }
+    });
+
+    currentY = doc.lastAutoTable.finalY + 15;
+
+    // Add Transactions Title
+    doc.setFontSize(14);
+    doc.setTextColor(220, 38, 38);
+    doc.text('PETTY CASH REGISTER', doc.internal.pageSize.width / 2, currentY, { align: 'center' });
+    currentY += 8;
+
+    const headers = [['S.NO', 'DATE', 'PARTICULARS', 'RECEIVED (Rs)', 'PAID (Rs)', 'BALANCE (Rs)', 'REMARKS', 'PAID TO', 'APPROVED BY']];
+    
+    if (filteredLedger.length === 0) {
+      doc.setFontSize(12);
+      doc.setTextColor(100, 100, 100);
+      doc.text('No ledger entries found', doc.internal.pageSize.width / 2, currentY + 10, { align: 'center' });
+      doc.save(`ledger-report-${new Date().toISOString().split('T')[0]}.pdf`);
+      return;
+    }
+
+    const data = filteredLedger.map((entry, idx) => {
+      let remarks = entry.remarks || '';
+      let approvedBy = entry.groupHead || '-';
+      
+      if (entry.type === 'CREDIT') {
+         const credit = credits.find(c => c.id === entry.id || c.sn === entry.referenceId);
+         if (credit && credit.remarks) remarks = credit.remarks;
+         approvedBy = '-';
+      } else {
+         const expense = expenses.find(e => e.id === entry.id || e.sn === entry.referenceId);
+         if (expense) {
+           if (expense.remarks) remarks = expense.remarks;
+           if (expense.group_head || expense.groupHead) approvedBy = expense.group_head || expense.groupHead;
+         }
+      }
+
+      const sNo = idx + 1;
+      const isOpening = entry.type === 'CREDIT' && sNo === 1;
+      const particulars = isOpening ? 'OPENING BALANCE' : 'CASH';
+
+      return [
+        sNo,
+        formatDate(entry.date),
+        particulars,
+        entry.type === 'CREDIT' ? formatPDFCurrency(entry.amount) : '',
+        entry.type === 'DEBIT' || entry.type === 'EXPENSE' ? formatPDFCurrency(entry.amount) : '',
+        formatPDFCurrency(entry.balance !== undefined ? entry.balance : entry.balanceAfter),
+        remarks || '-',
+        entry.personName || '-',
+        approvedBy
+      ];
+    });
+
+    autoTable(doc, {
+      head: headers,
+      body: data,
+      startY: currentY,
+      margin: { bottom: 10, left: 14, right: 14 },
+      theme: 'grid',
+      headStyles: { fillColor: [220, 38, 38], textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center', cellPadding: 2 },
+      columnStyles: {
+        0: { halign: 'center', cellWidth: 12 },
+        1: { halign: 'center', cellWidth: 23 },
+        2: { halign: 'center', fontStyle: 'bold', cellWidth: 28 },
+        3: { halign: 'right', cellWidth: 32 },
+        4: { halign: 'right', textColor: [220, 38, 38], cellWidth: 32 },
+        5: { halign: 'right', fontStyle: 'bold', textColor: [29, 78, 216], cellWidth: 32 },
+        6: { halign: 'left', cellWidth: 'auto' },
+        7: { halign: 'center', cellWidth: 35 },
+        8: { halign: 'center', cellWidth: 35 }
+      },
+      styles: { fontSize: 9, cellPadding: 1.5, overflow: 'linebreak' }
+    });
+
+    doc.save(`ledger-report-${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
   return (
     <div className="p-0 sm:p-2 md:p-6 space-y-2 md:space-y-6 flex flex-col h-full min-h-0">
       {/* Header */}
@@ -390,12 +518,20 @@ export default function Ledger() {
         </div>
 
         {/* Desktop Export Button */}
-        <button
-           onClick={handleDownloadCSV}
-           className="hidden lg:flex bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 h-[38px] rounded-lg font-semibold items-center justify-center gap-2 transition shadow-sm w-full lg:w-auto flex-shrink-0"
-        >
-          <Download size={16} /> Export
-        </button>
+        <div className="hidden lg:flex gap-2 w-full lg:w-auto flex-shrink-0">
+          <button
+             onClick={handleDownloadCSV}
+             className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 h-[38px] rounded-lg font-semibold flex items-center justify-center gap-2 transition shadow-sm"
+          >
+            <Download size={16} /> Export CSV
+          </button>
+          <button
+             onClick={handleDownloadPDF}
+             className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 h-[38px] rounded-lg font-semibold flex items-center justify-center gap-2 transition shadow-sm"
+          >
+            <Download size={16} /> Export PDF
+          </button>
+        </div>
       </div>
 
       {/* Summary Toggle */}
