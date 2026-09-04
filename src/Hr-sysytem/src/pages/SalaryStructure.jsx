@@ -40,6 +40,21 @@ const getDaysForMonthName = (monthName, year = 2026) => {
   return monthMap[monthName] || 30;
 };
 
+const getDesignationStyle = (desg) => {
+  if (!desg) return { color: 'var(--text-secondary)' };
+  const d = desg.toUpperCase().trim();
+  switch (d) {
+    case 'HELPING HANDS': return { backgroundColor: '#dbeafe', color: '#1d4ed8', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' };
+    case 'JAI BHOLE ENTERPRISE': return { backgroundColor: '#fef3c7', color: '#b45309', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' };
+    case 'ASAK COAL PVT.LTD.': return { backgroundColor: '#d1fae5', color: '#047857', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' };
+    case 'JAI BHOLE LOGISTICS': return { backgroundColor: '#ede9fe', color: '#6d28d9', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' };
+    case 'BOTIVATE': return { backgroundColor: '#ffe4e6', color: '#be123c', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' };
+    case 'JAI BHOLE TRADERS': return { backgroundColor: '#ffedd5', color: '#c2410c', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' };
+    case 'ASAK COAL LOGISTICS': return { backgroundColor: '#ccfbf1', color: '#0f766e', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' };
+    default: return { backgroundColor: '#f3f4f6', color: '#4b5563', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' };
+  }
+};
+
 export default function SalaryStructure() {
   const [employees] = useEmployees();
   
@@ -355,6 +370,12 @@ export default function SalaryStructure() {
             <div className="form-group">
               <label>Department</label>
               <input type="text" value={selectedEmp ? (selectedEmpData.department || 'N/A') : 'Select an employee'} disabled style={{ opacity: 0.7 }} />
+            </div>
+            <div className="form-group">
+              <label>Designation</label>
+              <div style={{ display: 'flex', alignItems: 'center', height: '42px', padding: '0 12px', border: '1px solid var(--border-color)', borderRadius: '6px', backgroundColor: 'var(--bg-main)', opacity: 0.8 }}>
+                {selectedEmp ? <span style={getDesignationStyle(selectedEmpData.designation)}>{selectedEmpData.designation || 'N/A'}</span> : <span style={{ color: 'var(--text-secondary)' }}>Select an employee</span>}
+              </div>
             </div>
             <div className="form-group">
               <label>Salary Date</label>
