@@ -40,7 +40,13 @@ export default function Ledger() {
   }, []);
 
   const [selectedDateStr, setSelectedDateStr] = useState(getTodayDate());
+  const [selectedMonthStr, setSelectedMonthStr] = useState(() => {
+    const d = new Date();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    return `${d.getFullYear()}-${m}`;
+  });
   const dateInputRef = useRef(null);
+  const monthInputRef = useRef(null);
 
   const [filters, setFilters] = useState({
     personName: '',
@@ -70,6 +76,38 @@ export default function Ledger() {
 
   const handleToday = () => {
     setSelectedDateStr(getTodayDate());
+  };
+
+  const handlePrevMonth = () => {
+    if (!selectedMonthStr) return;
+    const [year, month] = selectedMonthStr.split('-').map(Number);
+    const date = new Date(year, month - 2, 1);
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    setSelectedMonthStr(`${date.getFullYear()}-${m}`);
+  };
+
+  const handleNextMonth = () => {
+    if (!selectedMonthStr) return;
+    const [year, month] = selectedMonthStr.split('-').map(Number);
+    const date = new Date(year, month, 1);
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    setSelectedMonthStr(`${date.getFullYear()}-${m}`);
+  };
+
+  const handleCurrentMonth = () => {
+    const d = new Date();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    setSelectedMonthStr(`${d.getFullYear()}-${m}`);
+  };
+
+  const formatSelectedMonthDisplay = (monthStr) => {
+    if (!monthStr) return '';
+    const [year, month] = monthStr.split('-').map(Number);
+    const date = new Date(year, month - 1, 1);
+    return date.toLocaleDateString('en-GB', {
+      month: 'short',
+      year: 'numeric'
+    });
   };
 
   const formatSelectedDateDisplay = (dateStr) => {
@@ -111,6 +149,7 @@ export default function Ledger() {
         type: 'CREDIT',
         amount: parseFloat(c.amount || 0),
         date: c.date,
+        createdAt: c.created_at || c.createdAt || c.date,
         remarks: c.remarks || ''
       });
     });
@@ -124,11 +163,16 @@ export default function Ledger() {
         type: 'EXPENSE',
         amount: parseFloat(e.amount || 0),
         date: e.date,
+        createdAt: e.created_at || e.createdAt || e.date,
         remarks: e.remarks || ''
       });
     });
 
-    entries.sort((a, b) => new Date(a.date) - new Date(b.date));
+    entries.sort((a, b) => {
+      const dateDiff = new Date(a.date) - new Date(b.date);
+      if (dateDiff !== 0) return dateDiff;
+      return new Date(a.createdAt) - new Date(b.createdAt);
+    });
 
     let runningBalance = 0;
     return entries.map(entry => {
@@ -158,6 +202,9 @@ export default function Ledger() {
     return ledgerData.filter(entry => {
       // Apply date filter
       if (summaryType === 'DAILY' && selectedDateStr && entry.date !== selectedDateStr) {
+        return false;
+      }
+      if (summaryType === 'MONTHLY' && selectedMonthStr && entry.date.substring(0, 7) !== selectedMonthStr) {
         return false;
       }
 
@@ -191,8 +238,12 @@ export default function Ledger() {
       }
 
       return true;
-    }).sort((a, b) => new Date(b.date) - new Date(a.date));
-  }, [ledgerData, filters, selectedDateStr, summaryType]);
+    }).sort((a, b) => {
+      const dateDiff = new Date(b.date) - new Date(a.date);
+      if (dateDiff !== 0) return dateDiff;
+      return new Date(a.createdAt) - new Date(b.createdAt);
+    });
+  }, [ledgerData, filters, selectedDateStr, selectedMonthStr, summaryType]);
 
   const totalPages = Math.ceil(filteredLedger.length / itemsPerPage);
   const paginatedLedger = filteredLedger.slice(
@@ -201,14 +252,20 @@ export default function Ledger() {
   );
 
   const prevDayBalance = useMemo(() => {
-    if (summaryType !== 'DAILY' || !selectedDateStr) return null;
-    
-    const previousEntries = ledgerData.filter(entry => entry.date < selectedDateStr);
-    if (previousEntries.length > 0) {
-      return previousEntries[previousEntries.length - 1].balance;
+    if (summaryType === 'DAILY') {
+      if (!selectedDateStr) return null;
+      const previousEntries = ledgerData.filter(entry => entry.date < selectedDateStr);
+      if (previousEntries.length > 0) return previousEntries[previousEntries.length - 1].balance;
+      return 0;
     }
-    return 0;
-  }, [ledgerData, selectedDateStr, summaryType]);
+    if (summaryType === 'MONTHLY') {
+      if (!selectedMonthStr) return null;
+      const previousEntries = ledgerData.filter(entry => entry.date.substring(0, 7) < selectedMonthStr);
+      if (previousEntries.length > 0) return previousEntries[previousEntries.length - 1].balance;
+      return 0;
+    }
+    return null;
+  }, [ledgerData, selectedDateStr, selectedMonthStr, summaryType]);
 
   // Calculate statistics
   const statistics = useMemo(() => {
@@ -268,7 +325,9 @@ export default function Ledger() {
     
     doc.setFontSize(14);
     doc.setTextColor(30, 64, 175);
-    const summaryTitle = summaryType === 'DAILY' && selectedDateStr ? `DAILY LEDGER (${formatSelectedDateDisplay(selectedDateStr)})` : 'OVERALL LEDGER';
+    let summaryTitle = 'OVERALL LEDGER';
+    if (summaryType === 'DAILY' && selectedDateStr) summaryTitle = `DAILY LEDGER (${formatSelectedDateDisplay(selectedDateStr)})`;
+    if (summaryType === 'MONTHLY' && selectedMonthStr) summaryTitle = `MONTHLY LEDGER (${formatSelectedMonthDisplay(selectedMonthStr)})`;
     doc.text(summaryTitle, doc.internal.pageSize.width / 2, 22, { align: 'center' });
 
     let currentY = 32;
@@ -277,7 +336,8 @@ export default function Ledger() {
     let summaryCardsData = [];
     let summaryCardsHeaders = [];
     if (prevDayBalance !== null) {
-      summaryCardsHeaders = ['Prev Day Balance', 'Total Credits', 'Total Expenses', 'Net Balance', 'Total Entries'];
+      const prevBalTitle = summaryType === 'MONTHLY' ? 'Prev Month Balance' : 'Prev Day Balance';
+      summaryCardsHeaders = [prevBalTitle, 'Total Credits', 'Total Expenses', 'Net Balance', 'Total Entries'];
       summaryCardsData = [[
         formatPDFCurrency(prevDayBalance),
         formatPDFCurrency(statistics.totalDebit),
@@ -418,38 +478,38 @@ export default function Ledger() {
           </div>
 
           {/* Filters */}
-          <div className={`${showMobileFilters ? 'grid' : 'hidden'} lg:flex grid-cols-2 lg:flex-row gap-2 w-full lg:w-auto lg:flex-[4] items-center`}>
+          <div className={`${showMobileFilters ? 'grid' : 'hidden'} lg:flex grid-cols-2 lg:flex-row lg:flex-wrap gap-2 w-full lg:w-auto lg:flex-[5] items-center`}>
             {/* Day Navigation Control */}
             <div className="col-span-2 lg:flex-1 w-full lg:min-w-[320px] flex-shrink-0">
               <div className="flex items-center justify-between bg-white border border-gray-300 rounded-lg lg:rounded p-1 text-gray-700 h-[32px] md:h-[38px] relative w-full shadow-sm overflow-hidden">
                 <div className="flex items-center gap-1 flex-shrink-0">
                   <button
                     type="button"
-                    onClick={handlePrevDay}
+                    onClick={summaryType === 'MONTHLY' ? handlePrevMonth : handlePrevDay}
                     className="flex items-center justify-center w-6 h-6 md:w-7 md:h-7 hover:bg-gray-100 active:bg-gray-200 rounded border border-gray-200 transition text-gray-600 flex-shrink-0"
-                    title="Previous Day"
+                    title={summaryType === 'MONTHLY' ? "Previous Month" : "Previous Day"}
                   >
                     <ChevronLeft size={14} />
                   </button>
                   <button
                     type="button"
-                    onClick={handleToday}
-                    className={`px-2 py-0.5 rounded transition text-[11px] md:text-xs font-semibold flex-shrink-0 ${selectedDateStr === getTodayDate() ? 'text-indigo-700 bg-indigo-50/50' : 'text-gray-600 hover:bg-gray-100'}`}
+                    onClick={summaryType === 'MONTHLY' ? handleCurrentMonth : handleToday}
+                    className={`px-2 py-0.5 rounded transition text-[11px] md:text-xs font-semibold flex-shrink-0 ${summaryType === 'MONTHLY' ? (selectedMonthStr === getTodayDate().substring(0, 7) ? 'text-indigo-700 bg-indigo-50/50' : 'text-gray-600 hover:bg-gray-100') : (selectedDateStr === getTodayDate() ? 'text-indigo-700 bg-indigo-50/50' : 'text-gray-600 hover:bg-gray-100')}`}
                   >
-                    Today
+                    {summaryType === 'MONTHLY' ? 'Current' : 'Today'}
                   </button>
                   <button
                     type="button"
-                    onClick={() => setSelectedDateStr('')}
-                    className={`px-2 py-0.5 rounded transition text-[11px] md:text-xs font-semibold flex-shrink-0 ${!selectedDateStr ? 'text-indigo-700 bg-indigo-50/50' : 'text-gray-600 hover:bg-gray-100'}`}
+                    onClick={() => summaryType === 'MONTHLY' ? setSelectedMonthStr('') : setSelectedDateStr('')}
+                    className={`px-2 py-0.5 rounded transition text-[11px] md:text-xs font-semibold flex-shrink-0 ${summaryType === 'MONTHLY' ? (!selectedMonthStr ? 'text-indigo-700 bg-indigo-50/50' : 'text-gray-600 hover:bg-gray-100') : (!selectedDateStr ? 'text-indigo-700 bg-indigo-50/50' : 'text-gray-600 hover:bg-gray-100')}`}
                   >
                     All
                   </button>
                   <button
                     type="button"
-                    onClick={handleNextDay}
+                    onClick={summaryType === 'MONTHLY' ? handleNextMonth : handleNextDay}
                     className="flex items-center justify-center w-6 h-6 md:w-7 md:h-7 hover:bg-gray-100 active:bg-gray-200 rounded border border-gray-200 transition text-gray-600 flex-shrink-0"
-                    title="Next Day"
+                    title={summaryType === 'MONTHLY' ? "Next Month" : "Next Day"}
                   >
                     <ChevronRight size={14} />
                   </button>
@@ -458,29 +518,45 @@ export default function Ledger() {
                 <button
                   type="button"
                   onClick={() => {
-                    if (dateInputRef.current) {
-                      if (typeof dateInputRef.current.showPicker === 'function') {
-                        dateInputRef.current.showPicker();
-                      } else {
-                        dateInputRef.current.click();
+                    if (summaryType === 'MONTHLY') {
+                      if (monthInputRef.current) {
+                        if (typeof monthInputRef.current.showPicker === 'function') monthInputRef.current.showPicker();
+                        else monthInputRef.current.click();
+                      }
+                    } else {
+                      if (dateInputRef.current) {
+                        if (typeof dateInputRef.current.showPicker === 'function') dateInputRef.current.showPicker();
+                        else dateInputRef.current.click();
                       }
                     }
                   }}
                   className="flex items-center gap-1.5 px-2 py-1 hover:bg-gray-50 rounded transition text-xs md:text-sm font-semibold text-gray-700 cursor-pointer flex-shrink-0"
                 >
                   <Calendar size={14} className="text-indigo-600 flex-shrink-0" />
-                  <span className="font-semibold text-gray-800 whitespace-nowrap flex-shrink-0">{selectedDateStr ? formatSelectedDateDisplay(selectedDateStr) : 'All Dates'}</span>
+                  <span className="font-semibold text-gray-800 whitespace-nowrap flex-shrink-0">
+                    {summaryType === 'MONTHLY' ? (selectedMonthStr ? formatSelectedMonthDisplay(selectedMonthStr) : 'All Months') : (selectedDateStr ? formatSelectedDateDisplay(selectedDateStr) : 'All Dates')}
+                  </span>
                 </button>
-                <input
-                  ref={dateInputRef}
-                  type="date"
-                  value={selectedDateStr}
-                  onChange={(e) => setSelectedDateStr(e.target.value)}
-                  style={{ position: 'absolute', width: 0, height: 0, opacity: 0, pointerEvents: 'none' }}
-                />
+                {summaryType === 'MONTHLY' ? (
+                  <input
+                    ref={monthInputRef}
+                    type="month"
+                    value={selectedMonthStr}
+                    onChange={(e) => setSelectedMonthStr(e.target.value)}
+                    style={{ position: 'absolute', width: 0, height: 0, opacity: 0, pointerEvents: 'none' }}
+                  />
+                ) : (
+                  <input
+                    ref={dateInputRef}
+                    type="date"
+                    value={selectedDateStr}
+                    onChange={(e) => setSelectedDateStr(e.target.value)}
+                    style={{ position: 'absolute', width: 0, height: 0, opacity: 0, pointerEvents: 'none' }}
+                  />
+                )}
               </div>
             </div>
-             <div className="w-full">
+             <div className="w-full lg:min-w-[140px] lg:flex-1">
                 <SearchableSelect
                   value={filters.personName}
                   onChange={(val) => setFilters({ ...filters, personName: val })}
@@ -491,7 +567,7 @@ export default function Ledger() {
                   ]}
                 />
              </div>
-             <div className="w-full">
+             <div className="w-full lg:min-w-[120px] lg:flex-1">
                <SearchableSelect
                  value={filters.transactionType}
                  onChange={(val) => setFilters({ ...filters, transactionType: val })}
@@ -503,7 +579,7 @@ export default function Ledger() {
                  ]}
                />
              </div>
-             <div className="w-full">
+             <div className="w-full lg:min-w-[140px] lg:flex-1">
                 <SearchableSelect
                   value={filters.remarks}
                   onChange={(val) => setFilters({ ...filters, remarks: val })}
@@ -537,7 +613,7 @@ export default function Ledger() {
       {/* Summary Toggle */}
       <div className="flex justify-between items-center bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 mt-2 shadow-sm">
         <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 leading-none">
-          {summaryType === 'DAILY' && selectedDateStr ? `Daily Ledger (${formatSelectedDateDisplay(selectedDateStr)})` : 'Overall Ledger'}
+          {summaryType === 'OVERALL' ? 'Overall Ledger' : summaryType === 'MONTHLY' && selectedMonthStr ? `Monthly Ledger (${formatSelectedMonthDisplay(selectedMonthStr)})` : summaryType === 'DAILY' && selectedDateStr ? `Daily Ledger (${formatSelectedDateDisplay(selectedDateStr)})` : 'Overall Ledger'}
         </h3>
         <select
           value={summaryType}
@@ -545,6 +621,7 @@ export default function Ledger() {
           className="bg-white border border-gray-300 rounded px-2 py-1 text-xs font-semibold text-gray-700 focus:outline-none focus:border-indigo-500 shadow-sm cursor-pointer"
         >
           <option value="DAILY">Daily Summary</option>
+          <option value="MONTHLY">Monthly Summary</option>
           <option value="OVERALL">Overall Summary</option>
         </select>
       </div>
@@ -554,7 +631,7 @@ export default function Ledger() {
         {prevDayBalance !== null && (
           <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg p-4 md:p-6 border border-slate-200 shadow-sm flex flex-col justify-center">
             <p className="text-gray-600 text-[10px] md:text-sm font-bold uppercase tracking-wider flex items-center justify-between">
-              Prev Day Balance
+              {summaryType === 'MONTHLY' ? 'Prev Month Balance' : 'Prev Day Balance'}
               <svg xmlns="http://www.w3.org/2000/ applicable" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
             </p>
             <p className="text-lg md:text-2xl font-black text-slate-700 mt-1">

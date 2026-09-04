@@ -44,7 +44,13 @@ export default function AdminDashboard() {
   }, []);
 
   const [selectedDateStr, setSelectedDateStr] = useState(getTodayDate());
+  const [selectedMonthStr, setSelectedMonthStr] = useState(() => {
+    const d = new Date();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    return `${d.getFullYear()}-${m}`;
+  });
   const dateInputRef = useRef(null);
+  const monthInputRef = useRef(null);
 
   const [filters, setFilters] = useState({
     personName: '',
@@ -71,6 +77,38 @@ export default function AdminDashboard() {
 
   const handleToday = () => {
     setSelectedDateStr(getTodayDate());
+  };
+
+  const handlePrevMonth = () => {
+    if (!selectedMonthStr) return;
+    const [year, month] = selectedMonthStr.split('-').map(Number);
+    const date = new Date(year, month - 2, 1);
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    setSelectedMonthStr(`${date.getFullYear()}-${m}`);
+  };
+
+  const handleNextMonth = () => {
+    if (!selectedMonthStr) return;
+    const [year, month] = selectedMonthStr.split('-').map(Number);
+    const date = new Date(year, month, 1);
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    setSelectedMonthStr(`${date.getFullYear()}-${m}`);
+  };
+
+  const handleCurrentMonth = () => {
+    const d = new Date();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    setSelectedMonthStr(`${d.getFullYear()}-${m}`);
+  };
+
+  const formatSelectedMonthDisplay = (monthStr) => {
+    if (!monthStr) return '';
+    const [year, month] = monthStr.split('-').map(Number);
+    const date = new Date(year, month - 1, 1);
+    return date.toLocaleDateString('en-GB', {
+      month: 'short',
+      year: 'numeric'
+    });
   };
 
   const formatSelectedDateDisplay = (dateStr) => {
@@ -129,12 +167,41 @@ export default function AdminDashboard() {
   const dayPendingApprovals = expenses
     .filter(e => e.date === selectedDateStr && e.status === 'PENDING').length;
 
+  const previousMonthBalance = useMemo(() => {
+    if (!selectedMonthStr) return 0;
+    const prevCredits = credits
+      .filter(c => c.date.substring(0, 7) < selectedMonthStr)
+      .reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
+    const prevExpenses = expenses
+      .filter(e => e.status === 'APPROVED' && e.date.substring(0, 7) < selectedMonthStr)
+      .reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
+    return prevCredits - prevExpenses;
+  }, [credits, expenses, selectedMonthStr]);
+
+  const monthCredit = credits
+    .filter(c => c.date.substring(0, 7) === selectedMonthStr)
+    .reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
+
+  const monthExpense = expenses
+    .filter(e => e.date.substring(0, 7) === selectedMonthStr && e.status === 'APPROVED')
+    .reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
+
+  const monthAvailableBalance = previousMonthBalance + monthCredit - monthExpense;
+  const totalMonthLimit = previousMonthBalance + monthCredit;
+
+  const monthPendingApprovals = expenses
+    .filter(e => e.date.substring(0, 7) === selectedMonthStr && e.status === 'PENDING').length;
+
   const filteredTransactions = useMemo(() => {
     // First, compute chronological running balance for all approved transactions
     const all = [
-      ...credits.map(c => ({ id: c.id, date: c.date, type: 'CREDIT', amount: parseFloat(c.amount || 0) })),
-      ...expenses.filter(e => e.status === 'APPROVED').map(e => ({ id: e.id, date: e.date, type: 'EXPENSE', amount: parseFloat(e.amount || 0) }))
-    ].sort((a, b) => new Date(a.date) - new Date(b.date));
+      ...credits.map(c => ({ id: c.id, date: c.date, type: 'CREDIT', amount: parseFloat(c.amount || 0), createdAt: c.created_at || c.createdAt || c.date })),
+      ...expenses.filter(e => e.status === 'APPROVED').map(e => ({ id: e.id, date: e.date, type: 'EXPENSE', amount: parseFloat(e.amount || 0), createdAt: e.created_at || e.createdAt || e.date }))
+    ].sort((a, b) => {
+      const dateDiff = new Date(a.date) - new Date(b.date);
+      if (dateDiff !== 0) return dateDiff;
+      return new Date(a.createdAt) - new Date(b.createdAt);
+    });
     
     let currentBalance = 0;
     const balanceMap = {};
@@ -151,7 +218,7 @@ export default function AdminDashboard() {
       const pMode = c.payment_mode || c.paymentMode || '';
       const pImg = c.receipt_url || c.image || '';
 
-      if (summaryType === 'OVERALL' || c.date === selectedDateStr) {
+      if (summaryType === 'OVERALL' || (summaryType === 'DAILY' && c.date === selectedDateStr) || (summaryType === 'MONTHLY' && c.date.substring(0, 7) === selectedMonthStr)) {
         if (!filters.personName || pName.toLowerCase().includes(filters.personName.toLowerCase())) {
           if (!filters.paymentMode || pMode === filters.paymentMode) {
             transactions.push({
@@ -166,7 +233,8 @@ export default function AdminDashboard() {
               status: 'APPROVED',
               image: pImg,
               remarks: c.remarks || '',
-              balance: balanceMap[c.id]
+              balance: balanceMap[c.id],
+              createdAt: c.created_at || c.createdAt || c.date
             });
           }
         }
@@ -180,7 +248,7 @@ export default function AdminDashboard() {
       const pGroup = e.group_head || e.groupHead || '';
       const pImg = e.receipt_url || e.image || '';
 
-      if (summaryType === 'OVERALL' || e.date === selectedDateStr) {
+      if (summaryType === 'OVERALL' || (summaryType === 'DAILY' && e.date === selectedDateStr) || (summaryType === 'MONTHLY' && e.date.substring(0, 7) === selectedMonthStr)) {
         if (!filters.personName || pName.toLowerCase().includes(filters.personName.toLowerCase())) {
           if (!filters.groupHead || pGroup === filters.groupHead) {
             if (!filters.paymentMode || pMode === filters.paymentMode) {
@@ -197,7 +265,8 @@ export default function AdminDashboard() {
                   status: e.status,
                   image: pImg,
                   remarks: e.remarks || '',
-                  balance: balanceMap[e.id]
+                  balance: balanceMap[e.id],
+                  createdAt: e.created_at || e.createdAt || e.date
                 });
               }
             }
@@ -222,9 +291,13 @@ export default function AdminDashboard() {
       return true;
     });
 
-    // Sort by date descending
-    return filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
-  }, [filters, credits, expenses, selectedDateStr, summaryType]);
+    // Sort by date descending, then chronological for same day
+    return filtered.sort((a, b) => {
+      const dateDiff = new Date(b.date) - new Date(a.date);
+      if (dateDiff !== 0) return dateDiff;
+      return new Date(a.createdAt) - new Date(b.createdAt);
+    });
+  }, [filters, credits, expenses, selectedDateStr, selectedMonthStr, summaryType]);
 
   // Paginated Transactions
   const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
@@ -283,7 +356,7 @@ export default function AdminDashboard() {
   const expenseByGroupHead = useMemo(() => {
     const groupData = {};
     expenses
-      .filter(e => e.status === 'APPROVED' && (summaryType === 'OVERALL' || e.date === selectedDateStr))
+      .filter(e => e.status === 'APPROVED' && (summaryType === 'OVERALL' || (summaryType === 'DAILY' && e.date === selectedDateStr) || (summaryType === 'MONTHLY' && e.date.substring(0, 7) === selectedMonthStr)))
       .forEach(e => {
         const group = e.group_head || e.groupHead || 'Unassigned';
         if (!groupData[group]) {
@@ -292,7 +365,7 @@ export default function AdminDashboard() {
         groupData[group] += parseFloat(e.amount || 0);
       });
     return groupData;
-  }, [expenses, summaryType, selectedDateStr]);
+  }, [expenses, summaryType, selectedDateStr, selectedMonthStr]);
 
   const stats = useMemo(() => {
     if (summaryType === 'OVERALL') {
@@ -301,6 +374,15 @@ export default function AdminDashboard() {
         totalExpenses: expenses.length,
         approvedExpenses: expenses.filter(e => e.status === 'APPROVED').length,
         pendingExpenses: pendingApprovals
+      };
+    } else if (summaryType === 'MONTHLY') {
+      const monthCredits = credits.filter(c => c.date.substring(0, 7) === selectedMonthStr);
+      const monthExpenses = expenses.filter(e => e.date.substring(0, 7) === selectedMonthStr);
+      return {
+        totalCredits: monthCredits.length,
+        totalExpenses: monthExpenses.length,
+        approvedExpenses: monthExpenses.filter(e => e.status === 'APPROVED').length,
+        pendingExpenses: monthExpenses.filter(e => e.status === 'PENDING').length
       };
     } else {
       const dayCredits = credits.filter(c => c.date === selectedDateStr);
@@ -312,7 +394,7 @@ export default function AdminDashboard() {
         pendingExpenses: dayExpenses.filter(e => e.status === 'PENDING').length
       };
     }
-  }, [credits, expenses, summaryType, selectedDateStr, pendingApprovals]);
+  }, [credits, expenses, summaryType, selectedDateStr, selectedMonthStr, pendingApprovals]);
 
   const handleDownloadPDF = () => {
     const doc = new jsPDF('landscape');
@@ -328,7 +410,9 @@ export default function AdminDashboard() {
     
     doc.setFontSize(14);
     doc.setTextColor(30, 64, 175);
-    const summaryTitle = summaryType === 'DAILY' ? `Daily Summary (${formatSelectedDateDisplay(selectedDateStr)})` : 'Overall Summary';
+    let summaryTitle = 'Overall Summary';
+    if (summaryType === 'DAILY') summaryTitle = `Daily Summary (${formatSelectedDateDisplay(selectedDateStr)})`;
+    if (summaryType === 'MONTHLY') summaryTitle = `Monthly Summary (${formatSelectedMonthDisplay(selectedMonthStr)})`;
     doc.text(summaryTitle, doc.internal.pageSize.width / 2, 22, { align: 'center' });
 
     let currentY = 32;
@@ -343,6 +427,16 @@ export default function AdminDashboard() {
         formatPDFCurrency(totalExpense),
         formatPDFCurrency(availableBalance),
         pendingApprovals.toString()
+      ]];
+    } else if (summaryType === 'MONTHLY') {
+      summaryCardsHeaders = ['Prev Month Bal', 'Month Credit', 'Prev Bal + Credit', 'Month Expense', 'Month Net Bal', 'Month Pending'];
+      summaryCardsData = [[
+        formatPDFCurrency(previousMonthBalance),
+        formatPDFCurrency(monthCredit),
+        formatPDFCurrency(totalMonthLimit),
+        formatPDFCurrency(monthExpense),
+        formatPDFCurrency(monthAvailableBalance),
+        monthPendingApprovals.toString()
       ]];
     } else {
       summaryCardsHeaders = ['Prev Day Bal', 'Day Credit', 'Prev Bal + Credit', 'Day Expense', 'Day Net Bal', 'Day Pending'];
@@ -508,24 +602,24 @@ export default function AdminDashboard() {
                 <div className="flex items-center gap-1 flex-shrink-0">
                   <button
                     type="button"
-                    onClick={handlePrevDay}
+                    onClick={summaryType === 'MONTHLY' ? handlePrevMonth : handlePrevDay}
                     className="flex items-center justify-center w-6 h-6 md:w-7 md:h-7 hover:bg-gray-100 active:bg-gray-200 rounded border border-gray-200 transition text-gray-600 flex-shrink-0"
-                    title="Previous Day"
+                    title={summaryType === 'MONTHLY' ? "Previous Month" : "Previous Day"}
                   >
                     <ChevronLeft size={14} />
                   </button>
                   <button
                     type="button"
-                    onClick={handleToday}
+                    onClick={summaryType === 'MONTHLY' ? handleCurrentMonth : handleToday}
                     className="hover:bg-gray-100 active:bg-gray-200 px-2 py-0.5 rounded transition text-[11px] md:text-xs font-semibold text-indigo-700 bg-indigo-50/50 flex-shrink-0"
                   >
-                    Today
+                    {summaryType === 'MONTHLY' ? "Current" : "Today"}
                   </button>
                   <button
                     type="button"
-                    onClick={handleNextDay}
+                    onClick={summaryType === 'MONTHLY' ? handleNextMonth : handleNextDay}
                     className="flex items-center justify-center w-6 h-6 md:w-7 md:h-7 hover:bg-gray-100 active:bg-gray-200 rounded border border-gray-200 transition text-gray-600 flex-shrink-0"
-                    title="Next Day"
+                    title={summaryType === 'MONTHLY' ? "Next Month" : "Next Day"}
                   >
                     <ChevronRight size={14} />
                   </button>
@@ -534,26 +628,42 @@ export default function AdminDashboard() {
                 <button
                   type="button"
                   onClick={() => {
-                    if (dateInputRef.current) {
-                      if (typeof dateInputRef.current.showPicker === 'function') {
-                        dateInputRef.current.showPicker();
-                      } else {
-                        dateInputRef.current.click();
+                    if (summaryType === 'MONTHLY') {
+                      if (monthInputRef.current) {
+                        if (typeof monthInputRef.current.showPicker === 'function') monthInputRef.current.showPicker();
+                        else monthInputRef.current.click();
+                      }
+                    } else {
+                      if (dateInputRef.current) {
+                        if (typeof dateInputRef.current.showPicker === 'function') dateInputRef.current.showPicker();
+                        else dateInputRef.current.click();
                       }
                     }
                   }}
                   className="flex items-center gap-1.5 px-2 py-1 hover:bg-gray-50 rounded transition text-xs md:text-sm font-semibold text-gray-700 cursor-pointer flex-shrink-0"
                 >
                   <Calendar size={14} className="text-indigo-600 flex-shrink-0" />
-                  <span className="font-semibold text-gray-800 whitespace-nowrap flex-shrink-0">{formatSelectedDateDisplay(selectedDateStr)}</span>
+                  <span className="font-semibold text-gray-800 whitespace-nowrap flex-shrink-0">
+                    {summaryType === 'MONTHLY' ? formatSelectedMonthDisplay(selectedMonthStr) : formatSelectedDateDisplay(selectedDateStr)}
+                  </span>
                 </button>
-                <input
-                  ref={dateInputRef}
-                  type="date"
-                  value={selectedDateStr}
-                  onChange={(e) => setSelectedDateStr(e.target.value)}
-                  style={{ position: 'absolute', width: 0, height: 0, opacity: 0, pointerEvents: 'none' }}
-                />
+                {summaryType === 'MONTHLY' ? (
+                  <input
+                    ref={monthInputRef}
+                    type="month"
+                    value={selectedMonthStr}
+                    onChange={(e) => setSelectedMonthStr(e.target.value)}
+                    style={{ position: 'absolute', width: 0, height: 0, opacity: 0, pointerEvents: 'none' }}
+                  />
+                ) : (
+                  <input
+                    ref={dateInputRef}
+                    type="date"
+                    value={selectedDateStr}
+                    onChange={(e) => setSelectedDateStr(e.target.value)}
+                    style={{ position: 'absolute', width: 0, height: 0, opacity: 0, pointerEvents: 'none' }}
+                  />
+                )}
               </div>
             </div>
               <input
@@ -598,7 +708,7 @@ export default function AdminDashboard() {
       {/* Statistics Section Header with Toggle Dropdown */}
       <div className="flex justify-between items-center bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 mt-2 shadow-sm">
         <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 leading-none">
-          {summaryType === 'DAILY' ? `Daily Summary (${formatSelectedDateDisplay(selectedDateStr)})` : 'Overall Summary'}
+          {summaryType === 'OVERALL' ? 'Overall Summary' : summaryType === 'MONTHLY' ? `Monthly Summary (${formatSelectedMonthDisplay(selectedMonthStr)})` : `Daily Summary (${formatSelectedDateDisplay(selectedDateStr)})`}
         </h3>
         <select
           value={summaryType}
@@ -606,6 +716,7 @@ export default function AdminDashboard() {
           className="bg-white border border-gray-300 rounded px-2 py-1 text-xs font-semibold text-gray-700 focus:outline-none focus:border-indigo-500 shadow-sm cursor-pointer"
         >
           <option value="DAILY">Daily Summary</option>
+          <option value="MONTHLY">Monthly Summary</option>
           <option value="OVERALL">Overall Summary</option>
         </select>
       </div>
@@ -676,9 +787,11 @@ export default function AdminDashboard() {
           <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg p-6 border border-slate-200 shadow-sm">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-gray-600 text-sm font-medium min-h-[40px] leading-tight">Prev Day Balance</p>
+                <p className="text-gray-600 text-sm font-medium min-h-[40px] leading-tight">
+                  {summaryType === 'MONTHLY' ? 'Prev Month Balance' : 'Prev Day Balance'}
+                </p>
                 <p className="text-2xl font-bold text-slate-700 mt-2">
-                  {formatCurrency(previousDayBalance)}
+                  {formatCurrency(summaryType === 'MONTHLY' ? previousMonthBalance : previousDayBalance)}
                 </p>
               </div>
               <History className="text-slate-500" size={32} />
@@ -689,9 +802,11 @@ export default function AdminDashboard() {
           <div className="bg-gradient-to-br from-emerald-50/50 to-emerald-100/50 rounded-lg p-6 border border-emerald-200 shadow-sm">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-gray-600 text-sm font-medium min-h-[40px] leading-tight">Day Credit</p>
+                <p className="text-gray-600 text-sm font-medium min-h-[40px] leading-tight">
+                  {summaryType === 'MONTHLY' ? 'Month Credit' : 'Day Credit'}
+                </p>
                 <p className="text-2xl font-bold text-emerald-700 mt-2">
-                  {formatCurrency(dayCredit)}
+                  {formatCurrency(summaryType === 'MONTHLY' ? monthCredit : dayCredit)}
                 </p>
               </div>
               <TrendingUp className="text-emerald-600" size={32} />
@@ -704,7 +819,7 @@ export default function AdminDashboard() {
               <div>
                 <p className="text-gray-600 text-sm font-medium min-h-[40px] leading-tight">Prev Bal + Credit</p>
                 <p className="text-2xl font-bold text-cyan-700 mt-2">
-                  {formatCurrency(totalDayLimit)}
+                  {formatCurrency(summaryType === 'MONTHLY' ? totalMonthLimit : totalDayLimit)}
                 </p>
               </div>
               <TrendingUp className="text-cyan-600 rotate-45" size={32} />
@@ -715,9 +830,11 @@ export default function AdminDashboard() {
           <div className="bg-gradient-to-br from-rose-50/50 to-rose-100/50 rounded-lg p-6 border border-rose-200 shadow-sm">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-gray-600 text-sm font-medium min-h-[40px] leading-tight">Day Expense</p>
+                <p className="text-gray-600 text-sm font-medium min-h-[40px] leading-tight">
+                  {summaryType === 'MONTHLY' ? 'Month Expense' : 'Day Expense'}
+                </p>
                 <p className="text-2xl font-bold text-rose-700 mt-2">
-                  {formatCurrency(dayExpense)}
+                  {formatCurrency(summaryType === 'MONTHLY' ? monthExpense : dayExpense)}
                 </p>
               </div>
               <TrendingDown className="text-rose-600" size={32} />
@@ -726,20 +843,22 @@ export default function AdminDashboard() {
 
           {/* Day Available Balance */}
           <div className={`rounded-lg p-6 border shadow-sm bg-gradient-to-br ${
-            dayAvailableBalance >= 0 
+            (summaryType === 'MONTHLY' ? monthAvailableBalance : dayAvailableBalance) >= 0 
               ? 'from-sky-50/50 to-sky-100/50 border-sky-200' 
               : 'from-amber-50/50 to-amber-100/50 border-amber-200'
           }`}>
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-gray-600 text-sm font-medium min-h-[40px] leading-tight">Day Net Balance</p>
+                <p className="text-gray-600 text-sm font-medium min-h-[40px] leading-tight">
+                  {summaryType === 'MONTHLY' ? 'Month Net Balance' : 'Day Net Balance'}
+                </p>
                 <p className={`text-2xl font-bold mt-2 ${
-                  dayAvailableBalance >= 0 ? 'text-sky-700' : 'text-amber-700'
+                  (summaryType === 'MONTHLY' ? monthAvailableBalance : dayAvailableBalance) >= 0 ? 'text-sky-700' : 'text-amber-700'
                 }`}>
-                  {formatCurrency(dayAvailableBalance)}
+                  {formatCurrency(summaryType === 'MONTHLY' ? monthAvailableBalance : dayAvailableBalance)}
                 </p>
               </div>
-              {dayAvailableBalance < 0 && <AlertCircle className="text-amber-600" size={32} />}
+              {(summaryType === 'MONTHLY' ? monthAvailableBalance : dayAvailableBalance) < 0 && <AlertCircle className="text-amber-600" size={32} />}
             </div>
           </div>
 
@@ -747,9 +866,11 @@ export default function AdminDashboard() {
           <div className="bg-gradient-to-br from-fuchsia-50/50 to-fuchsia-100/50 rounded-lg p-6 border border-fuchsia-200 shadow-sm">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-gray-600 text-sm font-medium min-h-[40px] leading-tight">Day Pending</p>
+                <p className="text-gray-600 text-sm font-medium min-h-[40px] leading-tight">
+                  {summaryType === 'MONTHLY' ? 'Month Pending' : 'Day Pending'}
+                </p>
                 <p className="text-2xl font-bold text-fuchsia-700 mt-2">
-                  {dayPendingApprovals}
+                  {summaryType === 'MONTHLY' ? monthPendingApprovals : dayPendingApprovals}
                 </p>
               </div>
               <AlertCircle className="text-fuchsia-600" size={32} />

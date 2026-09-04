@@ -198,15 +198,26 @@ export default function Expenses() {
   }, [pendingOnOtherDates]);
 
   const displayExpenses = useMemo(() => {
+    let list = [];
     if (activeTab === 'pending') {
-      return pendingExpenses;
+      list = pendingExpenses;
+    } else {
+      // History tab
+      const historyExpenses = [...approvedExpenses, ...rejectedExpenses];
+      if (statusFilter) {
+        list = historyExpenses.filter(e => e.status === statusFilter);
+      } else {
+        list = historyExpenses;
+      }
     }
-    // History tab
-    const historyExpenses = [...approvedExpenses, ...rejectedExpenses];
-    if (statusFilter) {
-      return historyExpenses.filter(e => e.status === statusFilter);
-    }
-    return historyExpenses;
+    
+    return [...list].sort((a, b) => {
+      const dateDiff = new Date(b.date) - new Date(a.date);
+      if (dateDiff !== 0) return dateDiff;
+      const createdA = new Date(a.created_at || a.createdAt || a.timestamp || a.date).getTime();
+      const createdB = new Date(b.created_at || b.createdAt || b.timestamp || b.date).getTime();
+      return createdA - createdB;
+    });
   }, [activeTab, statusFilter, pendingExpenses, approvedExpenses, rejectedExpenses]);
 
   const filteredExpenses = displayExpenses.filter(expense => {
@@ -233,7 +244,7 @@ export default function Expenses() {
     return true;
   });
 
-  const sortedExpenses = filteredExpenses.slice().reverse();
+  const sortedExpenses = filteredExpenses.slice();
   const displayedExpenses = sortedExpenses.slice(0, visibleCount);
 
   const pageTotalAmount = displayedExpenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
