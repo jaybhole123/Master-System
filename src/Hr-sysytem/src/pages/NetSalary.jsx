@@ -6,6 +6,21 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
+const getDesignationStyle = (desg) => {
+  if (!desg) return { color: 'var(--text-secondary)' };
+  const d = desg.toUpperCase().trim();
+  switch (d) {
+    case 'HELPING HANDS': return { backgroundColor: '#dbeafe', color: '#1d4ed8', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' };
+    case 'JAI BHOLE ENTERPRISE': return { backgroundColor: '#fef3c7', color: '#b45309', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' };
+    case 'ASAK COAL PVT.LTD.': return { backgroundColor: '#d1fae5', color: '#047857', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' };
+    case 'JAI BHOLE LOGISTICS': return { backgroundColor: '#ede9fe', color: '#6d28d9', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' };
+    case 'BOTIVATE': return { backgroundColor: '#ffe4e6', color: '#be123c', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' };
+    case 'JAI BHOLE TRADERS': return { backgroundColor: '#ffedd5', color: '#c2410c', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' };
+    case 'ASAK COAL LOGISTICS': return { backgroundColor: '#ccfbf1', color: '#0f766e', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' };
+    default: return { backgroundColor: '#f3f4f6', color: '#4b5563', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' };
+  }
+};
+
 export default function NetSalary() {
   const [employees, , empLoading] = useEmployees();
   
@@ -15,10 +30,11 @@ export default function NetSalary() {
   
   const [activeTab, setActiveTab] = useState('Sheet');
   const [selectedDepartment, setSelectedDepartment] = useState('All');
+  const [selectedDesignation, setSelectedDesignation] = useState('All');
   const [selectedRows, setSelectedRows] = useState([]);
 
   const [visibleCols, setVisibleCols] = useState({
-    empName: true, department: true, basic: true, hra: true, allowances: true,
+    empName: true, department: true, designation: true, basic: true, hra: true, allowances: true,
     monthAdvance: true, gross: true, totalDays: true, present: true, absent: true, leaves: true,
     leaveDeduct: true, monthRecov: true, prevAdvDeduct: true, pf: true,
     esic: true, pTax: true, otherDeduct: true, totalDeduct: true, netSalary: true,
@@ -121,9 +137,23 @@ export default function NetSalary() {
     return [...new Set(depts)].sort();
   }, [employees]);
 
+  const uniqueDesignations = useMemo(() => {
+    const desgs = employees.map(emp => emp.designation).filter(Boolean);
+    return [...new Set(desgs)].sort();
+  }, [employees]);
+
   const baseRecords = useMemo(() => {
     return employees.map(emp => {
       const sal = salaries[emp.id] || { basic: 0, hra: 0, allowances: 0, profTax: 0, otherDeductions: 0, paymentStatus: 'Pending', bankAccount: '', pfApplicable: true, esicApplicable: true, totalDays: 0, presentDays: 0, leaves: 0, leaveDeduction: 0, monthAdvance: 0, monthRecovery: 0, prevAdvanceDeduction: 0 };
+      // Auto-correct old data where present days wasn't deducted
+      if (sal.totalDays > 0) {
+        const absVal = sal.absent || 0;
+        const levVal = sal.leaves || 0;
+        if ((sal.presentDays + absVal + levVal) > sal.totalDays) {
+          sal.presentDays = Math.max(0, sal.totalDays - absVal - levVal);
+        }
+      }
+
       const gross = sal.basic + sal.hra + sal.allowances + sal.monthAdvance;
       
       // Deductions
@@ -143,6 +173,7 @@ export default function NetSalary() {
         id: emp.id,
         name: emp.name,
         department: emp.department,
+        designation: emp.designation,
         gross,
         deductions: totalDeductions,
         net: net > 0 ? net : 0,
@@ -168,9 +199,12 @@ export default function NetSalary() {
     if (selectedDepartment !== 'All') {
       currentRecords = currentRecords.filter(r => r.department === selectedDepartment);
     }
+    if (selectedDesignation !== 'All') {
+      currentRecords = currentRecords.filter(r => r.designation === selectedDesignation);
+    }
 
     return currentRecords;
-  }, [baseRecords, selectedDepartment]);
+  }, [baseRecords, selectedDepartment, selectedDesignation]);
 
   // Calculations
   const totalGross = records.reduce((acc, curr) => acc + curr.gross, 0);
@@ -234,6 +268,7 @@ export default function NetSalary() {
     const headers = [['Sr. No.']];
     if (visibleCols.empName) headers[0].push('Employee Name');
     if (visibleCols.department) headers[0].push('Department');
+    if (visibleCols.designation) headers[0].push('Designation');
     if (visibleCols.basic) headers[0].push('Basic (Rs)');
     if (visibleCols.hra) headers[0].push('HRA (Rs)');
     if (visibleCols.allowances) headers[0].push('Allowances (Rs)');
@@ -261,6 +296,7 @@ export default function NetSalary() {
       const row = [idx + 1];
       if (visibleCols.empName) row.push(rec.name);
       if (visibleCols.department) row.push(emp.department || '-');
+      if (visibleCols.designation) row.push(emp.designation || '-');
       if (visibleCols.basic) row.push(rec.breakdown.sal.basic.toLocaleString(undefined, {maximumFractionDigits:2}));
       if (visibleCols.hra) row.push(rec.breakdown.sal.hra.toLocaleString(undefined, {maximumFractionDigits:2}));
       if (visibleCols.allowances) row.push((rec.breakdown.sal.allowances || 0).toLocaleString(undefined, {maximumFractionDigits:2}));
@@ -436,7 +472,7 @@ export default function NetSalary() {
                   </div>
                 )}
               </div>
-              <span style={{ fontWeight: 500, color: 'var(--text-secondary)', fontSize: '0.9rem', textTransform: 'uppercase' }}>Department Filter</span>
+              <span style={{ fontWeight: 500, color: 'var(--text-secondary)', fontSize: '0.9rem', textTransform: 'uppercase', marginRight: '-4px' }}>Filters:</span>
               <select 
                 value={selectedDepartment} 
                 onChange={(e) => setSelectedDepartment(e.target.value)}
@@ -445,6 +481,16 @@ export default function NetSalary() {
                 <option value="All">All Departments</option>
                 {uniqueDepartments.map(dept => (
                   <option key={dept} value={dept}>{dept}</option>
+                ))}
+              </select>
+              <select 
+                value={selectedDesignation} 
+                onChange={(e) => setSelectedDesignation(e.target.value)}
+                style={{ padding: '6px 12px', border: '1px solid var(--border-color)', borderRadius: '6px', outline: 'none', backgroundColor: 'var(--bg-main)', color: 'var(--text-primary)', cursor: 'pointer', minWidth: '150px' }}
+              >
+                <option value="All">All Designations</option>
+                {uniqueDesignations.map(desg => (
+                  <option key={desg} value={desg}>{desg}</option>
                 ))}
               </select>
             </div>
@@ -481,6 +527,7 @@ export default function NetSalary() {
                   <th style={{...thStyle, width: '60px'}}>Sr. No.</th>
                   {visibleCols.empName && <th style={thStyle}>Employee Name</th>}
                   {visibleCols.department && <th style={thStyle}>Department</th>}
+                  {visibleCols.designation && <th style={thStyle}>Designation</th>}
                   {visibleCols.basic && <th style={thStyle}>Basic Salary (₹)</th>}
                   {visibleCols.hra && <th style={thStyle}>HRA (₹)</th>}
                   {visibleCols.allowances && <th style={thStyle}>Allowances (₹)</th>}
@@ -532,6 +579,9 @@ export default function NetSalary() {
                         <td style={{...tdStyle, textAlign: 'center', color: 'var(--text-secondary)'}}>{idx + 1}</td>
                         {visibleCols.empName && <td style={{...tdStyle, fontWeight: 500, color: 'var(--text-primary)'}}>{rec.name}</td>}
                         {visibleCols.department && <td style={{...tdStyle, color: 'var(--text-secondary)'}}>{emp.department || '-'}</td>}
+                        {visibleCols.designation && <td style={{...tdStyle, color: 'var(--text-secondary)'}}>
+                          <span style={getDesignationStyle(emp.designation)}>{emp.designation || '-'}</span>
+                        </td>}
                         {visibleCols.basic && <td style={tdNumStyle}>{rec.breakdown.sal.basic.toLocaleString(undefined, {maximumFractionDigits:2})}</td>}
                         {visibleCols.hra && <td style={tdNumStyle}>{rec.breakdown.sal.hra.toLocaleString(undefined, {maximumFractionDigits:2})}</td>}
                         {visibleCols.allowances && <td style={tdNumStyle}>{allowances.toLocaleString(undefined, {maximumFractionDigits:2})}</td>}
@@ -562,7 +612,7 @@ export default function NetSalary() {
                 )}
                 {records.length > 0 && (
                   <tr style={{ backgroundColor: 'var(--bg-main)' }}>
-                    <td colSpan={3 + (visibleCols.empName ? 1 : 0) + (visibleCols.department ? 1 : 0)} style={{ border: '1px solid var(--border-color)', padding: '16px', textAlign: 'right', fontWeight: 600, fontSize: '0.95rem', color: 'var(--text-secondary)' }}>TOTAL</td>
+                    <td colSpan={3 + (visibleCols.empName ? 1 : 0) + (visibleCols.department ? 1 : 0) + (visibleCols.designation ? 1 : 0)} style={{ border: '1px solid var(--border-color)', padding: '16px', textAlign: 'right', fontWeight: 600, fontSize: '0.95rem', color: 'var(--text-secondary)' }}>TOTAL</td>
                     {visibleCols.basic && <td style={{...tdNumStyle, border: '1px solid var(--border-color)', fontWeight: 600}}>₹ {totalBasic.toLocaleString(undefined, {maximumFractionDigits:2})}</td>}
                     {visibleCols.hra && <td style={{...tdNumStyle, border: '1px solid var(--border-color)', fontWeight: 600}}>₹ {totalHra.toLocaleString(undefined, {maximumFractionDigits:2})}</td>}
                     {visibleCols.allowances && <td style={{...tdNumStyle, border: '1px solid var(--border-color)', fontWeight: 600}}>₹ {totalAllowances.toLocaleString(undefined, {maximumFractionDigits:2})}</td>}

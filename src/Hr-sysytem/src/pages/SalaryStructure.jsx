@@ -69,8 +69,8 @@ export default function SalaryStructure() {
             otherDeductions: s.other_deductions || 0,
             paymentStatus: s.payment_status || 'Pending',
             bankAccount: s.bank_account || '',
-            pfApplicable: s.pf_applicable !== false,
-            esicApplicable: s.esic_applicable !== false,
+            pfApplicable: s.pf_applicable === true,
+            esicApplicable: s.esic_applicable === true,
             totalDays: s.total_days || 0,
             presentDays: s.present_days || 0,
             absent: s.absent || 0,
@@ -116,8 +116,8 @@ export default function SalaryStructure() {
     otherDeductions: 0,
     paymentStatus: 'Pending',
     bankAccount: '',
-    pfApplicable: true,
-    esicApplicable: true,
+    pfApplicable: false,
+    esicApplicable: false,
     totalDays: 0,
     presentDays: 0,
     absent: 0,
@@ -144,8 +144,8 @@ export default function SalaryStructure() {
         otherDeductions: salaries[empId].otherDeductions || 0,
         paymentStatus: salaries[empId].paymentStatus || 'Pending',
         bankAccount: salaries[empId].bankAccount || selectedEmployeeDetails?.accountNo || '',
-        pfApplicable: salaries[empId].pfApplicable !== false,
-        esicApplicable: salaries[empId].esicApplicable !== false,
+        pfApplicable: salaries[empId].pfApplicable === true,
+        esicApplicable: salaries[empId].esicApplicable === true,
         totalDays: salaries[empId].totalDays || 0,
         presentDays: salaries[empId].presentDays || 0,
         absent: salaries[empId].absent || 0,
@@ -166,8 +166,8 @@ export default function SalaryStructure() {
         otherDeductions: 0, 
         paymentStatus: 'Pending', 
         bankAccount: selectedEmployeeDetails?.accountNo || '', 
-        pfApplicable: true,
-        esicApplicable: true,
+        pfApplicable: false,
+        esicApplicable: false,
         totalDays: 0,
         presentDays: 0,
         absent: 0,
@@ -200,6 +200,9 @@ export default function SalaryStructure() {
         }
         const daysInMonth = getDaysForMonthName(value, year);
         updatedData.totalDays = daysInMonth;
+        updatedData.presentDays = daysInMonth;
+        updatedData.absent = 0;
+        updatedData.leaves = 0;
       }
     } else {
       updatedData[name] = value === '' ? '' : Number(value);
@@ -208,35 +211,32 @@ export default function SalaryStructure() {
     // Auto-calculate absent days and leave deduction
     if (['totalDays', 'presentDays', 'absent', 'leaves', 'basic', 'salaryDate', 'salaryMonth'].includes(name)) {
       const tDays = Number(updatedData.totalDays) || 0;
-      const pDays = Number(updatedData.presentDays) || 0;
       const baseSal = Number(updatedData.basic) || 0;
       
       if (tDays > 0) {
-        if (pDays >= 0 && pDays <= tDays) {
-          const nonPresent = tDays - pDays;
-          
-          if (name === 'absent') {
-            const calculatedLeaves = Math.max(0, nonPresent - (Number(updatedData.absent) || 0));
-            updatedData.leaves = calculatedLeaves;
-          } else if (name === 'leaves') {
-            const calculatedAbsent = Math.max(0, nonPresent - (Number(updatedData.leaves) || 0));
-            updatedData.absent = calculatedAbsent;
-          } else {
-            // When totalDays or presentDays or basic changes:
-            // Remaining non-present days automatically go to Absent Days
+        if (name === 'absent' || name === 'leaves') {
+          // User manually entered absent or leaves. Deduct from present days.
+          const absVal = Number(updatedData.absent) || 0;
+          const levVal = Number(updatedData.leaves) || 0;
+          updatedData.presentDays = Math.max(0, tDays - absVal - levVal);
+        } else {
+          // User changed totalDays, presentDays, basic, etc. Recalculate absent days based on presentDays & leaves.
+          let pDays = Number(updatedData.presentDays) || 0;
+          if (pDays > tDays) {
+            pDays = tDays;
+            updatedData.presentDays = tDays;
+          }
+          if (pDays >= 0 && pDays <= tDays) {
+            const nonPresent = tDays - pDays;
             const levVal = Number(updatedData.leaves) || 0;
             updatedData.absent = Math.max(0, nonPresent - levVal);
           }
-          
-          // Deduction ONLY applies to Absent Days (Leaves do not cause salary deduction)
-          const absentDays = Number(updatedData.absent) || 0;
-          const perDaySalary = baseSal / tDays;
-          updatedData.leaveDeduction = Math.round(perDaySalary * absentDays);
-        } else if (pDays > tDays) {
-          updatedData.absent = 0;
-          updatedData.leaves = 0;
-          updatedData.leaveDeduction = 0;
         }
+        
+        // Deduction ONLY applies to Absent Days (Leaves do not cause salary deduction)
+        const absentDays = Number(updatedData.absent) || 0;
+        const perDaySalary = baseSal / tDays;
+        updatedData.leaveDeduction = Math.round(perDaySalary * absentDays);
       }
     }
 
@@ -290,8 +290,8 @@ export default function SalaryStructure() {
         otherDeductions: 0,
         paymentStatus: 'Pending',
         bankAccount: '',
-        pfApplicable: true,
-        esicApplicable: true,
+        pfApplicable: false,
+        esicApplicable: false,
         totalDays: 0,
         presentDays: 0,
         absent: 0,
