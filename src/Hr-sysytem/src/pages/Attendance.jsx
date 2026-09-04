@@ -654,6 +654,7 @@ Instructions:
    - A = Absent
    - L = Leave
    - HD = Half Day
+   - H = Holiday
 4. Output strictly the clean raw CSV text block so I can directly save it as a .csv file and upload it.`;
 
     navigator.clipboard.writeText(promptText);
@@ -664,7 +665,7 @@ Instructions:
     const doc = new jsPDF('landscape', 'pt', 'a4');
     doc.text(`Attendance Register - ${getFormattedMonth(selectedMonth)}`, 40, 40);
     
-    const headers = ['Sr. No.', 'Employee Name', ...daysArray.map(String), 'P', 'A', 'L', 'HD', 'Att.%'];
+    const headers = ['Sr. No.', 'Employee Name', ...daysArray.map(String), 'P', 'A', 'L', 'HD', 'H', 'Att.%'];
     const body = employees.map((emp, idx) => {
       const stats = dashboardStats.find(s => s.id === emp.id);
       const rowData = [idx + 1, emp.name];
@@ -672,7 +673,7 @@ Instructions:
         const val = day > daysCount ? '' : (currentMonthData[emp.id]?.[day] || '');
         rowData.push(val);
       });
-      rowData.push(stats.p, stats.a, stats.l, stats.hd, stats.attPercent.toFixed(1) + '%');
+      rowData.push(stats.p, stats.a, stats.l, stats.hd, stats.h, stats.attPercent.toFixed(1) + '%');
       return rowData;
     });
 
@@ -689,7 +690,7 @@ Instructions:
   };
 
   const handleDownloadCSV = () => {
-    const headers = ['Employee ID', 'Employee Name', ...daysArray.map(String), 'P', 'A', 'L', 'HD', 'Att.%'];
+    const headers = ['Employee ID', 'Employee Name', ...daysArray.map(String), 'P', 'A', 'L', 'HD', 'H', 'Att.%'];
     const rows = employees.map((emp) => {
       const stats = dashboardStats.find(s => s.id === emp.id);
       const rowData = [emp.id, emp.name];
@@ -697,7 +698,7 @@ Instructions:
         const val = day > daysCount ? '' : (currentMonthData[emp.id]?.[day] || '');
         rowData.push(val);
       });
-      rowData.push(stats.p, stats.a, stats.l, stats.hd, `${stats.attPercent.toFixed(1)}%`);
+      rowData.push(stats.p, stats.a, stats.l, stats.hd, stats.h, `${stats.attPercent.toFixed(1)}%`);
       return rowData;
     });
 
@@ -723,7 +724,7 @@ Instructions:
   // Calculations for Dashboard
   const dashboardStats = employees.map(emp => {
     const empData = currentMonthData[emp.id] || {};
-    let p = 0, a = 0, l = 0, hd = 0;
+    let p = 0, a = 0, l = 0, hd = 0, h = 0;
 
     const today = new Date();
     const isCurrentMonth = today.getFullYear() === yearNum && today.getMonth() === monthNum;
@@ -737,6 +738,7 @@ Instructions:
       else if(val === 'A') a++;
       else if(val === 'L') l++;
       else if(val === 'HD') hd++;
+      else if(val === 'H') h++;
       else if(isSunday && i <= maxDayToCount) {
         // Automatically count Sunday as Present (P) if it's left empty, 
         // but don't count future Sundays if we are in the current month.
@@ -744,14 +746,14 @@ Instructions:
       }
     }
     
-    const presentEquiv = p + (hd * 0.5);
+    const presentEquiv = p + h + (hd * 0.5);
     // Exclude weekends/holidays if we want, but for now working days = daysCount
     const attPercent = daysCount > 0 ? (presentEquiv / daysCount) * 100 : 0;
 
     return {
       id: emp.id,
       name: emp.name,
-      p, a, l, hd,
+      p, a, l, hd, h,
       attPercent
     };
   });
@@ -919,7 +921,8 @@ Instructions:
               Codes: <span style={{color:'var(--success)', fontWeight:600}}>P</span>=Present &nbsp;
               <span style={{color:'var(--danger)', fontWeight:600}}>A</span>=Absent &nbsp;
               <span style={{color:'#ca8a04', fontWeight:600}}>L</span>=Leave &nbsp;
-              <span style={{color:'var(--primary-color)', fontWeight:600}}>HD</span>=Half Day
+              <span style={{color:'var(--primary-color)', fontWeight:600}}>HD</span>=Half Day &nbsp;
+              <span style={{color:'#9333ea', fontWeight:600}}>H</span>=Holiday
             </div>
           </div>
 
@@ -940,6 +943,7 @@ Instructions:
                   <th style={{...thStyle, width: '45px', minWidth: '45px', position: 'sticky', top: 0, zIndex: 10}}>A</th>
                   <th style={{...thStyle, width: '45px', minWidth: '45px', position: 'sticky', top: 0, zIndex: 10}}>L</th>
                   <th style={{...thStyle, width: '45px', minWidth: '45px', position: 'sticky', top: 0, zIndex: 10}}>HD</th>
+                  <th style={{...thStyle, width: '45px', minWidth: '45px', position: 'sticky', top: 0, zIndex: 10}}>H</th>
                   <th style={{...thStyle, width: '60px', minWidth: '60px', position: 'sticky', top: 0, zIndex: 10}}>Att.%</th>
                 </tr>
               </thead>
@@ -1006,6 +1010,7 @@ Instructions:
                           if(val==='A') color = '#dc2626';
                           if(val==='L') color = '#ca8a04';
                           if(val==='HD') color = '#2563eb';
+                          if(val==='H') color = '#9333ea';
 
                           return (
                             <td key={day} style={{...tdStyle, padding: 0, width: '45px', minWidth: '45px', backgroundColor: isInvalidDay ? '#f1f5f9' : (isSunday ? '#fef9c3' : 'inherit')}}>
@@ -1031,6 +1036,7 @@ Instructions:
                         <td style={{...tdStyle, backgroundColor: 'rgba(202, 138, 4, 0.1)', fontWeight: 'bold', color: stats.a > 0 ? '#dc2626' : 'inherit'}}>{stats.a}</td>
                         <td style={{...tdStyle, backgroundColor: 'rgba(202, 138, 4, 0.1)', fontWeight: 'bold'}}>{stats.l}</td>
                         <td style={{...tdStyle, backgroundColor: 'rgba(202, 138, 4, 0.1)', fontWeight: 'bold'}}>{stats.hd}</td>
+                        <td style={{...tdStyle, backgroundColor: 'rgba(202, 138, 4, 0.1)', fontWeight: 'bold', color: '#9333ea'}}>{stats.h}</td>
                         <td style={{...tdStyle, backgroundColor: 'rgba(202, 138, 4, 0.2)', fontWeight: 800, color: stats.attPercent < 75 ? '#dc2626' : '#166534'}}>{stats.attPercent.toFixed(1)}%</td>
                       </tr>
                     );
@@ -1048,7 +1054,7 @@ Instructions:
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#475569' }}></div>
-              P/A/L/HD/Att% columns = Auto-Formula
+              P/A/L/HD/H/Att% columns = Auto-Formula
             </div>
           </div>
         </div>

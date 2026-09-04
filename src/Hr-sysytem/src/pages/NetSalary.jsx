@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useEmployees } from '../hooks/useEmployees';
 import { supabase } from '../lib/supabase';
-import { Loader, GripVertical, Download } from 'lucide-react';
+import { Loader, GripVertical, Download, CheckCircle2 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -29,6 +29,7 @@ export default function NetSalary() {
   const [loading, setLoading] = useState(true);
   
   const [activeTab, setActiveTab] = useState('Sheet');
+  const [selectedMonth, setSelectedMonth] = useState('All');
   const [selectedDepartment, setSelectedDepartment] = useState('All');
   const [selectedDesignation, setSelectedDesignation] = useState('All');
   const [selectedRows, setSelectedRows] = useState([]);
@@ -100,7 +101,9 @@ export default function NetSalary() {
             leaveDeduction: s.leave_deduction || 0,
             monthAdvance: s.month_advance || 0,
             monthRecovery: s.month_recovery || 0,
-            prevAdvanceDeduction: s.prev_advance_deduction || 0
+            prevAdvanceDeduction: s.prev_advance_deduction || 0,
+            salaryDate: s.salary_date || '',
+            salaryMonth: s.salary_month || ''
           };
         });
       }
@@ -142,9 +145,18 @@ export default function NetSalary() {
     return [...new Set(desgs)].sort();
   }, [employees]);
 
+  const uniqueMonths = useMemo(() => {
+    const months = Object.values(salaries).map(sal => sal.salaryMonth).filter(Boolean);
+    return [...new Set(months)].sort((a, b) => {
+      const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+      return monthNames.indexOf(a) - monthNames.indexOf(b);
+    });
+  }, [salaries]);
+
   const baseRecords = useMemo(() => {
     return employees.map(emp => {
-      const sal = salaries[emp.id] || { basic: 0, hra: 0, allowances: 0, profTax: 0, otherDeductions: 0, paymentStatus: 'Pending', bankAccount: '', pfApplicable: true, esicApplicable: true, totalDays: 0, presentDays: 0, leaves: 0, leaveDeduction: 0, monthAdvance: 0, monthRecovery: 0, prevAdvanceDeduction: 0 };
+      const defaultSal = { basic: 0, hra: 0, allowances: 0, profTax: 0, otherDeductions: 0, paymentStatus: 'Pending', bankAccount: '', pfApplicable: true, esicApplicable: true, totalDays: 0, presentDays: 0, leaves: 0, leaveDeduction: 0, monthAdvance: 0, monthRecovery: 0, prevAdvanceDeduction: 0 };
+      const sal = { ...defaultSal, ...(salaries[emp.id] || {}) };
       // Auto-correct old data where present days wasn't deducted
       if (sal.totalDays > 0) {
         const absVal = sal.absent || 0;
@@ -196,6 +208,9 @@ export default function NetSalary() {
 
   const records = useMemo(() => {
     let currentRecords = baseRecords;
+    if (selectedMonth !== 'All') {
+      currentRecords = currentRecords.filter(r => r.breakdown.sal.salaryMonth === selectedMonth);
+    }
     if (selectedDepartment !== 'All') {
       currentRecords = currentRecords.filter(r => r.department === selectedDepartment);
     }
@@ -204,7 +219,107 @@ export default function NetSalary() {
     }
 
     return currentRecords;
-  }, [baseRecords, selectedDepartment, selectedDesignation]);
+  }, [baseRecords, selectedMonth, selectedDepartment, selectedDesignation]);
+
+  const [markingDone, setMarkingDone] = useState(false);
+
+  const handleMarkAllDone = async () => {
+    if (!window.confirm("Are you sure you want to mark payment status as 'Done' for all currently filtered employees?")) return;
+    
+    setMarkingDone(true);
+    try {
+      const employeeIds = records.map(r => r.id);
+      
+      const upsertData = employeeIds.map(id => {
+        const sal = salaries[id] || {};
+        return {
+          employee_id: id,
+          basic: sal.basic || 0,
+          hra: sal.hra || 0,
+          allowances: sal.allowances || 0,
+          prof_tax: sal.profTax || 0,
+          other_deductions: sal.otherDeductions || 0,
+          payment_status: 'Done',
+          bank_account: sal.bankAccount || '',
+          pf_applicable: sal.pfApplicable || false,
+          esic_applicable: sal.esicApplicable || false,
+          total_days: sal.totalDays || 0,
+          present_days: sal.presentDays || 0,
+          absent: sal.absent || 0,
+          leaves: sal.leaves || 0,
+          leave_deduction: sal.leaveDeduction || 0,
+          month_advance: sal.monthAdvance || 0,
+          month_recovery: sal.monthRecovery || 0,
+          prev_advance_deduction: sal.prevAdvanceDeduction || 0,
+          salary_date: sal.salaryDate || null,
+          salary_month: sal.salaryMonth || null
+        };
+      });
+      
+      const { error } = await supabase.from('salary_structures').upsert(upsertData, { onConflict: 'employee_id' });
+      if (error) throw error;
+      
+      const updatedSalaries = { ...salaries };
+      employeeIds.forEach(id => {
+        if (updatedSalaries[id]) {
+          updatedSalaries[id].paymentStatus = 'Done';
+        } else {
+          updatedSalaries[id] = { paymentStatus: 'Done' };
+        }
+      });
+      setSalaries(updatedSalaries);
+      
+      alert('Successfully marked all as Done!');
+    } catch (error) {
+      console.error('Error marking as done:', error);
+      alert('Failed to update payment status.');
+    } finally {
+      setMarkingDone(false);
+    }
+  };
+
+  const handleToggleSinglePaymentStatus = async (employeeId, currentStatus) => {
+    const newStatus = currentStatus === 'Pending' ? 'Done' : 'Pending';
+    try {
+      const sal = salaries[employeeId] || {};
+      const upsertData = {
+        employee_id: employeeId,
+        basic: sal.basic || 0,
+        hra: sal.hra || 0,
+        allowances: sal.allowances || 0,
+        prof_tax: sal.profTax || 0,
+        other_deductions: sal.otherDeductions || 0,
+        payment_status: newStatus,
+        bank_account: sal.bankAccount || '',
+        pf_applicable: sal.pfApplicable || false,
+        esic_applicable: sal.esicApplicable || false,
+        total_days: sal.totalDays || 0,
+        present_days: sal.presentDays || 0,
+        absent: sal.absent || 0,
+        leaves: sal.leaves || 0,
+        leave_deduction: sal.leaveDeduction || 0,
+        month_advance: sal.monthAdvance || 0,
+        month_recovery: sal.monthRecovery || 0,
+        prev_advance_deduction: sal.prevAdvanceDeduction || 0,
+        salary_date: sal.salaryDate || null,
+        salary_month: sal.salaryMonth || null
+      };
+
+      const { error } = await supabase.from('salary_structures').upsert(upsertData, { onConflict: 'employee_id' });
+      if (error) throw error;
+
+      setSalaries(prev => ({
+        ...prev,
+        [employeeId]: {
+          ...prev[employeeId],
+          paymentStatus: newStatus
+        }
+      }));
+    } catch (err) {
+      console.error('Error toggling payment status:', err);
+      alert('Failed to update payment status.');
+    }
+  };
 
   // Calculations
   const totalGross = records.reduce((acc, curr) => acc + curr.gross, 0);
@@ -263,7 +378,7 @@ export default function NetSalary() {
   const handleDownloadPDF = () => {
     const doc = new jsPDF('l', 'pt', 'a4');
     doc.setFontSize(16);
-    doc.text('Salary Sheet - July 2026', 40, 40);
+    doc.text(`Salary Sheet - ${selectedMonth === 'All' ? 'All Months' : selectedMonth}`, 40, 40);
     
     const headers = [['Sr. No.']];
     if (visibleCols.empName) headers[0].push('Employee Name');
@@ -329,7 +444,7 @@ export default function NetSalary() {
       if (i > 0) {
         doc.addPage();
         doc.setFontSize(16);
-        doc.text('Salary Sheet - July 2026', 40, 40);
+        doc.text(`Salary Sheet - ${selectedMonth === 'All' ? 'All Months' : selectedMonth}`, 40, 40);
       }
       autoTable(doc, {
         startY: 60,
@@ -432,13 +547,29 @@ export default function NetSalary() {
           <div style={{ display: 'flex', gap: '32px', padding: '16px 24px', backgroundColor: 'var(--bg-card)', borderBottom: '1px solid var(--border-color)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <span style={{ fontWeight: 500, color: 'var(--text-secondary)', fontSize: '0.9rem', textTransform: 'uppercase' }}>Month</span>
-              <div style={{ padding: '6px 16px', backgroundColor: 'rgba(59, 130, 246, 0.1)', color: 'var(--primary-color)', borderRadius: '6px', fontWeight: 600 }}>July 2026</div>
+              <select 
+                value={selectedMonth} 
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                style={{ padding: '6px 12px', border: '1px solid var(--border-color)', borderRadius: '6px', outline: 'none', backgroundColor: 'var(--bg-main)', color: 'var(--primary-color)', cursor: 'pointer', minWidth: '130px', fontWeight: 600 }}
+              >
+                <option value="All">All Months</option>
+                {uniqueMonths.map(m => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <span style={{ fontWeight: 500, color: 'var(--text-secondary)', fontSize: '0.9rem', textTransform: 'uppercase' }}>PF % (Employee)</span>
               <div style={{ padding: '6px 16px', backgroundColor: 'rgba(59, 130, 246, 0.1)', color: 'var(--primary-color)', borderRadius: '6px', fontWeight: 600 }}>12%</div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginLeft: 'auto' }}>
+              <button
+                onClick={handleMarkAllDone}
+                disabled={markingDone || records.length === 0}
+                style={{ padding: '6px 12px', border: '1px solid #10b981', borderRadius: '6px', outline: 'none', backgroundColor: '#10b981', color: 'white', cursor: 'pointer', fontWeight: 500, marginRight: '8px', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', fontSize: '0.9rem', opacity: (markingDone || records.length === 0) ? 0.6 : 1 }}
+              >
+                {markingDone ? <Loader size={14} className="spin" /> : <CheckCircle2 size={14} />} Mark All Done
+              </button>
               <button
                 onClick={handleDownloadPDF}
                 style={{ padding: '6px 12px', border: '1px solid var(--primary-color)', borderRadius: '6px', outline: 'none', backgroundColor: 'var(--primary-color)', color: 'white', cursor: 'pointer', fontWeight: 500, marginRight: '8px', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', fontSize: '0.9rem' }}
@@ -466,7 +597,7 @@ export default function NetSalary() {
                         style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '8px', padding: '6px 4px', cursor: 'pointer', fontSize: '0.85rem', color: 'var(--text-primary)' }}
                       >
                         <input type="checkbox" checked={visibleCols[key]} readOnly style={{ cursor: 'pointer', margin: 0, width: '16px', height: '16px', flexShrink: 0 }} />
-                        <span style={{ textAlign: 'left' }}>{key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</span>
+                        <span style={{ textAlign: 'left' }}>{key === 'designation' ? 'Firm' : key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</span>
                       </div>
                     ))}
                   </div>
@@ -488,7 +619,7 @@ export default function NetSalary() {
                 onChange={(e) => setSelectedDesignation(e.target.value)}
                 style={{ padding: '6px 12px', border: '1px solid var(--border-color)', borderRadius: '6px', outline: 'none', backgroundColor: 'var(--bg-main)', color: 'var(--text-primary)', cursor: 'pointer', minWidth: '150px' }}
               >
-                <option value="All">All Designations</option>
+                <option value="All">All Firms</option>
                 {uniqueDesignations.map(desg => (
                   <option key={desg} value={desg}>{desg}</option>
                 ))}
@@ -527,7 +658,7 @@ export default function NetSalary() {
                   <th style={{...thStyle, width: '60px'}}>Sr. No.</th>
                   {visibleCols.empName && <th style={thStyle}>Employee Name</th>}
                   {visibleCols.department && <th style={thStyle}>Department</th>}
-                  {visibleCols.designation && <th style={thStyle}>Designation</th>}
+                  {visibleCols.designation && <th style={thStyle}>Firm</th>}
                   {visibleCols.basic && <th style={thStyle}>Basic Salary (₹)</th>}
                   {visibleCols.hra && <th style={thStyle}>HRA (₹)</th>}
                   {visibleCols.allowances && <th style={thStyle}>Allowances (₹)</th>}
@@ -601,7 +732,26 @@ export default function NetSalary() {
                         {visibleCols.totalDeduct && <td style={{...tdNumStyle, color: 'var(--danger)', fontWeight: 600, backgroundColor: 'rgba(239, 68, 68, 0.05)'}}>{rec.deductions.toLocaleString(undefined, {maximumFractionDigits:2})}</td>}
                         {visibleCols.netSalary && <td style={{...tdNumStyle, color: 'var(--success)', fontWeight: 600, fontSize: '1rem', backgroundColor: 'rgba(16, 185, 129, 0.05)'}}>{rec.net.toLocaleString(undefined, {maximumFractionDigits:2})}</td>}
                         {visibleCols.paymentStatus && <td style={{...tdStyle, textAlign: 'center'}}>
-                          <span style={{ padding: '4px 10px', borderRadius: '12px', fontSize: '0.75rem', backgroundColor: rec.paymentStatus === 'Processed' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)', color: rec.paymentStatus === 'Processed' ? 'var(--success)' : '#d97706', fontWeight: 500 }}>{rec.paymentStatus}</span>
+                          <button 
+                            onClick={() => handleToggleSinglePaymentStatus(rec.id, rec.paymentStatus)}
+                            style={{ 
+                              padding: '4px 10px', 
+                              borderRadius: '12px', 
+                              fontSize: '0.75rem', 
+                              backgroundColor: (rec.paymentStatus === 'Processed' || rec.paymentStatus === 'Done') ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)', 
+                              color: (rec.paymentStatus === 'Processed' || rec.paymentStatus === 'Done') ? 'var(--success)' : '#d97706', 
+                              fontWeight: 600,
+                              border: 'none',
+                              cursor: 'pointer',
+                              outline: 'none',
+                              transition: 'transform 0.1s'
+                            }}
+                            onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                            onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                            title="Click to toggle status"
+                          >
+                            {rec.paymentStatus}
+                          </button>
                         </td>}
                         {visibleCols.bankAcc && <td style={{...tdStyle, textAlign: 'center', fontFamily: 'monospace', letterSpacing: '1px'}}>{rec.bankAccount || '-'}</td>}
                       </tr>

@@ -343,6 +343,7 @@ export default function SalaryStructure() {
   const netSalary = selectedEmp ? Math.max(0, grossSalary - totalDeductions) : 0;
   
   const selectedEmpData = employees.find(e => e.id === selectedEmp) || {};
+  const isAlreadyEntered = selectedEmp && formData.salaryMonth && salaries[selectedEmp] && salaries[selectedEmp].salaryMonth === formData.salaryMonth;
 
   return (
     <div className="fade-in">
@@ -355,6 +356,11 @@ export default function SalaryStructure() {
         <h3 style={{ marginBottom: '24px', fontSize: '1.25rem', color: '#1e293b' }}>Salary Structure Form</h3>
         
         {/* SECTION 1: Employee Details */}
+        {isAlreadyEntered && (
+          <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#047857', padding: '12px 16px', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.2)', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px', fontWeight: 600, fontSize: '0.95rem' }}>
+            <span style={{ fontSize: '1.2rem' }}>✓</span> Salary structure for {formData.salaryMonth} has already been saved for this employee.
+          </div>
+        )}
         <div style={{ backgroundColor: '#f8fafc', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '24px' }}>
           <h4 style={{ margin: '0 0 16px 0', color: '#475569', fontSize: '1rem', borderBottom: '2px solid #e2e8f0', paddingBottom: '8px' }}>Employee Information</h4>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
