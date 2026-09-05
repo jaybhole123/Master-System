@@ -30,12 +30,13 @@ export default function NetSalary() {
   
   const [activeTab, setActiveTab] = useState('Sheet');
   const [selectedMonth, setSelectedMonth] = useState('All');
+  const [selectedSalaryDate, setSelectedSalaryDate] = useState('All');
   const [selectedDepartment, setSelectedDepartment] = useState('All');
   const [selectedDesignation, setSelectedDesignation] = useState('All');
   const [selectedRows, setSelectedRows] = useState([]);
 
   const [visibleCols, setVisibleCols] = useState({
-    empName: true, department: true, designation: true, basic: true, hra: true, allowances: true,
+    empName: true, department: true, designation: true, salaryDate: true, salaryMonth: true, basic: true, hra: true, allowances: true,
     monthAdvance: true, gross: true, totalDays: true, present: true, absent: true, leaves: true,
     leaveDeduct: true, monthRecov: true, prevAdvDeduct: true, pf: true,
     esic: true, pTax: true, otherDeduct: true, totalDeduct: true, netSalary: true,
@@ -145,12 +146,14 @@ export default function NetSalary() {
     return [...new Set(desgs)].sort();
   }, [employees]);
 
-  const uniqueMonths = useMemo(() => {
-    const months = Object.values(salaries).map(sal => sal.salaryMonth).filter(Boolean);
-    return [...new Set(months)].sort((a, b) => {
-      const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-      return monthNames.indexOf(a) - monthNames.indexOf(b);
-    });
+  const uniqueMonths = [
+    "January", "February", "March", "April", "May", "June", 
+    "July", "August", "September", "October", "November", "December"
+  ];
+
+  const uniqueSalaryDates = useMemo(() => {
+    const dates = Object.values(salaries).map(s => s.salaryDate).filter(Boolean);
+    return [...new Set(dates)].sort((a, b) => new Date(b) - new Date(a));
   }, [salaries]);
 
   const baseRecords = useMemo(() => {
@@ -208,27 +211,35 @@ export default function NetSalary() {
 
   const records = useMemo(() => {
     let currentRecords = baseRecords;
-    if (selectedMonth !== 'All') {
-      currentRecords = currentRecords.filter(r => r.breakdown.sal.salaryMonth === selectedMonth);
-    }
     if (selectedDepartment !== 'All') {
       currentRecords = currentRecords.filter(r => r.department === selectedDepartment);
     }
     if (selectedDesignation !== 'All') {
       currentRecords = currentRecords.filter(r => r.designation === selectedDesignation);
     }
+    if (selectedSalaryDate !== 'All') {
+      currentRecords = currentRecords.filter(r => r.breakdown.sal.salaryDate === selectedSalaryDate);
+    }
+    if (selectedMonth !== 'All') {
+      currentRecords = currentRecords.filter(r => r.breakdown.sal.salaryMonth === selectedMonth);
+    }
 
     return currentRecords;
-  }, [baseRecords, selectedMonth, selectedDepartment, selectedDesignation]);
+  }, [baseRecords, selectedDepartment, selectedDesignation, selectedSalaryDate, selectedMonth]);
 
   const [markingDone, setMarkingDone] = useState(false);
 
   const handleMarkAllDone = async () => {
-    if (!window.confirm("Are you sure you want to mark payment status as 'Done' for all currently filtered employees?")) return;
+    if (selectedRows.length === 0) {
+      alert("Please select at least one employee.");
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to mark payment status as 'Done' for the ${selectedRows.length} selected employee(s)?`)) return;
     
     setMarkingDone(true);
     try {
-      const employeeIds = records.map(r => r.id);
+      const employeeIds = selectedRows;
       
       const upsertData = employeeIds.map(id => {
         const sal = salaries[id] || {};
@@ -384,6 +395,8 @@ export default function NetSalary() {
     if (visibleCols.empName) headers[0].push('Employee Name');
     if (visibleCols.department) headers[0].push('Department');
     if (visibleCols.designation) headers[0].push('Designation');
+    if (visibleCols.salaryDate) headers[0].push('Salary Date');
+    if (visibleCols.salaryMonth) headers[0].push('Salary Month');
     if (visibleCols.basic) headers[0].push('Basic (Rs)');
     if (visibleCols.hra) headers[0].push('HRA (Rs)');
     if (visibleCols.allowances) headers[0].push('Allowances (Rs)');
@@ -412,6 +425,8 @@ export default function NetSalary() {
       if (visibleCols.empName) row.push(rec.name);
       if (visibleCols.department) row.push(emp.department || '-');
       if (visibleCols.designation) row.push(emp.designation || '-');
+      if (visibleCols.salaryDate) row.push(rec.breakdown.sal.salaryDate ? new Date(rec.breakdown.sal.salaryDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-');
+      if (visibleCols.salaryMonth) row.push(rec.breakdown.sal.salaryMonth || '-');
       if (visibleCols.basic) row.push(rec.breakdown.sal.basic.toLocaleString(undefined, {maximumFractionDigits:2}));
       if (visibleCols.hra) row.push(rec.breakdown.sal.hra.toLocaleString(undefined, {maximumFractionDigits:2}));
       if (visibleCols.allowances) row.push((rec.breakdown.sal.allowances || 0).toLocaleString(undefined, {maximumFractionDigits:2}));
@@ -546,36 +561,10 @@ export default function NetSalary() {
           
           <div style={{ display: 'flex', gap: '32px', padding: '16px 24px', backgroundColor: 'var(--bg-card)', borderBottom: '1px solid var(--border-color)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ fontWeight: 500, color: 'var(--text-secondary)', fontSize: '0.9rem', textTransform: 'uppercase' }}>Month</span>
-              <select 
-                value={selectedMonth} 
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                style={{ padding: '6px 12px', border: '1px solid var(--border-color)', borderRadius: '6px', outline: 'none', backgroundColor: 'var(--bg-main)', color: 'var(--primary-color)', cursor: 'pointer', minWidth: '130px', fontWeight: 600 }}
-              >
-                <option value="All">All Months</option>
-                {uniqueMonths.map(m => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
-              </select>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <span style={{ fontWeight: 500, color: 'var(--text-secondary)', fontSize: '0.9rem', textTransform: 'uppercase' }}>PF % (Employee)</span>
               <div style={{ padding: '6px 16px', backgroundColor: 'rgba(59, 130, 246, 0.1)', color: 'var(--primary-color)', borderRadius: '6px', fontWeight: 600 }}>12%</div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginLeft: 'auto' }}>
-              <button
-                onClick={handleMarkAllDone}
-                disabled={markingDone || records.length === 0}
-                style={{ padding: '6px 12px', border: '1px solid #10b981', borderRadius: '6px', outline: 'none', backgroundColor: '#10b981', color: 'white', cursor: 'pointer', fontWeight: 500, marginRight: '8px', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', fontSize: '0.9rem', opacity: (markingDone || records.length === 0) ? 0.6 : 1 }}
-              >
-                {markingDone ? <Loader size={14} className="spin" /> : <CheckCircle2 size={14} />} Mark All Done
-              </button>
-              <button
-                onClick={handleDownloadPDF}
-                style={{ padding: '6px 12px', border: '1px solid var(--primary-color)', borderRadius: '6px', outline: 'none', backgroundColor: 'var(--primary-color)', color: 'white', cursor: 'pointer', fontWeight: 500, marginRight: '8px', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', fontSize: '0.9rem' }}
-              >
-                <Download size={14} /> PDF
-              </button>
               <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                 <button 
                   onClick={() => setShowColMenu(!showColMenu)}
@@ -624,6 +613,43 @@ export default function NetSalary() {
                   <option key={desg} value={desg}>{desg}</option>
                 ))}
               </select>
+              
+              <select 
+                value={selectedSalaryDate} 
+                onChange={(e) => setSelectedSalaryDate(e.target.value)}
+                style={{ padding: '6px 12px', border: '1px solid var(--border-color)', borderRadius: '6px', outline: 'none', backgroundColor: 'var(--bg-main)', color: 'var(--text-primary)', cursor: 'pointer', minWidth: '150px' }}
+              >
+                <option value="All">All Dates</option>
+                {uniqueSalaryDates.map(d => (
+                  <option key={d} value={d}>{new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</option>
+                ))}
+              </select>
+              <select 
+                value={selectedMonth} 
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                style={{ padding: '6px 12px', border: '1px solid var(--border-color)', borderRadius: '6px', outline: 'none', backgroundColor: 'var(--bg-main)', color: 'var(--text-primary)', cursor: 'pointer', minWidth: '130px' }}
+              >
+                <option value="All">All Months</option>
+                {uniqueMonths.map(m => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+              
+              {selectedRows.length > 0 && (
+                <button
+                  onClick={handleMarkAllDone}
+                  disabled={markingDone || records.length === 0 || selectedRows.length === 0}
+                  style={{ padding: '6px 12px', border: '1px solid #10b981', borderRadius: '6px', outline: 'none', backgroundColor: '#10b981', color: 'white', cursor: 'pointer', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', fontSize: '0.9rem', opacity: (markingDone || records.length === 0 || selectedRows.length === 0) ? 0.6 : 1 }}
+                >
+                  {markingDone ? <Loader size={14} className="spin" /> : <CheckCircle2 size={14} />} Mark All Done
+                </button>
+              )}
+              <button
+                onClick={handleDownloadPDF}
+                style={{ padding: '6px 12px', border: '1px solid var(--primary-color)', borderRadius: '6px', outline: 'none', backgroundColor: 'var(--primary-color)', color: 'white', cursor: 'pointer', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', fontSize: '0.9rem' }}
+              >
+                <Download size={14} /> PDF
+              </button>
             </div>
           </div>
 
@@ -659,6 +685,8 @@ export default function NetSalary() {
                   {visibleCols.empName && <th style={thStyle}>Employee Name</th>}
                   {visibleCols.department && <th style={thStyle}>Department</th>}
                   {visibleCols.designation && <th style={thStyle}>Firm</th>}
+                  {visibleCols.salaryDate && <th style={thStyle}>Salary Date</th>}
+                  {visibleCols.salaryMonth && <th style={thStyle}>Salary Month</th>}
                   {visibleCols.basic && <th style={thStyle}>Basic Salary (₹)</th>}
                   {visibleCols.hra && <th style={thStyle}>HRA (₹)</th>}
                   {visibleCols.allowances && <th style={thStyle}>Allowances (₹)</th>}
@@ -713,6 +741,8 @@ export default function NetSalary() {
                         {visibleCols.designation && <td style={{...tdStyle, color: 'var(--text-secondary)'}}>
                           <span style={getDesignationStyle(emp.designation)}>{emp.designation || '-'}</span>
                         </td>}
+                        {visibleCols.salaryDate && <td style={{...tdStyle, textAlign: 'center', whiteSpace: 'nowrap'}}>{rec.breakdown.sal.salaryDate ? new Date(rec.breakdown.sal.salaryDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}</td>}
+                        {visibleCols.salaryMonth && <td style={{...tdStyle, textAlign: 'center'}}>{rec.breakdown.sal.salaryMonth || '-'}</td>}
                         {visibleCols.basic && <td style={tdNumStyle}>{rec.breakdown.sal.basic.toLocaleString(undefined, {maximumFractionDigits:2})}</td>}
                         {visibleCols.hra && <td style={tdNumStyle}>{rec.breakdown.sal.hra.toLocaleString(undefined, {maximumFractionDigits:2})}</td>}
                         {visibleCols.allowances && <td style={tdNumStyle}>{allowances.toLocaleString(undefined, {maximumFractionDigits:2})}</td>}
@@ -762,7 +792,7 @@ export default function NetSalary() {
                 )}
                 {records.length > 0 && (
                   <tr style={{ backgroundColor: 'var(--bg-main)' }}>
-                    <td colSpan={3 + (visibleCols.empName ? 1 : 0) + (visibleCols.department ? 1 : 0) + (visibleCols.designation ? 1 : 0)} style={{ border: '1px solid var(--border-color)', padding: '16px', textAlign: 'right', fontWeight: 600, fontSize: '0.95rem', color: 'var(--text-secondary)' }}>TOTAL</td>
+                    <td colSpan={2 + (visibleCols.empName ? 1 : 0) + (visibleCols.department ? 1 : 0) + (visibleCols.designation ? 1 : 0) + (visibleCols.salaryDate ? 1 : 0) + (visibleCols.salaryMonth ? 1 : 0)} style={{ border: '1px solid var(--border-color)', padding: '16px', textAlign: 'right', fontWeight: 600, fontSize: '0.95rem', color: 'var(--text-secondary)' }}>TOTAL</td>
                     {visibleCols.basic && <td style={{...tdNumStyle, border: '1px solid var(--border-color)', fontWeight: 600}}>₹ {totalBasic.toLocaleString(undefined, {maximumFractionDigits:2})}</td>}
                     {visibleCols.hra && <td style={{...tdNumStyle, border: '1px solid var(--border-color)', fontWeight: 600}}>₹ {totalHra.toLocaleString(undefined, {maximumFractionDigits:2})}</td>}
                     {visibleCols.allowances && <td style={{...tdNumStyle, border: '1px solid var(--border-color)', fontWeight: 600}}>₹ {totalAllowances.toLocaleString(undefined, {maximumFractionDigits:2})}</td>}

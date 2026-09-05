@@ -260,6 +260,8 @@ export default function SalaryStructure() {
 
   const handleSaveStructure = async () => {
     if(!selectedEmp) return toast.error('Select an employee first.');
+    if(!formData.salaryDate) return toast.error('Please select a Salary Date.');
+    if(!formData.salaryMonth) return toast.error('Please select a Month.');
     setSavingStructure(true);
     
     try {
