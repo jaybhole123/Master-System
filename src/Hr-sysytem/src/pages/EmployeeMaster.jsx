@@ -662,6 +662,7 @@ export default function EmployeeMaster() {
           <table style={{ whiteSpace: 'nowrap' }}>
             <thead>
               <tr>
+                <th>S.No</th>
                 <th>Photo</th>
                 {/* <th>Emp ID</th> */}
                 <th>Name</th>
@@ -696,6 +697,7 @@ export default function EmployeeMaster() {
 
                 return filteredEmployees.length > 0 ? filteredEmployees.map((emp, idx) => (
                 <tr key={emp.id}>
+                  <td style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>{idx + 1}</td>
                   <td>
                     {emp.photo ? (
                       <img src={emp.photo} alt={emp.user_name} style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />

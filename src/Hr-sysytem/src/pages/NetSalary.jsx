@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useEmployees } from '../hooks/useEmployees';
 import { supabase } from '../lib/supabase';
 import { Loader, GripVertical, Download, CheckCircle2 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -355,6 +355,19 @@ export default function NetSalary() {
     NetSalary: rec.net
   }));
 
+  const deptDataMap = records.reduce((acc, curr) => {
+    const dept = curr.department || 'Unassigned';
+    acc[dept] = (acc[dept] || 0) + curr.net;
+    return acc;
+  }, {});
+  
+  const deptAnalysisData = Object.keys(deptDataMap).map(key => ({
+    name: key,
+    value: deptDataMap[key]
+  })).sort((a, b) => b.value - a.value);
+  
+  const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#f97316'];
+
   const thStyle = {
     border: '1px solid var(--border-color)',
     padding: '12px 10px',
@@ -559,16 +572,16 @@ export default function NetSalary() {
             SALARY SHEET
           </div>
           
-          <div style={{ display: 'flex', gap: '32px', padding: '16px 24px', backgroundColor: 'var(--bg-card)', borderBottom: '1px solid var(--border-color)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ fontWeight: 500, color: 'var(--text-secondary)', fontSize: '0.9rem', textTransform: 'uppercase' }}>PF % (Employee)</span>
-              <div style={{ padding: '6px 16px', backgroundColor: 'rgba(59, 130, 246, 0.1)', color: 'var(--primary-color)', borderRadius: '6px', fontWeight: 600 }}>12%</div>
+          <div style={{ display: 'flex', gap: '16px', padding: '12px 16px', backgroundColor: 'var(--bg-card)', borderBottom: '1px solid var(--border-color)', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontWeight: 500, color: 'var(--text-secondary)', fontSize: '0.85rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>PF % (Employee)</span>
+              <div style={{ padding: '4px 12px', backgroundColor: 'rgba(59, 130, 246, 0.1)', color: 'var(--primary-color)', borderRadius: '6px', fontWeight: 600, fontSize: '0.9rem' }}>12%</div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginLeft: 'auto' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end', flex: 1 }}>
               <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                 <button 
                   onClick={() => setShowColMenu(!showColMenu)}
-                  style={{ padding: '6px 16px', border: '1px solid var(--border-color)', borderRadius: '6px', outline: 'none', backgroundColor: 'var(--bg-main)', color: 'var(--text-primary)', cursor: 'pointer', fontWeight: 500, marginRight: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                  style={{ padding: '4px 12px', border: '1px solid var(--border-color)', borderRadius: '6px', outline: 'none', backgroundColor: 'var(--bg-main)', color: 'var(--text-primary)', cursor: 'pointer', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', whiteSpace: 'nowrap' }}
                 >
                   <GripVertical size={14} /> Columns
                 </button>
@@ -592,11 +605,11 @@ export default function NetSalary() {
                   </div>
                 )}
               </div>
-              <span style={{ fontWeight: 500, color: 'var(--text-secondary)', fontSize: '0.9rem', textTransform: 'uppercase', marginRight: '-4px' }}>Filters:</span>
+              <span style={{ fontWeight: 500, color: 'var(--text-secondary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Filters:</span>
               <select 
                 value={selectedDepartment} 
                 onChange={(e) => setSelectedDepartment(e.target.value)}
-                style={{ padding: '6px 12px', border: '1px solid var(--border-color)', borderRadius: '6px', outline: 'none', backgroundColor: 'var(--bg-main)', color: 'var(--text-primary)', cursor: 'pointer', minWidth: '150px' }}
+                style={{ padding: '4px 8px', border: '1px solid var(--border-color)', borderRadius: '6px', outline: 'none', backgroundColor: 'var(--bg-main)', color: 'var(--text-primary)', cursor: 'pointer', fontSize: '0.85rem', maxWidth: '130px' }}
               >
                 <option value="All">All Departments</option>
                 {uniqueDepartments.map(dept => (
@@ -606,7 +619,7 @@ export default function NetSalary() {
               <select 
                 value={selectedDesignation} 
                 onChange={(e) => setSelectedDesignation(e.target.value)}
-                style={{ padding: '6px 12px', border: '1px solid var(--border-color)', borderRadius: '6px', outline: 'none', backgroundColor: 'var(--bg-main)', color: 'var(--text-primary)', cursor: 'pointer', minWidth: '150px' }}
+                style={{ padding: '4px 8px', border: '1px solid var(--border-color)', borderRadius: '6px', outline: 'none', backgroundColor: 'var(--bg-main)', color: 'var(--text-primary)', cursor: 'pointer', fontSize: '0.85rem', maxWidth: '130px' }}
               >
                 <option value="All">All Firms</option>
                 {uniqueDesignations.map(desg => (
@@ -617,7 +630,7 @@ export default function NetSalary() {
               <select 
                 value={selectedSalaryDate} 
                 onChange={(e) => setSelectedSalaryDate(e.target.value)}
-                style={{ padding: '6px 12px', border: '1px solid var(--border-color)', borderRadius: '6px', outline: 'none', backgroundColor: 'var(--bg-main)', color: 'var(--text-primary)', cursor: 'pointer', minWidth: '150px' }}
+                style={{ padding: '4px 8px', border: '1px solid var(--border-color)', borderRadius: '6px', outline: 'none', backgroundColor: 'var(--bg-main)', color: 'var(--text-primary)', cursor: 'pointer', fontSize: '0.85rem', maxWidth: '130px' }}
               >
                 <option value="All">All Dates</option>
                 {uniqueSalaryDates.map(d => (
@@ -627,7 +640,7 @@ export default function NetSalary() {
               <select 
                 value={selectedMonth} 
                 onChange={(e) => setSelectedMonth(e.target.value)}
-                style={{ padding: '6px 12px', border: '1px solid var(--border-color)', borderRadius: '6px', outline: 'none', backgroundColor: 'var(--bg-main)', color: 'var(--text-primary)', cursor: 'pointer', minWidth: '130px' }}
+                style={{ padding: '4px 8px', border: '1px solid var(--border-color)', borderRadius: '6px', outline: 'none', backgroundColor: 'var(--bg-main)', color: 'var(--text-primary)', cursor: 'pointer', fontSize: '0.85rem', maxWidth: '130px' }}
               >
                 <option value="All">All Months</option>
                 {uniqueMonths.map(m => (
@@ -639,14 +652,14 @@ export default function NetSalary() {
                 <button
                   onClick={handleMarkAllDone}
                   disabled={markingDone || records.length === 0 || selectedRows.length === 0}
-                  style={{ padding: '6px 12px', border: '1px solid #10b981', borderRadius: '6px', outline: 'none', backgroundColor: '#10b981', color: 'white', cursor: 'pointer', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', fontSize: '0.9rem', opacity: (markingDone || records.length === 0 || selectedRows.length === 0) ? 0.6 : 1 }}
+                  style={{ padding: '4px 12px', border: '1px solid #10b981', borderRadius: '6px', outline: 'none', backgroundColor: '#10b981', color: 'white', cursor: 'pointer', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', fontSize: '0.85rem', opacity: (markingDone || records.length === 0 || selectedRows.length === 0) ? 0.6 : 1 }}
                 >
                   {markingDone ? <Loader size={14} className="spin" /> : <CheckCircle2 size={14} />} Mark All Done
                 </button>
               )}
               <button
                 onClick={handleDownloadPDF}
-                style={{ padding: '6px 12px', border: '1px solid var(--primary-color)', borderRadius: '6px', outline: 'none', backgroundColor: 'var(--primary-color)', color: 'white', cursor: 'pointer', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', fontSize: '0.9rem' }}
+                style={{ padding: '4px 12px', border: '1px solid var(--primary-color)', borderRadius: '6px', outline: 'none', backgroundColor: 'var(--primary-color)', color: 'white', cursor: 'pointer', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', fontSize: '0.85rem' }}
               >
                 <Download size={14} /> PDF
               </button>
@@ -849,15 +862,16 @@ export default function NetSalary() {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '24px' }}>
             {/* Employee-wise Net Salary Table */}
-            <div className="card" style={{ padding: 0, overflow: 'hidden', height: 'fit-content' }}>
+            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
               <div style={{ backgroundColor: '#0f172a', color: 'white', padding: '12px 16px', fontWeight: 700, letterSpacing: '0.5px' }}>Employee-wise Net Salary</div>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ backgroundColor: '#1e293b', color: 'white', fontSize: '0.85rem' }}>
-                    <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #334155', textTransform: 'none', color: 'white' }}>Employee</th>
-                    <th style={{ padding: '12px', textAlign: 'right', borderBottom: '1px solid #334155', textTransform: 'none', color: 'white' }}>Net Salary (₹)</th>
-                  </tr>
-                </thead>
+              <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead style={{ position: 'sticky', top: 0, zIndex: 10 }}>
+                    <tr style={{ backgroundColor: 'var(--bg-main)', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                      <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid var(--border-color)', textTransform: 'uppercase', fontWeight: 600 }}>Employee Name</th>
+                      <th style={{ padding: '12px', textAlign: 'right', borderBottom: '1px solid var(--border-color)', textTransform: 'uppercase', fontWeight: 600 }}>Salary</th>
+                    </tr>
+                  </thead>
                 <tbody>
                   {records.map((rec, idx) => (
                     <tr key={rec.id} style={{ backgroundColor: idx % 2 === 0 ? 'var(--bg-main)' : 'var(--bg-card)' }}>
@@ -874,36 +888,39 @@ export default function NetSalary() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
 
-            {/* Chart */}
-            <div className="card">
-              <h3 style={{ marginBottom: '24px', fontWeight: 700, fontSize: '1.25rem', color: 'var(--text-primary)' }}>Net Salary by Employee</h3>
-              {records.length > 0 ? (
-                <div style={{ width: '100%', height: 400 }}>
-                  <ResponsiveContainer>
-                    <BarChart
-                      data={chartData}
-                      layout="vertical"
-                      margin={{ top: 5, right: 30, left: 40, bottom: 5 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border-color)" />
-                      <XAxis type="number" tick={{ fill: 'var(--text-secondary)' }} />
-                      <YAxis dataKey="name" type="category" width={120} tick={{ fill: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }} />
-                      <Tooltip 
-                        formatter={(value) => `₹ ${value.toLocaleString()}`} 
-                        contentStyle={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }}
-                        itemStyle={{ color: 'var(--primary-color)', fontWeight: 700 }}
-                      />
-                      <Bar dataKey="NetSalary" fill="#3b82f6" barSize={24} radius={[0, 4, 4, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              ) : (
-                <div style={{ height: '400px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
-                  No data to display chart.
-                </div>
-              )}
+            {/* Chart and Analysis */}
+            <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <div>
+                <h3 style={{ marginBottom: '16px', fontWeight: 700, fontSize: '1.25rem', color: 'var(--text-primary)' }}>Net Salary by Employee</h3>
+                {records.length > 0 ? (
+                  <div style={{ width: '100%', height: 350 }}>
+                    <ResponsiveContainer>
+                      <BarChart
+                        data={chartData}
+                        layout="vertical"
+                        margin={{ top: 5, right: 30, left: 40, bottom: 5 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border-color)" />
+                        <XAxis type="number" tick={{ fill: 'var(--text-secondary)' }} />
+                        <YAxis dataKey="name" type="category" width={120} tick={{ fill: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }} />
+                        <Tooltip 
+                          formatter={(value) => `₹ ${value.toLocaleString()}`} 
+                          contentStyle={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }}
+                          itemStyle={{ color: 'var(--primary-color)', fontWeight: 700 }}
+                        />
+                        <Bar dataKey="NetSalary" fill="#3b82f6" barSize={24} radius={[0, 4, 4, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <div style={{ height: '350px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
+                    No data to display chart.
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

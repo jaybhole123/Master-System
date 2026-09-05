@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useEmployees } from '../hooks/useEmployees';
 import { supabase } from '../lib/supabase';
-import { Loader, Download, Eye, Printer, X } from 'lucide-react';
+import { Loader, Download, Eye, Printer, X, Settings2 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import toast from 'react-hot-toast';
@@ -54,9 +54,27 @@ export default function Payslip() {
   const [loading, setLoading] = useState(true);
   const [selectedEmp, setSelectedEmp] = useState('');
   const [companyName, setCompanyName] = useState('M/s Jai Bhole Traders');
-  const [payslipMonth, setPayslipMonth] = useState('July 2026');
+  const [payslipMonth, setPayslipMonth] = useState('');
   const [salaryDate, setSalaryDate] = useState('');
   const [showPreviewModal, setShowPreviewModal] = useState(false);
+
+  const [visibleFields, setVisibleFields] = useState({
+    basic: true,
+    hra: true,
+    allowances: true,
+    pf: true,
+    esic: true,
+    ptax: true,
+    otherDeductions: true,
+    bankAccount: true,
+    department: true,
+    salaryDate: true
+  });
+  const [showFieldMenu, setShowFieldMenu] = useState(false);
+
+  const toggleField = (field) => {
+    setVisibleFields(prev => ({ ...prev, [field]: !prev[field] }));
+  };
 
   const isDataLoading = loading || empLoading;
 
@@ -79,7 +97,12 @@ export default function Payslip() {
             pfApplicable: s.pf_applicable !== false,
             esicApplicable: s.esic_applicable !== false,
             salaryDate: s.salary_date || '',
-            salaryMonth: s.salary_month || ''
+            salaryMonth: s.salary_month || '',
+            presentDays: s.present_days || 0,
+            absent: s.absent || 0,
+            leaves: s.leaves || 0,
+            halfDays: s.half_days || 0,
+            holidays: s.holidays || 0
           };
         });
       }
@@ -328,16 +351,41 @@ export default function Payslip() {
         </div>
 
         {/* Employee Details Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', backgroundColor: '#f8fafc', padding: '20px 24px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '32px' }}>
-          <div>
-            <p style={{ margin: '6px 0', fontSize: '1rem' }}><strong style={{ color: '#475569' }}>Employee Name:</strong> <span style={{ fontWeight: 600, color: '#0f172a' }}>{empDetails.name}</span></p>
-            <p style={{ margin: '6px 0', fontSize: '1rem' }}><strong style={{ color: '#475569' }}>Employee ID:</strong> <span style={{ fontWeight: 600, color: '#0f172a' }}>{empDetails.id}</span></p>
-            <p style={{ margin: '6px 0', fontSize: '1rem' }}><strong style={{ color: '#475569' }}>Designation:</strong> <span style={{ fontWeight: 600, color: '#0f172a' }}>{empDetails.designation}</span></p>
+        <div style={{ backgroundColor: '#f8fafc', padding: '20px 24px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '32px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '16px' }}>
+            <div>
+              <p style={{ margin: '6px 0', fontSize: '1rem' }}><strong style={{ color: '#475569' }}>Employee Name:</strong> <span style={{ fontWeight: 600, color: '#0f172a' }}>{empDetails.name}</span></p>
+              <p style={{ margin: '6px 0', fontSize: '1rem' }}><strong style={{ color: '#475569' }}>Salary Month:</strong> <span style={{ fontWeight: 600, color: '#0f172a' }}>{payslipMonth || '-'}</span></p>
+              <p style={{ margin: '6px 0', fontSize: '1rem' }}><strong style={{ color: '#475569' }}>Firms:</strong> <span style={{ fontWeight: 600, color: '#0f172a' }}>{empDetails.designation}</span></p>
+            </div>
+            <div>
+              {visibleFields.bankAccount && <p style={{ margin: '6px 0', fontSize: '1rem' }}><strong style={{ color: '#475569' }}>Bank Account:</strong> <span style={{ fontWeight: 600, color: '#0f172a' }}>{payrollData.bankAccount || '-'}</span></p>}
+              {visibleFields.department && <p style={{ margin: '6px 0', fontSize: '1rem' }}><strong style={{ color: '#475569' }}>Department:</strong> <span style={{ fontWeight: 600, color: '#0f172a' }}>{empDetails.department}</span></p>}
+              {visibleFields.salaryDate && <p style={{ margin: '6px 0', fontSize: '1rem' }}><strong style={{ color: '#475569' }}>Salary Date:</strong> <span style={{ fontWeight: 600, color: '#0f172a' }}>{salaryDate || payrollData.breakdown?.sal?.salaryDate || '-'}</span></p>}
+            </div>
           </div>
-          <div>
-            <p style={{ margin: '6px 0', fontSize: '1rem' }}><strong style={{ color: '#475569' }}>Bank Account:</strong> <span style={{ fontWeight: 600, color: '#0f172a' }}>{payrollData.bankAccount || '-'}</span></p>
-            <p style={{ margin: '6px 0', fontSize: '1rem' }}><strong style={{ color: '#475569' }}>Department:</strong> <span style={{ fontWeight: 600, color: '#0f172a' }}>{empDetails.department}</span></p>
-            <p style={{ margin: '6px 0', fontSize: '1rem' }}><strong style={{ color: '#475569' }}>Salary Date:</strong> <span style={{ fontWeight: 600, color: '#0f172a' }}>{salaryDate || payrollData.breakdown?.sal?.salaryDate || '-'}</span></p>
+          
+          <div style={{ borderTop: '1px dashed #cbd5e1', paddingTop: '16px', display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#f0fdf4', padding: '8px 16px', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#166534' }}>Present</span>
+              <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#15803d' }}>{payrollData.breakdown?.sal?.presentDays || 0}</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#fef2f2', padding: '8px 16px', borderRadius: '8px', border: '1px solid #fecaca' }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#991b1b' }}>Absent</span>
+              <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#b91c1c' }}>{payrollData.breakdown?.sal?.absent || 0}</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#fffbeb', padding: '8px 16px', borderRadius: '8px', border: '1px solid #fde68a' }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#92400e' }}>Leave</span>
+              <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#b45309' }}>{payrollData.breakdown?.sal?.leaves || 0}</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#eff6ff', padding: '8px 16px', borderRadius: '8px', border: '1px solid #bfdbfe' }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e40af' }}>Half Day</span>
+              <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1d4ed8' }}>{payrollData.breakdown?.sal?.halfDays || 0}</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#faf5ff', padding: '8px 16px', borderRadius: '8px', border: '1px solid #e9d5ff' }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#6b21a8' }}>Holiday</span>
+              <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#7e22ce' }}>{payrollData.breakdown?.sal?.holidays || 0}</span>
+            </div>
           </div>
         </div>
 
@@ -346,19 +394,19 @@ export default function Payslip() {
           {/* Earnings */}
           <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px', backgroundColor: '#fff' }}>
             <h3 style={{ borderBottom: '2px solid #e2e8f0', paddingBottom: '10px', marginBottom: '18px', fontSize: '1.05rem', fontWeight: 700, color: '#1e293b' }}>Earnings</h3>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', fontSize: '0.95rem', color: '#334155' }}><span>Basic</span><span>₹ {payrollData.breakdown.sal.basic}</span></div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', fontSize: '0.95rem', color: '#334155' }}><span>HRA</span><span>₹ {payrollData.breakdown.sal.hra}</span></div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', fontSize: '0.95rem', color: '#334155' }}><span>Allowances</span><span>₹ {payrollData.breakdown.sal.allowances}</span></div>
+            {visibleFields.basic && <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', fontSize: '0.95rem', color: '#334155' }}><span>Basic</span><span>₹ {payrollData.breakdown.sal.basic}</span></div>}
+            {visibleFields.hra && <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', fontSize: '0.95rem', color: '#334155' }}><span>HRA</span><span>₹ {payrollData.breakdown.sal.hra}</span></div>}
+            {visibleFields.allowances && <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', fontSize: '0.95rem', color: '#334155' }}><span>Allowances</span><span>₹ {payrollData.breakdown.sal.allowances}</span></div>}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '24px', paddingTop: '14px', borderTop: '1px dashed #cbd5e1', fontWeight: 700, fontSize: '1.05rem', color: '#0f172a' }}><span>Total Earnings</span><span>₹ {payrollData.gross.toLocaleString(undefined, {maximumFractionDigits:2})}</span></div>
           </div>
 
           {/* Deductions */}
           <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px', backgroundColor: '#fff' }}>
             <h3 style={{ borderBottom: '2px solid #e2e8f0', paddingBottom: '10px', marginBottom: '18px', fontSize: '1.05rem', fontWeight: 700, color: '#1e293b' }}>Deductions</h3>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', fontSize: '0.95rem', color: '#334155' }}><span>PF</span><span>₹ {payrollData.breakdown.pfDeduction.toLocaleString(undefined, {maximumFractionDigits:2})}</span></div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', fontSize: '0.95rem', color: '#334155' }}><span>ESIC</span><span>₹ {(payrollData.breakdown.esicDeduction || 0).toLocaleString(undefined, {maximumFractionDigits:2})}</span></div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', fontSize: '0.95rem', color: '#334155' }}><span>Professional Tax</span><span>₹ {payrollData.breakdown.ptax}</span></div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', fontSize: '0.95rem', color: '#334155' }}><span>Other Deductions</span><span>₹ {payrollData.breakdown.empOtherDeductions}</span></div>
+            {visibleFields.pf && <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', fontSize: '0.95rem', color: '#334155' }}><span>PF</span><span>₹ {payrollData.breakdown.pfDeduction.toLocaleString(undefined, {maximumFractionDigits:2})}</span></div>}
+            {visibleFields.esic && <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', fontSize: '0.95rem', color: '#334155' }}><span>ESIC</span><span>₹ {(payrollData.breakdown.esicDeduction || 0).toLocaleString(undefined, {maximumFractionDigits:2})}</span></div>}
+            {visibleFields.ptax && <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', fontSize: '0.95rem', color: '#334155' }}><span>Professional Tax</span><span>₹ {payrollData.breakdown.ptax}</span></div>}
+            {visibleFields.otherDeductions && <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', fontSize: '0.95rem', color: '#334155' }}><span>Other Deductions</span><span>₹ {payrollData.breakdown.empOtherDeductions}</span></div>}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '24px', paddingTop: '14px', borderTop: '1px dashed #cbd5e1', fontWeight: 700, fontSize: '1.05rem', color: '#0f172a' }}><span>Total Deductions</span><span>₹ {payrollData.deductions.toLocaleString(undefined, {maximumFractionDigits:2})}</span></div>
           </div>
         </div>
@@ -486,6 +534,58 @@ export default function Payslip() {
         >
           <Download size={18} /> Download PDF
         </button>
+
+        <div style={{ position: 'relative' }}>
+          <button 
+            type="button"
+            onClick={() => setShowFieldMenu(!showFieldMenu)}
+            style={{ 
+              backgroundColor: '#f8fafc', 
+              color: '#334155', 
+              border: '1px solid #cbd5e1',
+              borderRadius: '8px',
+              padding: '10px 20px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '8px',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+            }}
+          >
+            <Settings2 size={18} /> Columns
+          </button>
+          
+          {showFieldMenu && (
+            <div style={{
+              position: 'absolute',
+              top: '110%',
+              right: 0,
+              backgroundColor: '#fff',
+              border: '1px solid #cbd5e1',
+              borderRadius: '8px',
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+              padding: '12px',
+              zIndex: 50,
+              width: '220px',
+              maxHeight: '300px',
+              overflowY: 'auto'
+            }}>
+              <div style={{ fontWeight: 600, marginBottom: '8px', paddingBottom: '8px', borderBottom: '1px solid #e2e8f0', color: '#0f172a', textAlign: 'left' }}>Toggle Fields</div>
+              {Object.keys(visibleFields).map(field => (
+                <label key={field} style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', whiteSpace: 'nowrap', gap: '8px', margin: '8px 0', cursor: 'pointer', fontSize: '0.9rem', color: '#334155' }}>
+                  <input 
+                    type="checkbox" 
+                    checked={visibleFields[field]}
+                    onChange={() => toggleField(field)}
+                    style={{ cursor: 'pointer', margin: 0, width: '16px', height: '16px', flexShrink: 0 }}
+                  />
+                  <span style={{ textAlign: 'left', flex: 'none' }}>{field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</span>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Main Payslip Card */}
