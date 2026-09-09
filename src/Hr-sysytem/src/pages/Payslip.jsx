@@ -54,10 +54,12 @@ export default function Payslip() {
   const [loading, setLoading] = useState(true);
   const [selectedEmp, setSelectedEmp] = useState('');
   const [companyName, setCompanyName] = useState('M/s Jai Bhole Traders');
-  const [payslipMonth, setPayslipMonth] = useState('');
+  const [fromMonth, setFromMonth] = useState('');
+  const [toMonth, setToMonth] = useState('');
+  const [displayMode, setDisplayMode] = useState('Month-wise Breakdown');
   const [salaryDate, setSalaryDate] = useState('');
   const [showPreviewModal, setShowPreviewModal] = useState(false);
-
+  const [multiMonthData, setMultiMonthData] = useState([]);
   const [visibleFields, setVisibleFields] = useState({
     basic: true,
     hra: true,
@@ -140,7 +142,6 @@ export default function Payslip() {
       if (sal.salaryDate) setSalaryDate(sal.salaryDate);
       else setSalaryDate('');
 
-      if (sal.salaryMonth) setPayslipMonth(sal.salaryMonth);
     }
   }, [selectedEmp, salaries]);
 
@@ -260,7 +261,15 @@ export default function Payslip() {
       const yPos = margin;
 
       pdf.addImage(imgData, 'PNG', xPos, yPos, imgWidth, imgHeight);
-      pdf.save(`Payslip_${(empDetails.name || 'Employee').replace(/\s+/g, '_')}_${payslipMonth.replace(/\s+/g, '_')}.pdf`);
+      const formatMonth = (yyyyMm) => {
+        if (!yyyyMm) return '';
+        const [year, month] = yyyyMm.split('-');
+        const date = new Date(year, month - 1);
+        return date.toLocaleString('default', { month: 'long', year: 'numeric' });
+      };
+      const displayMonthString = fromMonth && toMonth && fromMonth !== toMonth ? `${formatMonth(fromMonth)} to ${formatMonth(toMonth)}` : formatMonth(fromMonth) || formatMonth(toMonth) || 'Payslip';
+      
+      pdf.save(`Payslip_${(empDetails.name || 'Employee').replace(/\s+/g, '_')}_${displayMonthString.replace(/\s+/g, '_')}.pdf`);
       
       toast.dismiss(toastId);
       toast.success("Payslip PDF downloaded successfully!");
@@ -289,6 +298,14 @@ export default function Payslip() {
       </div>
     );
   }
+
+  const formatMonth = (yyyyMm) => {
+    if (!yyyyMm) return '';
+    const [year, month] = yyyyMm.split('-');
+    const date = new Date(year, month - 1);
+    return date.toLocaleString('default', { month: 'long', year: 'numeric' });
+  };
+  const displayMonthString = fromMonth && toMonth && fromMonth !== toMonth ? `${formatMonth(fromMonth)} to ${formatMonth(toMonth)}` : formatMonth(fromMonth) || formatMonth(toMonth) || '-';
 
   const activeFirm = FIRM_DETAILS[companyName] || FIRM_DETAILS['M/s Jai Bhole Traders'];
 
@@ -344,7 +361,7 @@ export default function Payslip() {
                 PAYSLIP
               </div>
               <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#475569', whiteSpace: 'nowrap' }}>
-                {payslipMonth}
+                {displayMonthString}
               </div>
             </div>
           </div>
@@ -355,7 +372,7 @@ export default function Payslip() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '16px' }}>
             <div>
               <p style={{ margin: '6px 0', fontSize: '1rem' }}><strong style={{ color: '#475569' }}>Employee Name:</strong> <span style={{ fontWeight: 600, color: '#0f172a' }}>{empDetails.name}</span></p>
-              <p style={{ margin: '6px 0', fontSize: '1rem' }}><strong style={{ color: '#475569' }}>Salary Month:</strong> <span style={{ fontWeight: 600, color: '#0f172a' }}>{payslipMonth || '-'}</span></p>
+              <p style={{ margin: '6px 0', fontSize: '1rem' }}><strong style={{ color: '#475569' }}>Salary Month:</strong> <span style={{ fontWeight: 600, color: '#0f172a' }}>{displayMonthString}</span></p>
               <p style={{ margin: '6px 0', fontSize: '1rem' }}><strong style={{ color: '#475569' }}>Firms:</strong> <span style={{ fontWeight: 600, color: '#0f172a' }}>{empDetails.designation}</span></p>
             </div>
             <div>
@@ -365,28 +382,7 @@ export default function Payslip() {
             </div>
           </div>
           
-          <div style={{ borderTop: '1px dashed #cbd5e1', paddingTop: '16px', display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#f0fdf4', padding: '8px 16px', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
-              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#166534' }}>Present</span>
-              <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#15803d' }}>{payrollData.breakdown?.sal?.presentDays || 0}</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#fef2f2', padding: '8px 16px', borderRadius: '8px', border: '1px solid #fecaca' }}>
-              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#991b1b' }}>Absent</span>
-              <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#b91c1c' }}>{payrollData.breakdown?.sal?.absent || 0}</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#fffbeb', padding: '8px 16px', borderRadius: '8px', border: '1px solid #fde68a' }}>
-              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#92400e' }}>Leave</span>
-              <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#b45309' }}>{payrollData.breakdown?.sal?.leaves || 0}</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#eff6ff', padding: '8px 16px', borderRadius: '8px', border: '1px solid #bfdbfe' }}>
-              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e40af' }}>Half Day</span>
-              <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1d4ed8' }}>{payrollData.breakdown?.sal?.halfDays || 0}</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#faf5ff', padding: '8px 16px', borderRadius: '8px', border: '1px solid #e9d5ff' }}>
-              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#6b21a8' }}>Holiday</span>
-              <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#7e22ce' }}>{payrollData.breakdown?.sal?.holidays || 0}</span>
-            </div>
-          </div>
+
         </div>
 
         {/* Earnings & Deductions Tables */}
@@ -472,15 +468,40 @@ export default function Payslip() {
           </div>
 
           <div className="form-group">
-            <label style={{ fontWeight: 600, marginBottom: '6px', display: 'block' }}>Payslip Month & Year</label>
+            <label style={{ fontWeight: 600, marginBottom: '6px', display: 'block' }}>From Month</label>
             <input 
-              type="text" 
-              value={payslipMonth} 
-              onChange={(e) => setPayslipMonth(e.target.value)} 
-              placeholder="e.g. July 2026"
+              type="month" 
+              value={fromMonth} 
+              onChange={(e) => setFromMonth(e.target.value)} 
               style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
             />
           </div>
+
+          <div className="form-group">
+            <label style={{ fontWeight: 600, marginBottom: '6px', display: 'block' }}>To Month</label>
+            <input 
+              type="month" 
+              value={toMonth} 
+              onChange={(e) => setToMonth(e.target.value)} 
+              style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+            />
+          </div>
+
+          {fromMonth && toMonth && fromMonth !== toMonth && (
+            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+              <label style={{ fontWeight: 600, marginBottom: '6px', display: 'block' }}>Display Mode</label>
+              <div style={{ display: 'flex', gap: '16px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                  <input type="radio" name="displayMode" value="Month-wise Breakdown" checked={displayMode === 'Month-wise Breakdown'} onChange={(e) => setDisplayMode(e.target.value)} />
+                  Month-wise Breakdown
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                  <input type="radio" name="displayMode" value="Consolidated Summary" checked={displayMode === 'Consolidated Summary'} onChange={(e) => setDisplayMode(e.target.value)} />
+                  Consolidated Summary
+                </label>
+              </div>
+            </div>
+          )}
 
           <div className="form-group">
             <label style={{ fontWeight: 600, marginBottom: '6px', display: 'block' }}>Salary Date</label>
@@ -629,7 +650,7 @@ export default function Payslip() {
                   Payslip Preview - {empDetails.name}
                 </h2>
                 <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                  {activeFirm.name} • {payslipMonth}
+                  {activeFirm.name} • {displayMonthString}
                 </span>
               </div>
               <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
