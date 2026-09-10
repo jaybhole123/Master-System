@@ -493,6 +493,37 @@ export default function Attendance() {
     }
   };
 
+  const handleCellKeyDown = (e, empIdx, dayIdx, currentValue) => {
+    let nextEmpIdx = empIdx;
+    let nextDayIdx = dayIdx;
+    
+    if (e.key === 'ArrowRight') {
+      nextDayIdx += 1;
+    } else if (e.key === 'ArrowLeft') {
+      nextDayIdx -= 1;
+    } else if (e.key === 'ArrowDown') {
+      nextEmpIdx += 1;
+    } else if (e.key === 'ArrowUp') {
+      nextEmpIdx -= 1;
+    } else {
+      return;
+    }
+    
+    if (nextEmpIdx >= 0 && nextEmpIdx < employees.length && nextDayIdx >= 0 && nextDayIdx < daysArray.length) {
+      e.preventDefault();
+      const nextCellId = `cell-${nextEmpIdx}-${nextDayIdx}`;
+      const nextCell = document.getElementById(nextCellId);
+      if (nextCell) {
+        nextCell.focus();
+        if (e.shiftKey) {
+          const targetEmp = employees[nextEmpIdx];
+          const targetDay = daysArray[nextDayIdx];
+          handleCellChange(targetEmp.id, targetDay, currentValue);
+        }
+      }
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -1000,7 +1031,7 @@ Instructions:
                           )}
                         </td>
                         
-                        {daysArray.map(day => {
+                        {daysArray.map((day, dayIdx) => {
                           const isInvalidDay = day > daysCount;
                           const val = isInvalidDay ? '' : (currentMonthData[emp.id]?.[day] || '');
                           const isSunday = !isInvalidDay && new Date(yearNum, monthNum, day).getDay() === 0;
@@ -1015,11 +1046,13 @@ Instructions:
                           return (
                             <td key={day} style={{...tdStyle, padding: 0, width: '45px', minWidth: '45px', backgroundColor: isInvalidDay ? '#f1f5f9' : (isSunday ? '#fef9c3' : 'inherit')}}>
                               <input 
+                                id={`cell-${idx}-${dayIdx}`}
                                 type="text"
                                 value={val}
                                 onChange={(e) => handleCellChange(emp.id, day, e.target.value)}
                                 onMouseDown={(e) => handleCellMouseDown(emp.id, e.target.value)}
                                 onMouseEnter={() => handleCellMouseEnter(emp.id, day)}
+                                onKeyDown={(e) => handleCellKeyDown(e, idx, dayIdx, val)}
                                 disabled={isInvalidDay}
                                 style={{ 
                                   width: '100%', height: '35px', border: 'none', textAlign: 'center', 
