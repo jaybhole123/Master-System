@@ -20,6 +20,7 @@ import {
   Database,
   ChevronDown,
   ChevronRight,
+  ChevronLeft,
   Zap,
   Settings,
   CirclePlus,
@@ -102,6 +103,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
   const { list: notifications } = useSelector((state) => state.notifications);
   
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [isHolidaySubmenuOpen, setIsHolidaySubmenuOpen] = useState(false);
   const [username, setUsername] = useState(() => localStorage.getItem("user-name") || "");
   const [userRole, setUserRole] = useState(() => localStorage.getItem("role") || "user");
@@ -877,7 +879,14 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       className={`flex h-screen overflow-hidden bg-gradient-to-br from-blue-50 to-purple-50`}
     >
       {/* Sidebar for desktop */}
-      <aside className="hidden w-56 flex-shrink-0 border-r border-slate-100 bg-white shadow-[4px_0_24px_rgba(0,0,0,0.06)] md:flex md:flex-col z-20 relative overflow-hidden">
+      <aside className={`hidden ${isCollapsed ? 'w-20' : 'w-56'} flex-shrink-0 border-r border-slate-100 bg-white shadow-[4px_0_24px_rgba(0,0,0,0.06)] md:flex md:flex-col z-40 relative transition-all duration-300`}>
+        {/* Floating Toggle Button */}
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="absolute -right-3 top-6 flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white shadow-sm text-slate-500 hover:text-slate-800 hover:bg-slate-50 transition-all z-[60]"
+        >
+          {isCollapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
+        </button>
         <div className="flex h-20 items-center border-b border-slate-100 bg-white relative w-full overflow-hidden shrink-0">
           <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none"></div>
           <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none"></div>
@@ -885,18 +894,24 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
             to="/master-dashboard"
             className="flex items-center h-full w-full relative group cursor-pointer"
           >
-            <div className="flex w-max animate-marquee-seamless gap-6">
+            <div className={`flex w-max gap-6 ${isCollapsed ? '' : 'animate-marquee-seamless'}`}>
               <div className="flex items-center gap-6 shrink-0">
                 <img src={ganeshLogo} alt="Ganesh" className="h-11 w-auto object-contain rounded-lg shadow-sm border border-slate-100 p-0.5 bg-white transition-transform hover:scale-110" />
-                <img src={jbtLogo} alt="JBT" className="h-9 w-auto object-contain drop-shadow-sm transition-transform hover:scale-110" />
-                <img src={jbeLogo} alt="JBE" className="h-12 w-auto object-contain drop-shadow-sm transition-transform hover:scale-110" />
+                {!isCollapsed && (
+                  <>
+                    <img src={jbtLogo} alt="JBT" className="h-9 w-auto object-contain drop-shadow-sm transition-transform hover:scale-110" />
+                    <img src={jbeLogo} alt="JBE" className="h-12 w-auto object-contain drop-shadow-sm transition-transform hover:scale-110" />
+                  </>
+                )}
               </div>
               {/* Duplicated for seamless scrolling */}
-              <div className="flex items-center gap-6 shrink-0">
-                <img src={ganeshLogo} alt="Ganesh" className="h-11 w-auto object-contain rounded-lg shadow-sm border border-slate-100 p-0.5 bg-white transition-transform hover:scale-110" />
-                <img src={jbtLogo} alt="JBT" className="h-9 w-auto object-contain drop-shadow-sm transition-transform hover:scale-110" />
-                <img src={jbeLogo} alt="JBE" className="h-12 w-auto object-contain drop-shadow-sm transition-transform hover:scale-110" />
-              </div>
+              {!isCollapsed && (
+                <div className="flex items-center gap-6 shrink-0">
+                  <img src={ganeshLogo} alt="Ganesh" className="h-11 w-auto object-contain rounded-lg shadow-sm border border-slate-100 p-0.5 bg-white transition-transform hover:scale-110" />
+                  <img src={jbtLogo} alt="JBT" className="h-9 w-auto object-contain drop-shadow-sm transition-transform hover:scale-110" />
+                  <img src={jbeLogo} alt="JBE" className="h-12 w-auto object-contain drop-shadow-sm transition-transform hover:scale-110" />
+                </div>
+              )}
             </div>
           </Link>
         </div>
@@ -925,7 +940,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                       {moduleName === "Global Settings" && <Settings2 className="h-5 w-5 shrink-0" />}
                       {moduleName === "Rent Management" && <Banknote className="h-5 w-5 shrink-0" />}
                       {moduleName === "Help Slip" && <HelpCircle className="h-5 w-5 shrink-0" />}
-                      <span className="text-left leading-tight">{moduleName}</span>
+                      {!isCollapsed && <span className="text-left leading-tight truncate">{moduleName}</span>}
                     </div>
                   </Link>
                 ) : (
@@ -942,9 +957,10 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                       {moduleName === "HR System" && <UserRound className="h-5 w-5 shrink-0" />}
                       {moduleName === "Petty Cash" && <Banknote className="h-5 w-5 shrink-0" />}
                       {moduleName === "Daily Scheduler" && <CalendarCheck className="h-5 w-5 shrink-0" />}
-                      <span className="text-left leading-tight">{moduleName}</span>
+                      {!isCollapsed && <span className="text-left leading-tight truncate">{moduleName}</span>}
                     </div>
-                    <div className="flex items-center gap-2">
+                    {!isCollapsed && (
+                      <div className="flex items-center gap-2">
                       {!openModules[moduleName] && (() => {
                         const moduleBadgeTotal = moduleRoutes.reduce((total, route) => {
                           if (route.href === "/dashboard/quick-task") return total;
@@ -969,9 +985,10 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                         <ChevronRight className="h-4 w-4 shrink-0" />
                       )}
                     </div>
+                  )}
                   </button>
                 )}
-                {moduleName !== "Master Dashboard" && moduleName !== "Profile" && moduleName !== "Global Settings" && moduleName !== "Rent Management" && moduleName !== "Help Slip" && openModules[moduleName] && moduleRoutes.map((route) => (
+                {moduleName !== "Master Dashboard" && moduleName !== "Profile" && moduleName !== "Global Settings" && moduleName !== "Rent Management" && moduleName !== "Help Slip" && openModules[moduleName] && !isCollapsed && moduleRoutes.map((route) => (
                   <li key={route.label}>
                 {route.isSubmenu ? (
                   <div className="flex flex-col">
@@ -1067,20 +1084,22 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                   </span>
                 )}
               </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-[13px] font-bold text-slate-800 truncate leading-tight mb-0.5">
-                  {username || "User"}
-                </p>
-                <p className="text-[11px] font-medium text-slate-500 truncate leading-tight">
-                  {userRole.toLowerCase() === "admin"
-                    ? isSuperAdmin
-                      ? "Super Admin"
-                      : "Admin"
-                    : userRole.toLowerCase() === "hod"
-                      ? "HOD"
-                      : userEmail || "user@example.com"}
-                </p>
-              </div>
+              {!isCollapsed && (
+                <div className="min-w-0 flex-1">
+                  <p className="text-[13px] font-bold text-slate-800 truncate leading-tight mb-0.5">
+                    {username || "User"}
+                  </p>
+                  <p className="text-[11px] font-medium text-slate-500 truncate leading-tight">
+                    {userRole.toLowerCase() === "admin"
+                      ? isSuperAdmin
+                        ? "Super Admin"
+                        : "Admin"
+                      : userRole.toLowerCase() === "hod"
+                        ? "HOD"
+                        : userEmail || "user@example.com"}
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Dark mode toggle (if available) */}
@@ -1107,8 +1126,8 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
             onClick={handleLogout}
             className="flex items-center justify-center gap-2 w-full bg-slate-50 hover:bg-red-50 text-slate-600 hover:text-red-600 border border-slate-200 hover:border-red-200 px-3 py-2 rounded-xl text-sm font-semibold transition-all"
           >
-            <LogOut className="h-4 w-4" />
-            <span>Logout</span>
+            <LogOut className="h-4 w-4 shrink-0" />
+            {!isCollapsed && <span>Logout</span>}
           </button>
         </div>
       </div>
