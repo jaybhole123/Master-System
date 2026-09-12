@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Settings2, Users, Layout, Search, Plus, Edit2, Trash2, Shield, Settings, ChevronRight, X, Save, LayoutDashboard } from 'lucide-react';
+import { Settings2, Users, Layout, Search, Plus, Edit2, Trash2, Shield, Settings, ChevronRight, X, Save, LayoutDashboard, Download, FileSpreadsheet } from 'lucide-react';
 import AdminLayout from '../../components/layout/AdminLayout';
 import supabase from '../../SupabaseClient';
 import { useMagicToast } from '../../context/MagicToastContext';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 
 const getDesignationStyle = (desg) => {
   if (!desg) return { color: '#64748b' };
@@ -310,6 +313,60 @@ export default function GlobalSettings() {
     u.employee_id?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleDownloadPDF = () => {
+    const doc = new jsPDF();
+    
+    // Add title
+    doc.setFontSize(16);
+    doc.text('User Accounts Report', 14, 15);
+    
+    // Prepare table data
+    const tableColumn = ["Name", "Email", "Role", "Designation", "Department", "Status"];
+    const tableRows = [];
+    
+    filteredUsers.forEach(user => {
+      const userData = [
+        user.user_name || '-',
+        user.email_id || '-',
+        user.role || '-',
+        user.designation || user.Designation || '-',
+        user.department || '-',
+        user.status || '-'
+      ];
+      tableRows.push(userData);
+    });
+    
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 20,
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [220, 38, 38] }
+    });
+    
+    doc.save(`user_accounts_${new Date().toISOString().split('T')[0]}.pdf`);
+    showToast('PDF downloaded successfully', 'success');
+  };
+
+  const handleDownloadExcel = () => {
+    const tableColumn = ["Name", "Email", "Role", "Designation", "Department", "Status"];
+    const tableRows = filteredUsers.map(user => ({
+      Name: user.user_name || '-',
+      Email: user.email_id || '-',
+      Role: user.role || '-',
+      Designation: user.designation || user.Designation || '-',
+      Department: user.department || '-',
+      Status: user.status || '-'
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(tableRows);
+    XLSX.utils.sheet_add_aoa(worksheet, [tableColumn], { origin: "A1" });
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "User Accounts");
+    XLSX.writeFile(workbook, `user_accounts_${new Date().toISOString().split('T')[0]}.xlsx`);
+    showToast('Excel downloaded successfully', 'success');
+  };
+
   return (
     <AdminLayout>
       <div className="max-w-7xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -353,12 +410,26 @@ export default function GlobalSettings() {
                             className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
                         />
                     </div>
-                    <button 
-                    onClick={() => handleOpenModal()}
-                    className="bg-red-600 hover:bg-red-700 text-white px-4 py-1.5 rounded-lg font-bold shadow-md hover:shadow-lg transition-all flex items-center gap-1.5 active:scale-95 text-sm"
-                >
-                    <Plus size={16} /> Create New User
-                </button>
+                    <div className="flex items-center gap-3">
+                        <button 
+                            onClick={handleDownloadExcel}
+                            className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-1.5 rounded-lg font-bold shadow-md hover:shadow-lg transition-all flex items-center gap-1.5 active:scale-95 text-sm"
+                        >
+                            <FileSpreadsheet size={16} /> Export Excel
+                        </button>
+                        <button 
+                            onClick={handleDownloadPDF}
+                            className="bg-slate-800 hover:bg-slate-900 text-white px-4 py-1.5 rounded-lg font-bold shadow-md hover:shadow-lg transition-all flex items-center gap-1.5 active:scale-95 text-sm"
+                        >
+                            <Download size={16} /> Export PDF
+                        </button>
+                        <button 
+                            onClick={() => handleOpenModal()}
+                            className="bg-red-600 hover:bg-red-700 text-white px-4 py-1.5 rounded-lg font-bold shadow-md hover:shadow-lg transition-all flex items-center gap-1.5 active:scale-95 text-sm"
+                        >
+                            <Plus size={16} /> Create New User
+                        </button>
+                    </div>
                 </div>
 
                 <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-280px)]">
