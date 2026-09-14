@@ -67,7 +67,7 @@ const getYouTubeId = (url) => {
 };
 
 
-function TaskCard({ task, index, total, department, doerName, givenBy, dispatch, onUpdate, onRemove }) {
+function TaskCard({ task, index, total, department, doerName, givenBy, dispatch, onUpdate, onRemove, allUsersList }) {
     const [isListening, setIsListening] = useState(false);
     const recognitionRef = useRef(null);
 
@@ -219,24 +219,66 @@ function TaskCard({ task, index, total, department, doerName, givenBy, dispatch,
                     </div>
                 </div>
 
-                {/* Doer */}
-                <div>
-                    <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
-                        Doer's Name <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                        name="doer"
-                        value={task.doer}
-                        onChange={handleChange}
-                        className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:bg-white transition-all text-sm"
-                    >
-                        <option value="">Select Doer</option>
-                        {getFilteredDoers().map((d, i) => (
-                            <option key={i} value={typeof d === 'string' ? d : d.user_name}>
-                                {typeof d === 'string' ? d : d.user_name}
-                            </option>
-                        ))}
-                    </select>
+                {/* Doer & Other */}
+                <div className="grid grid-cols-2 gap-3">
+                    <div>
+                        <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
+                            Doer's Name <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                            name="doer"
+                            value={task.doer}
+                            onChange={handleChange}
+                            className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:bg-white transition-all text-sm"
+                        >
+                            <option value="">Select Doer</option>
+                            {getFilteredDoers().map((d, i) => (
+                                <option key={i} value={typeof d === 'string' ? d : d.user_name}>
+                                    {typeof d === 'string' ? d : d.user_name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
+                            Other
+                        </label>
+                        <select
+                            name="otherDoer"
+                            value={task.doer}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                if (!val) {
+                                    onUpdate(task.id, { doer: "" });
+                                    return;
+                                }
+                                const selectedUser = allUsersList?.find(u => u.user_name === val);
+                                if (selectedUser) {
+                                    let deptToSet = selectedUser.department;
+                                    if (Array.isArray(deptToSet)) deptToSet = deptToSet[0];
+                                    else if (typeof deptToSet === 'string' && deptToSet.includes(',')) deptToSet = deptToSet.split(',')[0].trim();
+                                    else if (typeof deptToSet === 'string' && deptToSet.startsWith('[')) {
+                                        try { deptToSet = JSON.parse(deptToSet)[0]; } catch(err) {}
+                                    }
+                                    
+                                    onUpdate(task.id, { department: deptToSet || task.department, doer: val });
+                                    if (deptToSet) {
+                                        dispatch(uniqueDoerNameData(deptToSet));
+                                    }
+                                } else {
+                                    onUpdate(task.id, { doer: val });
+                                }
+                            }}
+                            className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:bg-white transition-all text-sm"
+                        >
+                            <option value="">Select Other Doer</option>
+                            {allUsersList?.map((d, i) => (
+                                <option key={`all-${i}`} value={d.user_name}>
+                                    {d.user_name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
 
                 {/* Description, Reference & Voice Note */}
@@ -491,6 +533,7 @@ export default function ChecklistTask() {
     const [successMessage, setSuccessMessage] = useState("");
     const [holidays, setHolidays] = useState([]);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+    const [allUsersList, setAllUsersList] = useState([]);
 
     // Per-task list
     const [tasks, setTasks] = useState([
@@ -507,7 +550,12 @@ export default function ChecklistTask() {
             const { data } = await supabase.from('holidays').select('holiday_date');
             if (data) setHolidays(data.map(h => h.holiday_date));
         };
+        const fetchAllUsers = async () => {
+            const { data } = await supabase.from('users').select('user_name, department').eq('status', 'active');
+            if (data) setAllUsersList(data);
+        };
         fetchHolidays();
+        fetchAllUsers();
         dispatch(uniqueDepartmentData());
         dispatch(uniqueGivenByData());
         dispatch(customDropdownDetails());
@@ -1046,6 +1094,7 @@ export default function ChecklistTask() {
                             dispatch={dispatch}
                             onUpdate={updateTask}
                             onRemove={removeTask}
+                            allUsersList={allUsersList}
                         />
                     ))}
                 </div>

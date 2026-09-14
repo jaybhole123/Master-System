@@ -239,7 +239,6 @@ CREATE TABLE public.users (
   system_access text,
   page_access text,
   profile_image text,
-  Designation text,
   reported_by text,
   can_self_assign boolean DEFAULT false,
   designation text,
@@ -330,6 +329,37 @@ CREATE TABLE public.monthly_attendance (
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
   employee_name character varying,
+  day_1 text,
+  day_2 text,
+  day_3 text,
+  day_4 text,
+  day_5 text,
+  day_6 text,
+  day_7 text,
+  day_8 text,
+  day_9 text,
+  day_10 text,
+  day_11 text,
+  day_12 text,
+  day_13 text,
+  day_14 text,
+  day_15 text,
+  day_16 text,
+  day_17 text,
+  day_18 text,
+  day_19 text,
+  day_20 text,
+  day_21 text,
+  day_22 text,
+  day_23 text,
+  day_24 text,
+  day_25 text,
+  day_26 text,
+  day_27 text,
+  day_28 text,
+  day_29 text,
+  day_30 text,
+  day_31 text,
   CONSTRAINT monthly_attendance_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.leave_allotments (
@@ -544,73 +574,140 @@ CREATE TABLE public.tasks (
   created_at timestamp with time zone DEFAULT now(),
   remark text,
   attachments text,
+  color text,
   CONSTRAINT tasks_pkey PRIMARY KEY (id),
   CONSTRAINT tasks_assigned_staff_fkey FOREIGN KEY (assigned_staff) REFERENCES public.users(id)
 );
-
--- 3. Someday Tasks Table (For Someday Tasks Page & Planning)
 CREATE TABLE public.someday_tasks (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
+  title text NOT NULL,
   description text,
-  priority text DEFAULT 'Medium',
+  priority text DEFAULT 'Medium'::text,
   category text,
-  assigned_staff bigint REFERENCES public.users(id),
+  assigned_staff bigint,
   created_by text,
   created_date date,
   created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT someday_tasks_pkey PRIMARY KEY (id)
+  CONSTRAINT someday_tasks_pkey PRIMARY KEY (id),
+  CONSTRAINT someday_tasks_assigned_staff_fkey FOREIGN KEY (assigned_staff) REFERENCES public.users(id)
 );
-
--- Alter query to add color column to tasks table
-ALTER TABLE public.tasks ADD COLUMN color text;
-
--- Query to drop the Designation column from users table
-ALTER TABLE public.users DROP COLUMN "Designation";
-
--- ==========================================
--- MIGRATION: monthly_attendance JSON to Columns
--- ==========================================
-
--- 1. Add 31 day columns to the monthly_attendance table
-DO $$
-BEGIN
-    FOR i IN 1..31 LOOP
-        EXECUTE format('ALTER TABLE public.monthly_attendance ADD COLUMN IF NOT EXISTS day_%s text;', i);
-    END LOOP;
-END
-$$;
-
--- 2. Migrate existing JSON data into the new columns
-UPDATE public.monthly_attendance
-SET 
-  day_1 = attendance_data->>'1',
-  day_2 = attendance_data->>'2',
-  day_3 = attendance_data->>'3',
-  day_4 = attendance_data->>'4',
-  day_5 = attendance_data->>'5',
-  day_6 = attendance_data->>'6',
-  day_7 = attendance_data->>'7',
-  day_8 = attendance_data->>'8',
-  day_9 = attendance_data->>'9',
-  day_10 = attendance_data->>'10',
-  day_11 = attendance_data->>'11',
-  day_12 = attendance_data->>'12',
-  day_13 = attendance_data->>'13',
-  day_14 = attendance_data->>'14',
-  day_15 = attendance_data->>'15',
-  day_16 = attendance_data->>'16',
-  day_17 = attendance_data->>'17',
-  day_18 = attendance_data->>'18',
-  day_19 = attendance_data->>'19',
-  day_20 = attendance_data->>'20',
-  day_21 = attendance_data->>'21',
-  day_22 = attendance_data->>'22',
-  day_23 = attendance_data->>'23',
-  day_24 = attendance_data->>'24',
-  day_25 = attendance_data->>'25',
-  day_26 = attendance_data->>'26',
-  day_27 = attendance_data->>'27',
-  day_28 = attendance_data->>'28',
-  day_29 = attendance_data->>'29',
-  day_30 = attendance_data->>'30',
-  day_31 = attendance_data->>'31';
+CREATE TABLE public.sales_orders (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  pdf_name text,
+  name text,
+  sales_order_number text,
+  sales_order_valid_from date,
+  sales_order_valid_to date,
+  office_area text,
+  mine text,
+  quantity numeric,
+  rate_per_te numeric,
+  amount numeric,
+  pdf_url text,
+  royalty_pmt numeric,
+  nemt numeric,
+  dmf numeric,
+  tcs character varying,
+  lapsed_qty numeric,
+  lifted_qty numeric,
+  so_value_rate numeric,
+  less_emd numeric,
+  CONSTRAINT sales_orders_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.secl_intimation_format_1 (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  name_of_bidder text,
+  date_of_auction text,
+  seller_name text,
+  source_name text,
+  grade_size text,
+  quantity_allotted numeric,
+  winning_bid_price_rs_mt numeric,
+  previous_value text,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  pdf_url text,
+  CONSTRAINT secl_intimation_format_1_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.secl_payment_advices (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  created_at timestamp with time zone DEFAULT now(),
+  is_manual boolean DEFAULT false,
+  mines_name text,
+  customer_name text,
+  quantity numeric,
+  requisite_payment numeric,
+  grand_total numeric,
+  auction_date text,
+  due_date text,
+  bid_price numeric,
+  pdf_tcs_total numeric,
+  tcs_amount numeric,
+  incl_50 numeric,
+  incl_total numeric,
+  pdf_url text,
+  CONSTRAINT secl_payment_advices_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.invoices (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  created_at timestamp with time zone DEFAULT now(),
+  is_manual boolean DEFAULT false,
+  pdf_url text,
+  pdf_name text,
+  invoice_no text,
+  invoice_date text,
+  irn text,
+  ack_no text,
+  ack_date text,
+  eway_bill_no text,
+  vehicle_no text,
+  transport text,
+  place_of_supply text,
+  supplier_name text,
+  supplier_gstin text,
+  supplier_address text,
+  supplier_contact text,
+  buyer_name text,
+  buyer_address text,
+  buyer_gstin text,
+  buyer_pan text,
+  bank_name text,
+  bank_account text,
+  ifsc text,
+  total_quantity text,
+  rate numeric,
+  total_amount numeric,
+  amount_in_words text,
+  cgst numeric,
+  sgst numeric,
+  igst numeric,
+  taxable_amt numeric,
+  round_off numeric,
+  CONSTRAINT invoices_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.auctions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  deal_id character varying,
+  bidder character varying,
+  auction_source character varying,
+  notification_date date,
+  bid_date date,
+  bid_closing_date date,
+  coal_company character varying,
+  pdf_url text,
+  remarks text,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT auctions_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.auction_items (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  auction_id uuid,
+  mine character varying NOT NULL,
+  coal_grade character varying NOT NULL,
+  quantity_offered numeric NOT NULL,
+  base_price numeric NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT auction_items_pkey PRIMARY KEY (id),
+  CONSTRAINT auction_items_auction_id_fkey FOREIGN KEY (auction_id) REFERENCES public.auctions(id)
+);
