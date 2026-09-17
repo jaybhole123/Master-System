@@ -274,6 +274,15 @@ const MonthlyTracker = () => {
     return { total: filteredData.length, pending, onTime, done, delay };
   }, [filteredData]);
 
+  const formatDate = (dateString) => {
+    if (!dateString || typeof dateString !== 'string') return '-';
+    // Ensure dateString is yyyy-mm-dd
+    const parts = dateString.split('-');
+    if (parts.length !== 3) return dateString;
+    const [year, month, day] = parts;
+    return `${month}-${day}-${year}`;
+  };
+
   const handleDownloadPDF = () => {
     const doc = new jsPDF('landscape');
     
@@ -295,8 +304,8 @@ const MonthlyTracker = () => {
         record.property,
         record.tenant,
         record.rent,
-        `${record.dueDateStart} to ${record.dueDateEnd}`,
-        record.receivedDate || '-',
+        `${formatDate(record.dueDateStart)} to ${formatDate(record.dueDateEnd)}`,
+        formatDate(record.receivedDate),
         getDelayDays(record) > 0 ? `${getDelayDays(record)} days` : '-',
         `${record.paymentMode}${record.bankDetails ? `\n${record.bankDetails}` : ''}`,
         getRecordStatus(record),
@@ -343,8 +352,8 @@ const MonthlyTracker = () => {
       Property: record.property,
       Tenant: record.tenant,
       Rent: record.rent,
-      'Due Range': `${record.dueDateStart} to ${record.dueDateEnd}`,
-      'Received Date': record.receivedDate || '-',
+      'Due Range': `${formatDate(record.dueDateStart)} to ${formatDate(record.dueDateEnd)}`,
+      'Received Date': formatDate(record.receivedDate),
       'Payment Mode': record.paymentMode,
       Status: getRecordStatus(record),
       Remarks: record.remarks
@@ -494,9 +503,9 @@ const MonthlyTracker = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">{record.tenant}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">₹{record.rent}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
-                      {record.dueDateStart && record.dueDateEnd ? `${record.dueDateStart} to ${record.dueDateEnd}` : '-'}
+                      {record.dueDateStart && record.dueDateEnd ? `${formatDate(record.dueDateStart)} to ${formatDate(record.dueDateEnd)}` : '-'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">{record.receivedDate || '-'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">{formatDate(record.receivedDate)}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       {getDelayDays(record) > 0 
                         ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">{getDelayDays(record)} days</span>

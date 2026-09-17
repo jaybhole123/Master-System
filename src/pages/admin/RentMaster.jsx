@@ -147,6 +147,14 @@ const RentMaster = () => {
       }
     }
   };
+  const formatDate = (dateString) => {
+    if (!dateString || typeof dateString !== 'string') return '-';
+    // Ensure dateString is yyyy-mm-dd
+    const parts = dateString.split('-');
+    if (parts.length !== 3) return dateString;
+    const [year, month, day] = parts;
+    return `${month}-${day}-${year}`;
+  };
 
   const handleDownloadPDF = () => {
     const doc = new jsPDF('landscape');
@@ -170,8 +178,8 @@ const RentMaster = () => {
         record.tenantContact,
         record.monthlyRent,
         record.securityDeposit,
-        `${record.agreementStart} to\n${record.agreementEnd}`,
-        `${record.rentDueDateStart} to ${record.rentDueDateEnd}`,
+        `${formatDate(record.agreementStart)} to\n${formatDate(record.agreementEnd)}`,
+        `${record.rentDueDateStart} to ${record.rentDueDateEnd} of each month`,
         `${record.paymentMode}${record.bankDetails ? `\n${record.bankDetails}` : ''}`,
         record.remarks || '-'
       ]),
@@ -208,9 +216,9 @@ const RentMaster = () => {
       'Owner/Landlord Name': record.ownerName,
       'Monthly Rent': record.monthlyRent,
       'Security Deposit': record.securityDeposit,
-      'Agreement Start': record.agreementStart,
-      'Agreement End': record.agreementEnd,
-      'Rent Due Range': `${record.rentDueDateStart} to ${record.rentDueDateEnd}`,
+      'Agreement Start': formatDate(record.agreementStart),
+      'Agreement End': formatDate(record.agreementEnd),
+      'Rent Due Range': `${record.rentDueDateStart} to ${record.rentDueDateEnd} of each month`,
       'Payment Mode': record.paymentMode,
       Electricity: record.electricity,
       Maintenance: record.maintenance,
@@ -346,10 +354,10 @@ const RentMaster = () => {
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-700">{record.ownerName}</td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-slate-900">₹{record.monthlyRent}</td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-700">₹{record.securityDeposit}</td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-700">{record.agreementStart}</td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-700">{record.agreementEnd}</td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-700">{formatDate(record.agreementStart)}</td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-700">{formatDate(record.agreementEnd)}</td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-700">
-                      {record.rentDueDateStart && record.rentDueDateEnd ? `${record.rentDueDateStart} to ${record.rentDueDateEnd}` : '-'}
+                      {record.rentDueDateStart && record.rentDueDateEnd ? `${record.rentDueDateStart} to ${record.rentDueDateEnd} of each month` : '-'}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-700">{record.paymentMode}</td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-700">{record.bankDetails || '-'}</td>
