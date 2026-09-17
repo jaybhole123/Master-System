@@ -84,6 +84,15 @@ export default function Attendance() {
         .select()
         .single();
       if (error) throw error;
+
+      // Auto-insert a blank record in monthly_attendance for this new employee so they immediately show up with name
+      const formattedMonth = getFormattedMonth(selectedMonth);
+      await supabase.from('monthly_attendance').insert([{
+        employee_id: data.id,
+        employee_name: data.name,
+        month_year: formattedMonth
+      }]);
+
       setEmployees(prev => [...prev, data]);
       toast.success(`Employee "${trimmedName}" added successfully!`);
       setNewEmployeeName('');
@@ -531,6 +540,7 @@ export default function Attendance() {
       const upsertData = employees.map(emp => {
         const row = {
           employee_id: emp.id,
+          employee_name: emp.name,
           month_year: formattedMonth
         };
         const empData = currentMonthData[emp.id] || {};

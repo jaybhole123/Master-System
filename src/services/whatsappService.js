@@ -834,6 +834,30 @@ export const sendRentPaymentReminder = async (reminderDetails) => {
 };
 
 /**
+ * Send rent payment confirmation notification
+ * @param {Object} paymentDetails - Payment details
+ * @returns {Promise<boolean>} - Success status
+ */
+export const sendRentPaymentConfirmation = async (paymentDetails) => {
+    try {
+        const { phone, name, propertyAndMonth, amount } = paymentDetails;
+        if (!phone) return false;
+
+        // Template: rent_payment_confirmation
+        // Variables: {{1}} name, {{2}} amount, {{3}} propertyAndMonth
+        return await sendWhatsAppTemplate(
+            phone,
+            'rent_payment_confirmation',
+            [name, amount, propertyAndMonth],
+            'en'
+        );
+    } catch (error) {
+        console.error('Error sending rent payment confirmation:', error);
+        return false;
+    }
+};
+
+/**
  * Send custom scheduled notification reminder
  * @param {Object} notificationDetails - Details of the notification
  * @returns {Promise<boolean>} - Success status
@@ -1079,5 +1103,6 @@ export default {
     sendHelpSlipReplyNotification,
     sendNewHelpSlipNotification,
     sendPremiumReminderNotification,
-    sendBirthdayWishes
+    sendBirthdayWishes,
+    sendRentPaymentConfirmation
 };

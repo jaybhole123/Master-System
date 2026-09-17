@@ -151,7 +151,7 @@ export default function SalaryStructure() {
     const selectedEmployeeDetails = employees.find(emp => emp.id === empId);
 
     if(salaries[empId]) {
-      setFormData({
+      setFormData(prev => ({
         basic: salaries[empId].basic || (selectedEmployeeDetails?.baseSalary || 0),
         hra: salaries[empId].hra || 0,
         allowances: salaries[empId].allowances || 0,
@@ -169,11 +169,11 @@ export default function SalaryStructure() {
         monthAdvance: salaries[empId].monthAdvance || 0,
         monthRecovery: salaries[empId].monthRecovery || 0,
         prevAdvanceDeduction: salaries[empId].prevAdvanceDeduction || 0,
-        salaryDate: salaries[empId].salaryDate || '',
-        salaryMonth: salaries[empId].salaryMonth || ''
-      });
+        salaryDate: new Date().toISOString().split('T')[0],
+        salaryMonth: prev.salaryMonth
+      }));
     } else {
-      setFormData({ 
+      setFormData(prev => ({ 
         basic: selectedEmployeeDetails?.baseSalary || 0, 
         hra: 0, 
         allowances: 0, 
@@ -187,13 +187,15 @@ export default function SalaryStructure() {
         presentDays: 0,
         absent: 0,
         leaves: 0,
+        halfDays: 0,
+        holidays: 0,
         leaveDeduction: 0,
         monthAdvance: 0,
         monthRecovery: 0,
         prevAdvanceDeduction: 0,
-        salaryDate: '',
-        salaryMonth: ''
-      });
+        salaryDate: new Date().toISOString().split('T')[0],
+        salaryMonth: prev.salaryMonth
+      }));
     }
   };
 
@@ -206,13 +208,16 @@ export default function SalaryStructure() {
     } else if (name === 'paymentStatus' || name === 'bankAccount' || name === 'salaryDate' || name === 'salaryMonth') {
       updatedData[name] = value;
       
-      // Month dropdown sets Total Days
+      // Month dropdown sets Total Days and Salary Date
       if (name === 'salaryMonth' && value) {
         let year = 2026;
         if (updatedData.salaryDate) {
           const d = new Date(updatedData.salaryDate);
           if (!isNaN(d.getTime())) year = d.getFullYear();
+        } else {
+          year = new Date().getFullYear();
         }
+        
         const daysInMonth = getDaysForMonthName(value, year);
         updatedData.totalDays = daysInMonth;
         updatedData.presentDays = daysInMonth;
@@ -257,6 +262,91 @@ export default function SalaryStructure() {
 
     setFormData(updatedData);
   };
+
+  useEffect(() => {
+    async function syncAttendance() {
+      if (!selectedEmp || !formData.salaryMonth) return;
+      
+      let year = 2026;
+      if (formData.salaryDate) {
+        const d = new Date(formData.salaryDate);
+        if (!isNaN(d.getTime())) year = d.getFullYear();
+      } else {
+        year = new Date().getFullYear();
+      }
+      const monthYearStr = `${formData.salaryMonth} ${year}`;
+      
+      try {
+        const { data, error } = await supabase
+          .from('monthly_attendance')
+          .select('*')
+          .eq('employee_id', selectedEmp)
+          .eq('month_year', monthYearStr)
+          .maybeSingle();
+          
+        if (error) throw error;
+        
+        if (data) {
+          let p = 0, a = 0, l = 0, hd = 0, h = 0;
+          const daysInMonth = getDaysForMonthName(formData.salaryMonth, year);
+          
+          const monthIndex = MONTH_LIST.indexOf(formData.salaryMonth);
+          const today = new Date();
+          const isCurrentMonth = today.getFullYear() === year && today.getMonth() === monthIndex;
+          const maxDayToCount = isCurrentMonth ? today.getDate() : daysInMonth;
+
+          for (let i = 1; i <= daysInMonth; i++) {
+            const val = data[`day_${i}`];
+            const isSunday = new Date(year, monthIndex, i).getDay() === 0;
+
+            if (val === 'P') p++;
+            else if (val === 'A') a++;
+            else if (val === 'L') l++;
+            else if (val === 'HD') hd++;
+            else if (val === 'H') h++;
+            else if (isSunday && i <= maxDayToCount) {
+              p++; // Auto-count Sundays as present if empty
+            }
+          }
+          
+          const presentEquiv = p + h + (hd * 0.5);
+          
+          setFormData(prev => {
+            const baseSal = Number(prev.basic) || 0;
+            const tDays = Number(prev.totalDays) || daysInMonth;
+            
+            let deduction = 0;
+            if (tDays > 0) {
+               const perDaySalary = baseSal / tDays;
+               deduction = Math.round(perDaySalary * a);
+            }
+            
+            return {
+              ...prev,
+              presentDays: presentEquiv,
+              absent: a,
+              leaves: l,
+              leaveDeduction: deduction
+            };
+          });
+          toast.success(`Attendance auto-fetched for ${monthYearStr}`);
+        } else {
+          // If no attendance record is found, default to full present days
+          setFormData(prev => ({
+            ...prev,
+            presentDays: prev.totalDays || 0,
+            absent: 0,
+            leaves: 0,
+            leaveDeduction: 0
+          }));
+        }
+      } catch (err) {
+        console.error('Error fetching monthly attendance for sync:', err);
+      }
+    }
+    // Only run the sync if it's actually manually triggered or we have complete data
+    syncAttendance();
+  }, [selectedEmp, formData.salaryMonth, formData.salaryDate]);
 
   const handleSaveStructure = async () => {
     if(!selectedEmp) return toast.error('Select an employee first.');
@@ -313,6 +403,8 @@ export default function SalaryStructure() {
         presentDays: 0,
         absent: 0,
         leaves: 0,
+        halfDays: 0,
+        holidays: 0,
         leaveDeduction: 0,
         monthAdvance: 0,
         monthRecovery: 0,

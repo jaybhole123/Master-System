@@ -46,7 +46,8 @@ import {
   Settings2,
   Shield,
   HelpCircle,
-  Users
+  Users,
+  Building2
 } from "lucide-react";
 
 // Helper: get module & page title from current pathname
@@ -158,9 +159,10 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       "HR System": path.startsWith("/hr"),
       "Petty Cash": path.startsWith("/petty-cash"),
       "Daily Scheduler": path.startsWith("/daily-scheduler"),
-      "Checklist & Delegation": path.startsWith("/dashboard") && !path.includes("/dashboard/profile") && !path.includes("/dashboard/global-settings") && !path.includes("/dashboard/rent-management") && !path.includes("/dashboard/help-slip"),
+      "Checklist & Delegation": path.startsWith("/dashboard") && !path.includes("/dashboard/profile") && !path.includes("/dashboard/global-settings") && !path.includes("/dashboard/rent-management") && !path.includes("/dashboard/rent-tracker") && !path.includes("/dashboard/help-slip"),
       "Help Slip": path.includes("/dashboard/help-slip"),
       "Document & Substruction": path.includes("/document") || path.includes("/doc-dashboard") || path.includes("/resource-manager") || path.includes("/loan") || path.includes("/subscription") || path.includes("/bg") || path === "/",
+      "Rent Management Tracker": path.includes("/dashboard/rent-tracker"),
     };
   });
 
@@ -426,13 +428,22 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       showFor: ["admin", "user", "HOD"],
       module: "Checklist & Delegation",
     },
+
     {
-      href: "/dashboard/rent-management",
-      label: "Rent Management",
-      icon: Banknote,
-      active: location.pathname === "/dashboard/rent-management",
+      href: "/dashboard/rent-tracker/master",
+      label: "Rent Master",
+      icon: Building2,
+      active: location.pathname === "/dashboard/rent-tracker/master",
       showFor: ["admin", "HOD"],
-      module: "Rent Management",
+      module: "Rent Management Tracker",
+    },
+    {
+      href: "/dashboard/rent-tracker/monthly",
+      label: "Monthly Tracker",
+      icon: CalendarIcon,
+      active: location.pathname === "/dashboard/rent-tracker/monthly",
+      showFor: ["admin", "HOD"],
+      module: "Rent Management Tracker",
     },
     {
       href: "/dashboard/notifications",
@@ -879,7 +890,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       className={`flex h-screen overflow-hidden bg-gradient-to-br from-blue-50 to-purple-50`}
     >
       {/* Sidebar for desktop */}
-      <aside className={`hidden ${isCollapsed ? 'w-20' : 'w-56'} flex-shrink-0 border-r border-slate-100 bg-white shadow-[4px_0_24px_rgba(0,0,0,0.06)] md:flex md:flex-col z-40 relative transition-all duration-300`}>
+      <aside className={`hidden ${isCollapsed ? 'w-20' : 'w-64'} flex-shrink-0 border-r border-slate-100 bg-white shadow-[4px_0_24px_rgba(0,0,0,0.06)] md:flex md:flex-col z-40 relative transition-all duration-300`}>
         {/* Floating Toggle Button */}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
@@ -957,6 +968,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                       {moduleName === "HR System" && <UserRound className="h-5 w-5 shrink-0" />}
                       {moduleName === "Petty Cash" && <Banknote className="h-5 w-5 shrink-0" />}
                       {moduleName === "Daily Scheduler" && <CalendarCheck className="h-5 w-5 shrink-0" />}
+                      {moduleName === "Rent Management Tracker" && <Banknote className="h-5 w-5 shrink-0" />}
                       {!isCollapsed && <span className="text-left leading-tight truncate">{moduleName}</span>}
                     </div>
                     {!isCollapsed && (
@@ -1149,7 +1161,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
             className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
             onClick={() => setIsMobileMenuOpen(false)}
           ></div>
-          <div className="fixed inset-y-0 left-0 w-56 bg-white shadow-[4px_0_24px_rgba(0,0,0,0.1)] flex flex-col">
+          <div className="fixed inset-y-0 left-0 w-64 bg-white shadow-[4px_0_24px_rgba(0,0,0,0.1)] flex flex-col">
             <div className="flex h-16 items-center border-b border-slate-100 px-4 bg-white justify-end">
               <Link
                 to="/master-dashboard"

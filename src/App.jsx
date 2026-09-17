@@ -75,6 +75,8 @@ import NotificationsPage from "./pages/admin/Notifications"
 import TrainingVideo from "./pages/admin/TrainingVideo"
 import InsuranceManagement from "./pages/admin/InsuranceManagement"
 import RentManagement from "./pages/admin/RentManagement"
+import RentMaster from "./pages/admin/RentMaster"
+import MonthlyTracker from "./pages/admin/MonthlyTracker"
 
 // --- Layout & Components ---
 import AdminLayout from "./components/layout/AdminLayout"
@@ -218,6 +220,24 @@ function App() {
                         element={
                             <ProtectedRoute allowedRoles={["admin", "HOD"]}>
                                 <RentManagement />
+                            </ProtectedRoute>
+                        }
+                    />
+
+                    {/* --- Rent Management Tracker --- */}
+                    <Route
+                        path="/dashboard/rent-tracker/master"
+                        element={
+                            <ProtectedRoute allowedRoles={["admin", "HOD"]}>
+                                <RentMaster />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/dashboard/rent-tracker/monthly"
+                        element={
+                            <ProtectedRoute allowedRoles={["admin", "HOD"]}>
+                                <MonthlyTracker />
                             </ProtectedRoute>
                         }
                     />

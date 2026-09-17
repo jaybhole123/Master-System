@@ -499,3 +499,53 @@ ADD COLUMN IF NOT EXISTS salary_date text;
 -- Query to drop the JSON breakdown column from processed_payroll table
 ALTER TABLE public.processed_payroll
 DROP COLUMN IF EXISTS breakdown;
+
+-- Query to drop the JSON attendance_data column from monthly_attendance table
+ALTER TABLE public.monthly_attendance
+DROP COLUMN IF EXISTS attendance_data;
+
+-- ==========================================
+-- RENT MANAGEMENT TRACKER MODULE QUERIES
+-- ==========================================
+
+-- Table: rent_master
+CREATE TABLE IF NOT EXISTS public.rent_master (
+    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    property_name text NOT NULL,
+    tenant_name text NOT NULL,
+    tenant_contact text,
+    owner_name text,
+    monthly_rent numeric DEFAULT 0,
+    security_deposit numeric DEFAULT 0,
+    agreement_start date,
+    agreement_end date,
+    rent_due_date_start text,
+    rent_due_date_end text,
+    payment_mode text DEFAULT 'Cash',
+    bank_details text,
+    electricity text DEFAULT 'Exclude',
+    maintenance text DEFAULT 'Exclude',
+    remarks text,
+    document text,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+-- Table: rent_monthly_tracker
+CREATE TABLE IF NOT EXISTS public.rent_monthly_tracker (
+    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    rent_master_id bigint REFERENCES public.rent_master(id) ON DELETE SET NULL,
+    month text NOT NULL,
+    property text,
+    tenant text,
+    rent numeric DEFAULT 0,
+    due_date_start date,
+    due_date_end date,
+    received_date date,
+    payment_mode text DEFAULT 'Cash',
+    bank_details text,
+    status text DEFAULT 'Pending',
+    remarks text,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);

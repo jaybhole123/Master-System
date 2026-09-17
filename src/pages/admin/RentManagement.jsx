@@ -4,7 +4,7 @@ import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import AdminLayout from '../../components/layout/AdminLayout';
 import supabase from '../../SupabaseClient';
-import { sendRentPaymentReminder } from '../../services/whatsappService';
+import { sendRentPaymentReminder, sendRentPaymentConfirmation } from '../../services/whatsappService';
 import { 
   Search, 
   Plus, 
@@ -240,6 +240,31 @@ const RentManagement = () => {
   const [rentData, setRentData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const openDocument = (docData) => {
+    if (!docData) return;
+    if (docData.startsWith('data:')) {
+      try {
+        const arr = docData.split(',');
+        const mime = arr[0].match(/:(.*?);/)[1];
+        const bstr = atob(arr[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while(n--){
+            u8arr[n] = bstr.charCodeAt(n);
+        }
+        const blob = new Blob([u8arr], {type: mime});
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+      } catch (e) {
+        console.error("Error opening document", e);
+        const win = window.open();
+        win.document.write('<iframe src="' + docData + '" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>');
+      }
+    } else {
+      window.open(docData, '_blank');
+    }
+  };
+
   const fetchRecords = async () => {
     setIsLoading(true);
     const { data, error } = await supabase
@@ -328,7 +353,7 @@ const RentManagement = () => {
     return 'On Time';
   };
 
-  const filteredData = rentData
+  let filteredData = rentData
     .map(item => ({ ...item, computedStatus: getGlobalPaymentStatus(item) }))
     .filter(item => 
     (selectedMonth === 'ALL' || item.month === selectedMonth) && 
@@ -337,6 +362,18 @@ const RentManagement = () => {
     (activeTab === 'HISTORY' ? item.status === 'Done' : activeTab === 'LIVE' ? item.status !== 'Done' : true) &&
     (globalStatusFilter === 'ALL' || item.computedStatus === globalStatusFilter)
   );
+
+  if (activeTab === 'UNIQUE') {
+    const seenNames = new Set();
+    filteredData = filteredData.filter(item => {
+      const nameKey = item.name ? item.name.trim().toLowerCase() : '';
+      if (!seenNames.has(nameKey)) {
+        seenNames.add(nameKey);
+        return true;
+      }
+      return false;
+    });
+  }
 
   const currentMonthData = rentData.filter(item => selectedMonth === 'ALL' || item.month === selectedMonth);
   const totalProperties = new Set(currentMonthData.map(i => i.place)).size;
@@ -454,10 +491,18 @@ const RentManagement = () => {
     }
   };
 
-  const handleMarkAsDone = async (id) => {
-    const { error } = await supabase.from('rent_records').update({ status: 'Done' }).eq('id', id);
+  const handleMarkAsDone = async (record) => {
+    const { error } = await supabase.from('rent_records').update({ status: 'Done' }).eq('id', record.id);
     if (!error) {
       fetchRecords();
+      if (record.phone) {
+        await sendRentPaymentConfirmation({
+          phone: record.phone,
+          name: record.name,
+          propertyAndMonth: `${record.place} - ${record.month}`,
+          amount: record.monthly_rent ? `Rs. ${record.monthly_rent}` : 'the rent amount'
+        });
+      }
     } else {
       console.error("Error updating status:", error);
     }
@@ -650,6 +695,12 @@ const RentManagement = () => {
                   >
                     <FileText className="h-3.5 w-3.5" /> MIS Report
                   </button>
+                  <button 
+                    onClick={() => setActiveTab('UNIQUE')}
+                    className={`flex items-center gap-1.5 px-3 py-1 text-sm font-medium rounded-md transition-colors ${activeTab === 'UNIQUE' ? 'bg-white text-red-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                  >
+                    <FileText className="h-3.5 w-3.5" /> Unique List
+                  </button>
                 </div>
               </div>
               
@@ -756,9 +807,9 @@ const RentManagement = () => {
                       <div>
                         <p className="text-slate-400 text-[10px] uppercase tracking-wider font-bold mb-0.5">Document</p>
                         {record.document ? (
-                          <a href={record.document} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-red-600 hover:text-red-800 font-medium">
+                          <button onClick={() => openDocument(record.document)} className="flex items-center gap-1 text-red-600 hover:text-red-800 font-medium">
                             <FileText className="h-3.5 w-3.5" /> View
-                          </a>
+                          </button>
                         ) : (
                           <span className="text-slate-400 italic">No doc</span>
                         )}
@@ -768,7 +819,7 @@ const RentManagement = () => {
                     <div className="pt-2 flex items-center justify-end gap-2">
                       {record.status !== 'Done' && (
                         <button 
-                          onClick={() => handleMarkAsDone(record.id)}
+                          onClick={() => handleMarkAsDone(record)}
                           className="flex-1 sm:flex-none px-3 py-2 text-xs font-bold text-green-700 bg-green-50 hover:bg-green-100 rounded-lg flex items-center justify-center gap-1.5 transition-colors border border-green-200/50"
                         >
                           <Check className="h-3.5 w-3.5" /> Done
@@ -804,6 +855,7 @@ const RentManagement = () => {
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200">
+                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">S.No.</th>
                       <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Place</th>
                       <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Name</th>
                       <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Owner Name</th>
@@ -829,8 +881,11 @@ const RentManagement = () => {
                   </thead>
                   <tbody className="divide-y divide-slate-200">
                     {filteredData.length > 0 ? (
-                      filteredData.map((record) => (
+                      filteredData.map((record, index) => (
                         <tr key={record.id} className="hover:bg-slate-50/50 transition-colors group">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="font-medium text-slate-500">{(index + 1).toString().padStart(2, '0')}</div>
+                          </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="font-medium text-slate-900">{record.place}</div>
                           </td>
@@ -901,10 +956,10 @@ const RentManagement = () => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             {record.document ? (
-                              <a href={record.document} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-red-600 hover:text-red-800 text-xs font-medium">
+                              <button onClick={() => openDocument(record.document)} className="flex items-center gap-1 text-red-600 hover:text-red-800 text-xs font-medium">
                                 <FileText className="h-3.5 w-3.5" />
                                 View
-                              </a>
+                              </button>
                             ) : (
                               <span className="text-slate-400 text-xs italic">No doc</span>
                             )}
@@ -928,7 +983,7 @@ const RentManagement = () => {
                               <div className="absolute right-8 top-12 w-36 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-20">
                                 {record.status !== 'Done' && (
                                   <button 
-                                    onClick={() => { handleMarkAsDone(record.id); setActiveActionId(null); }}
+                                    onClick={() => { handleMarkAsDone(record); setActiveActionId(null); }}
                                     className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                                   >
                                     <Check className="h-4 w-4 text-green-600" /> Done
