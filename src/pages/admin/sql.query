@@ -289,43 +289,10 @@ CREATE TABLE public.user_notifications (
   CONSTRAINT user_notifications_notification_id_fkey FOREIGN KEY (notification_id) REFERENCES public.notifications(id),
   CONSTRAINT user_notifications_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
-CREATE TABLE public.rent_records (
-  id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  place character varying NOT NULL,
-  name character varying NOT NULL,
-  phone character varying NOT NULL,
-  date date NOT NULL,
-  method USER-DEFINED DEFAULT 'CASH'::payment_method_enum,
-  month USER-DEFINED NOT NULL,
-  document_url text,
-  status USER-DEFINED DEFAULT 'Pending'::rent_status_enum,
-  created_at timestamp with time zone DEFAULT now(),
-  due_date date,
-  message text,
-  reminder_sent boolean DEFAULT false,
-  owner_name character varying,
-  monthly_rent numeric,
-  security_deposit numeric,
-  agreement_start date,
-  agreement_end date,
-  rent_due_date date,
-  payment_mode character varying,
-  last_rent_received date,
-  payment_status character varying,
-  rent_revision_date date,
-  electricity numeric,
-  maintenance numeric,
-  remarks text,
-  broker_number character varying,
-  second_reminder_date date,
-  second_reminder_sent boolean DEFAULT false,
-  CONSTRAINT rent_records_pkey PRIMARY KEY (id)
-);
 CREATE TABLE public.monthly_attendance (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   employee_id text NOT NULL,
   month_year text NOT NULL,
-  attendance_data jsonb NOT NULL DEFAULT '{}'::jsonb,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
   employee_name character varying,
@@ -360,6 +327,7 @@ CREATE TABLE public.monthly_attendance (
   day_29 text,
   day_30 text,
   day_31 text,
+  salary numeric,
   CONSTRAINT monthly_attendance_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.leave_allotments (
@@ -404,6 +372,8 @@ CREATE TABLE public.salary_structures (
   salary_date date,
   salary_month text,
   absent numeric DEFAULT 0,
+  half_days numeric DEFAULT 0,
+  holidays numeric DEFAULT 0,
   CONSTRAINT salary_structures_pkey PRIMARY KEY (employee_id)
 );
 CREATE TABLE public.payroll_settings (
@@ -628,6 +598,7 @@ CREATE TABLE public.secl_intimation_format_1 (
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
   updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
   pdf_url text,
+  submitted_date date,
   CONSTRAINT secl_intimation_format_1_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.secl_payment_advices (
@@ -710,4 +681,45 @@ CREATE TABLE public.auction_items (
   created_at timestamp with time zone DEFAULT now(),
   CONSTRAINT auction_items_pkey PRIMARY KEY (id),
   CONSTRAINT auction_items_auction_id_fkey FOREIGN KEY (auction_id) REFERENCES public.auctions(id)
+);
+CREATE TABLE public.rent_master (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  property_name text NOT NULL,
+  tenant_name text NOT NULL,
+  tenant_contact text,
+  owner_name text,
+  monthly_rent numeric DEFAULT 0,
+  security_deposit numeric DEFAULT 0,
+  agreement_start date,
+  agreement_end date,
+  rent_due_date_start text,
+  rent_due_date_end text,
+  payment_mode text DEFAULT 'Cash'::text,
+  bank_details text,
+  electricity text DEFAULT 'Exclude'::text,
+  maintenance text DEFAULT 'Exclude'::text,
+  remarks text,
+  document text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT rent_master_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.rent_monthly_tracker (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  rent_master_id bigint,
+  month text NOT NULL,
+  property text,
+  tenant text,
+  rent numeric DEFAULT 0,
+  due_date_start date,
+  due_date_end date,
+  received_date date,
+  payment_mode text DEFAULT 'Cash'::text,
+  bank_details text,
+  status text DEFAULT 'Pending'::text,
+  remarks text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT rent_monthly_tracker_pkey PRIMARY KEY (id),
+  CONSTRAINT rent_monthly_tracker_rent_master_id_fkey FOREIGN KEY (rent_master_id) REFERENCES public.rent_master(id)
 );

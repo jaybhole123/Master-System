@@ -79,15 +79,43 @@ export default function MasterDashboard() {
           { name: 'Overdue', value: overdue, fill: '#ef4444' }
         ];
 
-        // 2. Rent (Overall)
-        const { data: rentRecords } = await supabase.from('rent_records').select('monthly_rent, status');
-        const rent = rentRecords || [];
-        const expectedRent = rent.reduce((acc, curr) => acc + (Number(curr.monthly_rent) || 0), 0);
-        const collectedRent = rent.filter(r => r.status === 'Done').reduce((acc, curr) => acc + (Number(curr.monthly_rent) || 0), 0);
+        // 2. Rent Management Tracker Stats
+        const { data: rentMasterRecords } = await supabase.from('rent_master').select('id');
+        const rentTotalTenant = rentMasterRecords ? rentMasterRecords.length : 0;
         
-        const rentChart = [
-          { name: 'Rent Status', Expected: expectedRent, Collected: collectedRent }
-        ];
+        const currentMonthStr = new Date().toLocaleString('default', { month: 'long' });
+        const { data: monthlyTrackerData } = await supabase.from('rent_monthly_tracker').select('*').eq('month', currentMonthStr);
+        
+        let rPending = 0, rOnTime = 0, rDone = 0, rDelay = 0;
+        
+        const getRentStatus = (record) => {
+          if (record.status === 'Done') {
+            if (record.received_date && record.due_date_start && record.due_date_end && 
+                record.received_date >= record.due_date_start && record.received_date <= record.due_date_end) {
+              return 'On Time';
+            }
+            return 'Done';
+          }
+          const today = new Date().toISOString().split('T')[0];
+          if (record.due_date_end && today > record.due_date_end) return 'Delay';
+          return 'Pending';
+        };
+
+        (monthlyTrackerData || []).forEach(r => {
+          const s = getRentStatus(r);
+          if (s === 'Pending') rPending++;
+          else if (s === 'On Time') rOnTime++;
+          else if (s === 'Done') rDone++;
+          else if (s === 'Delay') rDelay++;
+        });
+
+        const rentStatsObj = {
+          total: rentTotalTenant,
+          pending: rPending,
+          onTime: rOnTime,
+          done: rDone,
+          delay: rDelay
+        };
 
         // 3. HR & Global Settings Stats
         const { data: usersData, error: usersError } = await supabase.from('users').select('*');
@@ -177,7 +205,7 @@ export default function MasterDashboard() {
 
         setStats({
           tasksData: tasksChart,
-          rentData: rentChart,
+          rentStats: rentStatsObj,
           pettyCashData: pcChart,
           hrData: hrChart,
           hrTotalEmployees: totalEmployees,
@@ -338,7 +366,7 @@ export default function MasterDashboard() {
             </Link>
           </div>
 
-          {/* 2. Rent Management Module (Bar Chart) */}
+          {/* 2. Rent Management Module */}
           <div className="bg-white rounded-3xl p-6 shadow-sm border border-emerald-100 hover:shadow-xl transition-all duration-300 flex flex-col justify-between">
             <div>
               <div className="flex items-center gap-4 mb-4">
@@ -347,31 +375,42 @@ export default function MasterDashboard() {
                 </div>
                 <div>
                   <h2 className="text-lg font-bold text-gray-900 leading-tight">Rent Management</h2>
-                  <p className="text-xs text-gray-500">Expected vs Collected (Current Month)</p>
+                  <p className="text-xs text-gray-500">Current Month Status</p>
                 </div>
               </div>
               
-              <div className="h-48 w-full mb-4">
+              <div className="flex-1 mb-4 w-full">
                 {stats.loading ? (
-                  <div className="w-full h-full flex items-center justify-center">
+                  <div className="w-full h-40 flex items-center justify-center">
                     <Loader2 className="animate-spin text-emerald-300 h-8 w-8" />
                   </div>
                 ) : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={stats.rentData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                      <XAxis dataKey="name" hide />
-                      <YAxis tick={{fontSize: 10}} tickFormatter={(value) => `₹${value/1000}k`} />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
-                      <Bar dataKey="Expected" fill={COLORS.emerald[1]} radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="Collected" fill={COLORS.emerald[0]} radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
+                  <div className="grid grid-cols-2 gap-2 h-full content-start">
+                    <div className="flex flex-col items-center justify-center bg-emerald-50/50 p-2.5 rounded-xl border border-emerald-100/50 text-center col-span-2">
+                      <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Tenant</span>
+                      <span className="text-xl font-black text-slate-700 mt-0.5">{stats.rentStats?.total || 0}</span>
+                    </div>
+                    <div className="flex flex-col items-center justify-center bg-orange-50 p-2 rounded-xl border border-orange-100 text-center">
+                      <span className="text-[10px] font-bold text-orange-600 leading-tight">Pending</span>
+                      <span className="text-lg font-black text-orange-700 mt-0.5">{stats.rentStats?.pending || 0}</span>
+                    </div>
+                    <div className="flex flex-col items-center justify-center bg-green-50 p-2 rounded-xl border border-green-100 text-center">
+                      <span className="text-[10px] font-bold text-green-600 leading-tight">On Time</span>
+                      <span className="text-lg font-black text-green-700 mt-0.5">{stats.rentStats?.onTime || 0}</span>
+                    </div>
+                    <div className="flex flex-col items-center justify-center bg-blue-50 p-2 rounded-xl border border-blue-100 text-center">
+                      <span className="text-[10px] font-bold text-blue-600 leading-tight">Done</span>
+                      <span className="text-lg font-black text-blue-700 mt-0.5">{stats.rentStats?.done || 0}</span>
+                    </div>
+                    <div className="flex flex-col items-center justify-center bg-red-50 p-2 rounded-xl border border-red-100 text-center">
+                      <span className="text-[10px] font-bold text-red-600 leading-tight">Delay</span>
+                      <span className="text-lg font-black text-red-700 mt-0.5">{stats.rentStats?.delay || 0}</span>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
-            <Link to="/dashboard/rent-management" className="flex items-center justify-center w-full py-3 px-4 bg-emerald-50 text-emerald-700 font-bold rounded-xl hover:bg-emerald-600 hover:text-white transition-all">
+            <Link to="/dashboard/rent-tracker/master" className="flex items-center justify-center w-full py-3 px-4 bg-emerald-50 text-emerald-700 font-bold rounded-xl hover:bg-emerald-600 hover:text-white transition-all mt-auto">
               Open Module <ArrowRight size={16} className="ml-2" />
             </Link>
           </div>

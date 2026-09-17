@@ -890,7 +890,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       className={`flex h-screen overflow-hidden bg-gradient-to-br from-blue-50 to-purple-50`}
     >
       {/* Sidebar for desktop */}
-      <aside className={`hidden ${isCollapsed ? 'w-20' : 'w-64'} flex-shrink-0 border-r border-slate-100 bg-white shadow-[4px_0_24px_rgba(0,0,0,0.06)] md:flex md:flex-col z-40 relative transition-all duration-300`}>
+      <aside className={`hidden ${isCollapsed ? 'w-20' : 'w-[235px]'} flex-shrink-0 border-r border-slate-100 bg-white shadow-[4px_0_24px_rgba(0,0,0,0.06)] md:flex md:flex-col z-40 relative transition-all duration-300`}>
         {/* Floating Toggle Button */}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
@@ -951,7 +951,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                       {moduleName === "Global Settings" && <Settings2 className="h-5 w-5 shrink-0" />}
                       {moduleName === "Rent Management" && <Banknote className="h-5 w-5 shrink-0" />}
                       {moduleName === "Help Slip" && <HelpCircle className="h-5 w-5 shrink-0" />}
-                      {!isCollapsed && <span className="text-left leading-tight truncate">{moduleName}</span>}
+                      {!isCollapsed && <span className="text-left leading-tight whitespace-normal break-words pr-1 text-[13.5px]">{moduleName}</span>}
                     </div>
                   </Link>
                 ) : (
@@ -969,7 +969,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                       {moduleName === "Petty Cash" && <Banknote className="h-5 w-5 shrink-0" />}
                       {moduleName === "Daily Scheduler" && <CalendarCheck className="h-5 w-5 shrink-0" />}
                       {moduleName === "Rent Management Tracker" && <Banknote className="h-5 w-5 shrink-0" />}
-                      {!isCollapsed && <span className="text-left leading-tight truncate">{moduleName}</span>}
+                      {!isCollapsed && <span className="text-left leading-tight whitespace-normal break-words pr-1 text-[13.5px]">{moduleName}</span>}
                     </div>
                     {!isCollapsed && (
                       <div className="flex items-center gap-2">
@@ -1161,7 +1161,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
             className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
             onClick={() => setIsMobileMenuOpen(false)}
           ></div>
-          <div className="fixed inset-y-0 left-0 w-64 bg-white shadow-[4px_0_24px_rgba(0,0,0,0.1)] flex flex-col">
+          <div className="fixed inset-y-0 left-0 w-[240px] bg-white shadow-[4px_0_24px_rgba(0,0,0,0.1)] flex flex-col">
             <div className="flex h-16 items-center border-b border-slate-100 px-4 bg-white justify-end">
               <Link
                 to="/master-dashboard"
@@ -1199,7 +1199,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                           {moduleName === "Global Settings" && <Settings2 className="h-5 w-5 shrink-0" />}
                           {moduleName === "Rent Management" && <Banknote className="h-5 w-5 shrink-0" />}
                           {moduleName === "Help Slip" && <HelpCircle className="h-5 w-5 shrink-0" />}
-                          <span className="text-left leading-tight truncate">{moduleName}</span>
+                          <span className="text-left leading-tight whitespace-normal break-words pr-1 text-[13.5px]">{moduleName}</span>
                         </div>
                       </Link>
                     ) : (
@@ -1216,7 +1216,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                           {moduleName === "HR System" && <UserRound className="h-5 w-5 shrink-0" />}
                           {moduleName === "Petty Cash" && <Banknote className="h-5 w-5 shrink-0" />}
                           {moduleName === "Daily Scheduler" && <CalendarCheck className="h-5 w-5 shrink-0" />}
-                          <span className="text-left leading-tight truncate">{moduleName}</span>
+                          <span className="text-left leading-tight whitespace-normal break-words pr-1 text-[13.5px]">{moduleName}</span>
                         </div>
                         {openModules[moduleName] ? (
                           <ChevronDown className="h-4 w-4 shrink-0" />
