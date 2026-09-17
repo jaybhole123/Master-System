@@ -325,15 +325,27 @@ const EditDocument: React.FC<EditDocumentProps> = ({ isOpen, onClose, documentId
                         <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 
-                                {/* 1. Document Name (Input) */}
+                                {/* 1. Document Name / Policy No */}
                                 <div>
-                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Document Name <span className="text-red-500">*</span></label>
+                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Policy No / Document Name <span className="text-red-500">*</span></label>
                                     <input
                                         type="text"
                                         required
                                         className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
                                         value={formData.documentName || ''}
                                         onChange={e => handleChange('documentName', e.target.value)}
+                                    />
+                                </div>
+
+                                {/* Company Name */}
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Company</label>
+                                    <input
+                                        type="text"
+                                        className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
+                                        value={formData.companyName || ''}
+                                        onChange={e => handleChange('companyName', e.target.value)}
+                                        placeholder="Company Name"
                                     />
                                 </div>
 
@@ -417,15 +429,15 @@ const EditDocument: React.FC<EditDocumentProps> = ({ isOpen, onClose, documentId
                                     />
                                 </div>
 
-                                {/* 8. Concern Person Name */}
-                                <div className="hidden">
-                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Concern Person Name</label>
+                                {/* 8. BANK (Mapped to concernPersonName) */}
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-600 mb-1">BANK</label>
                                     <input
                                         type="text"
                                         className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
                                         value={formData.concernPersonName || ''}
                                         onChange={e => handleChange('concernPersonName', e.target.value)}
-                                        placeholder="Name"
+                                        placeholder="Bank Name"
                                     />
                                 </div>
 

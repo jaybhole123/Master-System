@@ -95,7 +95,7 @@ export default function GlobalSettings() {
     role: 'user',
     status: 'active',
     department: '',
-    Designation: '',
+    designation: '',
     system_access: [],
     page_access: []
   });
@@ -145,7 +145,7 @@ export default function GlobalSettings() {
         role: user.role || 'user',
         status: user.status || 'active',
         department: user.department || '',
-        Designation: user.designation || user.Designation || '',
+        designation: user.designation || user.Designation || '',
         system_access: parsedSystemAccess,
         page_access: parsedPageAccess,
         profile_image: '' // fetched asynchronously below
@@ -168,7 +168,7 @@ export default function GlobalSettings() {
         role: 'user',
         status: 'active',
         department: '',
-        Designation: '',
+        designation: '',
         system_access: [],
         page_access: [],
         profile_image: ''
@@ -699,8 +699,8 @@ export default function GlobalSettings() {
                                 <label className="text-xs font-bold text-slate-500 uppercase">Designation</label>
                                 <input
                                     type="text"
-                                    value={formData.Designation}
-                                    onChange={(e) => setFormData({...formData, Designation: e.target.value})}
+                                    value={formData.designation}
+                                    onChange={(e) => setFormData({...formData, designation: e.target.value})}
                                     className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all"
                                 />
                             </div>

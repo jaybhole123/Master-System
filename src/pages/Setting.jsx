@@ -516,7 +516,7 @@ const Setting = () => {
     status: 'active',
     department: '',
     user_access: '',
-    Designation: '',
+    designation: '',
     profile_image: '',
     reported_by: '',
     can_self_assign: false
@@ -631,7 +631,7 @@ const Setting = () => {
       status: userForm.status,
       user_access: userForm.user_access || userForm.department,
       department: userForm.department,
-      Designation: userForm.Designation || null,
+      designation: userForm.designation || null,
       profile_image: imageUrl,
       leave_date: userForm.leave_date || null,
       leave_end_date: userForm.leave_end_date || null,
