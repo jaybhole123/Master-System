@@ -80,8 +80,7 @@ const DropdownField = ({ value, onChange, isDate, styles, options }) => {
             color: "var(--muted)",
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
-            background: "var(--panel)"
+            justifyContent: "center"
           }}
           title="Edit selected value"
         >

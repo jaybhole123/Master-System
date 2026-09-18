@@ -15,7 +15,7 @@ export default function SECLIntimationResults({ data, fileName, onReset, onAddFi
   const fileInputRef = useRef(null);
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(null);
 
   // --- COLUMN TOGGLE LOGIC ---
   const [showColumnDropdown, setShowColumnDropdown] = useState(false);

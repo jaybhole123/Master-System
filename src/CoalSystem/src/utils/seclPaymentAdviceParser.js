@@ -16,13 +16,13 @@ export function normalizeDate(raw) {
     return y;
   }
   
-  let mIso = s.match(/^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})$/);
+  let mIso = s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
   if (mIso) {
     let monIso = new Date(+mIso[1], +mIso[2] - 1, +mIso[3]).toLocaleString('en-US', { month: 'short' });
     return mIso[3].padStart(2, '0') + '-' + monIso + '-' + mIso[1];
   }
   
-  let m = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})$/);
+  let m = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})$/);
   if (m) {
     let y1 = fixYear(m[3]);
     let mon = new Date(+y1, +m[2] - 1, +m[1]).toLocaleString('en-US', { month: 'short' });
@@ -45,7 +45,7 @@ export function normalizeDate(raw) {
     return m3[2].padStart(2, '0') + '-' + mon3 + '-' + y3;
   }
   
-  let m4 = s.match(/^(\d{1,2})[.\-\/]([A-Za-z]{3,})[.\-\/](\d{2,4})$/);
+  let m4 = s.match(/^(\d{1,2})[-/.]([A-Za-z]{3,})[-/.](\d{2,4})$/);
   if (m4) {
     let mk4 = m4[2].toLowerCase().slice(0, 3);
     let mon4 = months[mk4] || (m4[2].charAt(0).toUpperCase() + m4[2].slice(1, 3).toLowerCase());
@@ -179,7 +179,7 @@ export async function parseSECLPaymentAdvice(file) {
   let ddIdx = idx(/Payment due Date/i);
   if (ddIdx >= 0) {
     let ddl = allLines[ddIdx];
-    let ddm = ddl.match(/Payment due Date[:\s]+([A-Za-z]{3}[a-z]*\s+\d{1,2},?\s+\d{4}|\d{1,2}[.\/\-]\d{1,2}[.\/\-]\d{2,4})/i);
+    let ddm = ddl.match(/Payment due Date[:\s]+([A-Za-z]{3}[a-z]*\s+\d{1,2},?\s+\d{4}|\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4})/i);
     if (ddm) dueDate = ddm[1].trim();
     else {
       let ddf = ddl.match(/Payment due Date[:\s]+(\S[^G][^\s]{3,})/i);
@@ -251,21 +251,21 @@ export async function parseSECLPaymentAdvice(file) {
   for (let i = 0; i < allLines.length; i++) {
     let al = allLines[i];
     if (/Auction\s*Date/i.test(al)) {
-      let adm = al.match(/Auction\s*Date[^:]*:\s*([0-9]{1,2}[.\-\/]?[A-Za-z]{3}[.\-\/]?[0-9]{4})/i);
+      let adm = al.match(/Auction\s*Date[^:]*:\s*([0-9]{1,2}[-/.]?([A-Za-z]{3})?[-/.]?[0-9]{4})/i);
       if (adm) {
-        auctionDate = adm[1].toUpperCase().replace(/[.\-\/]/g, '.').replace(/(\d{1,2})\.([A-Z]{3})\.(\d{4})/, function(_, d, m, y) { return d.padStart(2, '0') + '.' + m + '.' + y; });
+        auctionDate = adm[1].toUpperCase().replace(/[-/.]/g, '.').replace(/(\d{1,2})\.([A-Z]{3})\.(\d{4})/, function(_, d, m, y) { return d.padStart(2, '0') + '.' + m + '.' + y; });
         break;
       }
-      let adm2 = al.match(/Auction\s*Date[^:]*:\s*(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{4})/i);
+      let adm2 = al.match(/Auction\s*Date[^:]*:\s*(\d{1,2}[-/.]\d{1,2}[-/.]\d{4})/i);
       if (adm2) {
         auctionDate = adm2[1];
         break;
       }
       if (i + 1 < allLines.length) {
         let nl = allLines[i + 1];
-        let adm3 = nl.match(/^([0-9]{1,2}[.\-\/]?[A-Za-z]{3}[.\-\/]?[0-9]{4})$/i);
+        let adm3 = nl.match(/^([0-9]{1,2}[-/.]?([A-Za-z]{3})?[-/.]?[0-9]{4})$/i);
         if (adm3) {
-          auctionDate = adm3[1].toUpperCase().replace(/[.\-\/]/g, '.').replace(/(\d{1,2})\.([A-Z]{3})\.(\d{4})/, function(_, d, m, y) { return d.padStart(2, '0') + '.' + m + '.' + y; });
+          auctionDate = adm3[1].toUpperCase().replace(/[-/.]/g, '.').replace(/(\d{1,2})\.([A-Z]{3})\.(\d{4})/, function(_, d, m, y) { return d.padStart(2, '0') + '.' + m + '.' + y; });
           break;
         }
       }
@@ -286,7 +286,7 @@ export async function parseSECLPaymentAdvice(file) {
       }
       let found = false;
       for (let j = i; j <= Math.min(i + 4, allLines.length - 1); j++) {
-        let am = allLines[j].match(/Amount\s*[:\-]\s*([\d,]+\.?\d*)/i);
+        let am = allLines[j].match(/Amount\s*[:-]\s*([\d,]+\.?\d*)/i);
         if (am) {
           pdfTcsTotal = pn(am[1]) || 0;
           found = true;

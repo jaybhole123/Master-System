@@ -165,9 +165,9 @@ export function parseSalesOrder(text) {
     month: matchOne(clean, /\bMonth\s*:\s*(\d+)/i),
     legacy_fsa_no: matchOne(clean, /Legacy FSA No\s*:\s*(\d+)/i),
     scheme_name: matchOne(clean, /Scheme Name\s*:\s*(.+?)(?=\s+(?:Auction Date|Area\s*:|Contract Signing))/i),
-    auction_date: matchOne(clean, /Auction Date\s*:\s*([\d\.]+ [a-zA-Z]{3} \d{4}|[a-zA-Z]{3} \d{1,2}, \d{4})/i),
-    contract_signing_date: matchOne(clean, /Contract Signing Date\s*:\s*([\d\.]+ [a-zA-Z]{3} \d{4}|[a-zA-Z]{3} \d{1,2}, \d{4})/i),
-    contract_expiry_date: matchOne(clean, /Contract Expiry Date\s*:\s*([\d\.]+ [a-zA-Z]{3} \d{4}|[a-zA-Z]{3} \d{1,2}, \d{4})/i),
+    auction_date: matchOne(clean, /Auction Date\s*:\s*([\d.]+ [a-zA-Z]{3} \d{4}|[a-zA-Z]{3} \d{1,2}, \d{4})/i),
+    contract_signing_date: matchOne(clean, /Contract Signing Date\s*:\s*([\d.]+ [a-zA-Z]{3} \d{4}|[a-zA-Z]{3} \d{1,2}, \d{4})/i),
+    contract_expiry_date: matchOne(clean, /Contract Expiry Date\s*:\s*([\d.]+ [a-zA-Z]{3} \d{4}|[a-zA-Z]{3} \d{1,2}, \d{4})/i),
     mode_of_transport: matchOne(clean, /Mode of Transport\s*:\s*([A-Za-z]+)/i),
     type_of_consumer: matchOne(clean, /Type of Consumer\s*:\s*([A-Za-z ]+?)(?=\s+(?:PCB|STC|Factory|Name of|Quantity))/i),
     destination: matchOne(clean, /\bDestination\s*:\s*([A-Za-z ]*?)(?=\s+(?:Line Item|$))/i),
@@ -197,7 +197,7 @@ export function parseSalesOrder(text) {
   //   "Line Item Mine Material Material Description HSN Code Unit of Measure Quantity"
   //   "10 KHAIRAHA UG 4100000000 NON-COKING COAL 27011200 TE 496"
   const liMatch = clean.match(
-    /(?:Line Item\s+Mine\s+Material\s+Material Description\s+HSN Code\s+Unit of Measure\s+Quantity\s*)(\d+)\s+([A-Z][A-Z ]+?)\s+(\d{6,})\s+([A-Z\-]+(?:\s+[A-Z\-]+)*?\s*COAL)\s+(\d{5,})\s+(TE)\s+([\d,]+)/i
+    /(?:Line Item\s+Mine\s+Material\s+Material Description\s+HSN Code\s+Unit of Measure\s+Quantity\s*)(\d+)\s+([A-Z][A-Z ]+?)\s+(\d{6,})\s+([A-Z-]+(?:\s+[A-Z-]+)*?\s*COAL)\s+(\d{5,})\s+(TE)\s+([\d,]+)/i
   );
   if (liMatch) {
     line_items.push({
@@ -214,7 +214,7 @@ export function parseSalesOrder(text) {
   // Fallback: try without the header
   if (line_items.length === 0) {
     const liFallback = clean.match(
-      /(\d{1,3})\s+([A-Z][A-Z ]{2,}?(?:OC|UG|MINE|OCM|OCP))\s+(\d{6,})\s+([A-Z\-]+(?:\s+[A-Z\-]+)*\s*COAL)\s+(\d{5,})\s+(TE)\s+([\d,]+)/i
+      /(\d{1,3})\s+([A-Z][A-Z ]{2,}?(?:OC|UG|MINE|OCM|OCP))\s+(\d{6,})\s+([A-Z-]+(?:\s+[A-Z-]+)*\s*COAL)\s+(\d{5,})\s+(TE)\s+([\d,]+)/i
     );
     if (liFallback) {
       line_items.push({
@@ -241,7 +241,7 @@ export function parseSalesOrder(text) {
     block = block.replace(/^Pricing Description\s*Rate Per TE\(INR\)\s*Amount\(INR\)\s*/i, '');
 
     // Each pricing row: "Label text 1234.56 5678.90"
-    const rowRe = /([A-Za-z][A-Za-z .\-]*?(?:\([^)]*\))?[A-Za-z%. )-]+?)\s+([\d,]+\.\d{2})\s+([\d,]+\.\d{2})/g;
+    const rowRe = /([-A-Za-z .]*?(?:\([^)]*\))?[A-Za-z%. )-]+?)\s+([\d,]+\.\d{2})\s+([\d,]+\.\d{2})/g;
     let m;
     while ((m = rowRe.exec(block)) !== null) {
       const label = m[1].trim().replace(/\s+/g, ' ');

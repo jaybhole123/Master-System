@@ -103,8 +103,8 @@ export default function SECLFormat2Page() {
       company: grab(/Company\s*Name\s*:?\s*([A-Za-z0-9 .&()'-]+?)(?=\s*Contact Person|\s*Street|\s*UBID)/i, text),
       contact: grab(/Contact\s*Person\s*:?\s*([A-Za-z .]+?)(?=\s*Street|\s*UBID|\s*City)/i, text),
       pan: grab(/PAN\s*NO\.?\s*:?\s*([A-Z0-9]{8,12})/i, text),
-      auctionNo: grab(/Auction\s*(?:Number|ID|No\.?)\s*:?\s*([A-Za-z0-9_\/.\-]+)/i, text),
-      period: grab(/(?:Period of Auction|Auction\s*Date)\s*:?\s*([0-9:\s\-\/A-Za-z:.:]+?)(?=\s*We are pleased|\s*Bidder Details|\s*Dear|\s*Allocated Information|$)/i, text)
+      auctionNo: grab(/Auction\s*(?:Number|ID|No\.?)\s*:?\s*([A-Za-z0-9_/.-]+)/i, text),
+      period: grab(/(?:Period of Auction|Auction\s*Date)\s*:?\s*([-0-9:\s/A-Za-z.]+?)(?=\s*We are pleased|\s*Bidder Details|\s*Dear|\s*Allocated Information|$)/i, text)
     };
   }
 
