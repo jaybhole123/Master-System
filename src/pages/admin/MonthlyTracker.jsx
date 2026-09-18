@@ -298,8 +298,9 @@ const MonthlyTracker = () => {
     
     autoTable(doc, {
       startY: 35,
-      head: [['Month', 'Property', 'Tenant', 'Rent (Rs)', 'Due Range', 'Received Date', 'Delay', 'Bank & Mode', 'Status', 'Remarks']],
-      body: filteredData.map(record => [
+      head: [['S.No.', 'Month', 'Property', 'Tenant', 'Rent (Rs)', 'Due Range', 'Received Date', 'Delay', 'Bank & Mode', 'Status', 'Remarks']],
+      body: filteredData.map((record, index) => [
+        index + 1,
         record.month,
         record.property,
         record.tenant,
@@ -328,12 +329,12 @@ const MonthlyTracker = () => {
         fillColor: [250, 250, 250] 
       },
       columnStyles: {
-        3: { halign: 'right' },
-        6: { halign: 'center', textColor: [220, 38, 38] }, // Red text for delay
-        8: { halign: 'center', fontStyle: 'bold' }
+        4: { halign: 'right' },
+        7: { halign: 'center', textColor: [220, 38, 38] }, // Red text for delay
+        9: { halign: 'center', fontStyle: 'bold' }
       },
       didParseCell: function (data) {
-        if (data.section === 'body' && data.column.index === 8) {
+        if (data.section === 'body' && data.column.index === 9) {
           // Color code the status text
           const status = data.cell.raw;
           if (status === 'On Time' || status === 'Received') data.cell.styles.textColor = [22, 163, 74]; // Green
@@ -347,7 +348,8 @@ const MonthlyTracker = () => {
   };
 
   const handleDownloadExcel = () => {
-    const exportData = filteredData.map(record => ({
+    const exportData = filteredData.map((record, index) => ({
+      'S.No.': index + 1,
       Month: record.month,
       Property: record.property,
       Tenant: record.tenant,
@@ -474,6 +476,7 @@ const MonthlyTracker = () => {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200">
+                  <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider w-16 text-center">S.No.</th>
                   <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Month</th>
                   <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Property</th>
                   <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Tenant</th>
@@ -491,13 +494,14 @@ const MonthlyTracker = () => {
               <tbody className="divide-y divide-slate-200">
                 {filteredData.length === 0 ? (
                   <tr>
-                    <td colSpan="12" className="px-6 py-8 text-center text-sm text-slate-500">
+                    <td colSpan="13" className="px-6 py-8 text-center text-sm text-slate-500">
                       No records found
                     </td>
                   </tr>
                 ) : (
-                  filteredData.map((record) => (
+                  filteredData.map((record, index) => (
                   <tr key={record.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 font-medium text-center">{index + 1}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 font-medium">{record.month}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">{record.property}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">{record.tenant}</td>

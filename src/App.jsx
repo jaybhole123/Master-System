@@ -44,7 +44,9 @@ import HrBankTransfer from "./Hr-sysytem/src/pages/BankTransfer"
 import HrCreateIndent from "./Hr-sysytem/src/pages/Create-Indent"
 import HrInventory from "./Hr-sysytem/src/pages/Inventory"
 import HrOfferLetter from "./Hr-sysytem/src/pages/OfferLetter"
+import CoalOfferLetter from "./Hr-sysytem/src/pages/CoalOfferLetter"
 import HrEmployeeJoin from "./Hr-sysytem/src/pages/EmployeeJoin"
+import HrWorkOrder from "./Hr-sysytem/src/pages/WorkOrder"
 
 // --- Petty Cash Imports ---
 import PettyDashboard from "./Petty-Cash/src/pages/AdminDashboard"
@@ -484,8 +486,12 @@ function App() {
                     <Route path="/hr/create-indent" element={<HrWrapper><HrCreateIndent /></HrWrapper>} />
                     <Route path="/hr/indent" element={<Navigate to="/hr/create-indent" replace />} />
                     <Route path="/hr/inventory" element={<HrWrapper><HrInventory /></HrWrapper>} />
-                    <Route path="/hr/offer-letter" element={<HrWrapper><HrOfferLetter /></HrWrapper>} />
                     <Route path="/hr/employee-join" element={<HrWrapper><HrEmployeeJoin /></HrWrapper>} />
+                    <Route path="/hr/offer-letter" element={<HrWrapper><HrOfferLetter /></HrWrapper>} />
+
+                    {/* --- Letter System Routes --- */}
+                    <Route path="/letter/offer-letter" element={<HrWrapper><CoalOfferLetter /></HrWrapper>} />
+                    <Route path="/letter/work-order" element={<HrWrapper><HrWorkOrder /></HrWrapper>} />
 
                     {/* --- Petty Cash System Routes --- */}
                     <Route path="/petty-cash" element={<PettyWrapper><PettyDashboard /></PettyWrapper>} />

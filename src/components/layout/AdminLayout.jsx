@@ -697,7 +697,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
     {
       href: "/hr/inventory",
       label: "Inventory",
-      icon: Database,
+      icon: ClipboardList,
       active: location.pathname === "/hr/inventory",
       showFor: ["admin", "user", "HOD"],
       module: "HR System",
@@ -709,6 +709,23 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/hr/offer-letter",
       showFor: ["admin", "user", "HOD"],
       module: "HR System",
+    },
+    // --- Letter Module Routes ---
+    {
+      href: "/letter/offer-letter",
+      label: "Offer Letter",
+      icon: FileText,
+      active: location.pathname === "/letter/offer-letter",
+      showFor: ["admin", "user", "HOD"],
+      module: "Letter",
+    },
+    {
+      href: "/letter/work-order",
+      label: "Work Order",
+      icon: FileText,
+      active: location.pathname === "/letter/work-order",
+      showFor: ["admin", "user", "HOD"],
+      module: "Letter",
     },
     // --- Petty Cash Module Routes ---
     {
@@ -1058,6 +1075,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                       {moduleName === "Daily Scheduler" && <CalendarCheck className="h-5 w-5 shrink-0" />}
                       {moduleName === "Rent Management Tracker" && <Banknote className="h-5 w-5 shrink-0" />}
                       {moduleName === "Coal System" && <Database className="h-5 w-5 shrink-0" />}
+                      {moduleName === "Letter" && <FileText className="h-5 w-5 shrink-0" />}
                       {!isCollapsed && <span className="text-left leading-tight whitespace-normal break-words pr-1 text-[13.5px]">{moduleName}</span>}
                     </div>
                     {!isCollapsed && (

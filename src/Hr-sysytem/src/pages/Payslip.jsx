@@ -453,9 +453,9 @@ export default function Payslip() {
           </div>
 
           <div className="form-group">
-            <label style={{ fontWeight: 600, marginBottom: '6px', display: 'block' }}>Salary Date</label>
+            <label style={{ fontWeight: 600, marginBottom: '6px', display: 'block' }}>Salary Month</label>
             <input 
-              type="date" 
+              type="month" 
               value={salaryDate} 
               onChange={(e) => setSalaryDate(e.target.value)} 
               style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}

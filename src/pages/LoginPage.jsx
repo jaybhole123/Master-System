@@ -245,7 +245,7 @@ const LoginPage = () => {
       
       <div className="mt-8 text-center relative z-10">
         <span className="inline-flex items-center gap-1.5 bg-white/60 backdrop-blur-sm px-4 py-1.5 rounded-full text-[11px] font-semibold text-slate-500 shadow-sm border border-slate-100/50">
-          Powered by <span className="text-slate-800 font-bold">Botivate</span>
+          Powered by <a href="https://www.botivate.in/" target="_blank" rel="noopener noreferrer" className="text-slate-800 font-bold hover:text-red-600 transition-colors">Botivate</a>
         </span>
       </div>
 

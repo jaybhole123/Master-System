@@ -3,10 +3,12 @@ import { Plus, X, Trash2, Eye, Download, Pencil } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import toast from 'react-hot-toast';
+import CreatableSelect from 'react-select/creatable';
 import { supabase } from '../lib/supabase';
 
 const Indent = () => {
   const [indentData, setIndentData] = useState([]);
+  const [inventoryItems, setInventoryItems] = useState([]);
   const [loading, setLoading] = useState(true);
   
   const [showModal, setShowModal] = useState(false);
@@ -16,7 +18,7 @@ const Indent = () => {
   const [issuedBy, setIssuedBy] = useState('');
   const [approvedBy, setApprovedBy] = useState('');
   const [items, setItems] = useState([
-    { product: '', qty: '', unit: '', expectedDate: '', remarks: '' }
+    { category: '', product: '', qty: '', unit: '', expectedDate: '', remarks: '' }
   ]);
   
   const [activeTab, setActiveTab] = useState('Create Indent');
@@ -28,7 +30,21 @@ const Indent = () => {
 
   useEffect(() => {
     fetchIndents();
+    fetchInventoryItems();
   }, []);
+
+  const fetchInventoryItems = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('inventory_items')
+        .select('item_name, category')
+        .order('item_name', { ascending: true });
+      if (error) throw error;
+      setInventoryItems(data || []);
+    } catch (error) {
+      console.error('Error fetching inventory items:', error);
+    }
+  };
 
   const fetchIndents = async () => {
     try {
@@ -52,6 +68,7 @@ const Indent = () => {
         approvedBy: ind.approved_by,
         items: ind.indent_items.map(item => ({
           id: item.id,
+          category: item.category || '',
           product: item.product,
           qty: item.qty,
           unit: item.unit,
@@ -68,30 +85,47 @@ const Indent = () => {
     }
   };
 
-  const generateIndentNumber = () => {
-    if (indentData.length === 0) return 'P-IND-001';
-    const numbers = indentData.map(i => {
-       const parts = i.indentNumber.split('-');
-       return parseInt(parts[parts.length - 1]) || 0;
-    });
-    const maxNum = Math.max(...numbers);
-    return `P-IND-${String(maxNum + 1).padStart(3, '0')}`;
+  const generateIndentNumber = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('indents')
+        .select('indent_number');
+      if (error || !data || data.length === 0) return 'P-IND-001';
+      
+      const numbers = data.map(i => {
+         const parts = i.indent_number.split('-');
+         return parseInt(parts[parts.length - 1]) || 0;
+      });
+      const maxNum = Math.max(...numbers);
+      return `P-IND-${String(maxNum + 1).padStart(3, '0')}`;
+    } catch (e) {
+      return 'P-IND-001';
+    }
   };
 
   const handleItemChange = (index, field, value) => {
     const newItems = [...items];
     newItems[index][field] = value;
     
+    if (field === 'product') {
+      const selectedInv = inventoryItems.find(inv => inv.item_name === value);
+      if (selectedInv && selectedInv.category) {
+        newItems[index]['category'] = selectedInv.category;
+      } else {
+        newItems[index]['category'] = '';
+      }
+    }
+    
     // Automatically add a new row if the user types anything in the last row
     if (index === newItems.length - 1 && value.toString().trim() !== '') {
-      newItems.push({ product: '', qty: '', unit: '', expectedDate: '', remarks: '' });
+      newItems.push({ category: '', product: '', qty: '', unit: '', expectedDate: '', remarks: '' });
     }
     
     setItems(newItems);
   };
 
   const handleAddRow = () => {
-    setItems([...items, { product: '', qty: '', unit: '', expectedDate: '', remarks: '' }]);
+    setItems([...items, { category: '', product: '', qty: '', unit: '', expectedDate: '', remarks: '' }]);
   };
   
   const handleRemoveRow = (index) => {
@@ -116,7 +150,7 @@ const Indent = () => {
     }
 
     try {
-      const indentNumber = isEditing ? editIndentNumber : generateIndentNumber();
+      const indentNumber = isEditing ? editIndentNumber : await generateIndentNumber();
       const status = isEditing ? editStatus : 'Pending';
 
       if (isEditing) {
@@ -137,7 +171,7 @@ const Indent = () => {
           const itemsToInsert = validItems.map(item => ({
             indent_id: indentObj.id,
             product: item.product,
-            qty: item.qty,
+            qty: item.qty ? Number(item.qty) : 0,
             unit: item.unit,
             expected_date: item.expectedDate || null,
             remarks: item.remarks
@@ -163,7 +197,7 @@ const Indent = () => {
         const itemsToInsert = validItems.map(item => ({
           indent_id: newInd.id,
           product: item.product,
-          qty: item.qty,
+          qty: item.qty ? Number(item.qty) : 0,
           unit: item.unit,
           expected_date: item.expectedDate || null,
           remarks: item.remarks
@@ -185,7 +219,7 @@ const Indent = () => {
 
   const handleCancel = () => {
     setItems([
-      { product: '', qty: '', unit: '', expectedDate: '', remarks: '' }
+      { category: '', product: '', qty: '', unit: '', expectedDate: '', remarks: '' }
     ]);
     setIsEditing(false);
     setEditIndentNumber(null);
@@ -208,7 +242,7 @@ const Indent = () => {
     
     // Ensure there is at least one empty row at the end for adding new items easily
     const loadedItems = item.items && item.items.length > 0 ? [...item.items] : [];
-    loadedItems.push({ product: '', qty: '', unit: '', expectedDate: '', remarks: '' });
+    loadedItems.push({ category: '', product: '', qty: '', unit: '', expectedDate: '', remarks: '' });
     setItems(loadedItems);
     
     setActiveTab('Create Indent');
@@ -240,7 +274,7 @@ const Indent = () => {
     doc.text(`Indent No: ${selectedIndent.indentNumber}`, 14, 32);
     doc.text(`Date: ${selectedIndent.timestamp}`, 14, 38);
     
-    const tableColumn = ["#", "Product / Material", "Qty", "Unit", "Expected Date", "Remarks"];
+    const tableColumn = ["#", "Product / Material", "Category", "Qty", "Unit", "Expected Date", "Remarks"];
     const tableRows = [];
 
     if (selectedIndent.items && selectedIndent.items.length > 0) {
@@ -248,6 +282,7 @@ const Indent = () => {
         const itemData = [
           idx + 1,
           item.product,
+          item.category || '-',
           item.qty,
           item.unit || '-',
           item.expectedDate ? new Date(item.expectedDate).toLocaleDateString() : '-',
@@ -378,6 +413,7 @@ const Indent = () => {
                   <tr>
                     <th style={{ width: '50px' }}>#</th>
                     <th>Product / Material</th>
+                    <th>Category</th>
                     <th style={{ width: '100px' }}>Qty</th>
                     <th style={{ width: '100px' }}>Unit</th>
                     <th style={{ width: '160px' }}>Expected Date</th>
@@ -390,7 +426,33 @@ const Indent = () => {
                     <tr key={index}>
                       <td style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>{index + 1}</td>
                       <td>
-                        <input type="text" value={item.product} onChange={e => handleItemChange(index, 'product', e.target.value)} placeholder="Enter material..." style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border-color)', borderRadius: '6px', backgroundColor: 'var(--bg-main)' }} />
+                        <CreatableSelect
+                          isClearable
+                          options={inventoryItems.map(invItem => ({ value: invItem.item_name, label: invItem.item_name }))}
+                          value={item.product ? { value: item.product, label: item.product } : null}
+                          onChange={(selectedOption) => {
+                             handleItemChange(index, 'product', selectedOption ? selectedOption.value : '');
+                          }}
+                          placeholder="Select or type..."
+                          menuPortalTarget={document.body}
+                          styles={{
+                            control: (base) => ({
+                              ...base,
+                              minHeight: '38px',
+                              borderRadius: '6px',
+                              borderColor: 'var(--border-color)',
+                              backgroundColor: 'var(--bg-main)',
+                              minWidth: '220px'
+                            }),
+                            menuPortal: (base) => ({
+                              ...base,
+                              zIndex: 9999
+                            })
+                          }}
+                        />
+                      </td>
+                      <td>
+                        <input type="text" value={item.category || ''} onChange={e => handleItemChange(index, 'category', e.target.value)} placeholder="Category..." style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border-color)', borderRadius: '6px', backgroundColor: 'var(--bg-main)' }} />
                       </td>
                       <td>
                         <input type="number" value={item.qty} onChange={e => handleItemChange(index, 'qty', e.target.value)} min="1" placeholder="0" style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border-color)', borderRadius: '6px', backgroundColor: 'var(--bg-main)' }} />
@@ -574,6 +636,7 @@ const Indent = () => {
                 <tr>
                   <th>#</th>
                   <th>Product / Material</th>
+                  <th>Category</th>
                   <th>Qty</th>
                   <th>Unit</th>
                   <th>Expected Date</th>
@@ -586,6 +649,7 @@ const Indent = () => {
                     <tr key={idx}>
                       <td>{idx + 1}</td>
                       <td style={{ fontWeight: 500 }}>{item.product}</td>
+                      <td style={{ color: 'var(--text-secondary)' }}>{item.category || '-'}</td>
                       <td style={{ color: 'var(--primary-color)', fontWeight: 600 }}>{item.qty}</td>
                       <td>{item.unit || '-'}</td>
                       <td>{item.expectedDate ? new Date(item.expectedDate).toLocaleDateString() : '-'}</td>
