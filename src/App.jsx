@@ -9,6 +9,8 @@ import "./Hr-sysytem/src/App.css"
 import "./Petty-Cash/src/index.css"
 import "./Daily-Shedular/src/index.css"
 import "./Daily-Shedular/src/App.css"
+import "./CoalSystem/src/index.css"
+import "./CoalSystem/src/App.css"
 import DocumentRoutes from "./modules/document/DocumentRoutes"
 
 // --- Page Imports ---
@@ -59,6 +61,9 @@ import DailyDashboard from "./Daily-Shedular/src/pages/Dashboard"
 import DailyWaitingList from "./Daily-Shedular/src/pages/WaitingList"
 import DailySomedayTasks from "./Daily-Shedular/src/pages/SomedayTasks"
 import DailyReports from "./Daily-Shedular/src/pages/Reports"
+
+// --- Coal System Imports ---
+import CoalSystemApp from "./CoalSystem/src/App"
 
 // --- Data & Delegation Imports ---
 import DataPage from "./pages/admin/DataPage"
@@ -145,6 +150,16 @@ const DailySchedulerWrapper = ({ children }) => (
                 </div>
             </AdminLayout>
         </SchedulerProvider>
+    </ProtectedRoute>
+);
+
+const CoalSystemWrapper = ({ children }) => (
+    <ProtectedRoute>
+        <AdminLayout noPadding={true}>
+            <div className="coal-system-container flex flex-col flex-1 w-full min-h-full">
+                {children}
+            </div>
+        </AdminLayout>
     </ProtectedRoute>
 );
 
@@ -487,6 +502,19 @@ function App() {
                     <Route path="/daily-scheduler/waiting-list" element={<DailySchedulerWrapper><DailyWaitingList /></DailySchedulerWrapper>} />
                     <Route path="/daily-scheduler/someday" element={<DailySchedulerWrapper><DailySomedayTasks /></DailySchedulerWrapper>} />
                     <Route path="/daily-scheduler/reports" element={<DailySchedulerWrapper><DailyReports /></DailySchedulerWrapper>} />
+
+                    {/* --- Coal System Routes --- */}
+                    <Route path="/coal-system" element={<Navigate to="/coal-system/dashboard" replace />} />
+                    <Route path="/coal-system/dashboard" element={<CoalSystemWrapper><CoalSystemApp page="dashboard" hideNavigation={true} /></CoalSystemWrapper>} />
+                    <Route path="/coal-system/auction" element={<CoalSystemWrapper><CoalSystemApp page="auction" hideNavigation={true} /></CoalSystemWrapper>} />
+                    <Route path="/coal-system/secl-intimation" element={<CoalSystemWrapper><CoalSystemApp page="secl-intimation" hideNavigation={true} /></CoalSystemWrapper>} />
+                    <Route path="/coal-system/secl-payment" element={<CoalSystemWrapper><CoalSystemApp page="secl-payment-advice" hideNavigation={true} /></CoalSystemWrapper>} />
+                    <Route path="/coal-system/sales-order" element={<CoalSystemWrapper><CoalSystemApp page="sales-order" hideNavigation={true} /></CoalSystemWrapper>} />
+                    <Route path="/coal-system/work-order" element={<CoalSystemWrapper><CoalSystemApp page="work-order" hideNavigation={true} /></CoalSystemWrapper>} />
+                    <Route path="/coal-system/dispatch" element={<CoalSystemWrapper><CoalSystemApp page="dispatch" hideNavigation={true} /></CoalSystemWrapper>} />
+                    <Route path="/coal-system/invoice" element={<CoalSystemWrapper><CoalSystemApp page="invoice" hideNavigation={true} /></CoalSystemWrapper>} />
+                    <Route path="/coal-system/transport-payment" element={<CoalSystemWrapper><CoalSystemApp page="transport-payment" hideNavigation={true} /></CoalSystemWrapper>} />
+                    <Route path="/coal-system/refund-lapse" element={<CoalSystemWrapper><CoalSystemApp page="refund-lapse" hideNavigation={true} /></CoalSystemWrapper>} />
 
                     {/* --- Backward Compatibility Redirects (From Snippet 1) --- */}
                     {/* These catch old URLs and forward them to the new structure */}

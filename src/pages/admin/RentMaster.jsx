@@ -90,12 +90,12 @@ const RentMaster = () => {
   }, []);
 
   const getRecordStatus = (record) => {
-    if (record.status === 'Done') {
+    if (record.status === 'Done' || record.status === 'Received') {
       if (record.received_date && record.due_date_start && record.due_date_end && 
           record.received_date >= record.due_date_start && record.received_date <= record.due_date_end) {
         return 'On Time';
       }
-      return 'Done';
+      return 'Received';
     }
     const today = new Date().toISOString().split('T')[0];
     if (record.due_date_end && today > record.due_date_end) return 'Delay';
@@ -105,7 +105,7 @@ const RentMaster = () => {
   const getDelayDays = (record) => {
     if (!record.due_date_end) return 0;
     const endDate = new Date(record.due_date_end);
-    const checkDate = record.status === 'Done' && record.received_date 
+    const checkDate = (record.status === 'Done' || record.status === 'Received') && record.received_date 
       ? new Date(record.received_date) 
       : new Date();
     const diff = Math.floor((checkDate - endDate) / (1000 * 60 * 60 * 24));
@@ -118,7 +118,7 @@ const RentMaster = () => {
       const s = getRecordStatus(r);
       if (s === 'Pending') pending++;
       else if (s === 'On Time') onTime++;
-      else if (s === 'Done') done++;
+      else if (s === 'Received') done++;
       else if (s === 'Delay') delay++;
     });
     return { total: historyData.length, pending, onTime, done, delay };
@@ -200,7 +200,7 @@ const RentMaster = () => {
       { title: "Total Months", value: historyStats.total, color: [71, 85, 105], bg: [248, 250, 252] },
       { title: "Pending", value: historyStats.pending, color: [234, 88, 12], bg: [255, 237, 213] },
       { title: "On Time", value: historyStats.onTime, color: [22, 163, 74], bg: [220, 252, 231] },
-      { title: "Done", value: historyStats.done, color: [37, 99, 235], bg: [219, 234, 254] },
+      { title: "Received", value: historyStats.done, color: [37, 99, 235], bg: [219, 234, 254] },
       { title: "Delay", value: historyStats.delay, color: [220, 38, 38], bg: [254, 226, 226] }
     ];
 
@@ -441,6 +441,16 @@ const RentMaster = () => {
     const [year, month, day] = parts;
     return `${month}-${day}-${year}`;
   };
+  const filteredData = mockData.filter(record => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      (record.propertyName || '').toLowerCase().includes(q) ||
+      (record.tenantName || '').toLowerCase().includes(q) ||
+      (record.tenantContact || '').toLowerCase().includes(q) ||
+      (record.ownerName || '').toLowerCase().includes(q)
+    );
+  });
 
   const handleDownloadPDF = () => {
     const doc = new jsPDF('landscape');
@@ -458,7 +468,7 @@ const RentMaster = () => {
     autoTable(doc, {
       startY: 35,
       head: [['Property', 'Tenant', 'Contact', 'Rent (Rs)', 'Deposit (Rs)', 'Agreement', 'Due Range', 'Mode & Bank', 'Remarks']],
-      body: mockData.map(record => [
+      body: filteredData.map(record => [
         record.propertyName,
         record.tenantName,
         record.tenantContact,
@@ -495,7 +505,7 @@ const RentMaster = () => {
   };
 
   const handleDownloadExcel = () => {
-    const exportData = mockData.map(record => ({
+    const exportData = filteredData.map(record => ({
       'Property Name': record.propertyName,
       'Tenant Name': record.tenantName,
       'Tenant Contact': record.tenantContact,
@@ -626,14 +636,14 @@ const RentMaster = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
-                {mockData.length === 0 ? (
+                {filteredData.length === 0 ? (
                   <tr>
                     <td colSpan="17" className="px-4 py-8 text-center text-sm text-slate-500">
                       No records found
                     </td>
                   </tr>
                 ) : (
-                  mockData.map((record, index) => (
+                  filteredData.map((record, index) => (
                   <tr key={record.id} className="hover:bg-slate-50/50 transition-colors cursor-pointer" onClick={(e) => {
                     if (e.target.closest('button') || e.target.closest('.action-cell')) return;
                     openHistoryModal(record);
@@ -966,7 +976,7 @@ const RentMaster = () => {
                     <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-col">
                       <div className="flex items-center gap-2 text-blue-500 mb-1">
                         <Check className="h-4 w-4" />
-                        <span className="text-xs font-medium">Done</span>
+                        <span className="text-xs font-medium">Received</span>
                       </div>
                       <span className="text-xl font-bold text-slate-800">{historyStats.done}</span>
                     </div>

@@ -179,16 +179,16 @@ const MonthlyTracker = () => {
     }
   };
 
-  const handleDone = async (id) => {
+  const handleReceive = async (id) => {
     try {
       const today = new Date().toISOString().split('T')[0];
       const { error } = await supabase
         .from('rent_monthly_tracker')
-        .update({ status: 'Done', received_date: today, updated_at: new Date().toISOString() })
+        .update({ status: 'Received', received_date: today, updated_at: new Date().toISOString() })
         .eq('id', id);
       
       if (error) throw error;
-      toast.success('Marked as done');
+      toast.success('Marked as received');
       fetchTrackerData();
     } catch (error) {
       console.error('Error updating status:', error);
@@ -231,12 +231,12 @@ const MonthlyTracker = () => {
   };
 
   const getRecordStatus = (record) => {
-    if (record.status === 'Done') {
+    if (record.status === 'Done' || record.status === 'Received') {
       if (record.receivedDate && record.dueDateStart && record.dueDateEnd && 
           record.receivedDate >= record.dueDateStart && record.receivedDate <= record.dueDateEnd) {
         return 'On Time';
       }
-      return 'Done';
+      return 'Received';
     }
     const today = new Date().toISOString().split('T')[0];
     if (record.dueDateEnd && today > record.dueDateEnd) return 'Delay';
@@ -246,7 +246,7 @@ const MonthlyTracker = () => {
   const getDelayDays = (record) => {
     if (!record.dueDateEnd) return 0;
     const endDate = new Date(record.dueDateEnd);
-    const checkDate = record.status === 'Done' && record.receivedDate 
+    const checkDate = (record.status === 'Done' || record.status === 'Received') && record.receivedDate 
       ? new Date(record.receivedDate) 
       : new Date();
     const diff = Math.floor((checkDate - endDate) / (1000 * 60 * 60 * 24));
@@ -268,7 +268,7 @@ const MonthlyTracker = () => {
       const s = getRecordStatus(r);
       if (s === 'Pending') pending++;
       else if (s === 'On Time') onTime++;
-      else if (s === 'Done') done++;
+      else if (s === 'Received') done++;
       else if (s === 'Delay') delay++;
     });
     return { total: filteredData.length, pending, onTime, done, delay };
@@ -336,7 +336,7 @@ const MonthlyTracker = () => {
         if (data.section === 'body' && data.column.index === 8) {
           // Color code the status text
           const status = data.cell.raw;
-          if (status === 'On Time' || status === 'Done') data.cell.styles.textColor = [22, 163, 74]; // Green
+          if (status === 'On Time' || status === 'Received') data.cell.styles.textColor = [22, 163, 74]; // Green
           else if (status === 'Delay') data.cell.styles.textColor = [220, 38, 38]; // Red
           else if (status === 'Pending') data.cell.styles.textColor = [234, 88, 12]; // Orange
         }
@@ -392,7 +392,7 @@ const MonthlyTracker = () => {
           <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col">
             <div className="flex items-center gap-2 text-blue-500 mb-2">
               <Check className="h-4 w-4" />
-              <span className="text-sm font-medium">Done</span>
+              <span className="text-sm font-medium">Received</span>
             </div>
             <span className="text-2xl font-bold text-slate-800">{stats.done}</span>
           </div>
@@ -516,7 +516,7 @@ const MonthlyTracker = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">{record.bankDetails || '-'}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
-                        getRecordStatus(record) === 'On Time' || getRecordStatus(record) === 'Done' ? 'bg-green-100 text-green-800' : 
+                        getRecordStatus(record) === 'On Time' || getRecordStatus(record) === 'Received' ? 'bg-green-100 text-green-800' : 
                         getRecordStatus(record) === 'Delay' ? 'bg-red-100 text-red-800' :
                         getRecordStatus(record) === 'Pending' ? 'bg-orange-100 text-orange-800' : 'bg-slate-100 text-slate-800'
                       }`}>
@@ -526,8 +526,8 @@ const MonthlyTracker = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">{record.remarks}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end gap-2">
-                        {record.status !== 'Done' && (
-                          <button onClick={() => handleDone(record.id)} title="Mark as Done" className="p-1.5 bg-green-50 text-green-600 rounded hover:bg-green-100 transition-colors">
+                        {record.status !== 'Done' && record.status !== 'Received' && (
+                          <button onClick={() => handleReceive(record.id)} title="Mark as Received" className="p-1.5 bg-green-50 text-green-600 rounded hover:bg-green-100 transition-colors">
                             <Check className="h-4 w-4" />
                           </button>
                         )}

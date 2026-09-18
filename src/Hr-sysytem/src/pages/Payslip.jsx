@@ -54,9 +54,6 @@ export default function Payslip() {
   const [loading, setLoading] = useState(true);
   const [selectedEmp, setSelectedEmp] = useState('');
   const [companyName, setCompanyName] = useState('M/s Jai Bhole Traders');
-  const [fromMonth, setFromMonth] = useState('');
-  const [toMonth, setToMonth] = useState('');
-  const [displayMode, setDisplayMode] = useState('Month-wise Breakdown');
   const [salaryDate, setSalaryDate] = useState('');
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [multiMonthData, setMultiMonthData] = useState([]);
@@ -261,13 +258,7 @@ export default function Payslip() {
       const yPos = margin;
 
       pdf.addImage(imgData, 'PNG', xPos, yPos, imgWidth, imgHeight);
-      const formatMonth = (yyyyMm) => {
-        if (!yyyyMm) return '';
-        const [year, month] = yyyyMm.split('-');
-        const date = new Date(year, month - 1);
-        return date.toLocaleString('default', { month: 'long', year: 'numeric' });
-      };
-      const displayMonthString = fromMonth && toMonth && fromMonth !== toMonth ? `${formatMonth(fromMonth)} to ${formatMonth(toMonth)}` : formatMonth(fromMonth) || formatMonth(toMonth) || 'Payslip';
+      const displayMonthString = salaryDate ? new Date(salaryDate).toLocaleString('default', { month: 'long', year: 'numeric' }) : 'Payslip';
       
       pdf.save(`Payslip_${(empDetails.name || 'Employee').replace(/\s+/g, '_')}_${displayMonthString.replace(/\s+/g, '_')}.pdf`);
       
@@ -299,13 +290,7 @@ export default function Payslip() {
     );
   }
 
-  const formatMonth = (yyyyMm) => {
-    if (!yyyyMm) return '';
-    const [year, month] = yyyyMm.split('-');
-    const date = new Date(year, month - 1);
-    return date.toLocaleString('default', { month: 'long', year: 'numeric' });
-  };
-  const displayMonthString = fromMonth && toMonth && fromMonth !== toMonth ? `${formatMonth(fromMonth)} to ${formatMonth(toMonth)}` : formatMonth(fromMonth) || formatMonth(toMonth) || '-';
+  const displayMonthString = salaryDate ? new Date(salaryDate).toLocaleString('default', { month: 'long', year: 'numeric' }) : '-';
 
   const activeFirm = FIRM_DETAILS[companyName] || FIRM_DETAILS['M/s Jai Bhole Traders'];
 
@@ -466,42 +451,6 @@ export default function Payslip() {
               {records.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
             </select>
           </div>
-
-          <div className="form-group">
-            <label style={{ fontWeight: 600, marginBottom: '6px', display: 'block' }}>From Month</label>
-            <input 
-              type="month" 
-              value={fromMonth} 
-              onChange={(e) => setFromMonth(e.target.value)} 
-              style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
-            />
-          </div>
-
-          <div className="form-group">
-            <label style={{ fontWeight: 600, marginBottom: '6px', display: 'block' }}>To Month</label>
-            <input 
-              type="month" 
-              value={toMonth} 
-              onChange={(e) => setToMonth(e.target.value)} 
-              style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
-            />
-          </div>
-
-          {fromMonth && toMonth && fromMonth !== toMonth && (
-            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-              <label style={{ fontWeight: 600, marginBottom: '6px', display: 'block' }}>Display Mode</label>
-              <div style={{ display: 'flex', gap: '16px' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                  <input type="radio" name="displayMode" value="Month-wise Breakdown" checked={displayMode === 'Month-wise Breakdown'} onChange={(e) => setDisplayMode(e.target.value)} />
-                  Month-wise Breakdown
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                  <input type="radio" name="displayMode" value="Consolidated Summary" checked={displayMode === 'Consolidated Summary'} onChange={(e) => setDisplayMode(e.target.value)} />
-                  Consolidated Summary
-                </label>
-              </div>
-            </div>
-          )}
 
           <div className="form-group">
             <label style={{ fontWeight: 600, marginBottom: '6px', display: 'block' }}>Salary Date</label>

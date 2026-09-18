@@ -76,6 +76,12 @@ const getHeaderTitle = (pathname, routes) => {
     const match = flat.find(r => r.href && pathname === r.href);
     return { module: "Daily Scheduler", page: match?.label || "Daily Scheduler" };
   }
+  // Check Coal System routes
+  if (pathname.startsWith("/coal-system")) {
+    const flat = routes.flatMap(r => r.subItems ? r.subItems : [r]);
+    const match = flat.find(r => r.href && pathname === r.href);
+    return { module: "Coal System", page: match?.label || "Coal System" };
+  }
   // Check Document & Substruction routes
   if (
     pathname.includes("/doc-dashboard") ||
@@ -97,7 +103,7 @@ const getHeaderTitle = (pathname, routes) => {
   return { module: "Checklist & Delegation", page: "Checklist & Delegation" };
 };
 
-export default function AdminLayout({ children, darkMode, toggleDarkMode, showLayout = true }) {
+export default function AdminLayout({ children, darkMode, toggleDarkMode, showLayout = true, noPadding = false }) {
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -163,6 +169,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       "Help Slip": path.includes("/dashboard/help-slip"),
       "Document & Substruction": path.includes("/document") || path.includes("/doc-dashboard") || path.includes("/resource-manager") || path.includes("/loan") || path.includes("/subscription") || path.includes("/bg") || path === "/",
       "Rent Management Tracker": path.includes("/dashboard/rent-tracker"),
+      "Coal System": path.startsWith("/coal-system"),
     };
   });
 
@@ -794,6 +801,87 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       showFor: ["admin", "user", "HOD"],
       module: "Daily Scheduler",
     },
+    // --- Coal System Module Routes ---
+    {
+      href: "/coal-system/dashboard",
+      label: "Dashboard",
+      icon: LayoutDashboard,
+      active: location.pathname === "/coal-system/dashboard" || location.pathname === "/coal-system",
+      showFor: ["admin", "user", "HOD"],
+      module: "Coal System",
+    },
+    {
+      href: "/coal-system/auction",
+      label: "Auction",
+      icon: Database,
+      active: location.pathname === "/coal-system/auction",
+      showFor: ["admin", "user", "HOD"],
+      module: "Coal System",
+    },
+    {
+      href: "/coal-system/secl-intimation",
+      label: "SECL Intimation",
+      icon: FileText,
+      active: location.pathname === "/coal-system/secl-intimation",
+      showFor: ["admin", "user", "HOD"],
+      module: "Coal System",
+    },
+    {
+      href: "/coal-system/secl-payment",
+      label: "SECL Payment Advice",
+      icon: FileText,
+      active: location.pathname === "/coal-system/secl-payment",
+      showFor: ["admin", "user", "HOD"],
+      module: "Coal System",
+    },
+    {
+      href: "/coal-system/sales-order",
+      label: "Sales Order",
+      icon: FileText,
+      active: location.pathname === "/coal-system/sales-order",
+      showFor: ["admin", "user", "HOD"],
+      module: "Coal System",
+    },
+    {
+      href: "/coal-system/work-order",
+      label: "Work Order",
+      icon: FileText,
+      active: location.pathname === "/coal-system/work-order",
+      showFor: ["admin", "user", "HOD"],
+      module: "Coal System",
+    },
+    {
+      href: "/coal-system/dispatch",
+      label: "Dispatch",
+      icon: FileText,
+      active: location.pathname === "/coal-system/dispatch",
+      showFor: ["admin", "user", "HOD"],
+      module: "Coal System",
+    },
+    {
+      href: "/coal-system/invoice",
+      label: "Invoice",
+      icon: FileText,
+      active: location.pathname === "/coal-system/invoice",
+      showFor: ["admin", "user", "HOD"],
+      module: "Coal System",
+    },
+    {
+      href: "/coal-system/transport-payment",
+      label: "Transport Payment",
+      icon: FileText,
+      active: location.pathname === "/coal-system/transport-payment",
+      showFor: ["admin", "user", "HOD"],
+      module: "Coal System",
+    },
+    {
+      href: "/coal-system/refund-lapse",
+      label: "Refund / Lapse",
+      icon: FileText,
+      active: location.pathname === "/coal-system/refund-lapse",
+      showFor: ["admin", "user", "HOD"],
+      module: "Coal System",
+    },
     {
       href: "/dashboard/global-settings",
       label: "Global Settings",
@@ -969,6 +1057,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                       {moduleName === "Petty Cash" && <Banknote className="h-5 w-5 shrink-0" />}
                       {moduleName === "Daily Scheduler" && <CalendarCheck className="h-5 w-5 shrink-0" />}
                       {moduleName === "Rent Management Tracker" && <Banknote className="h-5 w-5 shrink-0" />}
+                      {moduleName === "Coal System" && <Database className="h-5 w-5 shrink-0" />}
                       {!isCollapsed && <span className="text-left leading-tight whitespace-normal break-words pr-1 text-[13.5px]">{moduleName}</span>}
                     </div>
                     {!isCollapsed && (
@@ -1216,6 +1305,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                           {moduleName === "HR System" && <UserRound className="h-5 w-5 shrink-0" />}
                           {moduleName === "Petty Cash" && <Banknote className="h-5 w-5 shrink-0" />}
                           {moduleName === "Daily Scheduler" && <CalendarCheck className="h-5 w-5 shrink-0" />}
+                          {moduleName === "Coal System" && <Database className="h-5 w-5 shrink-0" />}
                           <span className="text-left leading-tight whitespace-normal break-words pr-1 text-[13.5px]">{moduleName}</span>
                         </div>
                         {openModules[moduleName] ? (
@@ -1425,7 +1515,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto overflow-x-hidden px-4 pb-4 md:px-6 md:pb-6 bg-gradient-to-br from-red-50/50 to-red-50/50 pb-24 md:pb-6">
+        <main className={`flex-1 overflow-y-auto overflow-x-hidden ${noPadding ? 'pb-5' : 'px-4 pb-4 md:px-6 md:pb-6'} bg-gradient-to-br from-red-50/50 to-red-50/50 ${noPadding ? '' : 'pb-24 md:pb-6'}`}>
           {children}
         </main>
 
