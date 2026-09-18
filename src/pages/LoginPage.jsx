@@ -13,6 +13,7 @@ import { KeyRound, ShieldCheck, User as UserIcon, ArrowLeft, RefreshCw, Smartpho
 import jbtLogo from "../assets/jbt.png"
 import jbeLogo from "../assets/jbe.png"
 import ganeshLogo from "../assets/ganesh.jpg"
+import loginBg from "../assets/login.png"
 
 const LoginPage = () => {
   const navigate = useNavigate()
@@ -102,13 +103,17 @@ const LoginPage = () => {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-red-50 via-slate-50 to-blue-50 p-4 font-sans relative overflow-hidden">
+    <div 
+      className="flex min-h-screen flex-col items-center justify-center p-4 font-sans relative overflow-hidden bg-cover bg-center bg-no-repeat"
+      style={{ backgroundImage: `url(${loginBg})` }}
+    >
+      <div className="absolute inset-0 bg-black/40 z-0"></div>
       {/* Decorative background blobs */}
       <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-red-200 rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob"></div>
       <div className="absolute top-[20%] right-[-10%] w-96 h-96 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob animation-delay-2000"></div>
       <div className="absolute bottom-[-20%] left-[20%] w-96 h-96 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob animation-delay-4000"></div>
 
-      <div className="w-full max-w-[420px] bg-white/80 backdrop-blur-xl rounded-[2rem] shadow-2xl border border-white/50 p-8 sm:p-10 relative z-10">
+      <div className="w-full max-w-[420px] bg-white/80 backdrop-blur-xl rounded-[2rem] shadow-2xl border border-white/50 p-6 sm:p-8 relative z-10">
         <style>
           {`
             @keyframes float {
@@ -136,8 +141,8 @@ const LoginPage = () => {
             }
           `}
         </style>
-        <div className="flex flex-col items-center justify-center mb-8">
-          <div className="w-full overflow-hidden mb-6 relative py-2">
+        <div className="flex flex-col items-center justify-center mb-5">
+          <div className="w-full overflow-hidden mb-4 relative py-2">
             <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none"></div>
             <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none"></div>
             
@@ -170,7 +175,7 @@ const LoginPage = () => {
           <p className="text-sm text-slate-500 mt-2 text-center font-medium">Welcome back! Please enter your details.</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <label htmlFor="username" className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 ml-1">
               Username
@@ -216,7 +221,7 @@ const LoginPage = () => {
             </div>
           </div>
 
-          <div className="pt-2">
+          <div className="pt-1">
             <button
               type="submit"
               className="w-full py-3.5 px-4 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-all shadow-md hover:shadow-lg active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100"
