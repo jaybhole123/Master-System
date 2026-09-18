@@ -20,11 +20,11 @@ export function parseInvoiceText(rows) {
   const data = {};
 
   // ── INVOICE NO ──
-  data.invoiceNo = grab(t, /Invoice\s*No\.?\s*:?\s*([A-Za-z0-9\/\-]+)/i);
+  data.invoiceNo = grab(t, /Invoice\s*No\.?\s*:?\s*([A-Za-z0-9/-]+)/i);
 
   // ── INVOICE DATE ──
   data.invoiceDate = grab(t, /(?<!e-Way Bill\s)Date\s*:?\s*([0-9]{1,2}-[A-Za-z]{3}-[0-9]{2,4})/i)
-    || grab(t, /Invoice\s*Date\s*:?\s*([0-9]{1,2}[\-\/\.][A-Za-z0-9]{2,3}[\-\/\.][0-9]{2,4})/i);
+    || grab(t, /Invoice\s*Date\s*:?\s*([0-9]{1,2}[-/.][A-Za-z0-9]{2,3}[-/.][0-9]{2,4})/i);
 
   // ── IRN (30-80 hex chars) ──
   data.irn = grab(t, /IRN\s*:?\s*([a-f0-9]{30,80})/i)
@@ -46,13 +46,13 @@ export function parseInvoiceText(rows) {
 
   // ── TRANSPORT ──
   data.transport = grab(t, /Transport\s*:?\s*(By\s*Road|By\s*Rail|By\s*Air|By\s*Ship)/i);
-  data.placeOfSupply = grab(t, /Place\s*of\s*Supply\s*[:\-]?\s*([A-Za-z\.\&]+(?:\s+[A-Za-z\.\&]+){0,3}(?:\s*\(\s*[0-9]+\s*\))?)/i)
-    || grab(t, /Place\s*of\s*Supply\s*[:\-]?\s*([A-Za-z\s]+?)(?=\s*(?:State|Code|Reverse|Vehicle|E-way|Billed|To|Consignee|$))/i);
+  data.placeOfSupply = grab(t, /Place\s*of\s*Supply\s*[:-]?\s*([A-Za-z.&]+(?:\s+[A-Za-z.&]+){0,3}(?:\s*\(\s*[0-9]+\s*\))?)/i)
+    || grab(t, /Place\s*of\s*Supply\s*[:-]?\s*([A-Za-z\s]+?)(?=\s*(?:State|Code|Reverse|Vehicle|E-way|Billed|To|Consignee|$))/i);
 
   // ── SUPPLIER ──
   data.supplierName = grab(t, /(JAI\s*BHOLE\s*ENTERPRISES)/i)
     || grab(t, /Supplier\s*(?:Name)?\s*:?\s*(.+?)(?:\s*GSTIN|\s*Address|\s*Mo\.|$)/i);
-  data.supplierGSTIN = grab(t, /GSTIN\s*No\.?\s*[\-:]?\s*([0-9A-Z]{15})/i);
+  data.supplierGSTIN = grab(t, /GSTIN\s*No\.?\s*[-:]?\s*([0-9A-Z]{15})/i);
   data.supplierAddress = grab(t, /JAI BHOLE ENTERPRISES\s*(.*?)\s*Mo\.?:/i);
   data.supplierContact = grab(t, /Mo\.?:\s*([0-9]{10})/i);
 

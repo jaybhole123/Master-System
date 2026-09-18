@@ -124,7 +124,7 @@ export function parseSalesOrder(text) {
   // Try multiple patterns for the party name
   let partyName = '';
 
-  const partyMatch = clean.match(/(?:Name|Nane)\s*:\s*([A-Za-z0-9 .&\-\/\(\)]+?)(?=\s+(?:Address|Addre8s|Addres0|Name|Nane)\s*:)/gi);
+  const partyMatch = clean.match(/(?:Name|Nane)\s*:\s*([A-Za-z0-9 .&/()-]+?)(?=\s+(?:Address|Addre8s|Addres0|Name|Nane)\s*:)/gi);
   if (partyMatch && partyMatch.length > 0) {
     // If there are multiple matches, take the first one which is usually the cleanest
     let bestMatch = partyMatch[0].replace(/(?:Name|Nane)\s*:\s*/i, '').trim();
@@ -135,17 +135,17 @@ export function parseSalesOrder(text) {
 
   // Pattern 1: "Sold to Party:XXXXXXX Name : SOME NAME ... Address"
   if (!partyName) {
-    partyName = matchOne(clean, /Sold to Party\s*:\s*\d+\s*Name\s*:\s*([A-Za-z0-9 .&\-\/\(\)]+?)(?=\s+Address\s*:)/i);
+    partyName = matchOne(clean, /Sold to Party\s*:\s*\d+\s*Name\s*:\s*([A-Za-z0-9 .&/()-]+?)(?=\s+Address\s*:)/i);
   }
 
   // Pattern 2: "Name : SOME NAME Name :" (repeated in 3-column layout)
   if (!partyName) {
-    partyName = matchOne(clean, /\bName\s*:\s*([A-Za-z0-9 .&\-\/\(\)]+?)(?=\s+Name\s*:)/i);
+    partyName = matchOne(clean, /\bName\s*:\s*([A-Za-z0-9 .&/()-]+?)(?=\s+Name\s*:)/i);
   }
 
   // Pattern 3: "Name : SOME NAME Address :"
   if (!partyName) {
-    partyName = matchOne(clean, /\bName\s*:\s*([A-Za-z0-9 .&\-\/\(\)]+?)(?=\s+Address\s*:)/i);
+    partyName = matchOne(clean, /\bName\s*:\s*([A-Za-z0-9 .&/()-]+?)(?=\s+Address\s*:)/i);
   }
 
   // Pattern 4: "Name : SOME NAME (Formerly XYZ)" — greedy until Address/District
@@ -157,7 +157,7 @@ export function parseSalesOrder(text) {
   // ORDER INFO
   // ──────────────────────────────────────────────
   const order_info = {
-    sales_order_number: matchOne(clean, /(?:Sales|Salee)\s+Order\s+(?:Number|Nu ber)\s*:\s*(\w+[\/\-]?\w*)/i),
+    sales_order_number: matchOne(clean, /(?:Sales|Salee)\s+Order\s+(?:Number|Nu ber)\s*:\s*(\w+[/-]?\w*)/i),
     sales_order_date: matchOne(clean, /(?:Sales|Sles)\s+Order\s+Date\s*:\s*([a-zA-Z]{3} \d{1,2}, \d{4})/i),
     contract_number: matchOne(clean, /Contract Number\s*:\s*(\d+)/i) || matchOne(clean, /FSA No\.?\s*:\s*([A-Za-z0-9]+)/i),
     sales_order_valid_from: matchOne(clean, /(?:Sales|sles)\s+Order\s+(?:Valid\s+From|Velld\s+ro)\s*:\s*([a-zA-Z]{3} \d{1,2}, \d{4})/i),
@@ -181,7 +181,7 @@ export function parseSalesOrder(text) {
     area: matchOne(clean, /\bArea\s*:\s*([A-Z]+)/),
     mine: matchOne(clean, /\bMine\s*:\s*(\d+)/),
     grade_desc: matchOne(clean, /Grade Desc\s*:\s*([A-Z0-9]+)/i),
-    size: matchOne(clean, /\bSize\s*:\s*([\-0-9]+ ?MM)/i),
+    size: matchOne(clean, /\bSize\s*:\s*([-0-9]+ ?MM)/i),
     commodity: matchOne(clean, /Name of Commodity\s*:\s*([A-Za-z\- ]+?)(?=\s+(?:STC|ZTCS|Quantity|$))/i),
     stc_distance: matchOne(clean, /STC Distance\s*:\s*([0-9.]+)/i),
     ztcs_applicable: matchOne(clean, /ZTCS Applicable\s*:\s*([A-Za-z]+)/i),
@@ -241,7 +241,7 @@ export function parseSalesOrder(text) {
     block = block.replace(/^Pricing Description\s*Rate Per TE\(INR\)\s*Amount\(INR\)\s*/i, '');
 
     // Each pricing row: "Label text 1234.56 5678.90"
-    const rowRe = /([A-Za-z][A-Za-z .\-]*?(?:\([^)]*\))?[A-Za-z%.\-\) ]*?)\s+([\d,]+\.\d{2})\s+([\d,]+\.\d{2})/g;
+    const rowRe = /([A-Za-z][A-Za-z .\-]*?(?:\([^)]*\))?[A-Za-z%. )-]+?)\s+([\d,]+\.\d{2})\s+([\d,]+\.\d{2})/g;
     let m;
     while ((m = rowRe.exec(block)) !== null) {
       const label = m[1].trim().replace(/\s+/g, ' ');
