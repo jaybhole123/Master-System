@@ -15,7 +15,7 @@ const Reports = () => {
   const [visibleCount, setVisibleCount] = useState(50);
 
   const handlePrevDay = () => {
-    const current = startDate ? new Date(startDate) : new Date();
+    const current = startDate ? parse(startDate, 'yyyy-MM-dd', new Date()) : new Date();
     current.setDate(current.getDate() - 1);
     const dateStr = format(current, 'yyyy-MM-dd');
     setStartDate(dateStr);
@@ -23,7 +23,7 @@ const Reports = () => {
   };
 
   const handleNextDay = () => {
-    const current = startDate ? new Date(startDate) : new Date();
+    const current = startDate ? parse(startDate, 'yyyy-MM-dd', new Date()) : new Date();
     current.setDate(current.getDate() + 1);
     const dateStr = format(current, 'yyyy-MM-dd');
     setStartDate(dateStr);
@@ -38,13 +38,13 @@ const Reports = () => {
 
   const getDisplayDate = () => {
     if (startDate && startDate === endDate) {
-      return format(new Date(startDate), 'dd MMM yyyy');
+      return format(parse(startDate, 'yyyy-MM-dd', new Date()), 'dd MMM yyyy');
     }
     if (startDate && endDate) {
       return 'Date Range';
     }
-    if (startDate) return 'From ' + format(new Date(startDate), 'dd MMM');
-    if (endDate) return 'Up to ' + format(new Date(endDate), 'dd MMM');
+    if (startDate) return 'From ' + format(parse(startDate, 'yyyy-MM-dd', new Date()), 'dd MMM');
+    if (endDate) return 'Up to ' + format(parse(endDate, 'yyyy-MM-dd', new Date()), 'dd MMM');
     return 'All Time';
   };
 
@@ -62,20 +62,16 @@ const Reports = () => {
     staffList.some(u => String(u.id) === String(currentUser?.id) && (u.role || '').toLowerCase().trim() === 'superadmin');
   
   const isDateInRange = (dateString) => {
-    const taskDate = new Date(dateString);
-    taskDate.setHours(0,0,0,0);
+    if (!dateString) return false;
+    const taskDateObj = new Date(dateString);
+    if (isNaN(taskDateObj.getTime())) return false;
+    
+    const taskDateStr = format(taskDateObj, 'yyyy-MM-dd');
 
     let isValid = true;
-    if (startDate) {
-      const sDate = new Date(startDate);
-      sDate.setHours(0,0,0,0);
-      if (taskDate < sDate) isValid = false;
-    }
-    if (endDate) {
-      const eDate = new Date(endDate);
-      eDate.setHours(0,0,0,0);
-      if (taskDate > eDate) isValid = false;
-    }
+    if (startDate && taskDateStr < startDate) isValid = false;
+    if (endDate && taskDateStr > endDate) isValid = false;
+    
     return isValid;
   };
 
@@ -88,8 +84,14 @@ const Reports = () => {
       if (!currentUser || isSuperadmin) return true;
 
       // Regular users see only their own
-      if (String(t.assignedStaff) !== String(currentUser.id) &&
-          String(t.createdBy) !== String(currentUser.id)) {
+      const cId = String(currentUser.id);
+      const cName = String(currentUser.name || '').toLowerCase().trim();
+      const tAssigned = String(t.assignedStaff);
+      const tCreated = String(t.createdBy || '').toLowerCase().trim();
+
+      if (tAssigned !== cId && 
+          tCreated !== cId && 
+          tCreated !== cName) {
         return false;
       }
       return true;
