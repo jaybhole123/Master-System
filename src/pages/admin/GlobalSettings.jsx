@@ -57,7 +57,12 @@ const MODULES = [
   {
     id: 'HR System',
     name: 'HR System',
-    pages: ['HR Dashboard', 'Employee Master', 'Salary Structure', 'Attendance', 'Leave Tracker', 'Payroll Process', 'Net Salary', 'Payslip', 'Create Indent', 'Inventory', 'Offer Letter']
+    pages: ['HR Dashboard', 'Employee Master', 'Salary Structure', 'Attendance', 'Leave Tracker', 'Payroll Process', 'Net Salary', 'Payslip', 'Create Indent', 'Inventory']
+  },
+  {
+    id: 'Letter',
+    name: 'Letter',
+    pages: ['Offer Letter', 'Work Order']
   },
   {
     id: 'Petty Cash',

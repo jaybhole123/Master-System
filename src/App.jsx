@@ -106,7 +106,7 @@ export const ProtectedRoute = ({ children, allowedRoles = [] }) => {
     const isSuperAdmin = role === 'superadmin';
 
     if (!isSuperAdmin && !hasCustomPermissions && allowedRoles.length > 0 && !allowedRoles.map(r => r.toLowerCase()).includes(role)) {
-        return <Navigate to="/master-dashboard" replace />
+        return <Navigate to="/dashboard/profile" replace />
     }
 
     return children
@@ -116,8 +116,8 @@ const SuperAdminRoute = ({ children }) => {
     const username = (localStorage.getItem("user-name") || "").toLowerCase();
     const role = (localStorage.getItem("role") || "").toLowerCase();
 
-    if (!username || username !== "admin" || role !== "admin") {
-        return <Navigate to="/master-dashboard" replace />
+    if (!username || (username !== "admin" && role !== "superadmin")) {
+        return <Navigate to="/dashboard/profile" replace />
     }
 
     return children
@@ -179,15 +179,17 @@ function App() {
                     <Route path="/login" element={<LoginPage />} />
 
                     {/* --- Main Dashboard Redirect --- */}
-                    {/* Redirects /dashboard to /dashboard/admin to ensure canonical URL */}
-                    <Route path="/dashboard" element={<Navigate to="/master-dashboard" replace />} />
+                    {/* Redirects /dashboard to /dashboard/profile to ensure canonical URL */}
+                    <Route path="/dashboard" element={<Navigate to="/dashboard/profile" replace />} />
 
                     {/* --- Master Dashboard --- */}
                     <Route 
                         path="/master-dashboard"
                         element={
                             <ProtectedRoute>
-                                <MasterDashboard />
+                                <SuperAdminRoute>
+                                    <MasterDashboard />
+                                </SuperAdminRoute>
                             </ProtectedRoute>
                         }
                     />

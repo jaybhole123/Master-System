@@ -929,6 +929,10 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
             return true;
         }
 
+        if (route.label === "Master Dashboard") {
+            return false;
+        }
+
         if (hasCustomPermissions) {
            if (route.module === "Profile") return true; 
            if (route.isSubmenu && route.subItems) return true; 

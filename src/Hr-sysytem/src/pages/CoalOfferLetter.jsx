@@ -161,6 +161,15 @@ const OfferLetter = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
             
             {/* Header Details */}
+            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Issuing Company Name</label>
+              <select name="companyName" value={formData.companyName} onChange={handleChange} className="w-full border rounded p-2">
+                {Object.keys(COMPANY_DETAILS).map(name => (
+                  <option key={name} value={name}>{name}</option>
+                ))}
+              </select>
+            </div>
+
             <div className="form-group">
               <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
               <input type="date" name="date" value={formData.date} onChange={handleChange} className="w-full border rounded p-2" />
@@ -257,15 +266,6 @@ const OfferLetter = () => {
               <textarea name="noteText" value={formData.noteText} onChange={handleChange} className="w-full border rounded p-2" rows={2} />
             </div>
 
-            <div className="form-group">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Issuing Company Name</label>
-              <select name="companyName" value={formData.companyName} onChange={handleChange} className="w-full border rounded p-2">
-                <option value="M/s Jai Bhole Traders">M/s Jai Bhole Traders</option>
-                <option value="Jai Bhole Enterprises">Jai Bhole Enterprises</option>
-                <option value="ASAK COAL PRIVATE LIMITED">ASAK COAL PRIVATE LIMITED</option>
-                <option value="Jai Bhole Logistics">Jai Bhole Logistics</option>
-              </select>
-            </div>
 
             <div className="form-group">
               <label className="block text-sm font-medium text-gray-700 mb-1">Signatory Name</label>
