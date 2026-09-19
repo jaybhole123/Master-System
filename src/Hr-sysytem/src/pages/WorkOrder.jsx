@@ -6,31 +6,40 @@ import { toast } from 'react-hot-toast';
 
 import jbtLogo from '../../../assets/jbt.png';
 import ganeshLogo from '../../../assets/ganesh.jpg';
+import signatureImg from '../../../assets/signature.png';
 
 const COMPANY_DETAILS = {
   'M/s Jai Bhole Traders': {
     name: 'M/s Jai Bhole Traders',
     logo: jbtLogo,
     gstin: '22BGWPA5742M1Z2',
-    textColor: '#e43b3b'
+    textColor: '#e43b3b',
+    address: 'N.K. Agrawal & Sons Tower, 2nd Floor, Lane No. 8, Near State Bank of India, New Shanti Nagar, Shankar Nagar, Raipur 492 004 (C.G.)',
+    footerContact: 'Mo. : 78736 50000, 91091 61146, E-mail : biswanath23@gmail.com, jaibholetraderacc@gmail.com'
   },
   'Jai Bhole Enterprises': {
     name: 'Jai Bhole Enterprises',
     logo: ganeshLogo,
     gstin: '22AIXPA7225L1ZU',
-    textColor: '#e85d04'
+    textColor: '#e85d04',
+    address: 'N.K. Agrawal & Sons Tower, 3rd Floor, Lane No. 8, Near State Bank of India, New Shanti Nagar, Shankar Nagar, Raipur 492 004 (C.G.)',
+    footerContact: 'Mo. : 91654 22000, E-mail : amarnath.agrawal22@gmail.com, GSTIN : 22AIXPA7225L1ZU'
   },
   'ASAK COAL PRIVATE LIMITED': {
     name: 'ASAK COAL PRIVATE LIMITED',
     logo: null,
     gstin: '22AAICA1234A1Z5',
-    textColor: '#834333'
+    textColor: '#834333',
+    address: 'N.K. Agrawal & Sons Tower, 1st Floor, Lane No. 8, Near State Bank of India, New Shanti Nagar, Shankar Nagar, Raipur 492 004 (C.G.)',
+    footerContact: 'Mo. : 91654 22000, E-mail : asakcoal@gmail.com, CIN No. : U51909CT2022PTC013419, GSTIN : 22AAICA1234A1Z5'
   },
   'Jai Bhole Logistics': {
     name: 'Jai Bhole Logistics',
     logo: ganeshLogo,
     gstin: '22AANHA7052H1ZH',
-    textColor: '#e85d04'
+    textColor: '#e85d04',
+    address: 'N.K. Agrawal & Sons Tower, 3rd Floor, Lane No. 8, Near State Bank of India, New Shanti Nagar, Shankar Nagar, Raipur 492 004 (C.G.)',
+    footerContact: 'Mo.: 91654 22000, E-mail : amarnath.agrawal22@gmail.com'
   }
 };
 
@@ -80,12 +89,24 @@ const WorkOrder = () => {
     destinationAdd: 'Raipur & Bilaspur (C.G.)',
     terms: '1. TDS will be deducted at source as per IT rules.\n2. Shortage allowed 50.00 Kg Per Truck.( If shortage received more than 50 kg.tolerance limit We will deduct the shortage for the entire quantity as per market price.)\n3. Payment will be released within 20 to 25 days from the date of receipt of invoices.\n4. Invoice will be raised on completion of each DO.',
     signatoryName: 'AMARNATH AGRAWAL',
-    signatoryTitle: '9165422000'
+    signatoryTitle: '9165422000',
+    address: COMPANY_DETAILS['Jai Bhole Logistics'].address,
+    footerContact: COMPANY_DETAILS['Jai Bhole Logistics'].footerContact
   });
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    if (name === 'companyName') {
+      const selectedCompany = COMPANY_DETAILS[value];
+      setFormData(prev => ({ 
+        ...prev, 
+        [name]: value,
+        address: selectedCompany?.address || '',
+        footerContact: selectedCompany?.footerContact || ''
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleDownloadPDF = async () => {
@@ -139,7 +160,7 @@ const WorkOrder = () => {
   const activeFirm = COMPANY_DETAILS[formData.companyName] || COMPANY_DETAILS['Jai Bhole Logistics'];
 
   return (
-    <div className="p-6 fade-in">
+    <div className="p-2 md:p-6 fade-in">
       <div className="mb-6 no-print page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h1 className="page-title text-2xl font-bold text-gray-800">Work Order Generator</h1>
@@ -315,10 +336,24 @@ const WorkOrder = () => {
               </div>
             </div>
 
+            <div className="col-span-full border-t pt-4 my-2" style={{ gridColumn: '1 / -1' }}>
+              <h3 className="text-lg font-semibold mb-3">Footer Location Details</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}>
+                <div className="form-group">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                  <textarea name="address" value={formData.address} onChange={handleChange} className="w-full border rounded p-2" rows="2" />
+                </div>
+                <div className="form-group">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Footer Contact</label>
+                  <input type="text" name="footerContact" value={formData.footerContact} onChange={handleChange} className="w-full border rounded p-2" />
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
       ) : (
-        <div className="card p-10 rounded-lg shadow-md max-w-4xl mx-auto print-area text-black" style={{ minHeight: '1000px', backgroundColor: 'white' }}>
+        <div className="card p-2 md:p-10 rounded-lg shadow-md max-w-4xl mx-auto print-area text-black" style={{ minHeight: '1000px', backgroundColor: 'white' }}>
           
           <div className="flex justify-end gap-3 mb-4 no-print" style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginBottom: '20px' }}>
              <button onClick={() => setIsPreview(false)} className="btn-primary" style={{ backgroundColor: '#6b7280', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -333,7 +368,7 @@ const WorkOrder = () => {
             <div ref={letterRef} className="font-sans text-sm letter-content" style={{ 
               backgroundColor: '#fff', 
               color: '#000', 
-              padding: '30px 40px', 
+              padding: '20px 40px', 
               width: '800px', 
               minHeight: '1131px', // A4 aspect ratio 1:1.414
               border: '1px solid #ccc',
@@ -350,9 +385,9 @@ const WorkOrder = () => {
             </div>
 
             {/* Document Header */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', marginBottom: '15px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', marginBottom: '10px' }}>
               {activeFirm.logo && (
-                <img src={activeFirm.logo} alt={activeFirm.name} style={{ height: '70px', width: 'auto', borderRadius: '4px', position: 'absolute', left: 0 }} />
+                <img src={activeFirm.logo} alt={activeFirm.name} style={{ height: '60px', width: 'auto', borderRadius: '4px', position: 'absolute', left: 0 }} />
               )}
               <h1 style={{ 
                 fontSize: '2.5rem', 
@@ -377,7 +412,7 @@ const WorkOrder = () => {
             </div>
 
             {/* To Address */}
-            <div style={{ marginBottom: '10px', lineHeight: '1.5' }}>
+            <div style={{ marginBottom: '8px', lineHeight: '1.3' }}>
               <p>To</p>
               <p>{formData.buyerName}</p>
               <p style={{ whiteSpace: 'pre-wrap' }}>{formData.buyerAddress}</p>
@@ -395,7 +430,7 @@ const WorkOrder = () => {
             </p>
 
             {/* Specifications Grid */}
-            <table style={{ width: '90%', margin: '0 auto 15px auto', borderCollapse: 'collapse', lineHeight: '1.8' }}>
+            <table style={{ width: '90%', margin: '0 auto 10px auto', borderCollapse: 'collapse', lineHeight: '1.4' }}>
               <tbody>
                 {visibleSpecs.commodity && (
                 <tr>
@@ -457,19 +492,25 @@ const WorkOrder = () => {
             </table>
 
             {/* Terms and Conditions */}
-            <h3 style={{ fontWeight: 'bold', textDecoration: 'underline', marginBottom: '10px' }}>Term & Conditions</h3>
-            <div style={{ paddingLeft: '20px', marginBottom: '15px', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
+            <h3 style={{ fontWeight: 'bold', textDecoration: 'underline', marginBottom: '5px' }}>Term & Conditions</h3>
+            <div style={{ paddingLeft: '20px', marginBottom: '10px', lineHeight: '1.4', whiteSpace: 'pre-wrap' }}>
                {formData.terms}
             </div>
 
             {/* Footer / Signature */}
             <div style={{ marginTop: 'auto', lineHeight: '1.4' }}>
               <p style={{ fontWeight: 'bold' }}>For {formData.companyName}</p>
-              <div style={{ height: '40px', display: 'flex', alignItems: 'center' }}>
-                 {/* Reserved space for stamp/signature */}
+              <div style={{ height: '40px', display: 'flex', alignItems: 'center', marginTop: '5px', marginBottom: '5px' }}>
+                 <img src={signatureImg} alt="Signature" style={{ height: '100%', objectFit: 'contain' }} />
               </div>
               <p style={{ fontWeight: 'bold' }}>{formData.signatoryName}</p>
               <p>{formData.signatoryTitle}</p>
+
+              {/* Bottom Address */}
+              <div style={{ borderTop: '2px solid #ccc', marginTop: '10px', paddingTop: '8px', textAlign: 'center', fontSize: '0.85rem', color: '#6b7280' }}>
+                <div>{formData.address}</div>
+                <div>{formData.footerContact}</div>
+              </div>
             </div>
 
             </div>

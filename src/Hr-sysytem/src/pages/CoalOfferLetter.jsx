@@ -6,27 +6,36 @@ import html2canvas from 'html2canvas';
 
 import jbtLogo from '../../../assets/jbt.png';
 import ganeshLogo from '../../../assets/ganesh.jpg';
+import signatureImg from '../../../assets/signature.png';
 
 const COMPANY_DETAILS = {
   'M/s Jai Bhole Traders': {
     name: 'M/s Jai Bhole Traders',
     logo: jbtLogo,
     textColor: '#ee5945',
+    address: 'N.K. Agrawal & Sons Tower, 2nd Floor, Lane No. 8, Near State Bank of India, New Shanti Nagar, Shankar Nagar, Raipur 492 004 (C.G.)',
+    footerContact: 'Mo. : 78736 50000, 91091 61146, E-mail : biswanath23@gmail.com, jaibholetraderacc@gmail.com'
   },
   'Jai Bhole Enterprises': {
     name: 'Jai Bhole Enterprises',
     logo: ganeshLogo,
     textColor: '#ff6b52',
+    address: 'N.K. Agrawal & Sons Tower, 3rd Floor, Lane No. 8, Near State Bank of India, New Shanti Nagar, Shankar Nagar, Raipur 492 004 (C.G.)',
+    footerContact: 'Mo. : 91654 22000, E-mail : amarnath.agrawal22@gmail.com, GSTIN : 22AHAPA5408K1ZW'
   },
   'ASAK COAL PRIVATE LIMITED': {
     name: 'ASAK COAL PRIVATE LIMITED',
     logo: null,
     textColor: '#834333',
+    address: 'N.K. Agrawal & Sons Tower, 1st Floor, Lane No. 8, Near State Bank of India, New Shanti Nagar, Shankar Nagar, Raipur 492 004 (C.G.)',
+    footerContact: 'Mo. : 91654 22000, E-mail : asakcoal@gmail.com, CIN No. : U51909CT2022PTC013419, GSTIN : 22AAXCA2906K1ZH'
   },
   'Jai Bhole Logistics': {
     name: 'Jai Bhole Logistics',
     logo: ganeshLogo,
     textColor: '#ff6b52',
+    address: 'N.K. Agrawal & Sons Tower, 3rd Floor, Lane No. 8, Near State Bank of India, New Shanti Nagar, Shankar Nagar, Raipur 492 004 (C.G.)',
+    footerContact: 'Mo.: 91654 22000, E-mail : amarnath.agrawal22@gmail.com'
   }
 };
 
@@ -51,14 +60,26 @@ const OfferLetter = () => {
     vm: '30 (+/-1)',
     size: '8-50MM (-8MM 15%)',
     noteText: 'Our sources of washed coal is from Asak Washery Korba & Mahavir Coal Washery Toggle Champa',
-    companyName: 'Asak Coal Private Ltd',
+    companyName: 'M/s Jai Bhole Traders',
     signatoryName: 'Amarnath Agrawal',
-    signatoryTitle: 'Director/Authorized Signatory'
+    signatoryTitle: 'Director/Authorized Signatory',
+    firmAddress: COMPANY_DETAILS['M/s Jai Bhole Traders'].address,
+    firmFooterContact: COMPANY_DETAILS['M/s Jai Bhole Traders'].footerContact
   });
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    if (name === 'companyName') {
+      const selectedCompany = COMPANY_DETAILS[value];
+      setFormData(prev => ({ 
+        ...prev, 
+        [name]: value,
+        firmAddress: selectedCompany?.address || '',
+        firmFooterContact: selectedCompany?.footerContact || ''
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const specKeys = [
@@ -139,7 +160,7 @@ const OfferLetter = () => {
   const activeFirm = COMPANY_DETAILS[formData.companyName] || COMPANY_DETAILS['Asak Coal Private Ltd'] || COMPANY_DETAILS['ASAK COAL PRIVATE LIMITED'];
 
   return (
-    <div className="p-6 fade-in">
+    <div className="p-2 md:p-6 fade-in">
       <div className="mb-6 no-print page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h1 className="page-title text-2xl font-bold text-gray-800">Coal Supply Offer Letter</h1>
@@ -276,11 +297,25 @@ const OfferLetter = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">Signatory Title</label>
               <input type="text" name="signatoryTitle" value={formData.signatoryTitle} onChange={handleChange} className="w-full border rounded p-2" />
             </div>
+
+            <div className="col-span-full border-t pt-4 my-2" style={{ gridColumn: '1 / -1' }}>
+              <h3 className="text-lg font-semibold mb-3">Footer Location Details</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}>
+                <div className="form-group">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Firm Address</label>
+                  <textarea name="firmAddress" value={formData.firmAddress} onChange={handleChange} className="w-full border rounded p-2" rows="2" />
+                </div>
+                <div className="form-group">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Firm Footer Contact</label>
+                  <input type="text" name="firmFooterContact" value={formData.firmFooterContact} onChange={handleChange} className="w-full border rounded p-2" />
+                </div>
+              </div>
+            </div>
             
           </div>
         </div>
       ) : (
-        <div className="card p-10 rounded-lg shadow-md max-w-4xl mx-auto print-area text-black" style={{ minHeight: '1000px', backgroundColor: 'white' }}>
+        <div className="card p-2 md:p-10 rounded-lg shadow-md max-w-4xl mx-auto print-area text-black" style={{ minHeight: '1000px', backgroundColor: 'white' }}>
            <style>
             {`
               @media print {
@@ -326,13 +361,13 @@ const OfferLetter = () => {
               }
               @media screen and (max-width: 768px) {
                 .letter-content {
-                  width: 100% !important;
+                  width: 800px !important;
                   height: auto !important;
                   min-height: 1131px;
                   padding: 20px !important;
                   transform-origin: top center;
-                  transform: scale(min(1, calc(100vw / 800)));
-                  margin-bottom: calc(-1131px * (1 - min(1, calc(100vw / 800))));
+                  transform: scale(min(1, calc((100vw - 40px) / 800)));
+                  margin-bottom: calc(-1131px * (1 - min(1, calc((100vw - 40px) / 800))));
                 }
                 .preview-wrapper {
                   overflow-x: hidden !important;
@@ -443,9 +478,17 @@ const OfferLetter = () => {
             <div style={{ marginTop: 'auto', lineHeight: '1.4' }}>
               <p style={{ fontWeight: 'bold', marginBottom: '15px' }}>Thanks & Regards</p>
               <p>For {formData.companyName}</p>
-              <div style={{ height: '40px' }}></div>
+              <div style={{ height: '40px', display: 'flex', alignItems: 'center', marginTop: '5px', marginBottom: '5px' }}>
+                 <img src={signatureImg} alt="Signature" style={{ height: '100%', objectFit: 'contain' }} />
+              </div>
               <p>{formData.signatoryName}</p>
               <p>{formData.signatoryTitle}</p>
+            </div>
+
+            {/* Bottom Address */}
+            <div style={{ borderTop: '2px solid #ccc', marginTop: '20px', paddingTop: '10px', textAlign: 'center', fontSize: '0.85rem', color: '#6b7280' }}>
+              <div>{formData.firmAddress}</div>
+              <div>{formData.firmFooterContact}</div>
             </div>
 
             </div>

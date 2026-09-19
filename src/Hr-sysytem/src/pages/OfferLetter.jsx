@@ -58,12 +58,24 @@ const OfferLetter = () => {
     monthlyGrossSalary: '',
     probationPeriod: '3 Months',
     workingHours: '10:30 AM to 07:30 PM',
-    joiningDate: ''
+    joiningDate: '',
+    firmAddress: FIRM_DETAILS['M/s Jai Bhole Traders'].address,
+    firmFooterContact: FIRM_DETAILS['M/s Jai Bhole Traders'].footerContact
   });
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    if (name === 'companyName') {
+      const selectedCompany = FIRM_DETAILS[value];
+      setFormData(prev => ({ 
+        ...prev, 
+        [name]: value,
+        firmAddress: selectedCompany?.address || '',
+        firmFooterContact: selectedCompany?.footerContact || ''
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handlePrint = () => {
@@ -105,7 +117,7 @@ const OfferLetter = () => {
   const activeFirm = FIRM_DETAILS[formData.companyName] || FIRM_DETAILS['M/s Jai Bhole Traders'];
 
   return (
-    <div className="p-6 fade-in">
+    <div className="p-2 md:p-6 fade-in">
       <div className="mb-6 no-print page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h1 className="page-title text-2xl font-bold text-gray-800">Offer Letter Generator</h1>
@@ -181,10 +193,24 @@ const OfferLetter = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">Joining Date</label>
               <input type="date" name="joiningDate" value={formData.joiningDate} onChange={handleChange} className="w-full border rounded p-2" />
             </div>
+
+            <div className="col-span-full border-t pt-4 my-2" style={{ gridColumn: '1 / -1' }}>
+              <h3 className="text-lg font-semibold mb-3">Footer Location Details</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}>
+                <div className="form-group">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Firm Address</label>
+                  <textarea name="firmAddress" value={formData.firmAddress} onChange={handleChange} className="w-full border rounded p-2" rows="2" />
+                </div>
+                <div className="form-group">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Firm Footer Contact</label>
+                  <input type="text" name="firmFooterContact" value={formData.firmFooterContact} onChange={handleChange} className="w-full border rounded p-2" />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       ) : (
-        <div className="card p-10 rounded-lg shadow-md max-w-4xl mx-auto print-area text-black" style={{ minHeight: '1000px', backgroundColor: 'white' }}>
+        <div className="card p-2 md:p-10 rounded-lg shadow-md max-w-4xl mx-auto print-area text-black" style={{ minHeight: '1000px', backgroundColor: 'white' }}>
            <style>
             {`
               @media print {
@@ -230,13 +256,13 @@ const OfferLetter = () => {
               }
               @media screen and (max-width: 768px) {
                 .letter-content {
-                  width: 100% !important;
+                  width: 800px !important;
                   height: auto !important;
                   min-height: 1131px;
                   padding: 20px !important;
                   transform-origin: top center;
-                  transform: scale(min(1, calc(100vw / 800)));
-                  margin-bottom: calc(-1131px * (1 - min(1, calc(100vw / 800))));
+                  transform: scale(min(1, calc((100vw - 40px) / 800)));
+                  margin-bottom: calc(-1131px * (1 - min(1, calc((100vw - 40px) / 800))));
                 }
                 .preview-wrapper {
                   overflow-x: hidden !important;
@@ -359,8 +385,8 @@ const OfferLetter = () => {
 
               {/* Bottom Address */}
               <div style={{ borderTop: '2px solid #ccc', marginTop: '20px', paddingTop: '10px', textAlign: 'center', fontSize: '0.85rem', color: '#6b7280' }}>
-                <div>{activeFirm.address}</div>
-                <div>{activeFirm.footerContact}</div>
+                <div>{formData.firmAddress}</div>
+                <div>{formData.firmFooterContact}</div>
               </div>
             </div>
             </div>

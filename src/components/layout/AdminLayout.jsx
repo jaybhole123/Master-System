@@ -1327,7 +1327,9 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                           {moduleName === "HR System" && <UserRound className="h-5 w-5 shrink-0" />}
                           {moduleName === "Petty Cash" && <Banknote className="h-5 w-5 shrink-0" />}
                           {moduleName === "Daily Scheduler" && <CalendarCheck className="h-5 w-5 shrink-0" />}
+                          {moduleName === "Rent Management Tracker" && <Banknote className="h-5 w-5 shrink-0" />}
                           {moduleName === "Coal System" && <Database className="h-5 w-5 shrink-0" />}
+                          {moduleName === "Letter" && <FileText className="h-5 w-5 shrink-0" />}
                           <span className="text-left leading-tight whitespace-normal break-words pr-1 text-[13.5px]">{moduleName}</span>
                         </div>
                         {openModules[moduleName] ? (
