@@ -64,7 +64,8 @@ const OfferLetter = () => {
     signatoryName: 'Amarnath Agrawal',
     signatoryTitle: 'Director/Authorized Signatory',
     firmAddress: COMPANY_DETAILS['M/s Jai Bhole Traders'].address,
-    firmFooterContact: COMPANY_DETAILS['M/s Jai Bhole Traders'].footerContact
+    firmFooterContact: COMPANY_DETAILS['M/s Jai Bhole Traders'].footerContact,
+    signatureDataUrl: ''
   });
 
   const handleChange = (e) => {
@@ -79,6 +80,33 @@ const OfferLetter = () => {
       }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const handleSignaturePaste = (e) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        e.preventDefault();
+        const blob = items[i].getAsFile();
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          setFormData(prev => ({ ...prev, signatureDataUrl: event.target.result }));
+        };
+        reader.readAsDataURL(blob);
+      }
+    }
+  };
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setFormData(prev => ({ ...prev, signatureDataUrl: event.target.result }));
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -134,20 +162,19 @@ const OfferLetter = () => {
       
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfPageHeight = pdf.internal.pageSize.getHeight();
-      const imgHeight = (canvas.height * pdfWidth) / canvas.width;
       
-      let heightLeft = imgHeight;
-      let position = 0;
+      let imgWidth = pdfWidth;
+      let imgHeight = (canvas.height * pdfWidth) / canvas.width;
       
-      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
-      heightLeft -= pdfPageHeight;
-      
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
-        heightLeft -= pdfPageHeight;
+      // Force fit to 1 page
+      if (imgHeight > pdfPageHeight) {
+         const ratio = pdfPageHeight / imgHeight;
+         imgHeight = pdfPageHeight;
+         imgWidth = pdfWidth * ratio;
       }
+      
+      const xOffset = (pdfWidth - imgWidth) / 2;
+      pdf.addImage(imgData, 'PNG', xOffset, 0, imgWidth, imgHeight);
       
       pdf.save(`Offer_Letter_${formData.buyerName ? formData.buyerName.replace(/\s+/g, '_') : 'Company'}.pdf`);
       toast.success("PDF downloaded successfully!");
@@ -296,6 +323,43 @@ const OfferLetter = () => {
             <div className="form-group">
               <label className="block text-sm font-medium text-gray-700 mb-1">Signatory Title</label>
               <input type="text" name="signatoryTitle" value={formData.signatoryTitle} onChange={handleChange} className="w-full border rounded p-2" />
+            </div>
+
+            <div className="form-group col-span-full" style={{ gridColumn: '1 / -1' }}>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Signature Image (Click here & press Ctrl+V to paste or Click to upload)</label>
+              <div 
+                onPaste={handleSignaturePaste} 
+                className="w-full border-2 border-dashed border-gray-300 rounded p-4 text-center text-gray-500 cursor-pointer hover:bg-gray-50 focus-within:border-blue-500 focus-within:bg-blue-50 relative"
+                tabIndex="0"
+                style={{ outline: 'none', transition: 'all 0.2s' }}
+              >
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={handleFileUpload} 
+                  style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', zIndex: 5 }} 
+                  title="Click to upload or Ctrl+V to paste"
+                />
+                {formData.signatureDataUrl ? (
+                  <div className="flex flex-col items-center gap-2 relative z-10">
+                    <img src={formData.signatureDataUrl} alt="Pasted Signature" style={{ height: '80px', objectFit: 'contain' }} />
+                    <span 
+                      className="text-xs text-red-500 cursor-pointer hover:underline" 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setFormData(prev => ({ ...prev, signatureDataUrl: '' }));
+                        const fileInput = e.target.closest('.form-group').querySelector('input[type="file"]');
+                        if (fileInput) fileInput.value = '';
+                      }}
+                    >
+                      Remove
+                    </span>
+                  </div>
+                ) : (
+                  "Click here to upload or press Ctrl+V to paste a signature image"
+                )}
+              </div>
             </div>
 
             <div className="col-span-full border-t pt-4 my-2" style={{ gridColumn: '1 / -1' }}>
@@ -478,8 +542,10 @@ const OfferLetter = () => {
             <div style={{ marginTop: 'auto', lineHeight: '1.4' }}>
               <p style={{ fontWeight: 'bold', marginBottom: '15px' }}>Thanks & Regards</p>
               <p>For {formData.companyName}</p>
-              <div style={{ height: '40px', display: 'flex', alignItems: 'center', marginTop: '5px', marginBottom: '5px' }}>
-                 <img src={signatureImg} alt="Signature" style={{ height: '100%', objectFit: 'contain' }} />
+              <div style={{ height: '80px', display: 'flex', alignItems: 'center', marginTop: '5px', marginBottom: '5px' }}>
+                 {formData.signatureDataUrl && (
+                   <img src={formData.signatureDataUrl} alt="Signature" style={{ height: '100%', objectFit: 'contain' }} />
+                 )}
               </div>
               <p>{formData.signatoryName}</p>
               <p>{formData.signatoryTitle}</p>

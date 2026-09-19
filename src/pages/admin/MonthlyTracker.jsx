@@ -280,7 +280,8 @@ const MonthlyTracker = () => {
     const parts = dateString.split('-');
     if (parts.length !== 3) return dateString;
     const [year, month, day] = parts;
-    return `${month}-${day}-${year}`;
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${day}-${monthNames[parseInt(month, 10) - 1]}-${year}`;
   };
 
   const handleDownloadPDF = () => {
@@ -513,7 +514,9 @@ const MonthlyTracker = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       {getDelayDays(record) > 0 
                         ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">{getDelayDays(record)} days</span>
-                        : <span className="text-slate-400">-</span>
+                        : (getRecordStatus(record) === 'On Time' || getRecordStatus(record) === 'Received')
+                          ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">On Time</span>
+                          : <span className="text-slate-400">-</span>
                       }
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">{record.paymentMode}</td>
