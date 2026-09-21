@@ -1565,7 +1565,7 @@ const Setting = () => {
                             <div className="flex items-center">
                               <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center overflow-hidden mr-3 border border-indigo-200">
                                 {user?.profile_image ? (
-                                  <img src={user.profile_image} alt={user.user_name} className="h-full w-full object-cover" />
+                                  <img src={user.profile_image.startsWith('image/') ? `data:${user.profile_image}` : user.profile_image} alt={user.user_name} className="h-full w-full object-cover" />
                                 ) : (
                                   <span className="text-xs font-bold text-indigo-700">{user?.user_name?.charAt(0).toUpperCase()}</span>
                                 )}
@@ -2192,7 +2192,7 @@ const Setting = () => {
                         <div className="h-full w-full rounded-full bg-gradient-to-tr from-indigo-50 to-red-50 border-2 border-dashed border-red-200 flex items-center justify-center overflow-hidden transition-all group-hover:border-red-400 group-hover:bg-red-50/50">
                           {profilePreview || userForm.profile_image ? (
                             <img
-                              src={profilePreview || userForm.profile_image}
+                              src={(profilePreview || userForm.profile_image).startsWith('image/') ? `data:${profilePreview || userForm.profile_image}` : (profilePreview || userForm.profile_image)}
                               alt="Profile"
                               className="h-full w-full object-cover transform transition-transform duration-500 group-hover:scale-110"
                             />

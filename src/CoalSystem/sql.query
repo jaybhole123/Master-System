@@ -684,3 +684,19 @@ CREATE TABLE public.invoices (
   round_off numeric,
   CONSTRAINT invoices_pkey PRIMARY KEY (id)
 );
+
+CREATE TABLE public.sauda_scale (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  from_party character varying,
+  order_date date,
+  grade_mines character varying,
+  buy_order_qty numeric,
+  buy_basic_rate numeric,
+  sell_order_qty numeric,
+  sell_basic_rate numeric,
+  balance_qty numeric,
+  do_no character varying,
+  due_date date,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT sauda_scale_pkey PRIMARY KEY (id)
+);

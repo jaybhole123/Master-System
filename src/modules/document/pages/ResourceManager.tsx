@@ -1,12 +1,11 @@
-import { useState } from 'react';
-import { FileText, CreditCard, LayoutGrid } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { FileText, Calendar } from 'lucide-react';
 import AllDocuments from './document/AllDocuments';
-import AllSubscriptions from './subscription/AllSubscriptions';
+import CalendarReminder from './document/CalendarReminder';
 import useHeaderStore from '../store/headerStore';
-import { useEffect } from 'react';
 
 const ResourceManager = () => {
-  const [activeTab, setActiveTab] = useState<'documents' | 'subscriptions'>('documents');
+  const [activeTab, setActiveTab] = useState<'documents' | 'calendar'>('documents');
   const { setTitle } = useHeaderStore();
 
   useEffect(() => {
@@ -29,15 +28,15 @@ const ResourceManager = () => {
           <span>Documents</span>
         </button>
         <button
-          onClick={() => setActiveTab('subscriptions')}
+          onClick={() => setActiveTab('calendar')}
           className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-medium transition-all ${
-            activeTab === 'subscriptions'
+            activeTab === 'calendar'
               ? 'bg-red-50 text-red-700 shadow-sm border border-red-100'
               : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
           }`}
         >
-          <CreditCard size={18} />
-          <span>Subscriptions</span>
+          <Calendar size={18} />
+          <span>Calendar Reminder</span>
         </button>
       </div>
 
@@ -48,9 +47,9 @@ const ResourceManager = () => {
             <AllDocuments />
           </div>
         ) : (
-             <div>
-                <AllSubscriptions />
-             </div>
+          <div>
+            <CalendarReminder />
+          </div>
         )}
       </div>
     </div>

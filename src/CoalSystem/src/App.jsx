@@ -12,6 +12,7 @@ import WorkOrderPage from "./pages/WorkOrderPage";
 import DispatchPage from "./pages/DispatchPage";
 import TransportPaymentPage from "./pages/TransportPaymentPage";
 import RefundLapsePage from "./pages/RefundLapsePage";
+import SaudaScalePage from "./pages/SaudaScalePage";
 
 // Initial state for the Payment Advice page (lifted here so navigating away preserves data)
 const PAYMENT_INIT = {
@@ -167,6 +168,8 @@ export default function App({ page, hideNavigation }) {
         return <TransportPaymentPage />;
       case "refund-lapse":
         return <RefundLapsePage />;
+      case "sauda-scale":
+        return <SaudaScalePage />;
       default:
         return <Dashboard onNavigate={setActivePage} />;
     }

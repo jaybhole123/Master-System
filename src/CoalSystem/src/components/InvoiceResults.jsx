@@ -11,7 +11,7 @@ export default function InvoiceResults({ data, fileName, onReset, onAddFiles, on
   const [editingIndex, setEditingIndex] = useState(null);
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(null);
 
   // --- COLUMN TOGGLE LOGIC ---
   const [showColumnDropdown, setShowColumnDropdown] = useState(false);

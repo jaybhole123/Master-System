@@ -10,7 +10,7 @@ export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAd
   const [activeTab, setActiveTab] = useState("summary");
   const [editingIndex, setEditingIndex] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(null);
 
   const handleEditClick = (index) => setEditingIndex(index);
   const handleSaveEdit = (updatedData) => {

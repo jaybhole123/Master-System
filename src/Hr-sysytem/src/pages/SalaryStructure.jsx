@@ -277,10 +277,13 @@ export default function SalaryStructure() {
       const monthYearStr = `${formData.salaryMonth} ${year}`;
       
       try {
+        const selectedEmployeeDetails = employees.find(emp => emp.id === selectedEmp);
+        const empNameToMatch = selectedEmployeeDetails ? selectedEmployeeDetails.name : '';
+
         const { data, error } = await supabase
           .from('monthly_attendance')
           .select('*')
-          .eq('employee_id', selectedEmp)
+          .eq('employee_name', empNameToMatch)
           .eq('month_year', monthYearStr)
           .maybeSingle();
           
@@ -323,6 +326,7 @@ export default function SalaryStructure() {
             
             return {
               ...prev,
+              totalDays: tDays,
               presentDays: presentEquiv,
               absent: a,
               leaves: l,
@@ -332,13 +336,18 @@ export default function SalaryStructure() {
           toast.success(`Attendance auto-fetched for ${monthYearStr}`);
         } else {
           // If no attendance record is found, default to full present days
-          setFormData(prev => ({
-            ...prev,
-            presentDays: prev.totalDays || 0,
-            absent: 0,
-            leaves: 0,
-            leaveDeduction: 0
-          }));
+          const daysInMonth = getDaysForMonthName(formData.salaryMonth, year);
+          setFormData(prev => {
+            const tDays = Number(prev.totalDays) || daysInMonth;
+            return {
+              ...prev,
+              totalDays: tDays,
+              presentDays: tDays,
+              absent: 0,
+              leaves: 0,
+              leaveDeduction: 0
+            };
+          });
         }
       } catch (err) {
         console.error('Error fetching monthly attendance for sync:', err);

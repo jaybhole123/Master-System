@@ -28,7 +28,7 @@ export default function SalesOrderResults({
   const observerRef = useRef(null);
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(null);
   const [activeTab, setActiveTab] = useState("summary"); // "leftDays" or "summary"
 
   // --- COLUMN TOGGLE LOGIC ---

@@ -523,6 +523,7 @@ function App() {
                     <Route path="/coal-system/invoice" element={<CoalSystemWrapper><CoalSystemApp page="invoice" hideNavigation={true} /></CoalSystemWrapper>} />
                     <Route path="/coal-system/transport-payment" element={<CoalSystemWrapper><CoalSystemApp page="transport-payment" hideNavigation={true} /></CoalSystemWrapper>} />
                     <Route path="/coal-system/refund-lapse" element={<CoalSystemWrapper><CoalSystemApp page="refund-lapse" hideNavigation={true} /></CoalSystemWrapper>} />
+                    <Route path="/coal-system/sauda-scale" element={<CoalSystemWrapper><CoalSystemApp page="sauda-scale" hideNavigation={true} /></CoalSystemWrapper>} />
 
                     {/* --- Backward Compatibility Redirects (From Snippet 1) --- */}
                     {/* These catch old URLs and forward them to the new structure */}

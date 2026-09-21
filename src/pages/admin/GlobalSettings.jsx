@@ -78,6 +78,11 @@ const MODULES = [
     id: 'Help Slip',
     name: 'Help Slip',
     pages: ['Help Slip', 'Submissions']
+  },
+  {
+    id: 'Coal System',
+    name: 'Coal System',
+    pages: ['Dashboard', 'Auction', 'Payment Advice', 'SECL Payment Advice', 'Sales Order', 'SECL Intimation', 'Invoice', 'Work Order', 'Dispatch', 'Transport Payment', 'Refund / Lapse', 'Sauda Scale']
   }
 ];
 
@@ -463,7 +468,7 @@ export default function GlobalSettings() {
                                             <div className="flex items-center gap-3">
                                                 <div className="h-8 w-8 rounded-full bg-red-100 text-red-700 flex items-center justify-center font-bold text-sm shrink-0 overflow-hidden">
                                                     {user.profile_image ? (
-                                                        <img src={user.profile_image} alt={user.user_name} className="w-full h-full object-cover" />
+                                                        <img src={user.profile_image.startsWith('image/') ? `data:${user.profile_image}` : user.profile_image} alt={user.user_name} className="w-full h-full object-cover" />
                                                     ) : (
                                                         user.user_name?.charAt(0).toUpperCase()
                                                     )}
@@ -596,7 +601,7 @@ export default function GlobalSettings() {
                                 <div className="relative">
                                     <div className="w-20 h-20 rounded-full bg-slate-100 border-2 border-white shadow-md flex items-center justify-center overflow-hidden">
                                         {formData.profile_image ? (
-                                            <img src={formData.profile_image} alt="Profile" className="w-full h-full object-cover" />
+                                            <img src={formData.profile_image.startsWith('image/') ? `data:${formData.profile_image}` : formData.profile_image} alt="Profile" className="w-full h-full object-cover" />
                                         ) : (
                                             <span className="text-2xl font-black text-slate-300">
                                                 {formData.user_name ? formData.user_name.charAt(0).toUpperCase() : '?'}

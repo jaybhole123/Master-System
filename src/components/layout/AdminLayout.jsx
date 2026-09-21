@@ -713,7 +713,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
     // --- Letter Module Routes ---
     {
       href: "/letter/offer-letter",
-      label: "Offer Letter",
+      label: "Coal Supply Offer Letter",
       icon: FileText,
       active: location.pathname === "/letter/offer-letter",
       showFor: ["admin", "user", "HOD"],
@@ -900,6 +900,14 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       module: "Coal System",
     },
     {
+      href: "/coal-system/sauda-scale",
+      label: "Sauda Scale",
+      icon: FileText,
+      active: location.pathname === "/coal-system/sauda-scale",
+      showFor: ["admin", "user", "HOD"],
+      module: "Coal System",
+    },
+    {
       href: "/dashboard/global-settings",
       label: "Global Settings",
       icon: Settings2,
@@ -945,6 +953,9 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
            }
            if (route.label === "Add Credit") {
                mappedLabel = "Add Credit / Case";
+           }
+           if (route.label === "Coal Supply Offer Letter") {
+               mappedLabel = "Offer Letter";
            }
 
            const pageKey = `${mappedModule}::${mappedLabel}`;

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-const DropdownField = ({ value, onChange, isDate, styles, options }) => {
+const DropdownField = ({ value, onChange, isDate, type, styles, options }) => {
   const [isInput, setIsInput] = useState(false);
 
   if (isDate) {
@@ -10,6 +10,18 @@ const DropdownField = ({ value, onChange, isDate, styles, options }) => {
         value={value || ""}
         onChange={(e) => onChange(e.target.value)}
         style={styles.input}
+      />
+    );
+  }
+
+  if (type === "number" || type === "text") {
+    return (
+      <input
+        type={type}
+        value={value || ""}
+        onChange={(e) => onChange(e.target.value)}
+        style={{ ...styles.input, width: "100%" }}
+        placeholder={`Enter ${type}...`}
       />
     );
   }
@@ -93,7 +105,7 @@ const DropdownField = ({ value, onChange, isDate, styles, options }) => {
 
 import { supabase } from "../utils/supabase";
 
-export default function EditModal({ isOpen, onClose, onSave, title = "Edit Record", columns, initialData, showPdfUpload = true, tableName }) {
+export default function EditModal({ isOpen, onClose, onSave, onFieldChange, title = "Edit Record", columns, initialData, showPdfUpload = true, tableName }) {
   const [formData, setFormData] = useState({});
   const [optionsMap, setOptionsMap] = useState({});
 
@@ -140,7 +152,13 @@ export default function EditModal({ isOpen, onClose, onSave, title = "Edit Recor
   if (!isOpen) return null;
 
   const handleChange = (key, value) => {
-    setFormData((prev) => ({ ...prev, [key]: value }));
+    setFormData((prev) => {
+      const newData = { ...prev, [key]: value };
+      if (onFieldChange) {
+        return onFieldChange(key, value, newData) || newData;
+      }
+      return newData;
+    });
   };
 
   const formatDateForInput = (val) => {
@@ -180,10 +198,11 @@ export default function EditModal({ isOpen, onClose, onSave, title = "Edit Recor
                   <label style={styles.label}>{col.label}</label>
                   <DropdownField
                     isDate={isDate}
+                    type={col.type}
                     value={displayVal}
                     onChange={(newVal) => handleChange(fieldKey, newVal)}
                     styles={styles}
-                    options={optionsMap[fieldKey] || []}
+                    options={col.options || optionsMap[fieldKey] || []}
                   />
                 </div>
               );
