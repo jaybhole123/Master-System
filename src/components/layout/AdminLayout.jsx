@@ -948,9 +948,6 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
            let mappedLabel = route.label;
            let mappedModule = route.module || "Checklist & Delegation";
            
-           if (route.label === "Global Settings") {
-               mappedModule = "Checklist & Delegation";
-           }
            if (route.label === "Add Credit") {
                mappedLabel = "Add Credit / Case";
            }

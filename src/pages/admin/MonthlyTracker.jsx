@@ -232,8 +232,8 @@ const MonthlyTracker = () => {
 
   const getRecordStatus = (record) => {
     if (record.status === 'Done' || record.status === 'Received') {
-      if (record.receivedDate && record.dueDateStart && record.dueDateEnd && 
-          record.receivedDate >= record.dueDateStart && record.receivedDate <= record.dueDateEnd) {
+      if (record.receivedDate && record.dueDateEnd && 
+          record.receivedDate <= record.dueDateEnd) {
         return 'On Time';
       }
       return 'Received';
@@ -271,7 +271,7 @@ const MonthlyTracker = () => {
       else if (s === 'Received') done++;
       else if (s === 'Delay') delay++;
     });
-    return { total: filteredData.length, pending, onTime, done, delay };
+    return { total: filteredData.length, pending: pending + delay, onTime, done: done + onTime, delay };
   }, [filteredData]);
 
   const formatDate = (dateString) => {
@@ -310,7 +310,7 @@ const MonthlyTracker = () => {
         formatDate(record.receivedDate),
         getDelayDays(record) > 0 ? `${getDelayDays(record)} days` : '-',
         `${record.paymentMode}${record.bankDetails ? `\n${record.bankDetails}` : ''}`,
-        getRecordStatus(record),
+        getRecordStatus(record) === 'On Time' || getRecordStatus(record) === 'Received' ? 'Received' : 'Pending',
         record.remarks || '-'
       ]),
       theme: 'grid',
@@ -338,8 +338,7 @@ const MonthlyTracker = () => {
         if (data.section === 'body' && data.column.index === 9) {
           // Color code the status text
           const status = data.cell.raw;
-          if (status === 'On Time' || status === 'Received') data.cell.styles.textColor = [22, 163, 74]; // Green
-          else if (status === 'Delay') data.cell.styles.textColor = [220, 38, 38]; // Red
+          if (status === 'Received') data.cell.styles.textColor = [22, 163, 74]; // Green
           else if (status === 'Pending') data.cell.styles.textColor = [234, 88, 12]; // Orange
         }
       }
@@ -358,7 +357,7 @@ const MonthlyTracker = () => {
       'Due Range': `${formatDate(record.dueDateStart)} to ${formatDate(record.dueDateEnd)}`,
       'Received Date': formatDate(record.receivedDate),
       'Payment Mode': record.paymentMode,
-      Status: getRecordStatus(record),
+      Status: getRecordStatus(record) === 'On Time' || getRecordStatus(record) === 'Received' ? 'Received' : 'Pending',
       Remarks: record.remarks
     }));
     const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -370,7 +369,7 @@ const MonthlyTracker = () => {
   return (
     <AdminLayout>
       <div className="space-y-6 pt-8">
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col">
             <div className="flex items-center gap-2 text-slate-500 mb-2">
               <Users className="h-4 w-4" />
@@ -386,25 +385,11 @@ const MonthlyTracker = () => {
             <span className="text-2xl font-bold text-slate-800">{stats.pending}</span>
           </div>
           <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col">
-            <div className="flex items-center gap-2 text-green-500 mb-2">
-              <CheckCircle2 className="h-4 w-4" />
-              <span className="text-sm font-medium">On Time</span>
-            </div>
-            <span className="text-2xl font-bold text-slate-800">{stats.onTime}</span>
-          </div>
-          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col">
             <div className="flex items-center gap-2 text-blue-500 mb-2">
               <Check className="h-4 w-4" />
               <span className="text-sm font-medium">Received</span>
             </div>
             <span className="text-2xl font-bold text-slate-800">{stats.done}</span>
-          </div>
-          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col">
-            <div className="flex items-center gap-2 text-red-500 mb-2">
-              <AlertCircle className="h-4 w-4" />
-              <span className="text-sm font-medium">Delay</span>
-            </div>
-            <span className="text-2xl font-bold text-slate-800">{stats.delay}</span>
           </div>
         </div>
 
@@ -524,10 +509,9 @@ const MonthlyTracker = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
                         getRecordStatus(record) === 'On Time' || getRecordStatus(record) === 'Received' ? 'bg-green-100 text-green-800' : 
-                        getRecordStatus(record) === 'Delay' ? 'bg-red-100 text-red-800' :
-                        getRecordStatus(record) === 'Pending' ? 'bg-orange-100 text-orange-800' : 'bg-slate-100 text-slate-800'
+                        'bg-orange-100 text-orange-800'
                       }`}>
-                        {getRecordStatus(record)}
+                        {getRecordStatus(record) === 'On Time' || getRecordStatus(record) === 'Received' ? 'Received' : 'Pending'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">{record.remarks}</td>

@@ -26,7 +26,7 @@ const MODULES = [
   {
     id: 'Checklist & Delegation',
     name: 'Checklist & Delegation',
-    pages: ['Dashboard', 'Notifications', 'Task Manager', 'Assign Task', 'Delegation', 'Checklist', 'Calendar', 'Holiday', 'Admin Approval', 'Settings', 'Global Settings', 'Training Video']
+    pages: ['Dashboard', 'Notifications', 'Task Manager', 'Assign Task', 'Delegation', 'Checklist', 'Calendar', 'Holiday', 'Admin Approval', 'Settings', 'Training Video']
   },
   {
     id: 'Document & Substruction',
@@ -83,6 +83,11 @@ const MODULES = [
     id: 'Coal System',
     name: 'Coal System',
     pages: ['Dashboard', 'Auction', 'Payment Advice', 'SECL Payment Advice', 'Sales Order', 'SECL Intimation', 'Invoice', 'Work Order', 'Dispatch', 'Transport Payment', 'Refund / Lapse', 'Sauda Scale']
+  },
+  {
+    id: 'Global Settings',
+    name: 'Global Settings',
+    pages: ['Global Settings']
   }
 ];
 

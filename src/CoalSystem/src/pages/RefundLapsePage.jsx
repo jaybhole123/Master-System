@@ -323,7 +323,7 @@ export default function RefundLapsePage() {
         </div>
       )}
 
-      <div className="topbar" style={{ padding: "0 0 20px 0", borderBottom: "none", display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="topbar" style={{ padding: "0 0 20px 0", borderBottom: "none", display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: "relative", zIndex: 50 }}>
         <h2>Refund / Lapse</h2>
         
         <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
@@ -359,7 +359,7 @@ export default function RefundLapsePage() {
             PDF
           </button>
 
-          <div style={{ position: "relative" }} ref={columnDropdownRef}>
+          <div style={{ position: "relative", zIndex: 999 }} ref={columnDropdownRef}>
             <button 
               className="btn ghost" 
               onClick={() => setShowColumnDropdown(!showColumnDropdown)}
@@ -371,7 +371,7 @@ export default function RefundLapsePage() {
               Columns
             </button>
             {showColumnDropdown && (
-              <div style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, width: "220px", background: "var(--panel)", border: "1px solid var(--line)", borderRadius: "8px", boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)", zIndex: 100, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+              <div style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, width: "240px", background: "var(--panel)", border: "1px solid var(--line)", borderRadius: "8px", boxShadow: "0 10px 25px rgba(0,0,0,0.15)", zIndex: 9999, overflow: "hidden", display: "flex", flexDirection: "column" }}>
                 <div style={{ padding: "12px 14px", borderBottom: "1px solid var(--line)", fontSize: "13px", fontWeight: "600", color: "var(--text)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <span>Toggle Columns</span>
                 </div>
