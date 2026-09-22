@@ -1048,6 +1048,24 @@ export const sendPremiumReminderNotification = async (docDetails) => {
 export const sendBirthdayWishes = async (empDetails) => {
     try {
         const { userName, number } = empDetails;
+
+        // Global lock using Supabase storage to prevent multiple sends across different devices/users
+        if (userName) {
+            const todayStr = new Date().toISOString().split('T')[0];
+            const safeName = userName.replace(/[^a-zA-Z0-9]/g, '_');
+            const lockFileName = `birthdays/${todayStr}_${safeName}.txt`;
+            
+            // Check if lock file exists
+            const { data: lockData } = await supabase.storage.from('profiles').download(lockFileName);
+            if (lockData) {
+                console.log(`Birthday message already sent for ${userName} today (global lock found).`);
+                return true; 
+            }
+            
+            // Create lock file
+            await supabase.storage.from('profiles').upload(lockFileName, new Blob(['sent'], { type: 'text/plain' }));
+        }
+
         let phoneNumber = number;
         if (!phoneNumber && userName) {
             phoneNumber = await getUserPhoneNumber(userName);
