@@ -1552,7 +1552,7 @@ const AllTasks = () => {
                                                   value={statusData[task.id] || task.status || ""}
                                                   onChange={(e) => setStatusData(prev => ({ ...prev, [task.id]: e.target.value }))}
                                                   disabled={!selectedItems.has(task.id)}
-                                                  className="block w-full py-1.5 pl-3 pr-8 text-xs sm:text-sm text-gray-700 bg-white border border-gray-200 rounded-md focus:border-red-500 focus:outline-none disabled:bg-gray-50/50 disabled:text-gray-400 appearance-none shadow-sm cursor-pointer hover:border-gray-300 transition-colors"
+                                                  className="block w-full min-w-[120px] py-1.5 pl-3 pr-8 text-xs sm:text-sm text-gray-700 bg-white border border-gray-200 rounded-md focus:border-red-500 focus:outline-none disabled:bg-gray-50/50 disabled:text-gray-400 appearance-none shadow-sm cursor-pointer hover:border-gray-300 transition-colors"
                                                   style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: `right 0.5rem center`, backgroundRepeat: `no-repeat`, backgroundSize: `1.5em 1.5em` }}
                                                 >
                                                   <option value="">Select Status</option>
@@ -1647,7 +1647,14 @@ const AllTasks = () => {
                                       />
                                     </td>
                                     <td 
-                                      className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-800 bg-emerald-50/30 transition-colors"
+                                      className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-800 bg-emerald-50/30 transition-colors outline-none focus:ring-2 focus:ring-inset focus:ring-emerald-400"
+                                      tabIndex={selectedItems.has(task.id) ? 0 : -1}
+                                      onPaste={(e) => {
+                                        if (selectedItems.has(task.id) && e.clipboardData && e.clipboardData.files.length > 0) {
+                                          e.preventDefault();
+                                          handleImageUpload(task.id, { dataTransfer: e.clipboardData });
+                                        }
+                                      }}
                                       onDragOver={(e) => { e.preventDefault(); if (selectedItems.has(task.id)) e.currentTarget.classList.add('!bg-emerald-100'); }}
                                       onDragLeave={(e) => { e.preventDefault(); e.currentTarget.classList.remove('!bg-emerald-100'); }}
                                       onDrop={(e) => {
@@ -1932,7 +1939,14 @@ const AllTasks = () => {
                                 />
                               </div>
                               <div 
-                                className="flex gap-2 p-1 rounded-md transition-colors"
+                                className="flex gap-2 p-2 rounded-md transition-colors outline-none focus:ring-2 focus:ring-inset focus:ring-emerald-400"
+                                tabIndex={selectedItems.has(task.id) ? 0 : -1}
+                                onPaste={(e) => {
+                                  if (selectedItems.has(task.id) && e.clipboardData && e.clipboardData.files.length > 0) {
+                                    e.preventDefault();
+                                    handleImageUpload(task.id, { dataTransfer: e.clipboardData });
+                                  }
+                                }}
                                 onDragOver={(e) => { e.preventDefault(); if (selectedItems.has(task.id)) e.currentTarget.classList.add('bg-emerald-50'); }}
                                 onDragLeave={(e) => { e.preventDefault(); e.currentTarget.classList.remove('bg-emerald-50'); }}
                                 onDrop={(e) => {

@@ -10,6 +10,7 @@ export default function RefundLapsePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [editingIndex, setEditingIndex] = useState(null);
   const [toastMessage, setToastMessage] = useState("");
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -71,7 +72,14 @@ export default function RefundLapsePage() {
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("resize", handleResize);
+    };
   }, []);
 
   const handleSaveEdit = async (updatedData) => {
@@ -440,6 +448,7 @@ export default function RefundLapsePage() {
         <div className="table-header">
           <div className="table-title">Refund & Lapse Data</div>
         </div>
+        {!isMobile ? (
         <div className="table-scroll" style={{ overflowX: "auto" }}>
           <table className="stable" style={{ minWidth: "1800px" }}>
             <thead>
@@ -526,6 +535,55 @@ export default function RefundLapsePage() {
             </tbody>
           </table>
         </div>
+        ) : (
+          <div className="mobile-card-container" style={{ padding: "10px", display: "flex", flexDirection: "column", gap: "12px" }}>
+            {isLoading ? (
+              <div style={{ textAlign: "center", padding: "40px", color: "var(--muted)" }}>Loading data...</div>
+            ) : paginatedData.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "40px", color: "var(--muted)" }}>No data available</div>
+            ) : (
+              paginatedData.map((row, i) => (
+                <div key={i} style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: "8px", padding: "16px", boxShadow: "0 2px 4px rgba(0,0,0,0.05)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", borderBottom: "1px solid var(--line)", paddingBottom: "8px" }}>
+                    <span style={{ fontWeight: "bold", fontSize: "16px", color: "var(--primary, #dc2626)" }}>{row.party_name}</span>
+                    <span style={{ fontSize: "12px", color: "var(--muted)" }}>#{row.do_no}</span>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", fontSize: "13px", marginBottom: "12px" }}>
+                    {columns.filter(col => !["party_name", "do_no", "preview"].includes(col.key) && visibleCols[col.key]).map(col => (
+                      <div key={col.key} style={{ display: "flex", flexDirection: "column" }}>
+                        <span style={{ color: "var(--muted)", fontSize: "11px", textTransform: "uppercase" }}>{col.label}</span>
+                        <span style={{ color: "var(--text)", fontWeight: "500" }}>
+                          {["nemt", "dmf", "tcs", "so_value_rate"].includes(col.key) ? "-" : row[col.key]}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  {visibleCols["preview"] && row.pdf_url && (
+                    <div style={{ marginBottom: "12px" }}>
+                      <a href={row.pdf_url} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", textDecoration: "none", fontWeight: 500, fontSize: "13px" }}>
+                        View PDF
+                      </a>
+                    </div>
+                  )}
+                  <div style={{ display: "flex", gap: "8px", borderTop: "1px solid var(--line)", paddingTop: "12px", justifyContent: "flex-end" }}>
+                    <button
+                      style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "4px", padding: "6px 12px", fontSize: "12px", fontWeight: "500", borderRadius: "4px", border: "1px solid rgba(22, 163, 74, 0.3)", background: "transparent", color: "#16a34a" }}
+                      onClick={() => setEditingIndex(i)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "4px", padding: "6px 12px", fontSize: "12px", fontWeight: "500", borderRadius: "4px", border: "1px solid rgba(220, 38, 38, 0.3)", background: "transparent", color: "#dc2626" }}
+                      onClick={() => handleDelete(row)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
       </div>
       )}
 
@@ -535,6 +593,7 @@ export default function RefundLapsePage() {
         <div className="table-header">
           <div className="table-title">Tax Summary Data</div>
         </div>
+        {!isMobile ? (
         <div className="table-scroll" style={{ overflowX: "auto" }}>
           <table className="stable">
             <thead>
@@ -575,6 +634,31 @@ export default function RefundLapsePage() {
             </tbody>
           </table>
         </div>
+        ) : (
+          <div className="mobile-card-container" style={{ padding: "10px", display: "flex", flexDirection: "column", gap: "12px" }}>
+            {isLoading ? (
+              <div style={{ textAlign: "center", padding: "40px", color: "var(--muted)" }}>Loading data...</div>
+            ) : paginatedData.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "40px", color: "var(--muted)" }}>No data available</div>
+            ) : (
+              paginatedData.map((row, i) => (
+                <div key={i} style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: "8px", padding: "16px", boxShadow: "0 2px 4px rgba(0,0,0,0.05)" }}>
+                  <div style={{ marginBottom: "12px", borderBottom: "1px solid var(--line)", paddingBottom: "8px" }}>
+                    <span style={{ fontWeight: "bold", fontSize: "16px", color: "var(--primary, #dc2626)" }}>{row.party_name}</span>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", fontSize: "13px" }}>
+                    {summaryColumns.filter(col => col.key !== "party_name").map(col => (
+                      <div key={col.key} style={{ display: "flex", flexDirection: "column" }}>
+                        <span style={{ color: "var(--muted)", fontSize: "11px", textTransform: "uppercase" }}>{col.label}</span>
+                        <span style={{ color: "var(--text)", fontWeight: "500" }}>{row[col.key]}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
       </div>
       )}
 
@@ -605,7 +689,7 @@ export default function RefundLapsePage() {
           lapsed_qty: data[editingIndex].lapsed_qty === "-" ? "" : data[editingIndex].lapsed_qty
         } : null}
         columns={[
-          { key: "lapsed_qty", label: "Lapsed Qty" }
+          { key: "lapsed_qty", label: "Lapsed Qty", type: "number" }
         ]}
       />
 

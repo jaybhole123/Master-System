@@ -407,7 +407,7 @@ const Indent = () => {
               </select>
             </div>
 
-            <div style={{ overflowX: 'auto' }}>
+            <div className="hidden md:block overflow-x-auto">
               <table>
                 <thead>
                   <tr>
@@ -476,6 +476,71 @@ const Indent = () => {
                 </tbody>
               </table>
             </div>
+
+            {/* Mobile Cards for Editable Items */}
+            <div className="md:hidden space-y-4">
+               {items.map((item, index) => (
+                  <div key={index} className="bg-gray-50 p-4 rounded-xl border border-gray-200 relative">
+                     <div className="absolute top-4 right-4">
+                        <button type="button" onClick={() => handleRemoveRow(index)} className="text-red-500 bg-transparent border-none cursor-pointer">
+                          <Trash2 size={18} />
+                        </button>
+                     </div>
+                     <h4 className="text-sm font-bold text-gray-500 mb-3 border-b border-gray-200 pb-2 pr-8">Item #{index + 1}</h4>
+                     
+                     <div className="space-y-3">
+                        <div>
+                           <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Product / Material</label>
+                           <CreatableSelect
+                              isClearable
+                              options={inventoryItems.map(invItem => ({ value: invItem.item_name, label: invItem.item_name }))}
+                              value={item.product ? { value: item.product, label: item.product } : null}
+                              onChange={(selectedOption) => {
+                                 handleItemChange(index, 'product', selectedOption ? selectedOption.value : '');
+                              }}
+                              placeholder="Select or type..."
+                              menuPortalTarget={document.body}
+                              styles={{
+                                control: (base) => ({
+                                  ...base,
+                                  minHeight: '38px',
+                                  borderRadius: '6px',
+                                  borderColor: 'var(--border-color)',
+                                  backgroundColor: 'var(--bg-main)',
+                                }),
+                                menuPortal: (base) => ({
+                                  ...base,
+                                  zIndex: 9999
+                                })
+                              }}
+                           />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                           <div>
+                              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Category</label>
+                              <input type="text" value={item.category || ''} onChange={e => handleItemChange(index, 'category', e.target.value)} placeholder="Category..." style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border-color)', borderRadius: '6px', backgroundColor: 'var(--bg-main)', fontSize: '0.9rem' }} />
+                           </div>
+                           <div>
+                              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Qty</label>
+                              <input type="number" value={item.qty} onChange={e => handleItemChange(index, 'qty', e.target.value)} min="1" placeholder="0" style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border-color)', borderRadius: '6px', backgroundColor: 'var(--bg-main)', fontSize: '0.9rem' }} />
+                           </div>
+                           <div>
+                              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Unit</label>
+                              <input type="text" value={item.unit} onChange={e => handleItemChange(index, 'unit', e.target.value)} placeholder="e.g. Kg" style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border-color)', borderRadius: '6px', backgroundColor: 'var(--bg-main)', fontSize: '0.9rem' }} />
+                           </div>
+                           <div>
+                              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Expected Date</label>
+                              <input type="date" value={item.expectedDate} onChange={e => handleItemChange(index, 'expectedDate', e.target.value)} style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border-color)', borderRadius: '6px', backgroundColor: 'var(--bg-main)', fontSize: '0.9rem' }} />
+                           </div>
+                        </div>
+                        <div>
+                           <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Remarks</label>
+                           <input type="text" value={item.remarks} onChange={e => handleItemChange(index, 'remarks', e.target.value)} placeholder="Remarks..." style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border-color)', borderRadius: '6px', backgroundColor: 'var(--bg-main)', fontSize: '0.9rem' }} />
+                        </div>
+                     </div>
+                  </div>
+               ))}
+            </div>
             
             <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
               <button type="button" onClick={handleAddRow} style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', color: 'var(--primary-color)', cursor: 'pointer', fontWeight: 600 }}>
@@ -497,7 +562,7 @@ const Indent = () => {
 
       {activeTab !== 'Create Indent' && (
       <div className="card">
-        <div style={{ overflowX: 'auto' }}>
+        <div className="hidden md:block overflow-x-auto">
           <table>
             <thead>
               <tr>
@@ -586,6 +651,90 @@ const Indent = () => {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Cards for Indent List */}
+        <div className="md:hidden space-y-4">
+          {filteredData.length === 0 ? (
+            <div className="text-center p-8 bg-gray-50 rounded-xl border border-dashed border-gray-200 text-gray-500 text-sm font-medium">
+              No material indents found in this section.
+            </div>
+          ) : (
+            filteredData.map((item, index) => (
+              <div key={index} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col gap-3 relative">
+                 <div className="flex justify-between items-start border-b pb-3 border-gray-100">
+                    <div>
+                       <span className="text-xs font-black text-gray-400 uppercase tracking-widest block mb-1">{item.timestamp}</span>
+                       <p className="font-bold text-primary text-sm uppercase leading-tight">{item.indentNumber}</p>
+                       <p className="text-[11px] text-gray-500 font-medium mt-1 uppercase">{item.departmentName || '-'}</p>
+                    </div>
+                    <div className="text-right">
+                       <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Items</span>
+                       <span className="text-sm font-black text-gray-700">{item.items ? item.items.length : 0}</span>
+                    </div>
+                 </div>
+
+                 <div className="flex justify-between items-center pt-1">
+                    <div>
+                      {activeTab === 'Department Head' ? (
+                        <select 
+                          value={item.status}
+                          onChange={(e) => {
+                            if (e.target.value === 'Approved' || e.target.value === 'Rejected') {
+                              handleUpdateStatus(item.indentNumber, e.target.value);
+                            }
+                          }}
+                          className="px-2 py-1.5 text-xs border border-gray-300 rounded-md bg-white focus:outline-none focus:border-primary font-medium"
+                        >
+                          <option value="Pending">Pending</option>
+                          <option value="Approved">Approve</option>
+                          <option value="Rejected">Reject</option>
+                        </select>
+                      ) : (
+                        <select 
+                          value={item.status}
+                          onChange={(e) => handleUpdateStatus(item.indentNumber, e.target.value)}
+                          className="px-2 py-1.5 text-xs border border-gray-300 rounded-md bg-white focus:outline-none focus:border-primary font-medium"
+                        >
+                          <option value="Approved">Approved</option>
+                          <option value="Done">Done</option>
+                          <option value="Not Done">Not Done</option>
+                          {item.status === 'Rejected' && <option value="Rejected">Rejected</option>}
+                        </select>
+                      )}
+                    </div>
+                    <div className="flex gap-4">
+                      <button 
+                        onClick={() => setSelectedIndent(item)}
+                        className="text-primary bg-transparent border-none cursor-pointer p-0"
+                        title="View Details"
+                      >
+                        <Eye size={20} />
+                      </button>
+                      
+                      {activeTab === 'Department Head' && (
+                        <>
+                          <button 
+                            onClick={() => handleEdit(item)}
+                            className="text-gray-500 bg-transparent border-none cursor-pointer p-0"
+                            title="Edit Indent"
+                          >
+                            <Pencil size={20} />
+                          </button>
+                          <button 
+                            onClick={() => handleDelete(item.indentNumber)}
+                            className="text-red-500 bg-transparent border-none cursor-pointer p-0"
+                            title="Delete Indent"
+                          >
+                            <Trash2 size={20} />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                 </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
       )}

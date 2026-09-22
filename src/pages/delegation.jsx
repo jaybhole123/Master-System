@@ -1897,7 +1897,7 @@ function DelegationDataPage() {
                                         e.target.value
                                       )
                                     }
-                                    className="border border-gray-300 rounded-md px-2 py-1 w-full disabled:bg-gray-100 disabled:cursor-not-allowed text-xs sm:text-sm"
+                                    className="border border-gray-300 rounded-md px-2 py-1 w-full min-w-[110px] disabled:bg-gray-100 disabled:cursor-not-allowed text-xs sm:text-sm"
                                   >
                                     <option value="">Select</option>
                                     <option value="Done">Done</option>
@@ -1936,12 +1936,19 @@ function DelegationDataPage() {
                                   />
                                 </td>
                                 <td 
-                                  className="px-2 sm:px-6 py-2 sm:py-4 bg-orange-50 transition-colors"
-                                  onDragOver={(e) => { e.preventDefault(); if (isSelected) e.currentTarget.classList.add('!bg-orange-100'); }}
-                                  onDragLeave={(e) => { e.preventDefault(); e.currentTarget.classList.remove('!bg-orange-100'); }}
+                                  className="px-2 sm:px-6 py-2 sm:py-4 bg-orange-50 transition-colors outline-none focus:ring-2 focus:ring-inset focus:ring-red-400"
+                                  tabIndex={isSelected ? 0 : -1}
+                                  onPaste={(e) => {
+                                    if (isSelected && e.clipboardData && e.clipboardData.files.length > 0) {
+                                      e.preventDefault();
+                                      handleImageUpload(task.id, { dataTransfer: e.clipboardData });
+                                    }
+                                  }}
+                                  onDragOver={(e) => { e.preventDefault(); if (isSelected) e.currentTarget.classList.add('!bg-orange-200'); }}
+                                  onDragLeave={(e) => { e.preventDefault(); e.currentTarget.classList.remove('!bg-orange-200'); }}
                                   onDrop={(e) => {
                                     e.preventDefault();
-                                    e.currentTarget.classList.remove('!bg-orange-100');
+                                    e.currentTarget.classList.remove('!bg-orange-200');
                                     if (isSelected) handleImageUpload(task.id, e);
                                   }}
                                 >
@@ -2174,12 +2181,19 @@ function DelegationDataPage() {
                                 </div>
 
                                 <div 
-                                  className="space-y-1 p-1 rounded-lg transition-colors"
-                                  onDragOver={(e) => { e.preventDefault(); if (isSelected) e.currentTarget.classList.add('bg-orange-50'); }}
-                                  onDragLeave={(e) => { e.preventDefault(); e.currentTarget.classList.remove('bg-orange-50'); }}
+                                  className="space-y-1 p-2 rounded-lg transition-colors outline-none focus:ring-2 focus:ring-inset focus:ring-red-400"
+                                  tabIndex={isSelected ? 0 : -1}
+                                  onPaste={(e) => {
+                                    if (isSelected && e.clipboardData && e.clipboardData.files.length > 0) {
+                                      e.preventDefault();
+                                      handleImageUpload(task.id, { dataTransfer: e.clipboardData });
+                                    }
+                                  }}
+                                  onDragOver={(e) => { e.preventDefault(); if (isSelected) e.currentTarget.classList.add('bg-orange-100'); }}
+                                  onDragLeave={(e) => { e.preventDefault(); e.currentTarget.classList.remove('bg-orange-100'); }}
                                   onDrop={(e) => {
                                     e.preventDefault();
-                                    e.currentTarget.classList.remove('bg-orange-50');
+                                    e.currentTarget.classList.remove('bg-orange-100');
                                     if (isSelected) handleImageUpload(task.id, e);
                                   }}
                                 >

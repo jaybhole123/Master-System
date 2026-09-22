@@ -612,7 +612,7 @@ const RentMaster = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden hidden md:block">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -695,6 +695,64 @@ const RentMaster = () => {
               </tbody>
             </table>
           </div>
+        </div>
+
+        {/* Mobile View */}
+        <div className="md:hidden flex flex-col gap-4">
+          {filteredData.length === 0 ? (
+            <div className="text-center py-8 text-sm text-slate-500 bg-white rounded-xl border border-slate-200">
+              No records found
+            </div>
+          ) : (
+            filteredData.map((record, index) => (
+              <div key={record.id} className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 relative cursor-pointer active:scale-[0.99] transition-transform" onClick={() => openHistoryModal(record)}>
+                <div className="flex justify-between items-start mb-3 border-b border-slate-100 pb-3">
+                  <div>
+                    <h3 className="font-bold text-slate-900 text-lg">{record.propertyName}</h3>
+                    <p className="text-slate-500 text-sm font-medium mt-0.5">{record.tenantName}</p>
+                  </div>
+                  <span className="bg-red-50 text-red-600 text-sm font-bold px-2.5 py-1 rounded-lg">₹{record.monthlyRent}</span>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-sm mb-4">
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider mb-0.5">Contact</span>
+                    <span className="font-medium text-slate-700">{record.tenantContact}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider mb-0.5">Deposit</span>
+                    <span className="font-medium text-slate-700">₹{record.securityDeposit}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider mb-0.5">Agreement End</span>
+                    <span className="font-medium text-slate-700">{formatDate(record.agreementEnd)}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider mb-0.5">Rent Due</span>
+                    <span className="font-medium text-slate-700">{record.rentDueDateStart ? `${record.rentDueDateStart} to ${record.rentDueDateEnd}` : '-'}</span>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2 mb-4" onClick={(e) => e.stopPropagation()}>
+                  {record.document && record.document.length > 0 && record.document.map((docUrl, idx) => (
+                    <a key={idx} href={docUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors font-medium text-[11px]">
+                      <FileText className="h-3.5 w-3.5" />
+                      View Doc {record.document.length > 1 ? idx + 1 : ''}
+                    </a>
+                  ))}
+                </div>
+
+                <div className="flex justify-end gap-2 pt-3 border-t border-slate-100" onClick={(e) => e.stopPropagation()}>
+                  <button onClick={() => handleUpdate(record.id)} title="Update" className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-xs font-semibold">
+                    <Edit className="h-3.5 w-3.5" /> Edit
+                  </button>
+                  <button onClick={() => handleDelete(record.id)} title="Delete" className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-xs font-semibold">
+                    <Trash2 className="h-3.5 w-3.5" /> Delete
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
 

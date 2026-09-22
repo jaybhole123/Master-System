@@ -23,6 +23,26 @@ const extractAudioUrl = (text) => {
     return match ? match[0] : null;
 };
 
+// Helper to safely parse image URLs that might be JSON arrays or have leftover quotes/brackets
+const parseImageUrls = (imageStr) => {
+    if (!imageStr) return [];
+    try {
+        const trimmed = typeof imageStr === 'string' ? imageStr.trim() : String(imageStr);
+        if (trimmed.startsWith('[')) {
+            const parsed = JSON.parse(trimmed);
+            if (Array.isArray(parsed)) {
+                return parsed.filter(Boolean).map(url => String(url).trim());
+            }
+        }
+    } catch (e) {}
+
+    return String(imageStr).split(',').map(url => {
+        let u = url.trim();
+        u = u.replace(/^["'\[\]]+|["'\[\]]+$/g, '');
+        return u;
+    }).filter(Boolean);
+};
+
 export default function AdminApprovalPage() {
     const { showToast } = useMagicToast();
     const [activeTab, setActiveTab] = useState("checklist");
@@ -691,15 +711,14 @@ export default function AdminApprovalPage() {
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 {(() => {
                                                     const proofs = [];
-                                                    if (task.work_photo_url) task.work_photo_url.split(',').forEach((url, i) => proofs.push({ url: url.trim(), label: `Work Photo ${i > 0 ? i+1 : ''}`.trim() }));
-                                                    if (task.bill_copy_url) task.bill_copy_url.split(',').forEach((url, i) => proofs.push({ url: url.trim(), label: `Bill Copy ${i > 0 ? i+1 : ''}`.trim() }));
+                                                    if (task.work_photo_url) parseImageUrls(task.work_photo_url).forEach((url, i) => proofs.push({ url, label: `Work Photo ${i > 0 ? i+1 : ''}`.trim() }));
+                                                    if (task.bill_copy_url) parseImageUrls(task.bill_copy_url).forEach((url, i) => proofs.push({ url, label: `Bill Copy ${i > 0 ? i+1 : ''}`.trim() }));
                                                     
                                                     const commonImg = task.image || task.image_url || task.img_url || task.uploaded_image_url;
                                                     if (commonImg) {
-                                                        commonImg.split(',').forEach((url, i) => {
-                                                            const u = url.trim();
-                                                            if (!proofs.some(p => p.url === u)) {
-                                                                proofs.push({ url: u, label: activeTab === 'checklist' ? `Checklist Proof ${i > 0 ? i+1 : ''}`.trim() : `Proof ${i > 0 ? i+1 : ''}`.trim() });
+                                                        parseImageUrls(commonImg).forEach((url, i) => {
+                                                            if (!proofs.some(p => p.url === url)) {
+                                                                proofs.push({ url, label: activeTab === 'checklist' ? `Checklist Proof ${i > 0 ? i+1 : ''}`.trim() : `Proof ${i > 0 ? i+1 : ''}`.trim() });
                                                             }
                                                         });
                                                     }
@@ -711,10 +730,23 @@ export default function AdminApprovalPage() {
                                                             {proofs.map((proof, idx) => (
                                                                 <div key={idx} className="flex flex-col items-center gap-1 w-[54px]">
                                                                     <div 
-                                                                        onClick={() => setSelectedImage(proof.url)}
-                                                                        className="w-12 h-12 rounded-lg overflow-hidden border border-gray-100 shadow-sm cursor-zoom-in hover:scale-110 transition-transform bg-gray-50 shrink-0"
+                                                                        onClick={() => {
+                                                                            if (proof.url.toLowerCase().endsWith('.pdf')) {
+                                                                                window.open(proof.url, '_blank');
+                                                                            } else {
+                                                                                setSelectedImage(proof.url);
+                                                                            }
+                                                                        }}
+                                                                        className="w-12 h-12 rounded-lg overflow-hidden border border-gray-100 shadow-sm cursor-pointer hover:scale-110 transition-transform bg-gray-50 shrink-0 flex items-center justify-center relative"
                                                                     >
-                                                                        <img src={proof.url} className="w-full h-full object-cover" alt={proof.label} />
+                                                                        {proof.url.toLowerCase().endsWith('.pdf') ? (
+                                                                            <div className="flex flex-col items-center justify-center w-full h-full bg-red-50 text-red-600">
+                                                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                                                                                <span className="text-[6px] font-bold mt-0.5">PDF</span>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <img src={proof.url} className="w-full h-full object-cover" alt={proof.label} />
+                                                                        )}
                                                                     </div>
                                                                     <span className="text-[7px] font-bold text-gray-400 uppercase tracking-tighter text-center leading-tight w-full truncate" title={proof.label}>{proof.label}</span>
                                                                 </div>

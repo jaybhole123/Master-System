@@ -408,18 +408,18 @@ export default function LeaveTracker() {
 
       {/* Filter Bar */}
       <div className="card" style={{ marginBottom: '20px', padding: '12px 20px' }}>
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'nowrap', overflowX: 'auto' }}>
+        <div className="flex flex-col md:flex-row flex-wrap gap-3 items-stretch md:items-center w-full">
           <input 
             type="text" 
             placeholder="Search employee, leave type, reason..." 
-            style={{ flex: '1 1 180px', minWidth: '140px', padding: '8px 12px', fontSize: '0.85rem', height: '38px' }} 
+            className="flex-1 min-w-[140px] px-3 py-2 text-sm h-[38px] border border-gray-300 rounded-lg focus:outline-none focus:border-primary w-full md:w-auto"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
           <select
             value={designationFilter}
             onChange={(e) => setDesignationFilter(e.target.value)}
-            style={{ flex: '0 0 auto', width: 'auto', padding: '8px 10px', fontSize: '0.85rem', height: '38px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)' }}
+            className="w-full md:w-auto px-2 py-2 text-sm h-[38px] rounded-lg border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:border-primary"
           >
             <option value="">All Designations</option>
             {uniqueDesignations.map((desg, idx) => (
@@ -429,7 +429,7 @@ export default function LeaveTracker() {
           <select
             value={departmentFilter}
             onChange={(e) => setDepartmentFilter(e.target.value)}
-            style={{ flex: '0 0 auto', width: 'auto', padding: '8px 10px', fontSize: '0.85rem', height: '38px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)' }}
+            className="w-full md:w-auto px-2 py-2 text-sm h-[38px] rounded-lg border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:border-primary"
           >
             <option value="">All Departments</option>
             {uniqueDepartments.map((dept, idx) => (
@@ -442,7 +442,7 @@ export default function LeaveTracker() {
               <select
                 value={leaveTypeFilter}
                 onChange={(e) => setLeaveTypeFilter(e.target.value)}
-                style={{ flex: '0 0 auto', width: 'auto', padding: '8px 10px', fontSize: '0.85rem', height: '38px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)' }}
+                className="w-full md:w-auto px-2 py-2 text-sm h-[38px] rounded-lg border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:border-primary"
               >
                 <option value="">All Leave Types</option>
                 <option value="CL">CL (Casual)</option>
@@ -452,7 +452,7 @@ export default function LeaveTracker() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                style={{ flex: '0 0 auto', width: 'auto', padding: '8px 10px', fontSize: '0.85rem', height: '38px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)' }}
+                className="w-full md:w-auto px-2 py-2 text-sm h-[38px] rounded-lg border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:border-primary"
               >
                 <option value="">All Statuses</option>
                 <option value="Pending">Pending</option>
@@ -471,7 +471,7 @@ export default function LeaveTracker() {
                 setLeaveTypeFilter('');
                 setStatusFilter('');
               }}
-              style={{ flexShrink: 0, whiteSpace: 'nowrap', background: 'none', border: 'none', color: 'var(--primary-color)', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600 }}
+              className="text-sm font-semibold text-primary whitespace-nowrap bg-transparent border-none cursor-pointer hover:underline self-start md:self-center"
             >
               Reset Filters
             </button>
@@ -536,21 +536,22 @@ export default function LeaveTracker() {
               LEAVE BALANCE
             </div>
           
-          <div 
-            ref={tableRef}
-            onMouseDown={(e) => handleMouseDown(e, tableRef)}
-            onMouseLeave={handleMouseLeave}
-            onMouseUp={handleMouseUp}
-            onMouseMove={(e) => handleMouseMove(e, tableRef)}
-            style={{ 
-              overflow: 'auto', 
-              maxHeight: 'calc(100vh - 300px)', 
-              paddingBottom: '12px',
-              cursor: isMouseDown ? 'grabbing' : 'grab',
-              userSelect: isMouseDown ? 'none' : 'auto'
-            }}
-          >
-            <table style={{ minWidth: '1000px', borderCollapse: 'collapse', margin: '0' }}>
+          <div className="hidden md:block">
+            <div 
+              ref={tableRef}
+              onMouseDown={(e) => handleMouseDown(e, tableRef)}
+              onMouseLeave={handleMouseLeave}
+              onMouseUp={handleMouseUp}
+              onMouseMove={(e) => handleMouseMove(e, tableRef)}
+              style={{ 
+                overflow: 'auto', 
+                maxHeight: 'calc(100vh - 300px)', 
+                paddingBottom: '12px',
+                cursor: isMouseDown ? 'grabbing' : 'grab',
+                userSelect: isMouseDown ? 'none' : 'auto'
+              }}
+            >
+              <table style={{ minWidth: '1000px', borderCollapse: 'collapse', margin: '0' }}>
               <thead style={{ position: 'sticky', top: 0, zIndex: 10, boxShadow: '0 2px 4px -2px rgba(0,0,0,0.1)' }}>
                 <tr>
                   <th rowSpan="2" style={{...thStyle, width: '60px', position: 'sticky', top: 0, zIndex: 11, backgroundColor: 'var(--bg-main)', borderBottom: '1px solid var(--border-color)'}}>Sr. No.</th>
@@ -620,6 +621,99 @@ export default function LeaveTracker() {
               </tbody>
             </table>
           </div>
+          </div>
+
+          {/* Mobile Cards for Leave Balance */}
+          <div className="md:hidden space-y-4 p-4 bg-gray-50/50 pb-20">
+            {filteredEmployees.length > 0 ? (
+              filteredEmployees.map((emp, idx) => {
+                const allot = leaveAllotments[emp.id] || { cl: 0, sl: 0, el: 0 };
+                const taken = getTakenLeaves(emp.id);
+                const bal = {
+                  cl: allot.cl - taken.cl,
+                  sl: allot.sl - taken.sl,
+                  el: allot.el - taken.el,
+                };
+                const totalBal = bal.cl + bal.sl + bal.el;
+
+                return (
+                  <div key={emp.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col gap-3">
+                    <div className="flex justify-between items-center border-b pb-2 border-gray-100">
+                      <div>
+                        <span className="text-xs font-black text-gray-400 uppercase tracking-widest">#{idx + 1}</span>
+                        <p className="font-bold text-gray-900 text-sm mt-1 uppercase">{emp.name}</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Total Balance</span>
+                        <span className={`font-black text-xl ${totalBal > 0 ? 'text-green-600' : 'text-red-600'}`}>{totalBal}</span>
+                      </div>
+                    </div>
+
+                    {/* CL */}
+                    <div className="bg-blue-50/50 border border-blue-100 rounded-lg p-2 mt-1">
+                      <p className="text-[10px] font-bold text-blue-800 uppercase tracking-wider mb-2 text-center">Casual Leave (CL)</p>
+                      <div className="flex justify-around items-center">
+                        <div className="text-center">
+                           <span className="text-[9px] text-gray-500 uppercase font-bold block mb-1">Allotted</span>
+                           <input type="number" value={allot.cl} onChange={e => handleAllotmentChange(emp.id, 'cl', e.target.value)} className="w-12 h-7 text-center text-xs font-bold border border-gray-300 rounded" />
+                        </div>
+                        <div className="text-center">
+                           <span className="text-[9px] text-gray-500 uppercase font-bold block mb-1">Taken</span>
+                           <span className="text-sm font-black text-gray-600">{taken.cl}</span>
+                        </div>
+                        <div className="text-center">
+                           <span className="text-[9px] text-gray-500 uppercase font-bold block mb-1">Balance</span>
+                           <span className={`text-sm font-black ${bal.cl > 0 ? 'text-blue-600' : 'text-gray-800'}`}>{bal.cl}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* SL */}
+                    <div className="bg-red-50/50 border border-red-100 rounded-lg p-2 mt-1">
+                      <p className="text-[10px] font-bold text-red-800 uppercase tracking-wider mb-2 text-center">Sick Leave (SL)</p>
+                      <div className="flex justify-around items-center">
+                        <div className="text-center">
+                           <span className="text-[9px] text-gray-500 uppercase font-bold block mb-1">Allotted</span>
+                           <input type="number" value={allot.sl} onChange={e => handleAllotmentChange(emp.id, 'sl', e.target.value)} className="w-12 h-7 text-center text-xs font-bold border border-gray-300 rounded" />
+                        </div>
+                        <div className="text-center">
+                           <span className="text-[9px] text-gray-500 uppercase font-bold block mb-1">Taken</span>
+                           <span className="text-sm font-black text-gray-600">{taken.sl}</span>
+                        </div>
+                        <div className="text-center">
+                           <span className="text-[9px] text-gray-500 uppercase font-bold block mb-1">Balance</span>
+                           <span className={`text-sm font-black ${bal.sl > 0 ? 'text-red-600' : 'text-gray-800'}`}>{bal.sl}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* EL */}
+                    <div className="bg-green-50/50 border border-green-100 rounded-lg p-2 mt-1">
+                      <p className="text-[10px] font-bold text-green-800 uppercase tracking-wider mb-2 text-center">Earned Leave (EL)</p>
+                      <div className="flex justify-around items-center">
+                        <div className="text-center">
+                           <span className="text-[9px] text-gray-500 uppercase font-bold block mb-1">Allotted</span>
+                           <input type="number" value={allot.el} onChange={e => handleAllotmentChange(emp.id, 'el', e.target.value)} className="w-12 h-7 text-center text-xs font-bold border border-gray-300 rounded" />
+                        </div>
+                        <div className="text-center">
+                           <span className="text-[9px] text-gray-500 uppercase font-bold block mb-1">Taken</span>
+                           <span className="text-sm font-black text-gray-600">{taken.el}</span>
+                        </div>
+                        <div className="text-center">
+                           <span className="text-[9px] text-gray-500 uppercase font-bold block mb-1">Balance</span>
+                           <span className={`text-sm font-black ${bal.el > 0 ? 'text-green-600' : 'text-gray-800'}`}>{bal.el}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="text-center p-8 bg-gray-50 rounded-xl border border-dashed border-gray-200 text-gray-500 text-sm font-medium">
+                No employees found.
+              </div>
+            )}
+          </div>
           <div style={{ padding: '12px 24px', fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', gap: '24px', backgroundColor: 'var(--bg-main)' }}>
             {/* <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div style={{ width: '12px', height: '12px', borderRadius: '4px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-main)' }}></div>
@@ -641,20 +735,21 @@ export default function LeaveTracker() {
               LEAVE REQUESTS
             </div>
             
-            <div 
-              ref={reqTableRef}
-              onMouseDown={(e) => handleMouseDown(e, reqTableRef)}
-              onMouseLeave={handleMouseLeave}
-              onMouseUp={handleMouseUp}
-              onMouseMove={(e) => handleMouseMove(e, reqTableRef)}
-              style={{ 
-                overflow: 'auto', 
-                maxHeight: 'calc(100vh - 280px)',
-                cursor: isMouseDown ? 'grabbing' : 'grab',
-                userSelect: isMouseDown ? 'none' : 'auto'
-              }}
-            >
-              <table style={{ width: '100%', borderCollapse: 'collapse', margin: '0' }}>
+            <div className="hidden md:block">
+              <div 
+                ref={reqTableRef}
+                onMouseDown={(e) => handleMouseDown(e, reqTableRef)}
+                onMouseLeave={handleMouseLeave}
+                onMouseUp={handleMouseUp}
+                onMouseMove={(e) => handleMouseMove(e, reqTableRef)}
+                style={{ 
+                  overflow: 'auto', 
+                  maxHeight: 'calc(100vh - 280px)',
+                  cursor: isMouseDown ? 'grabbing' : 'grab',
+                  userSelect: isMouseDown ? 'none' : 'auto'
+                }}
+              >
+                <table style={{ width: '100%', borderCollapse: 'collapse', margin: '0' }}>
                 <thead style={{ position: 'sticky', top: 0, zIndex: 10, boxShadow: '0 2px 4px -2px rgba(0,0,0,0.1)' }}>
                   <tr>
                     <th style={{...thStyle, width: '60px', position: 'sticky', top: 0, backgroundColor: 'var(--bg-main)'}}>Sr. No.</th>
@@ -725,6 +820,76 @@ export default function LeaveTracker() {
                   )}
                 </tbody>
               </table>
+            </div>
+            </div>
+            
+            {/* Mobile Cards View for Leave Requests */}
+            <div className="md:hidden space-y-4 p-4 pb-20 bg-gray-50/50">
+              {filteredRequests.length > 0 ? (
+                filteredRequests.map((req, idx) => {
+                  const emp = employees.find(e => e.id === req.empId);
+                  return (
+                    <div key={req.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col gap-3">
+                      <div className="flex justify-between items-start border-b pb-3 border-gray-100">
+                        <div>
+                          <span className="text-xs font-black text-gray-400 uppercase tracking-widest">#{idx + 1}</span>
+                          <p className="font-bold text-gray-900 text-sm mt-1 uppercase">{emp?.name || 'Unknown'}</p>
+                          <span style={{ 
+                            display: 'inline-block', marginTop: '6px', padding: '4px 8px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 700,
+                            backgroundColor: req.status === 'Approved' ? 'rgba(16, 185, 129, 0.1)' : req.status === 'Rejected' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+                            color: req.status === 'Approved' ? '#166534' : req.status === 'Rejected' ? '#dc2626' : '#b45309', textTransform: 'uppercase'
+                          }}>
+                            {req.status}
+                          </span>
+                        </div>
+                        <div className="text-right flex flex-col items-end">
+                           <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Leave Type</span>
+                           <span className="text-lg font-black text-primary uppercase">{req.type}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-3 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                        <div>
+                          <span className="text-[10px] font-bold text-gray-500 uppercase block mb-1">From Date</span>
+                          <span className="text-xs font-bold text-gray-800">{req.from}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-bold text-gray-500 uppercase block mb-1">To Date</span>
+                          <span className="text-xs font-bold text-gray-800">{req.to}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Total Days</span>
+                          <span className="text-sm font-black text-blue-600">{req.days}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Reason/Remarks</span>
+                          <span className="text-xs font-semibold text-gray-600 truncate block max-w-[120px]">{req.reason || '-'}</span>
+                        </div>
+                      </div>
+
+                      {isAdminOrSuperAdmin && (
+                        <div className="flex gap-2 justify-end mt-2">
+                          {req.status === 'Pending' ? (
+                            <>
+                              <button onClick={() => updateRequestStatus(req.id, 'Approved')} className="px-3 py-1.5 text-xs font-bold bg-green-50 text-green-700 border border-green-200 rounded-md">Accept</button>
+                              <button onClick={() => setRejectModalData({ reqId: req.id, reason: '' })} className="px-3 py-1.5 text-xs font-bold bg-red-50 text-red-700 border border-red-200 rounded-md">Reject</button>
+                            </>
+                          ) : (
+                            <>
+                              <button onClick={() => openEditModal(req)} className="p-2 text-blue-600 bg-blue-50 rounded-md"><Edit size={14} /></button>
+                              <button onClick={() => deleteRequest(req.id)} className="p-2 text-red-600 bg-red-50 rounded-md"><Trash2 size={14} /></button>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="text-center p-8 bg-gray-50 rounded-xl border border-dashed border-gray-200 text-gray-500 text-sm font-medium">
+                  No leave requests found.
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -815,9 +980,9 @@ export default function LeaveTracker() {
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
           backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 100,
-          display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '24px'
+          display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '16px'
         }}>
-          <div className="card" style={{ width: '100%', maxWidth: '500px' }}>
+          <div className="card" style={{ width: '100%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', paddingBottom: '16px', borderBottom: '1px solid var(--border-color)' }}>
               <h2 style={{ margin: 0, fontSize: '1.25rem' }}>{newRequest.id ? 'Edit Leave Request' : 'New Leave Request'}</h2>
               <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}>
@@ -862,16 +1027,16 @@ export default function LeaveTracker() {
               {newRequest.id && (
                 <div className="form-group">
                   <label>Status</label>
-                  <div style={{ display: 'flex', gap: '12px' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', padding: '8px 12px', border: '1px solid var(--border-color)', borderRadius: '6px', backgroundColor: newRequest.status === 'Pending' ? 'rgba(245, 158, 11, 0.1)' : 'transparent', color: newRequest.status === 'Pending' ? '#b45309' : 'var(--text-primary)' }}>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <label style={{ flex: '1 1 auto', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', padding: '8px 12px', border: '1px solid var(--border-color)', borderRadius: '6px', backgroundColor: newRequest.status === 'Pending' ? 'rgba(245, 158, 11, 0.1)' : 'transparent', color: newRequest.status === 'Pending' ? '#b45309' : 'var(--text-primary)' }}>
                       <input type="radio" name="status" value="Pending" checked={newRequest.status === 'Pending'} onChange={e => setNewRequest({...newRequest, status: e.target.value})} />
                       Pending
                     </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', padding: '8px 12px', border: '1px solid var(--border-color)', borderRadius: '6px', backgroundColor: newRequest.status === 'Approved' ? 'rgba(16, 185, 129, 0.1)' : 'transparent', color: newRequest.status === 'Approved' ? '#166534' : 'var(--text-primary)' }}>
+                    <label style={{ flex: '1 1 auto', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', padding: '8px 12px', border: '1px solid var(--border-color)', borderRadius: '6px', backgroundColor: newRequest.status === 'Approved' ? 'rgba(16, 185, 129, 0.1)' : 'transparent', color: newRequest.status === 'Approved' ? '#166534' : 'var(--text-primary)' }}>
                       <input type="radio" name="status" value="Approved" checked={newRequest.status === 'Approved'} onChange={e => setNewRequest({...newRequest, status: e.target.value})} />
                       Approved (Accept)
                     </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', padding: '8px 12px', border: '1px solid var(--border-color)', borderRadius: '6px', backgroundColor: newRequest.status === 'Rejected' ? 'rgba(239, 68, 68, 0.1)' : 'transparent', color: newRequest.status === 'Rejected' ? '#dc2626' : 'var(--text-primary)' }}>
+                    <label style={{ flex: '1 1 auto', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', padding: '8px 12px', border: '1px solid var(--border-color)', borderRadius: '6px', backgroundColor: newRequest.status === 'Rejected' ? 'rgba(239, 68, 68, 0.1)' : 'transparent', color: newRequest.status === 'Rejected' ? '#dc2626' : 'var(--text-primary)' }}>
                       <input type="radio" name="status" value="Rejected" checked={newRequest.status === 'Rejected'} onChange={e => setNewRequest({...newRequest, status: e.target.value})} />
                       Rejected (Reject)
                     </label>
@@ -898,10 +1063,10 @@ export default function LeaveTracker() {
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
           backgroundColor: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', zIndex: 110,
-          display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '24px',
+          display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '16px',
           animation: 'fadeIn 0.2s ease-out'
         }}>
-          <div className="card" style={{ width: '100%', maxWidth: '480px', padding: '32px', borderRadius: '16px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
+          <div className="card" style={{ width: '100%', maxWidth: '480px', padding: '24px', borderRadius: '16px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
               <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)' }}>Reject Leave Request</h2>
               <button onClick={() => setRejectModalData({ reqId: null, reason: '' })} style={{ background: 'var(--bg-main)', border: 'none', cursor: 'pointer', padding: '8px', borderRadius: '50%', color: 'var(--text-secondary)' }}>

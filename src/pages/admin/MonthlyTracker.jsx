@@ -457,7 +457,7 @@ const MonthlyTracker = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden hidden md:block">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -535,6 +535,80 @@ const MonthlyTracker = () => {
               </tbody>
             </table>
           </div>
+        </div>
+
+        {/* Mobile View */}
+        <div className="md:hidden flex flex-col gap-4">
+          {filteredData.length === 0 ? (
+            <div className="text-center py-8 text-sm text-slate-500 bg-white rounded-xl border border-slate-200">
+              No records found
+            </div>
+          ) : (
+            filteredData.map((record, index) => (
+              <div key={record.id} className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 relative">
+                <div className="flex justify-between items-start mb-3 border-b border-slate-100 pb-3">
+                  <div>
+                    <h3 className="font-bold text-slate-900 text-lg">{record.property}</h3>
+                    <p className="text-slate-500 text-sm font-medium mt-0.5">{record.tenant}</p>
+                  </div>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="bg-red-50 text-red-600 text-sm font-bold px-2.5 py-1 rounded-lg">₹{record.rent}</span>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                      getRecordStatus(record) === 'On Time' || getRecordStatus(record) === 'Received' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+                    }`}>
+                      {getRecordStatus(record) === 'On Time' || getRecordStatus(record) === 'Received' ? 'Received' : 'Pending'}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-sm mb-4">
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider mb-0.5">Month</span>
+                    <span className="font-medium text-slate-700">{record.month}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider mb-0.5">Due Range</span>
+                    <span className="font-medium text-slate-700">
+                      {record.dueDateStart && record.dueDateEnd ? `${formatDate(record.dueDateStart)} to ${formatDate(record.dueDateEnd)}` : '-'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider mb-0.5">Received Date</span>
+                    <span className="font-medium text-slate-700">{formatDate(record.receivedDate)}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider mb-0.5">Delay</span>
+                    <div className="font-medium">
+                      {getDelayDays(record) > 0 
+                        ? <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-red-100 text-red-700">{getDelayDays(record)} days</span>
+                        : (getRecordStatus(record) === 'On Time' || getRecordStatus(record) === 'Received')
+                          ? <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-700">On Time</span>
+                          : <span className="text-slate-400">-</span>
+                      }
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider mb-0.5">Payment Mode</span>
+                    <span className="font-medium text-slate-700">{record.paymentMode}</span>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                  {record.status !== 'Done' && record.status !== 'Received' && (
+                    <button onClick={() => handleReceive(record.id)} title="Mark as Received" className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors text-xs font-semibold">
+                      <Check className="h-3.5 w-3.5" /> Receive
+                    </button>
+                  )}
+                  <button onClick={() => handleUpdate(record.id)} title="Update" className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-xs font-semibold">
+                    <Edit className="h-3.5 w-3.5" /> Edit
+                  </button>
+                  <button onClick={() => handleDelete(record.id)} title="Delete" className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-xs font-semibold">
+                    <Trash2 className="h-3.5 w-3.5" /> Delete
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
 

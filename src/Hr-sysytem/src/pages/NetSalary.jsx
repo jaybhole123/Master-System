@@ -572,54 +572,57 @@ export default function NetSalary() {
             SALARY SHEET
           </div>
           
-          <div style={{ display: 'flex', gap: '16px', padding: '12px 16px', backgroundColor: 'var(--bg-card)', borderBottom: '1px solid var(--border-color)', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontWeight: 500, color: 'var(--text-secondary)', fontSize: '0.85rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>PF % (Employee)</span>
-              <div style={{ padding: '4px 12px', backgroundColor: 'rgba(59, 130, 246, 0.1)', color: 'var(--primary-color)', borderRadius: '6px', fontWeight: 600, fontSize: '0.9rem' }}>12%</div>
+          <div className="flex flex-col md:flex-row gap-4 p-4 bg-gray-50 border-b border-gray-200 justify-between items-start md:items-center">
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-gray-500 text-sm uppercase whitespace-nowrap">PF % (Employee)</span>
+              <div className="px-3 py-1 bg-blue-50 text-blue-600 rounded-md font-bold text-sm">12%</div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end', flex: 1 }}>
-              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 sm:gap-3 w-full md:w-auto flex-1 justify-start md:justify-end">
+              <div className="relative flex items-center w-full sm:w-auto">
                 <button 
                   onClick={() => setShowColMenu(!showColMenu)}
-                  style={{ padding: '4px 12px', border: '1px solid var(--border-color)', borderRadius: '6px', outline: 'none', backgroundColor: 'var(--bg-main)', color: 'var(--text-primary)', cursor: 'pointer', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', whiteSpace: 'nowrap' }}
+                  className="w-full sm:w-auto px-3 py-1.5 border border-gray-300 rounded-md bg-white text-gray-700 font-medium flex items-center justify-center gap-1.5 text-sm whitespace-nowrap hover:bg-gray-50"
                 >
                   <GripVertical size={14} /> Columns
                 </button>
                 {showColMenu && (
-                  <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: '8px', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '8px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)', zIndex: 50, width: '220px', padding: '12px', maxHeight: '400px', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
-                    <h4 style={{ margin: '0 0 8px 0', fontSize: '0.9rem', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px', textAlign: 'left' }}>Toggle Columns</h4>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                      <button onClick={() => selectAllCols(true)} style={{ background: 'none', border: 'none', color: 'var(--primary-color)', fontSize: '0.75rem', cursor: 'pointer', padding: 0, fontWeight: 500 }}>Select All</button>
-                      <button onClick={() => selectAllCols(false)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '0.75rem', cursor: 'pointer', padding: 0, fontWeight: 500 }}>Deselect All</button>
+                  <div className="absolute right-0 top-full mt-2 bg-white border border-gray-200 rounded-lg shadow-xl z-50 w-[220px] p-3 max-h-[400px] overflow-y-auto flex flex-col">
+                    <h4 className="m-0 mb-2 text-sm text-gray-500 border-b border-gray-100 pb-2 text-left">Toggle Columns</h4>
+                    <div className="flex justify-between mb-2">
+                      <button onClick={() => selectAllCols(true)} className="bg-transparent border-none text-primary text-xs cursor-pointer p-0 font-medium">Select All</button>
+                      <button onClick={() => selectAllCols(false)} className="bg-transparent border-none text-gray-500 text-xs cursor-pointer p-0 font-medium">Deselect All</button>
                     </div>
                     {Object.keys(visibleCols).map(key => (
                       <div 
                         key={key} 
                         onClick={() => toggleCol(key)}
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '8px', padding: '6px 4px', cursor: 'pointer', fontSize: '0.85rem', color: 'var(--text-primary)' }}
+                        className="flex items-center justify-start gap-2 py-1.5 cursor-pointer text-sm text-gray-800"
                       >
-                        <input type="checkbox" checked={visibleCols[key]} readOnly style={{ cursor: 'pointer', margin: 0, width: '16px', height: '16px', flexShrink: 0 }} />
-                        <span style={{ textAlign: 'left' }}>{key === 'designation' ? 'Firm' : key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</span>
+                        <input type="checkbox" checked={visibleCols[key]} readOnly className="cursor-pointer m-0 w-4 h-4 shrink-0" />
+                        <span className="text-left">{key === 'designation' ? 'Firm' : key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</span>
                       </div>
                     ))}
                   </div>
                 )}
               </div>
-              <span style={{ fontWeight: 500, color: 'var(--text-secondary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Filters:</span>
+              
+              <span className="font-medium text-gray-500 text-xs uppercase hidden sm:block">Filters:</span>
+              
               <select 
                 value={selectedDepartment} 
                 onChange={(e) => setSelectedDepartment(e.target.value)}
-                style={{ padding: '4px 8px', border: '1px solid var(--border-color)', borderRadius: '6px', outline: 'none', backgroundColor: 'var(--bg-main)', color: 'var(--text-primary)', cursor: 'pointer', fontSize: '0.85rem', maxWidth: '130px' }}
+                className="w-full sm:w-auto sm:max-w-[130px] px-2 py-1.5 border border-gray-300 rounded-md bg-white text-gray-800 text-sm focus:outline-none focus:border-primary"
               >
                 <option value="All">All Departments</option>
                 {uniqueDepartments.map(dept => (
                   <option key={dept} value={dept}>{dept}</option>
                 ))}
               </select>
+              
               <select 
                 value={selectedDesignation} 
                 onChange={(e) => setSelectedDesignation(e.target.value)}
-                style={{ padding: '4px 8px', border: '1px solid var(--border-color)', borderRadius: '6px', outline: 'none', backgroundColor: 'var(--bg-main)', color: 'var(--text-primary)', cursor: 'pointer', fontSize: '0.85rem', maxWidth: '130px' }}
+                className="w-full sm:w-auto sm:max-w-[130px] px-2 py-1.5 border border-gray-300 rounded-md bg-white text-gray-800 text-sm focus:outline-none focus:border-primary"
               >
                 <option value="All">All Firms</option>
                 {uniqueDesignations.map(desg => (
@@ -630,17 +633,18 @@ export default function NetSalary() {
               <select 
                 value={selectedSalaryDate} 
                 onChange={(e) => setSelectedSalaryDate(e.target.value)}
-                style={{ padding: '4px 8px', border: '1px solid var(--border-color)', borderRadius: '6px', outline: 'none', backgroundColor: 'var(--bg-main)', color: 'var(--text-primary)', cursor: 'pointer', fontSize: '0.85rem', maxWidth: '130px' }}
+                className="w-full sm:w-auto sm:max-w-[130px] px-2 py-1.5 border border-gray-300 rounded-md bg-white text-gray-800 text-sm focus:outline-none focus:border-primary"
               >
                 <option value="All">All Dates</option>
                 {uniqueSalaryDates.map(d => (
                   <option key={d} value={d}>{new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</option>
                 ))}
               </select>
+              
               <select 
                 value={selectedMonth} 
                 onChange={(e) => setSelectedMonth(e.target.value)}
-                style={{ padding: '4px 8px', border: '1px solid var(--border-color)', borderRadius: '6px', outline: 'none', backgroundColor: 'var(--bg-main)', color: 'var(--text-primary)', cursor: 'pointer', fontSize: '0.85rem', maxWidth: '130px' }}
+                className="w-full sm:w-auto sm:max-w-[130px] px-2 py-1.5 border border-gray-300 rounded-md bg-white text-gray-800 text-sm focus:outline-none focus:border-primary"
               >
                 <option value="All">All Months</option>
                 {uniqueMonths.map(m => (
@@ -652,35 +656,37 @@ export default function NetSalary() {
                 <button
                   onClick={handleMarkAllDone}
                   disabled={markingDone || records.length === 0 || selectedRows.length === 0}
-                  style={{ padding: '4px 12px', border: '1px solid #10b981', borderRadius: '6px', outline: 'none', backgroundColor: '#10b981', color: 'white', cursor: 'pointer', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', fontSize: '0.85rem', opacity: (markingDone || records.length === 0 || selectedRows.length === 0) ? 0.6 : 1 }}
+                  className={`w-full sm:w-auto px-3 py-1.5 border border-green-500 rounded-md bg-green-500 text-white font-medium flex items-center justify-center gap-1 text-sm whitespace-nowrap ${(markingDone || records.length === 0 || selectedRows.length === 0) ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:bg-green-600'}`}
                 >
                   {markingDone ? <Loader size={14} className="spin" /> : <CheckCircle2 size={14} />} Mark All Done
                 </button>
               )}
+              
               <button
                 onClick={handleDownloadPDF}
-                style={{ padding: '4px 12px', border: '1px solid var(--primary-color)', borderRadius: '6px', outline: 'none', backgroundColor: 'var(--primary-color)', color: 'white', cursor: 'pointer', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', fontSize: '0.85rem' }}
+                className="w-full sm:w-auto px-3 py-1.5 border border-primary rounded-md bg-primary text-white font-medium flex items-center justify-center gap-1 text-sm whitespace-nowrap cursor-pointer hover:bg-red-700"
               >
                 <Download size={14} /> PDF
               </button>
             </div>
           </div>
 
-          <div 
-            ref={tableRef}
-            onMouseDown={handleMouseDown}
-            onMouseLeave={handleMouseLeave}
-            onMouseUp={handleMouseUp}
-            onMouseMove={handleMouseMove}
-            style={{ 
-              overflow: 'auto', 
-              maxHeight: 'calc(100vh - 280px)', 
-              paddingBottom: '12px',
-              cursor: isMouseDown ? 'grabbing' : 'grab',
-              userSelect: isMouseDown ? 'none' : 'auto'
-            }}
-          >
-            <table style={{ minWidth: '1500px', borderCollapse: 'collapse', margin: '0' }}>
+          <div className="hidden md:block">
+            <div 
+              ref={tableRef}
+              onMouseDown={handleMouseDown}
+              onMouseLeave={handleMouseLeave}
+              onMouseUp={handleMouseUp}
+              onMouseMove={handleMouseMove}
+              style={{ 
+                overflow: 'auto', 
+                maxHeight: 'calc(100vh - 280px)', 
+                paddingBottom: '12px',
+                cursor: isMouseDown ? 'grabbing' : 'grab',
+                userSelect: isMouseDown ? 'none' : 'auto'
+              }}
+            >
+              <table style={{ minWidth: '1500px', borderCollapse: 'collapse', margin: '0' }}>
               <thead style={{ position: 'sticky', top: 0, zIndex: 10, boxShadow: '0 2px 4px -2px rgba(0,0,0,0.1)' }}>
                 <tr>
                   <th style={{...thStyle, width: '40px'}}>
@@ -830,6 +836,77 @@ export default function NetSalary() {
                 )}
               </tbody>
             </table>
+          </div>
+          </div>
+
+          {/* Mobile Cards for Salary Sheet */}
+          <div className="md:hidden space-y-4 p-4 bg-gray-50/50 pb-20">
+            {records.length > 0 ? (
+              records.map((rec, idx) => {
+                const emp = employees.find(e => e.id === rec.id) || {};
+                return (
+                  <div key={rec.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col gap-3 relative">
+                     <div className="absolute top-4 right-4">
+                        <button 
+                            onClick={() => handleToggleSinglePaymentStatus(rec.id, rec.paymentStatus)}
+                            className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-transform hover:scale-105 active:scale-95 ${
+                              (rec.paymentStatus === 'Processed' || rec.paymentStatus === 'Done') 
+                              ? 'bg-green-100 text-green-700' 
+                              : 'bg-amber-100 text-amber-700'
+                            }`}
+                        >
+                          {rec.paymentStatus}
+                        </button>
+                     </div>
+                     <div className="flex items-start gap-3 border-b pb-3 border-gray-100 pr-20">
+                        <div className="flex items-center justify-center pt-1">
+                           <input 
+                            type="checkbox" 
+                            className="w-5 h-5 accent-primary cursor-pointer"
+                            checked={selectedRows.includes(rec.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) setSelectedRows([...selectedRows, rec.id]);
+                              else setSelectedRows(selectedRows.filter(id => id !== rec.id));
+                            }}
+                          />
+                        </div>
+                        <div>
+                           <span className="text-xs font-black text-gray-400 uppercase tracking-widest block mb-1">#{idx + 1}</span>
+                           <p className="font-bold text-gray-900 text-sm uppercase leading-tight">{rec.name}</p>
+                           <p className="text-[11px] text-gray-500 font-medium mt-1 uppercase">{emp.designation || '-'} • {emp.department || '-'}</p>
+                        </div>
+                     </div>
+
+                     <div className="grid grid-cols-2 gap-3 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                        <div>
+                           <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Gross Salary</span>
+                           <span className="text-sm font-black text-gray-700">₹ {rec.gross.toLocaleString(undefined, {maximumFractionDigits:2})}</span>
+                        </div>
+                        <div>
+                           <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Total Deductions</span>
+                           <span className="text-sm font-black text-red-600">₹ {rec.deductions.toLocaleString(undefined, {maximumFractionDigits:2})}</span>
+                        </div>
+                     </div>
+
+                     <div className="flex justify-between items-center px-2 pt-1">
+                        <div>
+                           <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Net Salary</span>
+                           <span className="text-xl font-black text-green-600">₹ {rec.net.toLocaleString(undefined, {maximumFractionDigits:2})}</span>
+                        </div>
+                        <div className="text-right">
+                           <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Month / Date</span>
+                           <span className="text-xs font-bold text-gray-600 block">{rec.breakdown.sal.salaryMonth || '-'}</span>
+                           <span className="text-[10px] text-gray-500">{rec.breakdown.sal.salaryDate ? new Date(rec.breakdown.sal.salaryDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}</span>
+                        </div>
+                     </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="text-center p-8 bg-gray-50 rounded-xl border border-dashed border-gray-200 text-gray-500 text-sm font-medium">
+                No employees found to display salary data.
+              </div>
+            )}
           </div>
         </div>
       )}

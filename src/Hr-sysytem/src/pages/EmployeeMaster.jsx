@@ -658,125 +658,218 @@ export default function EmployeeMaster() {
           )}
         </div>
         
-        <div 
-          ref={tableRef}
-          onMouseDown={handleMouseDown}
-          onMouseLeave={handleMouseLeave}
-          onMouseUp={handleMouseUp}
-          onMouseMove={handleMouseMove}
-          style={{ 
-            overflowX: 'auto', 
-            maxHeight: 'calc(100vh - 280px)',
-            overflowY: 'auto',
-            cursor: isMouseDown ? 'grabbing' : 'grab',
-            userSelect: isMouseDown ? 'none' : 'auto'
-          }}
-        >
-          <table style={{ whiteSpace: 'nowrap' }}>
-            <thead>
-              <tr>
-                <th>S.No</th>
-                <th>Photo</th>
-                {/* <th>Emp ID</th> */}
-                <th>Name</th>
-                <th>Phone Number</th>
-                <th>Department</th>
-                <th>Designation</th>
-                {/* <th>Date of Joining</th> */}
-                <th>Experience</th>
-                <th>Father's Name</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(() => {
-                const filteredEmployees = employees.filter(emp => {
-                  const query = searchQuery.toLowerCase();
-                  const matchesSearch = !query || (
-                    (emp.employee_id && emp.employee_id.toLowerCase().includes(query)) ||
-                    (emp.user_name && emp.user_name.toLowerCase().includes(query)) ||
-                    (emp.department && emp.department.toLowerCase().includes(query)) ||
-                    (emp.designation && emp.designation.toLowerCase().includes(query)) ||
-                    (emp.Designation && emp.Designation.toLowerCase().includes(query))
-                  );
+        {/* Desktop Table View */}
+        <div className="hidden md:block">
+          <div 
+            ref={tableRef}
+            onMouseDown={handleMouseDown}
+            onMouseLeave={handleMouseLeave}
+            onMouseUp={handleMouseUp}
+            onMouseMove={handleMouseMove}
+            style={{ 
+              overflowX: 'auto', 
+              maxHeight: 'calc(100vh - 280px)',
+              overflowY: 'auto',
+              cursor: isMouseDown ? 'grabbing' : 'grab',
+              userSelect: isMouseDown ? 'none' : 'auto'
+            }}
+          >
+            <table style={{ whiteSpace: 'nowrap' }}>
+              <thead>
+                <tr>
+                  <th>S.No</th>
+                  <th>Photo</th>
+                  <th>Name</th>
+                  <th>Phone Number</th>
+                  <th>Department</th>
+                  <th>Designation</th>
+                  <th>Experience</th>
+                  <th>Father's Name</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(() => {
+                  const filteredEmployees = employees.filter(emp => {
+                    const query = searchQuery.toLowerCase();
+                    const matchesSearch = !query || (
+                      (emp.employee_id && emp.employee_id.toLowerCase().includes(query)) ||
+                      (emp.user_name && emp.user_name.toLowerCase().includes(query)) ||
+                      (emp.department && emp.department.toLowerCase().includes(query)) ||
+                      (emp.designation && emp.designation.toLowerCase().includes(query)) ||
+                      (emp.Designation && emp.Designation.toLowerCase().includes(query))
+                    );
 
-                  const empDesg = emp.designation || emp.Designation || '';
-                  const matchesDesignation = !designationFilter || empDesg.toLowerCase() === designationFilter.toLowerCase();
-                  const matchesDepartment = !departmentFilter || (emp.department && emp.department.toLowerCase() === departmentFilter.toLowerCase());
+                    const empDesg = emp.designation || emp.Designation || '';
+                    const matchesDesignation = !designationFilter || empDesg.toLowerCase() === designationFilter.toLowerCase();
+                    const matchesDepartment = !departmentFilter || (emp.department && emp.department.toLowerCase() === departmentFilter.toLowerCase());
 
-                  return matchesSearch && matchesDesignation && matchesDepartment;
-                });
+                    return matchesSearch && matchesDesignation && matchesDepartment;
+                  });
 
-                return filteredEmployees.length > 0 ? filteredEmployees.map((emp, idx) => (
-                <tr key={emp.id}>
-                  <td style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>{idx + 1}</td>
-                  <td>
+                  return filteredEmployees.length > 0 ? filteredEmployees.map((emp, idx) => (
+                  <tr key={emp.id}>
+                    <td style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>{idx + 1}</td>
+                    <td>
+                      {getEmployeePhotoUrl(emp) ? (
+                        <button
+                          type="button"
+                          onClick={() => handleEmployeePhotoClick(emp)}
+                          style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer' }}
+                          aria-label={`View profile for ${emp.user_name}`}
+                        >
+                          <img src={getEmployeePhotoUrl(emp)} alt={emp.user_name} style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
+                        </button>
+                      ) : (
+                        <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'var(--bg-color, #f3f4f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: '14px', fontWeight: 'bold' }}>
+                          {emp.user_name ? emp.user_name.charAt(0).toUpperCase() : '?'}
+                        </div>
+                      )}
+                    </td>
+                    <td style={{ fontWeight: 500 }}>{emp.user_name}</td>
+                    <td>{emp.number || '-'}</td>
+                    <td>{emp.department}</td>
+                    <td>
+                      <span style={getDesignationStyle(emp.designation)}>
+                        {emp.designation || '-'}
+                      </span>
+                    </td>
+                    <td>{calculateDynamicExperience(emp.joining_date, emp.experience)}</td>
+                    <td>{emp.fathers_name || '-'}</td>
+                    <td>
+                      <span style={{
+                        padding: '4px 8px', 
+                        borderRadius: '12px', 
+                        fontSize: '0.75rem',
+                        backgroundColor: (!emp.status || emp.status.toLowerCase() === 'active') ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                        color: (!emp.status || emp.status.toLowerCase() === 'active') ? '#10b981' : '#ef4444',
+                        fontWeight: '600',
+                        textTransform: 'capitalize'
+                      }}>
+                        {emp.status || 'Active'}
+                      </span>
+                    </td>
+                    <td>
+                      <button onClick={() => handleEdit(emp)} style={{ background: 'none', border: 'none', color: 'var(--primary-color)', cursor: 'pointer', marginRight: '16px' }} title="Edit">
+                        <Pencil size={18} />
+                      </button>
+                      <button onClick={() => handleDelete(emp)} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer' }} title="Mark Inactive">
+                        <Trash2 size={18} />
+                      </button>
+                    </td>
+                  </tr>
+                )) : (
+                  <tr>
+                    <td colSpan="10" style={{ textAlign: 'center', padding: '24px', color: 'var(--text-secondary)' }}>
+                      {loading ? (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                          <Loader size={20} className="spin" /> Loading employees...
+                        </div>
+                      ) : (
+                        'No employees found.'
+                      )}
+                    </td>
+                  </tr>
+                )
+                })()}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Mobile Cards View */}
+        <div className="md:hidden space-y-4 mt-4 pb-20">
+          {(() => {
+            const filteredEmployees = employees.filter(emp => {
+              const query = searchQuery.toLowerCase();
+              const matchesSearch = !query || (
+                (emp.employee_id && emp.employee_id.toLowerCase().includes(query)) ||
+                (emp.user_name && emp.user_name.toLowerCase().includes(query)) ||
+                (emp.department && emp.department.toLowerCase().includes(query)) ||
+                (emp.designation && emp.designation.toLowerCase().includes(query)) ||
+                (emp.Designation && emp.Designation.toLowerCase().includes(query))
+              );
+
+              const empDesg = emp.designation || emp.Designation || '';
+              const matchesDesignation = !designationFilter || empDesg.toLowerCase() === designationFilter.toLowerCase();
+              const matchesDepartment = !departmentFilter || (emp.department && emp.department.toLowerCase() === departmentFilter.toLowerCase());
+
+              return matchesSearch && matchesDesignation && matchesDepartment;
+            });
+
+            return filteredEmployees.length > 0 ? filteredEmployees.map((emp, idx) => (
+              <div key={emp.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col gap-3">
+                <div className="flex justify-between items-start border-b border-gray-100 pb-3">
+                  <div className="flex items-center gap-3">
                     {getEmployeePhotoUrl(emp) ? (
                       <button
                         type="button"
                         onClick={() => handleEmployeePhotoClick(emp)}
                         style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer' }}
-                        aria-label={`View profile for ${emp.user_name}`}
                       >
-                        <img src={getEmployeePhotoUrl(emp)} alt={emp.user_name} style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
+                        <img src={getEmployeePhotoUrl(emp)} className="w-12 h-12 rounded-full object-cover shadow-sm" alt={emp.user_name} />
                       </button>
                     ) : (
-                      <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'var(--bg-color, #f3f4f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: '14px', fontWeight: 'bold' }}>
+                      <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-400 shadow-sm">
                         {emp.user_name ? emp.user_name.charAt(0).toUpperCase() : '?'}
                       </div>
                     )}
-                  </td>
-                  {/* <td>{emp.employee_id}</td> */}
-                  <td style={{ fontWeight: 500 }}>{emp.user_name}</td>
-                  <td>{emp.number || '-'}</td>
-                  <td>{emp.department}</td>
-                  <td>
-                    <span style={getDesignationStyle(emp.designation)}>
-                      {emp.designation || '-'}
-                    </span>
-                  </td>
-                  {/* <td>{emp.joining_date ? new Date(emp.joining_date).toLocaleDateString() : '-'}</td> */}
-                  <td>{calculateDynamicExperience(emp.joining_date, emp.experience)}</td>
-                  <td>{emp.fathers_name || '-'}</td>
-                  <td>
-                    <span style={{
-                      padding: '4px 8px', 
-                      borderRadius: '12px', 
-                      fontSize: '0.75rem',
-                      backgroundColor: (!emp.status || emp.status.toLowerCase() === 'active') ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                      color: (!emp.status || emp.status.toLowerCase() === 'active') ? '#10b981' : '#ef4444',
-                      fontWeight: '600',
-                      textTransform: 'capitalize'
-                    }}>
-                      {emp.status || 'Active'}
-                    </span>
-                  </td>
-                  <td>
-                    <button onClick={() => handleEdit(emp)} style={{ background: 'none', border: 'none', color: 'var(--primary-color)', cursor: 'pointer', marginRight: '16px' }} title="Edit">
-                      <Pencil size={18} />
-                    </button>
-                    <button onClick={() => handleDelete(emp)} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer' }} title="Mark Inactive">
-                      <Trash2 size={18} />
-                    </button>
-                  </td>
-                </tr>
-              )) : (
-                <tr>
-                  <td colSpan="10" style={{ textAlign: 'center', padding: '24px', color: 'var(--text-secondary)' }}>
-                    {loading ? (
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                        <Loader size={20} className="spin" /> Loading employees...
-                      </div>
-                    ) : (
-                      'No employees found.'
-                    )}
-                  </td>
-                </tr>
-              )
-              })()}
-            </tbody>
-          </table>
+                    <div>
+                      <p className="font-bold text-gray-900 text-sm">{emp.user_name}</p>
+                      <p className="text-xs text-gray-500 font-medium">{emp.number || 'No Phone'}</p>
+                      <span style={{
+                        padding: '2px 6px', 
+                        borderRadius: '10px', 
+                        fontSize: '0.65rem',
+                        marginTop: '4px',
+                        display: 'inline-block',
+                        backgroundColor: (!emp.status || emp.status.toLowerCase() === 'active') ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                        color: (!emp.status || emp.status.toLowerCase() === 'active') ? '#10b981' : '#ef4444',
+                        fontWeight: 'bold',
+                        textTransform: 'uppercase'
+                      }}>
+                        {emp.status || 'Active'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 bg-gray-50 p-1.5 rounded-lg border border-gray-100">
+                    <button onClick={() => handleEdit(emp)} className="text-blue-600 p-1.5 hover:bg-blue-50 rounded transition-colors"><Pencil size={16} /></button>
+                    <button onClick={() => handleDelete(emp)} className="text-red-500 p-1.5 hover:bg-red-50 rounded transition-colors"><Trash2 size={16} /></button>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <div className="space-y-1">
+                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Department</p>
+                    <p className="font-medium text-xs text-gray-800">{emp.department || '-'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Designation</p>
+                    <div className="mt-1"><span style={getDesignationStyle(emp.designation)}>{emp.designation || '-'}</span></div>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Experience</p>
+                    <p className="font-medium text-xs text-gray-800">{calculateDynamicExperience(emp.joining_date, emp.experience)}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Father's Name</p>
+                    <p className="font-medium text-xs text-gray-800">{emp.fathers_name || '-'}</p>
+                  </div>
+                </div>
+              </div>
+            )) : (
+              <div className="text-center p-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                {loading ? (
+                  <div className="flex items-center justify-center gap-2 text-gray-500 text-sm font-medium">
+                    <Loader size={18} className="animate-spin" /> Loading employees...
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-sm font-medium">No employees found.</p>
+                )}
+              </div>
+            );
+          })()}
         </div>
       </div>
 

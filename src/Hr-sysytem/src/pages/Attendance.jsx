@@ -967,7 +967,7 @@ Instructions:
             </div>
           </div>
 
-          <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '550px', paddingBottom: '12px' }}>
+          <div className="hidden md:block" style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '550px', paddingBottom: '12px' }}>
             <table style={{ borderCollapse: 'collapse', margin: '0' }}>
               <thead style={{ position: 'sticky', top: 0, zIndex: 10 }}>
                 <tr>
@@ -1089,6 +1089,71 @@ Instructions:
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Cards View */}
+          <div className="md:hidden space-y-4 p-4 pb-20 bg-gray-50/50">
+            {employees.length > 0 ? (
+              employees.map((emp, idx) => {
+                const stats = dashboardStats.find(s => s.id === emp.id);
+                return (
+                  <div key={emp.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col gap-3">
+                    <div className="flex justify-between items-center border-b pb-2 border-gray-100">
+                      <div>
+                        <span className="text-xs font-black text-gray-400 uppercase tracking-widest">#{idx + 1}</span>
+                        <p className="font-bold text-gray-900 text-sm mt-1 uppercase">{emp.name}</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Att. %</span>
+                        <p className={`font-black text-lg ${stats.attPercent < 75 ? 'text-red-600' : 'text-green-600'}`}>
+                          {stats.attPercent.toFixed(1)}%
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex justify-between items-center text-center bg-gray-50 rounded-lg p-3 border border-gray-100">
+                      <div className="flex flex-col"><span className="text-[10px] font-bold text-gray-500 uppercase">P</span><span className="text-sm font-black text-green-700">{stats.p}</span></div>
+                      <div className="flex flex-col"><span className="text-[10px] font-bold text-gray-500 uppercase">A</span><span className="text-sm font-black text-red-600">{stats.a}</span></div>
+                      <div className="flex flex-col"><span className="text-[10px] font-bold text-gray-500 uppercase">L</span><span className="text-sm font-black text-yellow-600">{stats.l}</span></div>
+                      <div className="flex flex-col"><span className="text-[10px] font-bold text-gray-500 uppercase">HD</span><span className="text-sm font-black text-blue-600">{stats.hd}</span></div>
+                      <div className="flex flex-col"><span className="text-[10px] font-bold text-gray-500 uppercase">H</span><span className="text-sm font-black text-purple-600">{stats.h}</span></div>
+                    </div>
+
+                    <div className="mt-1">
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-2">Daily Log (Scroll 👉)</p>
+                      <div className="flex gap-2 overflow-x-auto pb-2 snap-x" style={{ WebkitOverflowScrolling: 'touch' }}>
+                        {daysArray.map(day => {
+                          const isInvalidDay = day > daysCount;
+                          if(isInvalidDay) return null;
+                          const val = currentMonthData[emp.id]?.[day] || '';
+                          const isSunday = new Date(yearNum, monthNum, day).getDay() === 0;
+                          
+                          let colorClass = 'text-gray-400';
+                          if(val==='P') colorClass = 'text-green-700';
+                          if(val==='A') colorClass = 'text-red-600';
+                          if(val==='L') colorClass = 'text-yellow-600';
+                          if(val==='HD') colorClass = 'text-blue-600';
+                          if(val==='H') colorClass = 'text-purple-600';
+
+                          return (
+                            <div key={day} className={`snap-start flex flex-col items-center justify-center min-w-[36px] w-[36px] h-[36px] rounded border ${isSunday ? 'bg-yellow-50 border-yellow-200' : 'bg-white border-gray-200'} shadow-sm flex-shrink-0`}>
+                              <span className={`text-[9px] font-bold ${isSunday ? 'text-yellow-700' : 'text-gray-400'}`}>{day}</span>
+                              <span className={`text-[11px] font-black uppercase ${colorClass}`}>
+                                {val || (isSunday ? 'S' : '-')}
+                              </span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="text-center p-8 bg-gray-50 rounded-xl border border-dashed border-gray-200 text-gray-500 text-sm font-medium">
+                No employees found. Please add employees first.
+              </div>
+            )}
           </div>
           <div style={{ padding: '12px 24px', fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', gap: '24px', backgroundColor: 'var(--bg-main)' }}>
             {/* <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

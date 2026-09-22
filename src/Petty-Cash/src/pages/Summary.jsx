@@ -291,8 +291,60 @@ export default function Summary() {
         </div>
       </div>
 
+      {/* Mobile View: Cards */}
+      <div className="md:hidden flex flex-col gap-3 mt-2 overflow-y-auto pb-6 max-h-[calc(100vh-200px)]">
+        {dailySummary.length > 0 ? dailySummary.map((day, idx) => (
+          <div key={idx} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden shrink-0">
+             <div className="bg-red-50 border-b border-red-100 p-3 flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                   <Calendar size={14} className="text-red-500" />
+                   <span className="font-bold text-gray-800 text-sm">{day.date}</span>
+                </div>
+             </div>
+             
+             <div className="p-3 space-y-3">
+                <div className="flex justify-between items-center border-b border-gray-100 pb-2">
+                   <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Opening Balance</span>
+                   <span className="text-sm font-bold text-gray-800">{formatNum(day.openingBalance)}</span>
+                </div>
+                
+                {day.received > 0 && (
+                   <div className="flex justify-between items-center border-b border-gray-100 pb-2 bg-blue-50/30 p-2 rounded -mx-2 px-2">
+                      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Total Received</span>
+                      <span className="text-sm font-bold text-green-600">{formatNum(day.received)}</span>
+                   </div>
+                )}
+                
+                {day.received > 0 && (
+                   <div className="flex justify-between items-center border-b border-gray-100 pb-2 bg-blue-50/50 p-2 rounded -mx-2 px-2">
+                      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Subtotal</span>
+                      <span className="text-sm font-bold text-blue-700">{formatNum(day.openingBalance + day.received)}</span>
+                   </div>
+                )}
+                
+                {day.expense > 0 && (
+                   <div className="flex justify-between items-center border-b border-gray-100 pb-2 p-2 rounded -mx-2 px-2">
+                      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Total Expense</span>
+                      <span className="text-sm font-bold text-red-600">{formatNum(day.expense)}</span>
+                   </div>
+                )}
+                
+                <div className="flex justify-between items-center pt-1 bg-gray-50 p-2 rounded -mx-2 px-2 mt-2 border border-gray-100">
+                   <span className="text-xs font-bold text-gray-700 uppercase">Closing Balance</span>
+                   <span className="text-lg font-black text-blue-700">{formatNum(day.closingBalance)}</span>
+                </div>
+             </div>
+          </div>
+        )) : (
+          <div className="text-center p-8 bg-gray-50 rounded-xl border border-dashed border-gray-200 text-gray-500 text-sm font-medium">
+             <Calendar size={32} className="text-gray-400 mx-auto mb-3" />
+             No summary data available for the selected filters.
+          </div>
+        )}
+      </div>
+
       {/* Summary Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 flex-1 min-h-0 overflow-hidden flex flex-col relative mt-2">
+      <div className="hidden md:flex bg-white rounded-lg shadow-sm border border-gray-200 flex-1 min-h-0 overflow-hidden flex-col relative mt-2">
         <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-270px)] flex-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           <div className="min-w-[850px] w-full">
             {/* Table Headers (Sticky) */}

@@ -1032,7 +1032,7 @@ export default function Expenses() {
                 {activeTab === 'history' && (
                   <div className="grid grid-cols-3 gap-1.5 mt-0">
                     <button onClick={() => handleRevertToPending(expense)} className="bg-orange-50 text-orange-600 hover:bg-orange-100 py-1 rounded text-[10px] font-medium flex items-center justify-center gap-1 transition-all">
-                      <RotateCcw size={11} /> Pending
+                      <RotateCcw size={11} /> Undo
                     </button>
                     <button onClick={() => handleEditExpense(expense)} className="bg-blue-50 text-blue-600 hover:bg-blue-100 py-1 rounded text-[10px] font-medium flex items-center justify-center gap-1 transition-all">
                       <Edit2 size={11} /> Edit
@@ -1130,7 +1130,7 @@ export default function Expenses() {
                             {expense.status}
                           </span>
                           <div className="flex gap-2 mt-1">
-                            <button onClick={() => handleRevertToPending(expense)} title="Revert to Pending" className="text-orange-500 hover:text-orange-700"><RotateCcw size={14} /></button>
+                            <button onClick={() => handleRevertToPending(expense)} title="Undo" className="text-orange-500 hover:text-orange-700"><RotateCcw size={14} /></button>
                             <button onClick={() => handleEditExpense(expense)} title="Edit" className="text-blue-500 hover:text-blue-700"><Edit2 size={14} /></button>
                             <button onClick={() => handleDeleteExpense(expense)} title="Delete" className="text-red-500 hover:text-red-700"><Trash2 size={14} /></button>
                           </div>

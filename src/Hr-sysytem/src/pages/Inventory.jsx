@@ -269,7 +269,7 @@ export default function Inventory() {
       </div>
 
       <div className="card" style={{ padding: 0 }}>
-        <div style={{ overflow: 'auto', maxHeight: 'calc(100vh - 240px)' }}>
+        <div className="hidden md:block" style={{ overflow: 'auto', maxHeight: 'calc(100vh - 240px)' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead style={{ position: 'sticky', top: 0, zIndex: 10, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
               <tr>
@@ -338,6 +338,71 @@ export default function Inventory() {
             </tbody>
           </table>
         </div>
+
+        {/* Mobile Cards for Inventory */}
+        <div className="md:hidden space-y-4 p-4 bg-gray-50/50 pb-20 max-h-[calc(100vh-200px)] overflow-y-auto">
+          {loading ? (
+             <div className="text-center p-8 text-gray-500">Loading inventory...</div>
+          ) : items.filter(item => selectedCategory ? item.category === selectedCategory : true).length === 0 ? (
+             <div className="text-center p-8 bg-gray-50 rounded-xl border border-dashed border-gray-200 text-gray-500 text-sm font-medium">
+                No inventory items found. Add a new item to get started.
+             </div>
+          ) : (
+             items.filter(item => selectedCategory ? item.category === selectedCategory : true).map((item) => (
+                <div key={item.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col gap-3 relative">
+                   <div className="flex justify-between items-start border-b pb-3 border-gray-100">
+                      <div>
+                         <span className="text-xs font-black text-gray-400 uppercase tracking-widest block mb-1">Code: {item.item_code}</span>
+                         <p className="font-bold text-gray-900 text-base uppercase leading-tight">{item.item_name}</p>
+                         <p className="text-[11px] text-gray-500 font-medium mt-1 uppercase">{item.category}</p>
+                      </div>
+                      <div className="text-right">
+                         <span style={{ 
+                            display: 'inline-block', 
+                            padding: '4px 10px', 
+                            borderRadius: '20px', 
+                            fontSize: '0.7rem', 
+                            fontWeight: 600,
+                            backgroundColor: `${getStatusColor(item.status)}15`,
+                            color: getStatusColor(item.status),
+                            whiteSpace: 'nowrap'
+                          }}>
+                            {item.status}
+                         </span>
+                      </div>
+                   </div>
+
+                   <div className="grid grid-cols-2 gap-3 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                      <div>
+                         <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Current Stock</span>
+                         <span className="text-lg font-black text-gray-900">{item.current_stock} <span className="text-xs text-gray-500 font-medium">{item.unit}</span></span>
+                      </div>
+                      <div>
+                         <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Opening Qty</span>
+                         <span className="text-sm font-bold text-gray-600">{item.opening_qty || 0} {item.unit}</span>
+                      </div>
+                   </div>
+
+                   <div className="flex justify-end gap-4 pt-1">
+                      <button 
+                         onClick={() => handleEdit(item)}
+                         className="text-gray-500 bg-transparent border-none cursor-pointer p-0"
+                         title="Edit"
+                      >
+                         <Pencil size={20} />
+                      </button>
+                      <button 
+                         onClick={() => handleDelete(item.id)}
+                         className="text-red-500 bg-transparent border-none cursor-pointer p-0"
+                         title="Delete"
+                      >
+                         <Trash2 size={20} />
+                      </button>
+                   </div>
+                </div>
+             ))
+          )}
+        </div>
       </div>
 
       {showModal && (
@@ -346,7 +411,7 @@ export default function Inventory() {
           backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 100,
           display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '24px'
         }}>
-          <div className="card" style={{ width: '100%', maxWidth: '500px', borderRadius: '12px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+          <div className="card" style={{ width: '100%', maxWidth: '500px', borderRadius: '12px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', paddingBottom: '16px', borderBottom: '1px solid var(--border-color)' }}>
               <h2 style={{ margin: 0, fontSize: '1.25rem' }}>{isEditing ? 'Edit Item' : 'Add New Item'}</h2>
               <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}>
@@ -355,7 +420,7 @@ export default function Inventory() {
             </div>
             
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label>Item Code <span style={{ color: 'var(--danger)' }}>*</span></label>
                   <input type="text" name="item_code" value={formData.item_code} onChange={handleInputChange} required placeholder="e.g. ITM-001" />
@@ -371,7 +436,7 @@ export default function Inventory() {
                 <input type="text" name="item_name" value={formData.item_name} onChange={handleInputChange} required placeholder="e.g. A4 Paper Rim" />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label>Unit <span style={{ color: 'var(--danger)' }}>*</span></label>
                   <input type="text" name="unit" value={formData.unit} onChange={handleInputChange} required placeholder="e.g. Pcs, Kg" />
@@ -421,7 +486,9 @@ export default function Inventory() {
             borderRadius: '12px', 
             boxShadow: '0 10px 25px rgba(0,0,0,0.1)', 
             padding: '24px',
-            fontFamily: 'system-ui, -apple-system, sans-serif'
+            fontFamily: 'system-ui, -apple-system, sans-serif',
+            maxHeight: '90vh',
+            overflowY: 'auto'
           }}>
             <div style={{ marginBottom: '20px' }}>
               <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#4b5563' }}>Upload CSV File</h2>
