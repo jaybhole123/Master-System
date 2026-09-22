@@ -180,6 +180,11 @@ export default function EmployeeMaster() {
   // Image Preview Modal State
   const [previewModalImg, setPreviewModalImg] = useState(null);
 
+  const handleEmployeePhotoClick = (emp) => {
+    const photoUrl = getEmployeePhotoUrl(emp);
+    if (photoUrl) setPreviewModalImg(photoUrl);
+  };
+
   // Crop Modal State
   const [cropModalOpen, setCropModalOpen] = useState(false);
   const [cropImageSrc, setCropImageSrc] = useState(null);
@@ -327,6 +332,8 @@ export default function EmployeeMaster() {
       toast.dismiss(toastId);
       
       if (error) throw error;
+
+      const existingPhoto = fullEmp.photo || fullEmp.profile_image || '';
       
       setEditingId(fullEmp.id);
       setFormData({
@@ -362,7 +369,6 @@ export default function EmployeeMaster() {
         status: fullEmp.status || 'Active',
         displayOrder: fullEmp.display_order ?? ''
       });
-      const existingPhoto = fullEmp.photo || fullEmp.profile_image || '';
       setPhotoPreview(existingPhoto ? getEmployeePhotoUrl(fullEmp) : null);
       setAadharFile(null);
       setPanFile(null);
@@ -707,7 +713,14 @@ export default function EmployeeMaster() {
                   <td style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>{idx + 1}</td>
                   <td>
                     {getEmployeePhotoUrl(emp) ? (
-                      <img src={getEmployeePhotoUrl(emp)} alt={emp.user_name} style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
+                      <button
+                        type="button"
+                        onClick={() => handleEmployeePhotoClick(emp)}
+                        style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer' }}
+                        aria-label={`View profile for ${emp.user_name}`}
+                      >
+                        <img src={getEmployeePhotoUrl(emp)} alt={emp.user_name} style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
+                      </button>
                     ) : (
                       <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'var(--bg-color, #f3f4f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: '14px', fontWeight: 'bold' }}>
                         {emp.user_name ? emp.user_name.charAt(0).toUpperCase() : '?'}

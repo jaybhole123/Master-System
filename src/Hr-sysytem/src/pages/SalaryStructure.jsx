@@ -55,6 +55,11 @@ const getDesignationStyle = (desg) => {
   }
 };
 
+const getEmployeePhotoUrl = (emp) => {
+  if (!emp || !emp.photo) return null;
+  return emp.photo.startsWith('image/') ? `data:${emp.photo}` : emp.photo;
+};
+
 export default function SalaryStructure() {
   const [employees] = useEmployees();
   
@@ -446,6 +451,7 @@ export default function SalaryStructure() {
   const netSalary = selectedEmp ? Math.max(0, grossSalary - totalDeductions) : 0;
   
   const selectedEmpData = employees.find(e => e.id === selectedEmp) || {};
+  const selectedEmpPhoto = getEmployeePhotoUrl(selectedEmpData);
   const isAlreadyEntered = selectedEmp && formData.salaryMonth && salaries[selectedEmp] && salaries[selectedEmp].salaryMonth === formData.salaryMonth;
 
   return (
@@ -467,14 +473,23 @@ export default function SalaryStructure() {
         <div style={{ backgroundColor: '#f8fafc', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '24px' }}>
           <h4 style={{ margin: '0 0 16px 0', color: '#475569', fontSize: '1rem', borderBottom: '2px solid #e2e8f0', paddingBottom: '8px' }}>Employee Information</h4>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
-            <div className="form-group">
+            <div className="form-group" style={{ gridColumn: 'span 1' }}>
               <label>Employee Name</label>
-              <select value={selectedEmp} onChange={handleSelectChange}>
-                <option value="">-- Select Employee --</option>
-                {activeEmployees.map(emp => (
-                  <option key={emp.id} value={emp.id}>{emp.name}</option>
-                ))}
-              </select>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                {selectedEmpPhoto ? (
+                  <img src={selectedEmpPhoto} alt={selectedEmpData.name || 'Employee'} style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--border-color)' }} />
+                ) : (
+                  <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#475569' }}>
+                    {selectedEmpData.name ? selectedEmpData.name.charAt(0).toUpperCase() : '?'}
+                  </div>
+                )}
+                <select value={selectedEmp} onChange={handleSelectChange} style={{ flex: 1 }}>
+                  <option value="">-- Select Employee --</option>
+                  {activeEmployees.map(emp => (
+                    <option key={emp.id} value={emp.id}>{emp.name}</option>
+                  ))}
+                </select>
+              </div>
             </div>
             <div className="form-group">
               <label>Department</label>

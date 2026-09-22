@@ -11,7 +11,7 @@ export function useEmployees() {
       try {
         const { data, error: fetchError } = await supabase
           .from('users')
-          .select('id, employee_id, user_name, department, designation, status, created_at, base_salary, account_no, display_order')
+          .select('id, employee_id, user_name, department, designation, status, created_at, base_salary, account_no, display_order, photo, profile_image')
           .order('display_order', { ascending: true })
           .order('created_at', { ascending: false });
 
@@ -27,6 +27,7 @@ export function useEmployees() {
             status: u.status || 'Active',
             baseSalary: u.base_salary || 0,
             accountNo: u.account_no || '',
+            photo: u.photo || u.profile_image || null,
             dbId: u.id
           }));
           setEmployees(formattedEmployees);

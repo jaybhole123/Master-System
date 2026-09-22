@@ -24,6 +24,12 @@ export default function MasterDashboard() {
     pettyCashData: [],
     hrData: [],
     hrTotalEmployees: 0,
+    hrMetrics: {
+      employees: [],
+      attendance: [],
+      leaves: [],
+      payroll: []
+    },
     helpSlipData: [],
     helpSlipTotal: 0,
     loading: true
@@ -123,6 +129,49 @@ export default function MasterDashboard() {
         const users = usersData || [];
         
         const totalEmployees = users.length;
+        const activeEmployees = users.filter(user => String(user.status || user.Status || 'active').toLowerCase() === 'active').length;
+
+        const today = new Date();
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        const currentMonthYear = `${monthNames[today.getMonth()]} ${today.getFullYear()}`;
+        const currentDayKey = `day_${today.getDate()}`;
+
+        const [{ data: attendanceRows, error: attendanceError }, { data: leaveRows, error: leaveError }, { data: payrollRows, error: payrollError }] = await Promise.all([
+          supabase.from('monthly_attendance').select(currentDayKey).eq('month_year', currentMonthYear),
+          supabase.from('leave_requests').select('status'),
+          supabase.from('processed_payroll').select('month_year, net')
+        ]);
+
+        if (attendanceError) console.error('Error fetching attendance summary:', attendanceError);
+        if (leaveError) console.error('Error fetching leave summary:', leaveError);
+        if (payrollError) console.error('Error fetching payroll summary:', payrollError);
+
+        const attendancePresent = (attendanceRows || []).filter(row => ['P', 'HD'].includes(row[currentDayKey])).length;
+        const attendanceOther = Math.max(totalEmployees - attendancePresent, 0);
+        const pendingLeaves = (leaveRows || []).filter(row => ['pending', 'requested'].includes(String(row.status || '').trim().toLowerCase())).length;
+        const approvedLeaves = (leaveRows || []).filter(row => String(row.status || '').trim().toLowerCase() === 'approved').length;
+        const processedPayroll = (payrollRows || []).filter(row => row.month_year).length;
+
+        const hrMetrics = {
+          employees: [
+            { name: 'Active', value: activeEmployees },
+            { name: 'Other', value: Math.max(totalEmployees - activeEmployees, 0) }
+          ],
+          attendance: [
+            { name: 'Present', value: attendancePresent },
+            { name: 'Other', value: attendanceOther }
+          ],
+          leaves: [
+            { name: 'Pending', value: pendingLeaves },
+            { name: 'Approved', value: approvedLeaves },
+            { name: 'Other', value: Math.max((leaveRows || []).length - pendingLeaves - approvedLeaves, 0) }
+          ],
+          payroll: [
+            { name: 'Processed', value: processedPayroll },
+            { name: 'Remaining', value: Math.max(totalEmployees - processedPayroll, 0) }
+          ]
+        };
+
         const uniqueNames = new Set(users.map(u => u.user_name || u.username || u.name).filter(Boolean)).size;
         const uniqueRoles = new Set(users.map(u => u.Designation || u.designation || u.role).filter(Boolean)).size;
         const uniqueDepts = new Set(users.map(u => u.department || u.Department).filter(Boolean)).size;
@@ -209,6 +258,7 @@ export default function MasterDashboard() {
           pettyCashData: pcChart,
           hrData: hrChart,
           hrTotalEmployees: totalEmployees,
+          hrMetrics,
           helpSlipData: helpSlipChart,
           helpSlipTotal: slips.length,
           dailySchedulerData: dailySchedulerChart,
@@ -472,22 +522,36 @@ export default function MasterDashboard() {
                 </div>
               )}
               
-              <div className="h-40 w-full mb-4">
+              <div className="grid grid-cols-2 gap-3 w-full mb-4">
                 {stats.loading ? (
-                  <div className="w-full h-full flex items-center justify-center">
+                  <div className="col-span-2 h-44 flex items-center justify-center">
                     <Loader2 className="animate-spin text-orange-300 h-8 w-8" />
                   </div>
                 ) : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={stats.hrData} cx="50%" cy="50%" innerRadius={35} outerRadius={65} paddingAngle={2} dataKey="value">
-                        {stats.hrData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS.orange[index % COLORS.orange.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip content={<CustomTooltip />} />
-                    </PieChart>
-                  </ResponsiveContainer>
+                  [
+                    { label: 'Total Employees', value: stats.hrTotalEmployees, data: stats.hrMetrics.employees, color: COLORS.blue },
+                    { label: 'Attendance Today', value: (stats.hrMetrics.attendance || []).find(item => item.name === 'Present')?.value || 0, data: stats.hrMetrics.attendance, color: COLORS.emerald },
+                    { label: 'Pending Leaves', value: (stats.hrMetrics.leaves || []).find(item => item.name === 'Pending')?.value || 0, data: stats.hrMetrics.leaves, color: COLORS.orange },
+                    { label: 'Payroll Status', value: (stats.hrMetrics.payroll || []).find(item => item.name === 'Processed')?.value > 0 ? 'Processing' : 'Not Started', data: stats.hrMetrics.payroll, color: ['#8b5cf6', '#ddd6fe'] }
+                  ].map((metric) => (
+                    <div key={metric.label} className="rounded-xl border border-orange-100 bg-orange-50/40 p-2">
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-[11px] font-bold text-slate-700 leading-tight">{metric.label}</span>
+                        <div className="h-12 w-12 shrink-0">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie data={metric.data || []} dataKey="value" cx="50%" cy="50%" innerRadius={13} outerRadius={21} paddingAngle={3} stroke="none">
+                                {(metric.data || []).map((entry, index) => (
+                                  <Cell key={`${metric.label}-${entry.name}`} fill={metric.color[index % metric.color.length]} />
+                                ))}
+                              </Pie>
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+                      <div className="text-sm font-black text-orange-700 mt-1">{metric.value}</div>
+                    </div>
+                  ))
                 )}
               </div>
             </div>
