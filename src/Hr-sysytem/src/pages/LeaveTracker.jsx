@@ -14,7 +14,7 @@ export default function LeaveTracker() {
   const [savingBalances, setSavingBalances] = useState(false);
   const [savingRequest, setSavingRequest] = useState(false);
 
-  const [activeTab, setActiveTab] = useState('Balance');
+  const [activeTab, setActiveTab] = useState('Requests');
   const [showModal, setShowModal] = useState(false);
   const [newRequest, setNewRequest] = useState({ empId: '', type: 'CL', from: '', to: '', reason: '' });
   
@@ -495,17 +495,6 @@ export default function LeaveTracker() {
 
       <div style={{ display: 'flex', gap: '16px', borderBottom: '1px solid var(--border-color)', marginBottom: '24px' }}>
         <button
-          onClick={() => setActiveTab('Balance')}
-          style={{
-            padding: '12px 24px', background: 'none', border: 'none',
-            borderBottom: activeTab === 'Balance' ? '2px solid var(--primary-color)' : '2px solid transparent',
-            color: activeTab === 'Balance' ? 'var(--primary-color)' : 'var(--text-secondary)',
-            fontWeight: 600, cursor: 'pointer', fontSize: '1rem', transition: 'all 0.2s ease'
-          }}
-        >
-          Leave Balance
-        </button>
-        <button
           onClick={() => setActiveTab('Requests')}
           style={{
             padding: '12px 24px', background: 'none', border: 'none',
@@ -515,6 +504,17 @@ export default function LeaveTracker() {
           }}
         >
           Leave Requests
+        </button>
+        <button
+          onClick={() => setActiveTab('Balance')}
+          style={{
+            padding: '12px 24px', background: 'none', border: 'none',
+            borderBottom: activeTab === 'Balance' ? '2px solid var(--primary-color)' : '2px solid transparent',
+            color: activeTab === 'Balance' ? 'var(--primary-color)' : 'var(--text-secondary)',
+            fontWeight: 600, cursor: 'pointer', fontSize: '1rem', transition: 'all 0.2s ease'
+          }}
+        >
+          Leave Balance
         </button>
         <button
           onClick={() => setActiveTab('Dashboard')}
@@ -621,14 +621,14 @@ export default function LeaveTracker() {
             </table>
           </div>
           <div style={{ padding: '12px 24px', fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', gap: '24px', backgroundColor: 'var(--bg-main)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {/* <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div style={{ width: '12px', height: '12px', borderRadius: '4px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-main)' }}></div>
               Allotted = Manual Entry
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            </div> */}
+            {/* <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div style={{ width: '12px', height: '12px', borderRadius: '4px', backgroundColor: 'rgba(0,0,0,0.1)' }}></div>
               Taken/Balance = Auto (from 'Leave Requests' where Status = Approved)
-            </div>
+            </div> */}
           </div>
           </div>
         </div>

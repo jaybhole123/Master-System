@@ -1091,14 +1091,12 @@ Instructions:
             </table>
           </div>
           <div style={{ padding: '12px 24px', fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', gap: '24px', backgroundColor: 'var(--bg-main)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {/* <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div style={{ width: '12px', height: '12px', borderRadius: '50%', border: '1px solid #94a3b8' }}></div>
-              Blue = Manual Entry (type code directly)
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            </div> */}
+            {/* <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#475569' }}></div>
-              P/A/L/HD/H/Att% columns = Auto-Formula
-            </div>
+            </div> */}
           </div>
         </div>
       )}
