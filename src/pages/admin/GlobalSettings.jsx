@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Settings2, Users, Layout, Search, Plus, Edit2, Trash2, Shield, Settings, ChevronRight, X, Save, LayoutDashboard, Download, FileSpreadsheet } from 'lucide-react';
 import AdminLayout from '../../components/layout/AdminLayout';
 import supabase from '../../SupabaseClient';
@@ -20,6 +20,22 @@ const getDesignationStyle = (desg) => {
     case 'ASAK COAL LOGISTICS': return { backgroundColor: '#ccfbf1', color: '#0f766e', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' };
     default: return { backgroundColor: '#f3f4f6', color: '#4b5563', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' };
   }
+};
+
+const parseAccessValue = (value) => {
+  if (!value) return [];
+  if (Array.isArray(value)) return value;
+  if (typeof value === 'string') {
+    if (value.trim().startsWith('[')) {
+      try {
+        return JSON.parse(value);
+      } catch (e) {
+        return [];
+      }
+    }
+    return value.split(',').map(item => item.trim()).filter(Boolean);
+  }
+  return [];
 };
 
 const MODULES = [
@@ -99,6 +115,7 @@ export default function GlobalSettings() {
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [modalTab, setModalTab] = useState('profile');
+  const [previewImage, setPreviewImage] = useState(null);
   const { showToast } = useMagicToast();
 
   const [formData, setFormData] = useState({
@@ -123,11 +140,22 @@ export default function GlobalSettings() {
 
   const fetchUsers = async () => {
     setLoading(true);
-    const { data, error } = await supabase.from('users').select('id, created_at, user_name, password, employee_id, email_id, number, role, status, department, designation, system_access, page_access, profile_image, display_order').order('display_order', { ascending: true }).order('created_at', { ascending: false });
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, created_at, user_name, password, employee_id, email_id, number, role, status, department, designation, system_access, page_access, profile_image, display_order')
+      .order('display_order', { ascending: true })
+      .order('created_at', { ascending: false });
+
     if (error) {
       showToast('Error fetching users', 'error');
     } else {
-      setUsers(data || []);
+      const normalizedUsers = (data || []).map((user) => ({
+        ...user,
+        systemAccessList: parseAccessValue(user.system_access),
+        pageAccessList: parseAccessValue(user.page_access),
+        moduleCount: parseAccessValue(user.system_access).length,
+      }));
+      setUsers(normalizedUsers);
     }
     setLoading(false);
   };
@@ -136,20 +164,8 @@ export default function GlobalSettings() {
     if (user) {
       setEditingUser(user);
       
-      const parseAccess = (val) => {
-          if (!val) return [];
-          if (Array.isArray(val)) return val;
-          if (typeof val === 'string') {
-              if (val.trim().startsWith('[')) {
-                  try { return JSON.parse(val); } catch(e) { return []; }
-              }
-              return val.split(',').filter(Boolean);
-          }
-          return [];
-      };
-
-      let parsedSystemAccess = parseAccess(user.system_access);
-      let parsedPageAccess = parseAccess(user.page_access);
+      let parsedSystemAccess = parseAccessValue(user.system_access);
+      let parsedPageAccess = parseAccessValue(user.page_access);
 
       setFormData({
         user_name: user.user_name || '',
@@ -285,6 +301,11 @@ export default function GlobalSettings() {
     });
   };
 
+  const normalizeProfileImage = (image) => {
+    if (!image) return null;
+    return image.startsWith('image/') ? `data:${image}` : image;
+  };
+
   const handleImageUpload = (e) => {
       const file = e.target.files[0];
       if (file) {
@@ -323,10 +344,13 @@ export default function GlobalSettings() {
     });
   };
 
-  const filteredUsers = users.filter((u) => 
-    u.user_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    u.employee_id?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredUsers = useMemo(() => {
+    const query = searchTerm.toLowerCase();
+    return users.filter((u) =>
+      u.user_name?.toLowerCase().includes(query) ||
+      u.employee_id?.toLowerCase().includes(query)
+    );
+  }, [users, searchTerm]);
 
   const handleDownloadPDF = () => {
     const doc = new jsPDF();
@@ -471,13 +495,18 @@ export default function GlobalSettings() {
                                         {/* <td className="p-4 font-mono text-sm text-slate-600">{user.employee_id || '-'}</td> */}
                                         <td className="p-4">
                                             <div className="flex items-center gap-3">
-                                                <div className="h-8 w-8 rounded-full bg-red-100 text-red-700 flex items-center justify-center font-bold text-sm shrink-0 overflow-hidden">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => user.profile_image && setPreviewImage(normalizeProfileImage(user.profile_image))}
+                                                    className="h-8 w-8 rounded-full bg-red-100 text-red-700 flex items-center justify-center font-bold text-sm shrink-0 overflow-hidden border border-transparent hover:border-red-200 transition-all focus:outline-none"
+                                                    aria-label={`View profile for ${user.user_name}`}
+                                                >
                                                     {user.profile_image ? (
-                                                        <img src={user.profile_image.startsWith('image/') ? `data:${user.profile_image}` : user.profile_image} alt={user.user_name} className="w-full h-full object-cover" />
+                                                        <img src={normalizeProfileImage(user.profile_image)} alt={user.user_name} className="w-full h-full object-cover cursor-pointer" />
                                                     ) : (
                                                         user.user_name?.charAt(0).toUpperCase()
                                                     )}
-                                                </div>
+                                                </button>
                                                 <div>
                                                     <p className="font-bold text-slate-800">{user.user_name}</p>
                                                     <p className="text-xs text-slate-500">{user.email_id || '-'}</p>
@@ -496,7 +525,7 @@ export default function GlobalSettings() {
                                         <td className="p-4">
                                             <div className="flex items-center gap-2">
                                                 <span className="text-sm font-bold text-slate-700">
-                                                    {(typeof user.system_access === 'string' ? (user.system_access.trim().startsWith('[') ? (() => { try { return JSON.parse(user.system_access).length; } catch(e) { return 0; }})() : user.system_access.split(',').filter(Boolean).length) : (user.system_access?.length || 0))} Modules
+                                                    {user.moduleCount || user.systemAccessList?.length || 0} Modules
                                                 </span>
                                             </div>
                                         </td>
@@ -563,6 +592,22 @@ export default function GlobalSettings() {
       </div>
 
       {/* User Edit Modal */}
+      {previewImage && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4">
+          <div className="relative max-w-2xl w-full">
+            <button
+              type="button"
+              onClick={() => setPreviewImage(null)}
+              className="absolute -top-3 -right-3 z-10 bg-white text-slate-700 rounded-full p-2 shadow-lg hover:bg-slate-100 transition-colors"
+              aria-label="Close profile preview"
+            >
+              <X size={18} />
+            </button>
+            <img src={previewImage} alt="Profile preview" className="w-full max-h-[80vh] object-contain rounded-2xl bg-white shadow-2xl" />
+          </div>
+        </div>
+      )}
+
       {showModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
@@ -606,7 +651,12 @@ export default function GlobalSettings() {
                                 <div className="relative">
                                     <div className="w-20 h-20 rounded-full bg-slate-100 border-2 border-white shadow-md flex items-center justify-center overflow-hidden">
                                         {formData.profile_image ? (
-                                            <img src={formData.profile_image.startsWith('image/') ? `data:${formData.profile_image}` : formData.profile_image} alt="Profile" className="w-full h-full object-cover" />
+                                            <img
+                                                src={normalizeProfileImage(formData.profile_image)}
+                                                alt="Profile"
+                                                className="w-full h-full object-cover cursor-pointer"
+                                                onClick={() => setPreviewImage(normalizeProfileImage(formData.profile_image))}
+                                            />
                                         ) : (
                                             <span className="text-2xl font-black text-slate-300">
                                                 {formData.user_name ? formData.user_name.charAt(0).toUpperCase() : '?'}

@@ -63,6 +63,12 @@ const getDesignationStyle = (desg) => {
   }
 };
 
+const getEmployeePhotoUrl = (emp) => {
+  const photo = emp?.photo || emp?.profile_image || '';
+  if (!photo) return null;
+  return photo.startsWith('image/') ? `data:${photo}` : photo;
+};
+
 export default function EmployeeMaster() {
   // Main state
   const [employees, setEmployees] = useState([]);
@@ -231,7 +237,7 @@ export default function EmployeeMaster() {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('id, employee_id, user_name, department, designation, status, created_at, number, joining_date, fathers_name, experience, photo, display_order, date_of_birth')
+        .select('id, employee_id, user_name, department, designation, status, created_at, number, joining_date, fathers_name, experience, photo, profile_image, display_order, date_of_birth')
         .order('display_order', { ascending: true })
         .order('created_at', { ascending: false });
         
@@ -346,7 +352,7 @@ export default function EmployeeMaster() {
         dateOfBirth: fullEmp.date_of_birth || '',
         drivingLicence: fullEmp.driving_licence || '',
         experience: fullEmp.experience || '',
-        photo: fullEmp.photo || '',
+        photo: existingPhoto,
         aadharDocUrl: fullEmp.aadhar_doc_url || '',
         panDocUrl: fullEmp.pan_doc_url || '',
         dlDocUrl: fullEmp.dl_doc_url || '',
@@ -356,7 +362,8 @@ export default function EmployeeMaster() {
         status: fullEmp.status || 'Active',
         displayOrder: fullEmp.display_order ?? ''
       });
-      setPhotoPreview(fullEmp.photo || null);
+      const existingPhoto = fullEmp.photo || fullEmp.profile_image || '';
+      setPhotoPreview(existingPhoto ? getEmployeePhotoUrl(fullEmp) : null);
       setAadharFile(null);
       setPanFile(null);
       setDlFile(null);
@@ -699,8 +706,8 @@ export default function EmployeeMaster() {
                 <tr key={emp.id}>
                   <td style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>{idx + 1}</td>
                   <td>
-                    {emp.photo ? (
-                      <img src={emp.photo} alt={emp.user_name} style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
+                    {getEmployeePhotoUrl(emp) ? (
+                      <img src={getEmployeePhotoUrl(emp)} alt={emp.user_name} style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
                     ) : (
                       <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'var(--bg-color, #f3f4f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: '14px', fontWeight: 'bold' }}>
                         {emp.user_name ? emp.user_name.charAt(0).toUpperCase() : '?'}
@@ -1069,8 +1076,8 @@ export default function EmployeeMaster() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
               {todaysBirthdays.map(emp => (
                 <div key={emp.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', backgroundColor: '#fdf2f8', borderRadius: '8px', border: '1px solid #fbcfe8' }}>
-                  {emp.photo ? (
-                    <img src={emp.photo} alt={emp.user_name} style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover' }} />
+                  {getEmployeePhotoUrl(emp) ? (
+                    <img src={getEmployeePhotoUrl(emp)} alt={emp.user_name} style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover' }} />
                   ) : (
                     <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: '#fbcfe8', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#be185d', fontSize: '20px', fontWeight: 'bold' }}>
                       {emp.user_name ? emp.user_name.charAt(0).toUpperCase() : '?'}
