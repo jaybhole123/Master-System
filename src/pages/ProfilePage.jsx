@@ -318,9 +318,9 @@ export default function ProfilePage() {
                 <input
                   type="text"
                   required
+                  readOnly
                   value={editForm.username}
-                  onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-600 focus:bg-white outline-none transition-all text-gray-900"
+                  className="w-full px-4 py-2.5 bg-gray-100 border border-gray-200 rounded-xl outline-none text-gray-500 cursor-not-allowed"
                 />
               </div>
 
