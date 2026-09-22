@@ -6,6 +6,7 @@ import html2canvas from 'html2canvas';
 
 import jbtLogo from '../assets/jbt.logo.jfif';
 import jbeLogo from '../assets/jbe-logo.jfif';
+import jblLogo from '../../../assets/jbl.png';
 
 const FIRM_DETAILS = {
   'M/s Jai Bhole Traders': {
@@ -34,9 +35,9 @@ const FIRM_DETAILS = {
   },
   'Jai Bhole Logistics': {
     name: 'Jai Bhole Logistics',
-    logo: jbeLogo,
+    logo: jblLogo,
     gstin: '22AANHA7052H1ZH',
-    textColor: '#ff6b52',
+    textColor: '#000000',
     address: 'N.K. Agrawal & Sons Tower, 3rd Floor, Lane No. 8, Near State Bank of India, New Shanti Nagar, Shankar Nagar, Raipur 492 004 (C.G.)',
     footerContact: 'Mo.: 91654 22000, E-mail : amarnath.agrawal22@gmail.com'
   }
