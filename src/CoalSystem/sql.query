@@ -684,11 +684,6 @@ CREATE TABLE public.invoices (
   round_off numeric,
   CONSTRAINT invoices_pkey PRIMARY KEY (id)
 );
-
-
-
-
-
 CREATE TABLE public.sauda_scale_2 (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   from_party character varying,

@@ -120,14 +120,14 @@ const CalendarComponent = ({ date, onChange, onClose, disableBeforeMinWorkingDat
                     &gt;
                 </button>
             </div>
-            <div className="grid grid-cols-7 gap-1 mb-2">
+            <div className="grid gap-1 mb-2" style={{ gridTemplateColumns: 'repeat(7, minmax(0, 1fr))' }}>
                 {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
                     <div key={day} className="h-8 w-8 flex items-center justify-center text-xs font-bold text-gray-400 uppercase">
                         {day}
                     </div>
                 ))}
             </div>
-            <div className="grid grid-cols-7 gap-1">
+            <div className="grid gap-1" style={{ gridTemplateColumns: 'repeat(7, minmax(0, 1fr))' }}>
                 {renderDays()}
             </div>
             <div className="mt-4 pt-3 border-t border-gray-100 flex justify-center">

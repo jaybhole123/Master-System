@@ -589,7 +589,7 @@ const CalendarPage = () => {
 
                 {/* Calendar Desktop Grid - Professional & Normal */}
                 <div className="hidden lg:block bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                    <div className="grid grid-cols-7 bg-gray-50 border-b border-gray-200">
+                    <div className="grid bg-gray-50 border-b border-gray-200" style={{ gridTemplateColumns: 'repeat(7, minmax(0, 1fr))' }}>
                         {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
                             <div key={day} className="py-3 text-center text-[10px] font-bold text-gray-500 uppercase tracking-widest border-r border-gray-200 last:border-0">
                                 <span className="block text-[8px] opacity-60 mb-0.5">{getHindiDay(day)}</span>
@@ -598,7 +598,7 @@ const CalendarPage = () => {
                         ))}
                     </div>
 
-                    <div className="grid grid-cols-7 relative">
+                    <div className="grid relative" style={{ gridTemplateColumns: 'repeat(7, minmax(0, 1fr))' }}>
                         {loading && (
                             <div className="absolute inset-0 bg-white/60 z-20 flex items-center justify-center backdrop-blur-sm">
                                 <Loader2 className="animate-spin text-blue-600" size={32} />

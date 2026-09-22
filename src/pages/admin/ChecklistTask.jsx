@@ -298,6 +298,7 @@ function TaskCard({ task, index, total, department, doerName, givenBy, dispatch,
                         >
                             <option value="none">+ Add Reference</option>
                             <option value="image">Image (Upload)</option>
+                            <option value="audio">Audio (Upload)</option>
                             <option value="video">Video (Link)</option>
                             <option value="pdf">PDF (Link)</option>
                             <option value="link">Web Link</option>
@@ -311,18 +312,68 @@ function TaskCard({ task, index, total, department, doerName, givenBy, dispatch,
                                     {(ytId || ref.type === 'video') && <Play size={10} fill="currentColor" />}
                                     {ytId || ref.type === 'video' ? 'Video:' : `${ref.type}:`}
                                 </span>
-                                {ref.type === 'image' ? (
-                                    <div className="flex-1 flex items-center gap-2">
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={(e) => {
-                                                const newRefs = [...task.references];
-                                                newRefs[i].file = e.target.files[0];
+                                {ref.type === 'image' || ref.type === 'audio' ? (
+                                    <div 
+                                        className={`flex-1 flex items-center justify-center border-2 border-dashed border-blue-300 bg-blue-50/50 rounded-xl hover:bg-blue-50 transition-colors relative cursor-pointer group min-h-[40px] ${ref.file ? 'p-1.5' : 'flex-col p-3'}`}
+                                        onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                                        onDrop={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                                                const files = Array.from(e.dataTransfer.files);
+                                                let newRefs = [...task.references];
+                                                if (!newRefs[i].file) {
+                                                    newRefs[i].file = files[0];
+                                                    for (let j = 1; j < files.length; j++) {
+                                                        newRefs.push({ id: Date.now() + Math.random() + j, type: ref.type, link: "", file: files[j] });
+                                                    }
+                                                } else {
+                                                    for (let j = 0; j < files.length; j++) {
+                                                        newRefs.push({ id: Date.now() + Math.random() + j, type: ref.type, link: "", file: files[j] });
+                                                    }
+                                                }
                                                 onUpdate(task.id, { references: newRefs });
+                                            }
+                                        }}
+                                        onClick={() => document.getElementById(`file-upload-${ref.id}`).click()}
+                                    >
+                                        <input
+                                            id={`file-upload-${ref.id}`}
+                                            type="file"
+                                            multiple
+                                            accept={ref.type === 'image' ? "image/*" : "audio/*"}
+                                            className="hidden"
+                                            onChange={(e) => {
+                                                if (e.target.files && e.target.files.length > 0) {
+                                                    const files = Array.from(e.target.files);
+                                                    let newRefs = [...task.references];
+                                                    if (!newRefs[i].file) {
+                                                        newRefs[i].file = files[0];
+                                                        for (let j = 1; j < files.length; j++) {
+                                                            newRefs.push({ id: Date.now() + Math.random() + j, type: ref.type, link: "", file: files[j] });
+                                                        }
+                                                    } else {
+                                                        for (let j = 0; j < files.length; j++) {
+                                                            newRefs.push({ id: Date.now() + Math.random() + j, type: ref.type, link: "", file: files[j] });
+                                                        }
+                                                    }
+                                                    onUpdate(task.id, { references: newRefs });
+                                                }
                                             }}
-                                            className="text-[10px] w-full text-blue-700 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-black file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer uppercase tracking-wider"
                                         />
+                                        {!ref.file && <Upload className="w-4 h-4 text-blue-400 mb-1 group-hover:scale-110 transition-transform" />}
+                                        {ref.file ? (
+                                            <div className="flex flex-col sm:flex-row items-center gap-3 w-full px-2">
+                                                {ref.type === 'image' ? (
+                                                    <img src={URL.createObjectURL(ref.file)} alt="preview" className="h-8 w-12 object-contain rounded bg-white border border-blue-200 shadow-sm" />
+                                                ) : (
+                                                    <audio src={URL.createObjectURL(ref.file)} controls className="h-8 w-40 sm:w-64 outline-none" />
+                                                )}
+                                                <span className="text-[10px] font-bold text-blue-700 truncate w-full text-left">{ref.file.name}</span>
+                                            </div>
+                                        ) : (
+                                            <span className="text-[10px] font-bold text-blue-600 text-center">Drag & Drop {ref.type === 'image' ? 'Image' : 'Audio'} or Click to Browse</span>
+                                        )}
                                     </div>
                                 ) : (
                                     <div className="flex-1 flex items-center gap-2">
@@ -389,6 +440,22 @@ function TaskCard({ task, index, total, department, doerName, givenBy, dispatch,
                                             >
                                                 <Type className="w-4 h-4" />
                                             </button>
+                                            <button type="button" onClick={() => document.getElementById(`audio-upload-${task.id}`).click()} className="p-1.5 bg-gray-100 text-gray-500 rounded-full hover:bg-gray-200 transition-all" title="Upload Audio File">
+                                                <Upload className="w-4 h-4" />
+                                            </button>
+                                            <input 
+                                                id={`audio-upload-${task.id}`}
+                                                type="file" 
+                                                accept="audio/*" 
+                                                className="hidden" 
+                                                onChange={(e) => {
+                                                    if (e.target.files && e.target.files[0]) {
+                                                        const file = e.target.files[0];
+                                                        const blobUrl = URL.createObjectURL(file);
+                                                        onUpdate(task.id, { recordedAudio: { blobUrl, blob: file } });
+                                                    }
+                                                }}
+                                            />
                                             <button type="button" onClick={startRecording} className="p-1.5 bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition-all" title="Record Voice Note">
                                                 <Mic className="w-4 h-4" />
                                             </button>
@@ -772,8 +839,8 @@ export default function ChecklistTask() {
                 }
                 if (t.references && t.references.length > 0) {
                     for (const ref of t.references) {
-                        if (ref.type === 'image' && !ref.file) {
-                            return { success: false, message: `Task ${i + 1}: Please upload the Image file for the Reference.` };
+                        if ((ref.type === 'image' || ref.type === 'audio') && !ref.file) {
+                            return { success: false, message: `Task ${i + 1}: Please upload the ${ref.type === 'image' ? 'Image' : 'Audio'} file for the Reference.` };
                         }
                         if (['video', 'pdf', 'link'].includes(ref.type) && !ref.link) {
                             return { success: false, message: `Task ${i + 1}: Please provide a valid web link for the ${ref.type.toUpperCase()} Reference.` };
@@ -842,8 +909,8 @@ export default function ChecklistTask() {
 
             if (t.references && t.references.length > 0) {
                 for (const ref of t.references) {
-                    if (ref.type === 'image' && !ref.file) {
-                        alert(`Task ${i + 1}: Please upload the Image file for the Reference.`);
+                    if ((ref.type === 'image' || ref.type === 'audio') && !ref.file) {
+                        alert(`Task ${i + 1}: Please upload the ${ref.type === 'image' ? 'Image' : 'Audio'} file for the Reference.`);
                         return;
                     }
                     if (['video', 'pdf', 'link'].includes(ref.type) && !ref.link) {
@@ -907,7 +974,7 @@ export default function ChecklistTask() {
 
                 if (task.references && task.references.length > 0) {
                     for (const ref of task.references) {
-                        if (ref.type === 'image' && ref.file) {
+                        if ((ref.type === 'image' || ref.type === 'audio') && ref.file) {
                             const ext = ref.file.name.split('.').pop();
                             const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
                             const { error: uploadError } = await supabase.storage

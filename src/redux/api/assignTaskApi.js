@@ -25,20 +25,21 @@ export const fetchUniqueDepartmentDataApi = async () => {
 
 export const fetchUniqueGivenByDataApi = async () => {
   try {
-    console.log("🔍 Fetching unique given_by from assign_from table...");
+    console.log("🔍 Fetching admin/superadmin users from users table...");
 
     const { data, error } = await supabase
-      .from("assign_from")
-      .select("name")
-      .order("name", { ascending: true });
+      .from("users")
+      .select("user_name")
+      .in("role", ["admin", "superadmin", "Admin", "Superadmin", "ADMIN", "SUPERADMIN"])
+      .order("user_name", { ascending: true });
 
     if (error) throw error;
 
-    const uniqueNames = data.map(item => item.name).filter(Boolean);
+    const uniqueNames = [...new Set(data.map(item => item.user_name).filter(Boolean))];
     console.log("✅ Unique assigners found:", uniqueNames);
     return uniqueNames;
   } catch (error) {
-    console.error("❌ Error fetching from assign_from table:", error);
+    console.error("❌ Error fetching from users table:", error);
     return [];
   }
 };
