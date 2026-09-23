@@ -38,7 +38,7 @@ const parseImageUrls = (imageStr) => {
 
     return String(imageStr).split(',').map(url => {
         let u = url.trim();
-        u = u.replace(/^["'\[\]]+|["'\[\]]+$/g, '');
+        u = u.replace(/^["'[\]]+|["'[\]]+$/g, '');
         return u;
     }).filter(Boolean);
 };
