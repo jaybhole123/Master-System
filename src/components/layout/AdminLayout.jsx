@@ -1304,7 +1304,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                   }, {})
                 ).map(([moduleName, moduleRoutes]) => (
                   <div key={moduleName} className="mb-4">
-                    {moduleName === "Profile" || moduleName === "Global Settings" || moduleName === "Rent Management" || moduleName === "Help Slip" ? (
+                    {moduleName === "Master Dashboard" || moduleName === "Profile" || moduleName === "Global Settings" || moduleName === "Rent Management" || moduleName === "Help Slip" ? (
                       <Link
                         to={moduleRoutes[0].href}
                         onClick={() => setIsMobileMenuOpen(false)}
@@ -1314,6 +1314,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                           <div className="absolute left-0 top-1/2 -translate-y-1/2 h-2/3 w-1.5 bg-red-600 rounded-r-full"></div>
                         )}
                         <div className="flex items-center gap-3 overflow-hidden">
+                          {moduleName === "Master Dashboard" && <LayoutDashboard className="h-5 w-5 shrink-0" />}
                           {moduleName === "Profile" && <UserRound className="h-5 w-5 shrink-0" />}
                           {moduleName === "Global Settings" && <Settings2 className="h-5 w-5 shrink-0" />}
                           {moduleName === "Rent Management" && <Banknote className="h-5 w-5 shrink-0" />}

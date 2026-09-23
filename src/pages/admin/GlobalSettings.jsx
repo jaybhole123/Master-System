@@ -471,9 +471,9 @@ export default function GlobalSettings() {
                     </div>
                 </div>
 
-                <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-280px)]">
+                <div className="overflow-x-hidden md:overflow-x-auto overflow-y-auto max-h-[calc(100vh-280px)] px-4 md:px-0">
                     <table className="w-full relative">
-                        <thead className="sticky top-0 z-10 bg-slate-50 shadow-sm">
+                        <thead className="sticky top-0 z-10 bg-slate-50 shadow-sm hidden md:table-header-group">
                             <tr className="text-left text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">
                                 {/* <th className="p-4">Employee ID</th> */}
                                 <th className="p-4">Name</th>
@@ -484,21 +484,21 @@ export default function GlobalSettings() {
                                 <th className="p-4">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100">
+                        <tbody className="divide-y divide-slate-100 block md:table-row-group">
                             {loading ? (
-                                <tr><td colSpan={7} className="p-8 text-center text-slate-500">Loading...</td></tr>
+                                <tr className="block md:table-row"><td colSpan={7} className="p-8 text-center text-slate-500 block md:table-cell">Loading...</td></tr>
                             ) : filteredUsers.length === 0 ? (
-                                <tr><td colSpan={7} className="p-8 text-center text-slate-500">No users found.</td></tr>
+                                <tr className="block md:table-row"><td colSpan={7} className="p-8 text-center text-slate-500 block md:table-cell">No users found.</td></tr>
                             ) : (
                                 filteredUsers.map(user => (
-                                    <tr key={user.id} className="hover:bg-slate-50/50 transition-colors">
-                                        {/* <td className="p-4 font-mono text-sm text-slate-600">{user.employee_id || '-'}</td> */}
-                                        <td className="p-4">
+                                    <tr key={user.id} className="hover:bg-slate-50/50 transition-colors block md:table-row border border-slate-200 md:border-none rounded-2xl md:rounded-none mb-4 md:mb-0 bg-white shadow-sm md:shadow-none">
+                                        {/* <td className="p-4 font-mono text-sm text-slate-600 block md:table-cell">{user.employee_id || '-'}</td> */}
+                                        <td className="p-4 block md:table-cell border-b border-slate-50 md:border-none">
                                             <div className="flex items-center gap-3">
                                                 <button
                                                     type="button"
                                                     onClick={() => user.profile_image && setPreviewImage(normalizeProfileImage(user.profile_image))}
-                                                    className="h-8 w-8 rounded-full bg-red-100 text-red-700 flex items-center justify-center font-bold text-sm shrink-0 overflow-hidden border border-transparent hover:border-red-200 transition-all focus:outline-none"
+                                                    className="h-10 w-10 md:h-8 md:w-8 rounded-full bg-red-100 text-red-700 flex items-center justify-center font-bold text-sm shrink-0 overflow-hidden border border-transparent hover:border-red-200 transition-all focus:outline-none"
                                                     aria-label={`View profile for ${user.user_name}`}
                                                 >
                                                     {user.profile_image ? (
@@ -508,39 +508,46 @@ export default function GlobalSettings() {
                                                     )}
                                                 </button>
                                                 <div>
-                                                    <p className="font-bold text-slate-800">{user.user_name}</p>
+                                                    <p className="font-bold text-slate-800 text-base md:text-sm">{user.user_name}</p>
                                                     <p className="text-xs text-slate-500">{user.email_id || '-'}</p>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="p-4">
-                                            <div className="flex flex-col items-start gap-1">
+                                        <td className="p-4 block md:table-cell border-b border-slate-50 md:border-none flex justify-between items-center md:table-cell">
+                                            <span className="text-xs font-bold text-slate-400 md:hidden">ROLE & DESIGNATION</span>
+                                            <div className="flex flex-col items-end md:items-start gap-1">
                                                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${user.role?.toLowerCase() === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-700'}`}>
                                                     {user.role}
                                                 </span>
                                                 <span style={getDesignationStyle(user.designation || user.Designation)}>{user.designation || user.Designation || '-'}</span>
                                             </div>
                                         </td>
-                                        <td className="p-4 text-sm text-slate-600">{user.department || '-'}</td>
-                                        <td className="p-4">
+                                        <td className="p-4 text-sm text-slate-600 block md:table-cell border-b border-slate-50 md:border-none flex justify-between items-center md:table-cell">
+                                            <span className="text-xs font-bold text-slate-400 md:hidden">DEPARTMENT</span>
+                                            <span className="font-medium text-slate-700">{user.department || '-'}</span>
+                                        </td>
+                                        <td className="p-4 block md:table-cell border-b border-slate-50 md:border-none flex justify-between items-center md:table-cell">
+                                            <span className="text-xs font-bold text-slate-400 md:hidden">ACCESS MODULES</span>
                                             <div className="flex items-center gap-2">
                                                 <span className="text-sm font-bold text-slate-700">
                                                     {user.moduleCount || user.systemAccessList?.length || 0} Modules
                                                 </span>
                                             </div>
                                         </td>
-                                        <td className="p-4">
+                                        <td className="p-4 block md:table-cell border-b border-slate-50 md:border-none flex justify-between items-center md:table-cell">
+                                            <span className="text-xs font-bold text-slate-400 md:hidden">STATUS</span>
                                             <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${user.status === 'active' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-slate-100 text-slate-600 border border-slate-200'}`}>
                                                 <div className={`w-1.5 h-1.5 rounded-full ${user.status === 'active' ? 'bg-green-500' : 'bg-slate-400'}`}></div>
                                                 {user.status?.toUpperCase()}
                                             </span>
                                         </td>
-                                        <td className="p-4">
+                                        <td className="p-4 block md:table-cell">
                                             <button 
                                                 onClick={() => handleOpenModal(user)}
-                                                className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                className="w-full md:w-auto p-2 text-slate-600 hover:text-red-600 bg-slate-50 md:bg-transparent hover:bg-red-50 rounded-lg transition-colors flex items-center justify-center gap-2 font-bold text-sm"
                                             >
                                                 <Settings size={18} />
+                                                <span className="md:hidden">Manage User Settings</span>
                                             </button>
                                         </td>
                                     </tr>
