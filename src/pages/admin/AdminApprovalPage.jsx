@@ -61,6 +61,7 @@ export default function AdminApprovalPage() {
     const [selectedTaskIds, setSelectedTaskIds] = useState([]);
     const [bulkProcessing, setBulkProcessing] = useState(false);
     const [selectedImage, setSelectedImage] = useState(null); // Full-screen image URL
+    const [tabCounts, setTabCounts] = useState({ checklist: 0, delegation: 0, ea: 0 });
     const loadingRef = useRef(null);
     const dispatch = useDispatch();
 
@@ -97,6 +98,72 @@ export default function AdminApprovalPage() {
             setProcessingId(null);
         }
     };
+
+    const loadTabCounts = useCallback(async () => {
+        if (viewMode !== "pending") return;
+        try {
+            const [checklistData, delegationData, eaData] = await Promise.all([
+                fetchPendingChecklistApprovals(),
+                fetchPendingApprovals(),
+                fetchPendingEAApprovals()
+            ]);
+
+            const userRole = localStorage.getItem("role");
+            const username = localStorage.getItem("user-name");
+            const currentUsername = (username || "").toLowerCase();
+            const currentUserRole = (userRole || "").toLowerCase();
+            const isSystemAdmin = currentUsername === "admin" || currentUserRole === "admin" || currentUserRole === "superadmin";
+
+            const { data: allUsers } = await supabase.from("users").select("user_name, role");
+            const userRoleMap = {};
+            if (allUsers) {
+                allUsers.forEach(u => {
+                    if (u.user_name) userRoleMap[u.user_name.toLowerCase()] = (u.role || "").toLowerCase();
+                });
+            }
+
+            let reportingUsers = [];
+            if (!isSystemAdmin && currentUserRole === "hod") {
+                const { data: reports } = await supabase.from("users").select("user_name").eq("reported_by", username);
+                if (reports && reports.length > 0) {
+                    reportingUsers = reports.map((r) => (r.user_name || "").toLowerCase());
+                }
+            }
+
+            const applyFilter = (data) => {
+                const seenIds = new Set();
+                let filtered = (data || []).filter(task => {
+                    const baseId = task.task_id || task.original_task_id || task.id;
+                    if (!baseId || seenIds.has(baseId)) return false;
+                    seenIds.add(baseId);
+                    return true;
+                });
+                filtered = filtered.filter(task => {
+                    const givenByName = (task.given_by || "").toLowerCase();
+                    const givenByRole = userRoleMap[givenByName];
+                    if (givenByRole === "superadmin") return currentUserRole === "superadmin";
+                    return true;
+                });
+                if (!isSystemAdmin) {
+                    filtered = filtered.filter(task => {
+                        const doerName = (task.doer_name || task.name || task.filled_by || "").toLowerCase();
+                        if (doerName === currentUsername) return false;
+                        if (currentUserRole === "hod") return reportingUsers.includes(doerName);
+                        return true;
+                    });
+                }
+                return filtered;
+            };
+
+            setTabCounts({
+                checklist: applyFilter(checklistData).length,
+                delegation: applyFilter(delegationData).length,
+                ea: applyFilter(eaData).length
+            });
+        } catch (error) {
+            console.error("Error loading tab counts:", error);
+        }
+    }, [viewMode]);
 
     const loadTasks = useCallback(async () => {
         setLoading(true);
@@ -190,9 +257,10 @@ export default function AdminApprovalPage() {
 
     useEffect(() => {
         loadTasks();
+        loadTabCounts();
         setVisibleCount(50); // Reset count on tab/mode change
         setSelectedTaskIds([]); // Reset selection
-    }, [loadTasks]);
+    }, [loadTasks, loadTabCounts]);
 
     // Intersection Observer for infinite scrolling
     useEffect(() => {
@@ -252,6 +320,7 @@ export default function AdminApprovalPage() {
 
             // Remove from list
             setPendingTasks(prev => prev.filter(t => t.id !== task.id));
+            loadTabCounts(); // Update counts
             showToast("Task approved successfully!", "success");
         } catch (error) {
             console.error("Detailed error in handleApprove:", error);
@@ -335,6 +404,7 @@ export default function AdminApprovalPage() {
         }
 
         loadTasks();
+        loadTabCounts();
         setSelectedTaskIds([]);
         setBulkProcessing(false);
 
@@ -414,6 +484,7 @@ export default function AdminApprovalPage() {
 
             // Remove from list
             setPendingTasks(prev => prev.filter(t => t.id !== task.id));
+            loadTabCounts();
             showToast("Task rejected successfully!", "success");
         } catch (error) {
             console.error("Error rejecting task:", error);
@@ -535,7 +606,9 @@ export default function AdminApprovalPage() {
                                     { id: 'checklist', label: 'Checklist', icon: BookCheck, color: 'bg-red-600' },
                                     { id: 'delegation', label: 'Delegation', icon: BookCheck, color: 'bg-indigo-600' },
                                     { id: 'ea', label: 'EA Tasks', icon: Briefcase, color: 'bg-emerald-600' },
-                                ].map((tab) => (
+                                ].map((tab) => {
+                                    const count = tabCounts[tab.id];
+                                    return (
                                     <button
                                         key={tab.id}
                                         onClick={() => setActiveTab(tab.id)}
@@ -553,8 +626,13 @@ export default function AdminApprovalPage() {
                                         )}
                                         <tab.icon size={12} className="sm:w-[15px] sm:h-[15px]" />
                                         <span>{tab.label}</span>
+                                        {viewMode === 'pending' && count > 0 && (
+                                            <span className={`ml-1 px-1.5 py-0.5 rounded-full text-[8px] sm:text-[10px] font-bold ${activeTab === tab.id ? 'bg-white text-gray-900' : 'bg-red-100 text-red-700'}`}>
+                                                {count}
+                                            </span>
+                                        )}
                                     </button>
-                                ))}
+                                )})}
                             </div>
 
                             {/* View Mode & Search */}
