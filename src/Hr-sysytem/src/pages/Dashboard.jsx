@@ -11,7 +11,8 @@ export default function Dashboard() {
     pendingLeaves: 0,
     recentActivities: [],
     departmentData: [],
-    payrollData: []
+    payrollData: [],
+    attendanceToday: 0
   });
   const [loading, setLoading] = useState(true);
 
@@ -22,6 +23,26 @@ export default function Dashboard() {
       return 0;
     }
     return count || 0;
+  };
+
+  const fetchAttendanceToday = async () => {
+    const today = new Date();
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const currentMonthYear = `${monthNames[today.getMonth()]} ${today.getFullYear()}`;
+    const currentDayKey = `day_${today.getDate()}`;
+
+    const { data, error } = await supabase
+      .from('monthly_attendance')
+      .select(currentDayKey)
+      .eq('month_year', currentMonthYear);
+      
+    if (error) {
+      console.error("Error fetching attendance today", error);
+      return 0;
+    }
+    
+    const presentCount = (data || []).filter(row => ['P', 'HD'].includes(row[currentDayKey])).length;
+    return presentCount;
   };
 
   const fetchPendingLeaves = async () => {
@@ -74,12 +95,13 @@ export default function Dashboard() {
     const loadDashboard = async () => {
       setLoading(true);
       try {
-        const [totalEmployees, pendingLeaves, recentActivities, departmentData, payrollData] = await Promise.all([
+        const [totalEmployees, pendingLeaves, recentActivities, departmentData, payrollData, attendanceToday] = await Promise.all([
           fetchEmployeeCount(),
           fetchPendingLeaves(),
           fetchRecentActivities(),
           fetchDepartmentData(),
-          fetchPayrollData()
+          fetchPayrollData(),
+          fetchAttendanceToday()
         ]);
         
         setMetrics({
@@ -87,7 +109,8 @@ export default function Dashboard() {
           pendingLeaves,
           recentActivities,
           departmentData,
-          payrollData
+          payrollData,
+          attendanceToday
         });
       } catch (error) {
         console.error("Error loading dashboard data", error);
@@ -125,7 +148,9 @@ export default function Dashboard() {
           </div>
           <div>
             <h3 style={{ margin: 0, fontSize: '1.2rem' }}>Attendance Today</h3>
-            <p style={{ margin: '4px 0 0 0', color: 'var(--text-secondary, #6b7280)' }}>Not Calculated</p>
+            <p style={{ margin: '4px 0 0 0', color: 'var(--text-secondary, #6b7280)' }}>
+              {loading ? '...' : `${metrics.attendanceToday} Present`}
+            </p>
           </div>
         </div>
         

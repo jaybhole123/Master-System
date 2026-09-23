@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { 
   CheckSquare, Banknote, UserRound, HelpCircle, CalendarCheck, Settings2, Wallet,
   Loader2, ArrowRight, FileText, Shield, Calendar, Car, Repeat, Landmark,
-  Users, Briefcase, Building2, Activity
+  Users, Briefcase, Building2, Activity, Flame
 } from "lucide-react";
 import AdminLayout from "../components/layout/AdminLayout";
 import supabase from "../SupabaseClient";
@@ -32,6 +32,27 @@ export default function MasterDashboard() {
     },
     helpSlipData: [],
     helpSlipTotal: 0,
+    loading: true
+  });
+
+  const [coalStats, setCoalStats] = useState({
+    soValid: 0,
+    soExpired: 0,
+    paValid: 0,
+    paExpired: 0,
+    seclQty: 0,
+    seclBid: 0,
+    distData: [],
+    loading: true
+  });
+
+  const [rentMonth, setRentMonth] = useState(() => new Date().toLocaleString('default', { month: 'long' }));
+  const [rentStats, setRentStats] = useState({
+    total: 0,
+    pending: 0,
+    onTime: 0,
+    done: 0,
+    delay: 0,
     loading: true
   });
 
@@ -84,44 +105,6 @@ export default function MasterDashboard() {
           { name: 'Due Today', value: dueToday, fill: '#f59e0b' },
           { name: 'Overdue', value: overdue, fill: '#ef4444' }
         ];
-
-        // 2. Rent Management Tracker Stats
-        const { data: rentMasterRecords } = await supabase.from('rent_master').select('id');
-        const rentTotalTenant = rentMasterRecords ? rentMasterRecords.length : 0;
-        
-        const currentMonthStr = new Date().toLocaleString('default', { month: 'long' });
-        const { data: monthlyTrackerData } = await supabase.from('rent_monthly_tracker').select('*').eq('month', currentMonthStr);
-        
-        let rPending = 0, rOnTime = 0, rDone = 0, rDelay = 0;
-        
-        const getRentStatus = (record) => {
-          if (record.status === 'Done') {
-            if (record.received_date && record.due_date_start && record.due_date_end && 
-                record.received_date >= record.due_date_start && record.received_date <= record.due_date_end) {
-              return 'On Time';
-            }
-            return 'Done';
-          }
-          const today = new Date().toISOString().split('T')[0];
-          if (record.due_date_end && today > record.due_date_end) return 'Delay';
-          return 'Pending';
-        };
-
-        (monthlyTrackerData || []).forEach(r => {
-          const s = getRentStatus(r);
-          if (s === 'Pending') rPending++;
-          else if (s === 'On Time') rOnTime++;
-          else if (s === 'Done') rDone++;
-          else if (s === 'Delay') rDelay++;
-        });
-
-        const rentStatsObj = {
-          total: rentTotalTenant,
-          pending: rPending,
-          onTime: rOnTime,
-          done: rDone,
-          delay: rDelay
-        };
 
         // 3. HR & Global Settings Stats
         const { data: usersData, error: usersError } = await supabase.from('users').select('*');
@@ -254,7 +237,6 @@ export default function MasterDashboard() {
 
         setStats({
           tasksData: tasksChart,
-          rentStats: rentStatsObj,
           pettyCashData: pcChart,
           hrData: hrChart,
           hrTotalEmployees: totalEmployees,
@@ -279,6 +261,57 @@ export default function MasterDashboard() {
 
     fetchStats();
   }, []);
+
+  // Fetch Rent Stats separately based on selected month
+  useEffect(() => {
+    const fetchRentStats = async () => {
+      try {
+        setRentStats(prev => ({ ...prev, loading: true }));
+        
+        const { data: rentMasterRecords } = await supabase.from('rent_master').select('id');
+        const rentTotalTenant = rentMasterRecords ? rentMasterRecords.length : 0;
+        
+        const { data: monthlyTrackerData } = await supabase.from('rent_monthly_tracker').select('*').eq('month', rentMonth);
+        
+        let rPending = 0, rOnTime = 0, rDone = 0, rDelay = 0;
+        
+        const getRentStatus = (record) => {
+          if (record.status === 'Done' || record.status === 'Received') {
+            if (record.received_date && record.due_date_end && 
+                record.received_date <= record.due_date_end) {
+              return 'On Time';
+            }
+            return 'Received';
+          }
+          const today = new Date().toISOString().split('T')[0];
+          if (record.due_date_end && today > record.due_date_end) return 'Delay';
+          return 'Pending';
+        };
+
+        (monthlyTrackerData || []).forEach(r => {
+          const s = getRentStatus(r);
+          if (s === 'Pending') rPending++;
+          else if (s === 'On Time') rOnTime++;
+          else if (s === 'Received') rDone++;
+          else if (s === 'Delay') rDelay++;
+        });
+
+        setRentStats({
+          total: rentTotalTenant,
+          pending: rPending + rDelay,
+          onTime: rOnTime,
+          done: rDone + rOnTime,
+          delay: rDelay,
+          loading: false
+        });
+      } catch (error) {
+        console.error("Error fetching rent stats:", error);
+        setRentStats(prev => ({ ...prev, loading: false }));
+      }
+    };
+    
+    fetchRentStats();
+  }, [rentMonth]);
 
   // Fetch Document Module Stats Independently
   useEffect(() => {
@@ -329,6 +362,108 @@ export default function MasterDashboard() {
       }
     };
     fetchDocStats();
+  }, []);
+
+  // Fetch Coal System Stats
+  useEffect(() => {
+    const fetchCoalStats = async () => {
+      try {
+        setCoalStats(prev => ({ ...prev, loading: true }));
+        const [
+          { data: salesOrders },
+          { data: paymentAdvices },
+          { data: seclIntimations },
+          { data: invoices }
+        ] = await Promise.all([
+          supabase.from('sales_orders').select('sales_order_valid_to'),
+          supabase.from('secl_payment_advices').select('due_date'),
+          supabase.from('secl_intimation_format_1').select('quantity_allotted, winning_bid_price_rs_mt'),
+          supabase.from('invoices').select('id')
+        ]);
+
+        const safeArr = (arr) => Array.isArray(arr) ? arr : [];
+        const so = safeArr(salesOrders);
+        const pa = safeArr(paymentAdvices);
+        const secl = safeArr(seclIntimations);
+        const inv = safeArr(invoices);
+
+        let soExpired = 0;
+        let soValid = 0;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        so.forEach(s => {
+          if (!s.sales_order_valid_to || s.sales_order_valid_to === "-" || s.sales_order_valid_to === "Not Found") {
+            soValid++;
+          } else {
+            const validTo = new Date(s.sales_order_valid_to);
+            if (isNaN(validTo)) {
+              soValid++;
+            } else {
+              validTo.setHours(0, 0, 0, 0);
+              const diffTime = validTo - today;
+              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+              if (diffDays < 0) soExpired++;
+              else soValid++;
+            }
+          }
+        });
+
+        let seclQty = 0;
+        let seclBid = 0;
+        secl.forEach(s => {
+          seclQty += Number(s.quantity_allotted) || 0;
+          seclBid += Number(s.winning_bid_price_rs_mt) || 0;
+        });
+
+        let paExpired = 0;
+        let paValid = 0;
+        pa.forEach(p => {
+          if (!p.due_date || p.due_date === "-" || p.due_date === "Not Found") {
+            paValid++;
+          } else {
+            const validTo = new Date(p.due_date);
+            if (isNaN(validTo)) {
+              paValid++;
+            } else {
+              validTo.setHours(0, 0, 0, 0);
+              const diffTime = validTo - today;
+              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+              if (diffDays < 0) paExpired++;
+              else paValid++;
+            }
+          }
+        });
+
+        let distData = [
+          { name: "Valid Sales Orders", value: soValid },
+          { name: "Expired Sales Orders", value: soExpired },
+          { name: "Valid Payment Advices", value: paValid },
+          { name: "Expired Payment Advices", value: paExpired },
+          { name: "SECL Extractions", value: secl.length },
+          { name: "Invoices", value: inv.length }
+        ].filter(d => d.value > 0);
+
+        if (distData.length === 0) {
+          distData = [{ name: "No Data", value: 1 }];
+        }
+
+        setCoalStats({
+          soValid,
+          soExpired,
+          paValid,
+          paExpired,
+          seclQty,
+          seclBid,
+          distData,
+          loading: false
+        });
+      } catch (error) {
+        console.error("Error fetching coal stats:", error);
+        setCoalStats(prev => ({ ...prev, loading: false }));
+      }
+    };
+    fetchCoalStats();
   }, []);
 
   const CustomTooltip = ({ active, payload }) => {
@@ -403,7 +538,7 @@ export default function MasterDashboard() {
                       <Tooltip content={<CustomTooltip />} />
                       <Bar dataKey="value" radius={[4, 4, 0, 0]}>
                         {stats.tasksData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.fill} />
+                          <Cell key={`cell-${index}`} fill={entry.fill} className="animate-pulse" />
                         ))}
                       </Bar>
                     </BarChart>
@@ -425,12 +560,22 @@ export default function MasterDashboard() {
                 </div>
                 <div>
                   <h2 className="text-lg font-bold text-gray-900 leading-tight">Rent Management</h2>
-                  <p className="text-xs text-gray-500">Current Month Status</p>
+                  <div className="mt-1">
+                    <select
+                      value={rentMonth}
+                      onChange={(e) => setRentMonth(e.target.value)}
+                      className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-2 py-0.5 outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
+                    >
+                      {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map(m => (
+                        <option key={m} value={m}>{m} Status</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
               
               <div className="flex-1 mb-4 w-full">
-                {stats.loading ? (
+                {rentStats.loading ? (
                   <div className="w-full h-40 flex items-center justify-center">
                     <Loader2 className="animate-spin text-emerald-300 h-8 w-8" />
                   </div>
@@ -438,23 +583,23 @@ export default function MasterDashboard() {
                   <div className="grid grid-cols-2 gap-2 h-full content-start">
                     <div className="flex flex-col items-center justify-center bg-emerald-50/50 p-2.5 rounded-xl border border-emerald-100/50 text-center col-span-2">
                       <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Tenant</span>
-                      <span className="text-xl font-black text-slate-700 mt-0.5">{stats.rentStats?.total || 0}</span>
+                      <span className="text-xl font-black text-slate-700 mt-0.5">{rentStats.total || 0}</span>
                     </div>
                     <div className="flex flex-col items-center justify-center bg-orange-50 p-2 rounded-xl border border-orange-100 text-center">
                       <span className="text-[10px] font-bold text-orange-600 leading-tight">Pending</span>
-                      <span className="text-lg font-black text-orange-700 mt-0.5">{stats.rentStats?.pending || 0}</span>
+                      <span className="text-lg font-black text-orange-700 mt-0.5">{rentStats.pending || 0}</span>
                     </div>
                     <div className="flex flex-col items-center justify-center bg-green-50 p-2 rounded-xl border border-green-100 text-center">
                       <span className="text-[10px] font-bold text-green-600 leading-tight">On Time</span>
-                      <span className="text-lg font-black text-green-700 mt-0.5">{stats.rentStats?.onTime || 0}</span>
+                      <span className="text-lg font-black text-green-700 mt-0.5">{rentStats.onTime || 0}</span>
                     </div>
                     <div className="flex flex-col items-center justify-center bg-blue-50 p-2 rounded-xl border border-blue-100 text-center">
-                      <span className="text-[10px] font-bold text-blue-600 leading-tight">Done</span>
-                      <span className="text-lg font-black text-blue-700 mt-0.5">{stats.rentStats?.done || 0}</span>
+                      <span className="text-[10px] font-bold text-blue-600 leading-tight">Received</span>
+                      <span className="text-lg font-black text-blue-700 mt-0.5">{rentStats.done || 0}</span>
                     </div>
                     <div className="flex flex-col items-center justify-center bg-red-50 p-2 rounded-xl border border-red-100 text-center">
                       <span className="text-[10px] font-bold text-red-600 leading-tight">Delay</span>
-                      <span className="text-lg font-black text-red-700 mt-0.5">{stats.rentStats?.delay || 0}</span>
+                      <span className="text-lg font-black text-red-700 mt-0.5">{rentStats.delay || 0}</span>
                     </div>
                   </div>
                 )}
@@ -491,8 +636,8 @@ export default function MasterDashboard() {
                       <YAxis tick={{fontSize: 10}} tickFormatter={(value) => `₹${value/1000}k`} />
                       <Tooltip content={<CustomTooltip />} />
                       <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
-                      <Bar dataKey="Credits" fill={COLORS.teal[1]} radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="Expenses" fill={COLORS.teal[0]} radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="Credits" fill={COLORS.teal[1]} radius={[4, 4, 0, 0]} className="animate-pulse" />
+                      <Bar dataKey="Expenses" fill={COLORS.teal[0]} radius={[4, 4, 0, 0]} className="animate-pulse" />
                     </BarChart>
                   </ResponsiveContainer>
                 )}
@@ -542,7 +687,7 @@ export default function MasterDashboard() {
                             <PieChart>
                               <Pie data={metric.data || []} dataKey="value" cx="50%" cy="50%" innerRadius={13} outerRadius={21} paddingAngle={3} stroke="none">
                                 {(metric.data || []).map((entry, index) => (
-                                  <Cell key={`${metric.label}-${entry.name}`} fill={metric.color[index % metric.color.length]} />
+                                  <Cell key={`${metric.label}-${entry.name}`} fill={metric.color[index % metric.color.length]} className="animate-pulse" />
                                 ))}
                               </Pie>
                             </PieChart>
@@ -589,7 +734,7 @@ export default function MasterDashboard() {
                     <PieChart>
                       <Pie data={stats.helpSlipData} cx="50%" cy="50%" innerRadius={40} outerRadius={70} paddingAngle={5} dataKey="value">
                         {stats.helpSlipData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS.rose[index % COLORS.rose.length]} />
+                          <Cell key={`cell-${index}`} fill={COLORS.rose[index % COLORS.rose.length]} className="animate-pulse" />
                         ))}
                       </Pie>
                       <Tooltip content={<CustomTooltip />} />
@@ -646,7 +791,7 @@ export default function MasterDashboard() {
           </div>
 
           {/* 7. Document & Substruction */}
-          <div className="bg-white rounded-3xl p-6 shadow-sm border border-cyan-100 hover:shadow-xl transition-all duration-300 flex flex-col justify-between">
+          <div className="bg-white rounded-3xl p-6 shadow-sm border border-cyan-100 hover:shadow-xl transition-all duration-300 flex flex-col justify-between lg:col-span-2">
             <div>
               <div className="flex items-center gap-4 mb-4">
                 <div className="h-12 w-12 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center shrink-0">
@@ -659,7 +804,7 @@ export default function MasterDashboard() {
               </div>
               
               <div className="flex-1 mb-4 w-full">
-                <div className="grid grid-cols-2 gap-2 h-full content-start pt-1">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 h-full content-start pt-1">
                   <div className="flex flex-col items-center justify-center bg-cyan-50/50 p-2 rounded-xl border border-cyan-100/50 text-center hover:bg-cyan-100/50 transition-colors cursor-pointer">
                     <Shield size={16} className="text-cyan-600 mb-1" />
                     <span className="text-[10px] font-bold text-slate-700 leading-tight">Total Insurance</span>
@@ -737,6 +882,85 @@ export default function MasterDashboard() {
               </div>
             </div>
             <Link to="/dashboard/global-settings" className="flex items-center justify-center w-full py-3 px-4 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-600 hover:text-white transition-all mt-auto">
+              Open Module <ArrowRight size={16} className="ml-2" />
+            </Link>
+          </div>
+
+          {/* 9. Coal System */}
+          <div className="bg-white rounded-3xl p-6 shadow-sm border border-stone-200 hover:shadow-xl transition-all duration-300 flex flex-col justify-between md:col-span-2 lg:col-span-3">
+            <div>
+              <div className="flex items-center gap-4 mb-4">
+                <div className="h-12 w-12 rounded-xl bg-stone-100 text-stone-600 flex items-center justify-center shrink-0">
+                  <Flame size={24} />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900 leading-tight">Coal System</h2>
+                  <p className="text-xs text-gray-500">Extraction Summaries</p>
+                </div>
+              </div>
+              
+              <div className="flex-1 mb-4 w-full flex flex-col lg:flex-row gap-6">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 h-full content-start pt-1 flex-1">
+                  <div className="flex flex-col items-center justify-center bg-stone-50/80 p-4 rounded-xl border border-stone-200/50 text-center hover:bg-stone-100 transition-colors">
+                    <span className="text-xs font-bold text-slate-700 leading-tight">Valid Sales Orders</span>
+                    <span className="text-lg font-black text-emerald-600 mt-1">{coalStats.loading ? <Loader2 className="animate-spin h-4 w-4 inline" /> : coalStats.soValid}</span>
+                  </div>
+                  <div className="flex flex-col items-center justify-center bg-stone-50/80 p-4 rounded-xl border border-stone-200/50 text-center hover:bg-stone-100 transition-colors">
+                    <span className="text-xs font-bold text-slate-700 leading-tight">Expired Sales Orders</span>
+                    <span className="text-lg font-black text-rose-600 mt-1">{coalStats.loading ? <Loader2 className="animate-spin h-4 w-4 inline" /> : coalStats.soExpired}</span>
+                  </div>
+                  <div className="flex flex-col items-center justify-center bg-stone-50/80 p-4 rounded-xl border border-stone-200/50 text-center hover:bg-stone-100 transition-colors">
+                    <span className="text-xs font-bold text-slate-700 leading-tight">Valid Payment Advices</span>
+                    <span className="text-lg font-black text-emerald-600 mt-1">{coalStats.loading ? <Loader2 className="animate-spin h-4 w-4 inline" /> : coalStats.paValid}</span>
+                  </div>
+                  <div className="flex flex-col items-center justify-center bg-stone-50/80 p-4 rounded-xl border border-stone-200/50 text-center hover:bg-stone-100 transition-colors">
+                    <span className="text-xs font-bold text-slate-700 leading-tight">Expired Payment Advices</span>
+                    <span className="text-lg font-black text-rose-600 mt-1">{coalStats.loading ? <Loader2 className="animate-spin h-4 w-4 inline" /> : coalStats.paExpired}</span>
+                  </div>
+                  <div className="flex flex-col items-center justify-center bg-stone-50/80 p-4 rounded-xl border border-stone-200/50 text-center hover:bg-stone-100 transition-colors">
+                    <span className="text-xs font-bold text-slate-700 leading-tight">Qty Allotted</span>
+                    <span className="text-lg font-black text-stone-700 mt-1">{coalStats.loading ? <Loader2 className="animate-spin h-4 w-4 inline" /> : `${coalStats.seclQty.toLocaleString('en-IN')} MT`}</span>
+                  </div>
+                  <div className="flex flex-col items-center justify-center bg-stone-50/80 p-4 rounded-xl border border-stone-200/50 text-center hover:bg-stone-100 transition-colors">
+                    <span className="text-xs font-bold text-slate-700 leading-tight">Winning Bid</span>
+                    <span className="text-lg font-black text-stone-700 mt-1">{coalStats.loading ? <Loader2 className="animate-spin h-4 w-4 inline" /> : `₹ ${coalStats.seclBid >= 1000 ? (coalStats.seclBid / 1000).toFixed(2) + ' K' : coalStats.seclBid}`}</span>
+                  </div>
+                </div>
+                
+                {/* Pie Chart */}
+                <div className="w-full lg:w-[320px] h-64 lg:h-auto shrink-0 flex items-center justify-center bg-stone-50/50 rounded-xl border border-stone-200/50 p-2">
+                  {coalStats.loading ? (
+                    <Loader2 className="animate-spin text-stone-300 h-8 w-8" />
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie 
+                          data={coalStats.distData} 
+                          innerRadius={50} 
+                          outerRadius={80} 
+                          paddingAngle={3} 
+                          dataKey="value" 
+                          stroke="none"
+                        >
+                          {coalStats.distData.map((entry, index) => {
+                            let color = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'][index % 6];
+                            if (entry.name === "No Data") color = "#e5e7eb";
+                            else if (entry.name.includes("Expired")) color = "#ef4444";
+                            else if (entry.name.includes("Valid")) color = "#10b981";
+                            else if (entry.name.includes("SECL")) color = "#f59e0b";
+                            else if (entry.name.includes("Invoices")) color = "#3b82f6";
+                            return <Cell key={`cell-${index}`} fill={color} className="animate-pulse" />;
+                          })}
+                        </Pie>
+                        <Tooltip content={<CustomTooltip />} />
+                        <Legend iconType="circle" wrapperStyle={{ fontSize: 11, paddingTop: 10 }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  )}
+                </div>
+              </div>
+            </div>
+            <Link to="/coal-system/dashboard" className="flex items-center justify-center w-full py-3 px-4 bg-stone-100 text-stone-700 font-bold rounded-xl hover:bg-stone-600 hover:text-white transition-all mt-auto">
               Open Module <ArrowRight size={16} className="ml-2" />
             </Link>
           </div>
