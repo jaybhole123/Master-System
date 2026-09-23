@@ -135,6 +135,96 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
     } catch(e) { return []; }
   });
   const [pageCounts, setPageCounts] = useState({});
+  const [coalBadges, setCoalBadges] = useState({});
+  const [rentBadges, setRentBadges] = useState({});
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchRentCounts = async () => {
+      try {
+        const currentMonth = new Date().toLocaleString('default', { month: 'long' });
+        
+        const fetchCount = async (table, filterMonth = null) => {
+          let query = supabase.from(table).select('*', { count: 'exact', head: true });
+          if (filterMonth) {
+            query = query.eq('month', filterMonth);
+          }
+          const { count } = await query;
+          return count || 0;
+        };
+        const [
+          rentMasterCount,
+          monthlyTrackerCount,
+          rentManagementCount
+        ] = await Promise.all([
+          fetchCount('rent_master'),
+          fetchCount('rent_monthly_tracker', currentMonth),
+          fetchCount('rent_records')
+        ]);
+
+        if (isMounted) {
+          setRentBadges({
+            "Rent Master": rentMasterCount,
+            "Monthly Tracker": monthlyTrackerCount,
+            "Rent Management": rentManagementCount
+          });
+        }
+      } catch (err) {
+        console.error("Error fetching rent system counts", err);
+      }
+    };
+    fetchRentCounts();
+    return () => { isMounted = false; };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchCoalCounts = async () => {
+      if (!isSuperAdmin && !systemAccess.includes("Coal System")) return;
+      try {
+        const fetchCount = async (table) => {
+          const { count } = await supabase.from(table).select('*', { count: 'exact', head: true });
+          return count || 0;
+        };
+        const [
+          auctionCount, seclIntimationCount, seclPaymentCount,
+          salesOrderCount, invoiceCount, saudaScaleCount
+        ] = await Promise.all([
+          fetchCount('auctions'),
+          fetchCount('secl_intimation_format_1'),
+          fetchCount('secl_payment_advices'),
+          fetchCount('sales_orders'),
+          fetchCount('invoices'),
+          fetchCount('sauda_scale_2')
+        ]);
+
+        let dispatchCount = 0;
+        try {
+          const dispatchData = JSON.parse(localStorage.getItem('dispatch_data') || '[]');
+          dispatchCount = dispatchData.length;
+        } catch(e) {}
+
+        if (isMounted) {
+          setCoalBadges({
+            "Auction": auctionCount,
+            "SECL Intimation": seclIntimationCount,
+            "SECL Payment Advice": seclPaymentCount,
+            "Sales Order": salesOrderCount,
+            "Refund / Lapse": salesOrderCount,
+            "Invoice": invoiceCount,
+            "Sauda Scale": saudaScaleCount,
+            "Dispatch": dispatchCount,
+            "Work Order": 0,
+            "Transport Payment": 0
+          });
+        }
+      } catch(err) {
+        console.error("Error fetching coal system counts", err);
+      }
+    };
+    fetchCoalCounts();
+    return () => { isMounted = false; };
+  }, [isSuperAdmin, systemAccess]);
 
   // Get data from Document Store
   const { documents, subscriptions, loans, bgs, shareHistory } = useDataStore();
@@ -443,6 +533,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/dashboard/rent-tracker/master",
       showFor: ["admin", "HOD"],
       module: "Rent Management Tracker",
+      badge: rentBadges["Rent Master"] > 0 ? rentBadges["Rent Master"] : null,
     },
     {
       href: "/dashboard/rent-tracker/monthly",
@@ -451,6 +542,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/dashboard/rent-tracker/monthly",
       showFor: ["admin", "HOD"],
       module: "Rent Management Tracker",
+      badge: rentBadges["Monthly Tracker"] > 0 ? rentBadges["Monthly Tracker"] : null,
     },
     {
       href: "/dashboard/notifications",
@@ -834,6 +926,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/coal-system/auction",
       showFor: ["admin", "user", "HOD"],
       module: "Coal System",
+      badge: coalBadges["Auction"] > 0 ? coalBadges["Auction"] : null,
     },
     {
       href: "/coal-system/secl-intimation",
@@ -842,6 +935,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/coal-system/secl-intimation",
       showFor: ["admin", "user", "HOD"],
       module: "Coal System",
+      badge: coalBadges["SECL Intimation"] > 0 ? coalBadges["SECL Intimation"] : null,
     },
     {
       href: "/coal-system/secl-payment",
@@ -850,6 +944,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/coal-system/secl-payment",
       showFor: ["admin", "user", "HOD"],
       module: "Coal System",
+      badge: coalBadges["SECL Payment Advice"] > 0 ? coalBadges["SECL Payment Advice"] : null,
     },
     {
       href: "/coal-system/sales-order",
@@ -858,6 +953,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/coal-system/sales-order",
       showFor: ["admin", "user", "HOD"],
       module: "Coal System",
+      badge: coalBadges["Sales Order"] > 0 ? coalBadges["Sales Order"] : null,
     },
     {
       href: "/coal-system/work-order",
@@ -866,6 +962,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/coal-system/work-order",
       showFor: ["admin", "user", "HOD"],
       module: "Coal System",
+      badge: coalBadges["Work Order"] > 0 ? coalBadges["Work Order"] : null,
     },
     {
       href: "/coal-system/dispatch",
@@ -874,6 +971,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/coal-system/dispatch",
       showFor: ["admin", "user", "HOD"],
       module: "Coal System",
+      badge: coalBadges["Dispatch"] > 0 ? coalBadges["Dispatch"] : null,
     },
     {
       href: "/coal-system/invoice",
@@ -882,6 +980,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/coal-system/invoice",
       showFor: ["admin", "user", "HOD"],
       module: "Coal System",
+      badge: coalBadges["Invoice"] > 0 ? coalBadges["Invoice"] : null,
     },
     {
       href: "/coal-system/transport-payment",
@@ -890,6 +989,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/coal-system/transport-payment",
       showFor: ["admin", "user", "HOD"],
       module: "Coal System",
+      badge: coalBadges["Transport Payment"] > 0 ? coalBadges["Transport Payment"] : null,
     },
     {
       href: "/coal-system/refund-lapse",
@@ -898,6 +998,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/coal-system/refund-lapse",
       showFor: ["admin", "user", "HOD"],
       module: "Coal System",
+      badge: coalBadges["Refund / Lapse"] > 0 ? coalBadges["Refund / Lapse"] : null,
     },
     {
       href: "/coal-system/sauda-scale",
@@ -906,6 +1007,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/coal-system/sauda-scale",
       showFor: ["admin", "user", "HOD"],
       module: "Coal System",
+      badge: coalBadges["Sauda Scale"] > 0 ? coalBadges["Sauda Scale"] : null,
     },
     {
       href: "/dashboard/global-settings",
