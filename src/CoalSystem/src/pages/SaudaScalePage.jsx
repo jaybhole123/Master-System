@@ -70,6 +70,11 @@ export default function SaudaScalePage() {
           buyer_name: formData.buyer_name || null,
           buy_order_qty: parseNum(formData.buy_order_qty),
           buy_basic_rate: parseNum(formData.buy_basic_rate),
+          lifter_transport: formData.lifter_transport || null,
+          freight: formData.freight || null,
+          freight_rate: parseNum(formData.freight_rate),
+          do_no: formData.do_no || null,
+          due_date: parseDate(formData.due_date),
           remark: formData.remark || null,
         };
 
@@ -104,6 +109,9 @@ export default function SaudaScalePage() {
 
         const payload = {
           buy_id: formData.buy_id || null,
+          from_party: formData.from_party || null,
+          order_date: parseDate(formData.order_date),
+          grade_mines: formData.grade_mines || null,
           seller_name: formData.seller_name || null,
           sell_order_qty: sellQty,
           sell_basic_rate: parseNum(formData.sell_basic_rate),
@@ -151,12 +159,12 @@ export default function SaudaScalePage() {
 
   // Prepare UI Data
   const buyDataWithBalance = buyData.map(buy => {
-    const soldQty = sellData
-      .filter(sell => sell.buy_id === buy.id)
-      .reduce((sum, sell) => sum + Number(sell.sell_order_qty || 0), 0);
+    const relatedSells = sellData.filter(sell => sell.buy_id === buy.id);
+    const soldQty = relatedSells.reduce((sum, sell) => sum + Number(sell.sell_order_qty || 0), 0);
     return {
       ...buy,
-      balance_qty: Number(buy.buy_order_qty || 0) - soldQty
+      balance_qty: Number(buy.buy_order_qty || 0) - soldQty,
+      relatedSells
     };
   });
 
@@ -198,14 +206,22 @@ export default function SaudaScalePage() {
     { key: "buyer_name", label: "BUYER NAME", type: "text" },
     { key: "buy_order_qty", label: "BUY ORDER QTY.", type: "number" },
     { key: "buy_basic_rate", label: "BUY BASIC RATE", type: "number" },
+    { key: "lifter_transport", label: "LIFTER/TRANSPORT", type: "text" },
+    { key: "freight", label: "FREIGHT", type: "text" },
+    { key: "freight_rate", label: "FREIGHT RATE", type: "number" },
+    { key: "do_no", label: "D.O.NO.", type: "text" },
+    { key: "due_date", label: "DUE DATE", type: "date" },
     { key: "remark", label: "REMARK", type: "text" },
   ];
 
   const sellModalColumns = [
-    { key: "buy_id", label: "LINK TO BUY SAUDA", type: "dropdown", options: buyOptions },
+    { key: "from_party", label: "FROM", type: "text" },
+    { key: "order_date", label: "ORDER DT.", type: "date" },
+    { key: "grade_mines", label: "GRADE/MINES", type: "text" },
     { key: "seller_name", label: "SELLER NAME", type: "text" },
     { key: "sell_order_qty", label: "SELL ORDER QTY.", type: "number" },
     { key: "sell_basic_rate", label: "SELL BASIC RATE", type: "number" },
+    { key: "buy_id", label: "DISPATCH", type: "dropdown", options: buyOptions },
     { key: "lifter_transport", label: "LIFTER/TRANSPORT", type: "text" },
     { key: "freight", label: "FREIGHT", type: "text" },
     { key: "freight_rate", label: "FREIGHT RATE", type: "number" },
@@ -225,39 +241,6 @@ export default function SaudaScalePage() {
         <div>
           <h2 style={{ margin: 0, color: "var(--ember)", fontFamily: "var(--font-display)", fontSize: "28px" }}>SAUDA SALE</h2>
           <p style={{ margin: "4px 0 0 0", color: "var(--muted)", fontSize: "14px" }}>Manage Buy and Sell Sauda separately.</p>
-        </div>
-        
-        <div style={{ display: "flex", gap: "12px", background: "var(--panel)", padding: "4px", borderRadius: "10px", border: "1px solid var(--line)" }}>
-          <button
-            onClick={() => setActiveTab("BUY")}
-            style={{
-              padding: "8px 24px",
-              borderRadius: "6px",
-              border: "none",
-              fontWeight: "600",
-              cursor: "pointer",
-              background: activeTab === "BUY" ? "var(--ember)" : "transparent",
-              color: activeTab === "BUY" ? "white" : "var(--muted)",
-              transition: "all 0.2s"
-            }}
-          >
-            Buy Sauda
-          </button>
-          <button
-            onClick={() => setActiveTab("SELL")}
-            style={{
-              padding: "8px 24px",
-              borderRadius: "6px",
-              border: "none",
-              fontWeight: "600",
-              cursor: "pointer",
-              background: activeTab === "SELL" ? "var(--ember)" : "transparent",
-              color: activeTab === "SELL" ? "white" : "var(--muted)",
-              transition: "all 0.2s"
-            }}
-          >
-            Sell Sauda
-          </button>
         </div>
 
         <div>
@@ -355,6 +338,39 @@ export default function SaudaScalePage() {
         </div>
       </div>
 
+      <div style={{ display: "flex", gap: "12px", background: "var(--panel)", padding: "4px", borderRadius: "10px", border: "1px solid var(--line)", width: "fit-content", marginBottom: "16px" }}>
+        <button
+          onClick={() => setActiveTab("BUY")}
+          style={{
+            padding: "8px 24px",
+            borderRadius: "6px",
+            border: "none",
+            fontWeight: "600",
+            cursor: "pointer",
+            background: activeTab === "BUY" ? "var(--ember)" : "transparent",
+            color: activeTab === "BUY" ? "white" : "var(--muted)",
+            transition: "all 0.2s"
+          }}
+        >
+          Buy Sauda
+        </button>
+        <button
+          onClick={() => setActiveTab("SELL")}
+          style={{
+            padding: "8px 24px",
+            borderRadius: "6px",
+            border: "none",
+            fontWeight: "600",
+            cursor: "pointer",
+            background: activeTab === "SELL" ? "var(--ember)" : "transparent",
+            color: activeTab === "SELL" ? "white" : "var(--muted)",
+            transition: "all 0.2s"
+          }}
+        >
+          Sell Sauda
+        </button>
+      </div>
+
       {/* Table Section */}
       <div className="table-card">
         <div className="table-scroll">
@@ -367,16 +383,24 @@ export default function SaudaScalePage() {
                   <th>ORDER DT.</th>
                   <th>GRADE/MINES</th>
                   <th>BUYER NAME</th>
-                  <th>ORDER QTY.</th>
-                  <th>BASIC RATE</th>
+                  <th>BUY ORDER QTY.</th>
+                  <th>BUY BASIC RATE</th>
+                  <th style={{ backgroundColor: "#fef2f2" }}>SELLER NAME</th>
+                  <th style={{ backgroundColor: "#fef2f2" }}>SELL QTY.</th>
+                  <th style={{ backgroundColor: "#fef2f2" }}>SELL BASIC RATE</th>
                   <th>BALANCE QTY.</th>
+                  <th>LIFTER/TRANS.</th>
+                  <th>FREIGHT</th>
+                  <th>F. RATE</th>
+                  <th>D.O.NO.</th>
+                  <th>DUE DATE</th>
                   <th>REMARK</th>
                   <th>ACTIONS</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredBuyData.length === 0 ? (
-                  <tr><td colSpan={10} style={{textAlign: "center"}}>No records found.</td></tr>
+                  <tr><td colSpan={15} style={{textAlign: "center"}}>No records found.</td></tr>
                 ) : (
                   filteredBuyData.map((row, i) => (
                     <tr key={row.id}>
@@ -385,9 +409,23 @@ export default function SaudaScalePage() {
                       <td data-label="ORDER DT.">{row.order_date || "-"}</td>
                       <td data-label="GRADE/MINES">{row.grade_mines || "-"}</td>
                       <td data-label="BUYER NAME" style={{fontWeight:"bold"}}>{row.buyer_name || "-"}</td>
-                      <td data-label="ORDER QTY.">{row.buy_order_qty || "-"}</td>
-                      <td data-label="BASIC RATE">{row.buy_basic_rate || "-"}</td>
+                      <td data-label="BUY ORDER QTY.">{row.buy_order_qty || "-"}</td>
+                      <td data-label="BUY BASIC RATE">{row.buy_basic_rate || "-"}</td>
+                      <td data-label="SELLER NAME" style={{ backgroundColor: "#fef2f2" }}>
+                        {row.relatedSells && row.relatedSells.length > 0 ? row.relatedSells.map(s => <div key={s.id}>{s.seller_name || "-"}</div>) : "-"}
+                      </td>
+                      <td data-label="SELL QTY." style={{ backgroundColor: "#fef2f2" }}>
+                        {row.relatedSells && row.relatedSells.length > 0 ? row.relatedSells.map(s => <div key={s.id}>{s.sell_order_qty || "-"}</div>) : "-"}
+                      </td>
+                      <td data-label="SELL BASIC RATE" style={{ backgroundColor: "#fef2f2" }}>
+                        {row.relatedSells && row.relatedSells.length > 0 ? row.relatedSells.map(s => <div key={s.id}>{s.sell_basic_rate || "-"}</div>) : "-"}
+                      </td>
                       <td data-label="BALANCE QTY." style={{fontWeight:"bold", color: row.balance_qty > 0 ? "#10b981" : "var(--muted)"}}>{row.balance_qty}</td>
+                      <td data-label="LIFTER">{row.lifter_transport || "-"}</td>
+                      <td data-label="FREIGHT">{row.freight || "-"}</td>
+                      <td data-label="F. RATE">{row.freight_rate || "-"}</td>
+                      <td data-label="D.O.NO.">{row.do_no || "-"}</td>
+                      <td data-label="DUE DATE">{row.due_date || "-"}</td>
                       <td data-label="REMARK">{row.remark || "-"}</td>
                       <td data-label="ACTIONS">
                         <div style={{display:"flex", gap:"8px", justifyContent:"center"}}>
@@ -405,10 +443,13 @@ export default function SaudaScalePage() {
               <thead>
                 <tr>
                   <th>S.NO.</th>
-                  <th>BUYER (LINKED)</th>
+                  <th>FROM</th>
+                  <th>ORDER DT.</th>
+                  <th>GRADE/MINES</th>
                   <th>SELLER NAME</th>
                   <th>SELL QTY.</th>
                   <th>BASIC RATE</th>
+                  <th>Dispatch</th>
                   <th>LIFTER/TRANS.</th>
                   <th>FREIGHT</th>
                   <th>F. RATE</th>
@@ -419,17 +460,20 @@ export default function SaudaScalePage() {
               </thead>
               <tbody>
                 {filteredSellData.length === 0 ? (
-                  <tr><td colSpan={11} style={{textAlign: "center"}}>No records found.</td></tr>
+                  <tr><td colSpan={14} style={{textAlign: "center"}}>No records found.</td></tr>
                 ) : (
                   filteredSellData.map((row, i) => (
                     <tr key={row.id}>
                       <td data-label="S.NO.">{i + 1}</td>
-                      <td data-label="BUYER" style={{fontSize:"12px", color:"var(--muted)", fontWeight: "500"}}>
-                        {row.buy_sauda ? `${row.buy_sauda.buyer_name} (${row.buy_sauda.grade_mines})` : "-"}
-                      </td>
+                      <td data-label="FROM">{row.from_party || "-"}</td>
+                      <td data-label="ORDER DT.">{row.order_date || "-"}</td>
+                      <td data-label="GRADE/MINES">{row.grade_mines || "-"}</td>
                       <td data-label="SELLER NAME" style={{fontWeight:"bold", color:"var(--ember)"}}>{row.seller_name || "-"}</td>
                       <td data-label="SELL QTY.">{row.sell_order_qty || "-"}</td>
                       <td data-label="BASIC RATE">{row.sell_basic_rate || "-"}</td>
+                      <td data-label="BUYER" style={{fontSize:"12px", color:"var(--muted)", fontWeight: "500"}}>
+                        {row.buy_sauda ? `${row.buy_sauda.buyer_name} (${row.buy_sauda.grade_mines})` : "-"}
+                      </td>
                       <td data-label="LIFTER">{row.lifter_transport || "-"}</td>
                       <td data-label="FREIGHT">{row.freight || "-"}</td>
                       <td data-label="F. RATE">{row.freight_rate || "-"}</td>
