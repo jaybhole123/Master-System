@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-const DropdownField = ({ value, onChange, isDate, type, styles, options }) => {
+const DropdownField = ({ value, onChange, isDate, type, styles, options, disabled }) => {
   const [isInput, setIsInput] = useState(false);
 
   if (isDate) {
@@ -9,7 +9,8 @@ const DropdownField = ({ value, onChange, isDate, type, styles, options }) => {
         type="date"
         value={value || ""}
         onChange={(e) => onChange(e.target.value)}
-        style={styles.input}
+        style={{ ...styles.input, backgroundColor: disabled ? "#f1f5f9" : "var(--panel)" }}
+        disabled={disabled}
       />
     );
   }
@@ -20,8 +21,9 @@ const DropdownField = ({ value, onChange, isDate, type, styles, options }) => {
         type={type}
         value={value || ""}
         onChange={(e) => onChange(e.target.value)}
-        style={{ ...styles.input, width: "100%" }}
+        style={{ ...styles.input, width: "100%", backgroundColor: disabled ? "#f1f5f9" : "var(--panel)" }}
         placeholder={`Enter ${type}...`}
+        disabled={disabled}
       />
     );
   }
@@ -33,9 +35,10 @@ const DropdownField = ({ value, onChange, isDate, type, styles, options }) => {
           type="text"
           value={value || ""}
           onChange={(e) => onChange(e.target.value)}
-          style={{ ...styles.input, flex: 1 }}
+          style={{ ...styles.input, flex: 1, backgroundColor: disabled ? "#f1f5f9" : "var(--panel)" }}
           autoFocus
           placeholder="Enter custom value..."
+          disabled={disabled}
         />
         <button
           type="button"
@@ -69,13 +72,17 @@ const DropdownField = ({ value, onChange, isDate, type, styles, options }) => {
             onChange(e.target.value);
           }
         }}
-        style={{ ...styles.input, flex: 1 }}
+        style={{ ...styles.input, flex: 1, backgroundColor: disabled ? "#f1f5f9" : "var(--panel)" }}
+        disabled={disabled}
       >
         <option value="" disabled>Select option...</option>
-        {options && options.map((opt, i) => (
-          <option key={i} value={opt}>{opt}</option>
-        ))}
-        {value && (!options || !options.includes(value)) && <option value={value}>{value}</option>}
+        {options && options.map((opt, i) => {
+          if (typeof opt === 'object' && opt !== null) {
+            return <option key={i} value={opt.value}>{opt.label}</option>;
+          }
+          return <option key={i} value={opt}>{opt}</option>;
+        })}
+        {value && (!options || !options.some(o => typeof o === 'object' ? o.value === value : o === value)) && <option value={value}>{value}</option>}
         <option value="__ADD_NEW__" style={{ fontWeight: "bold", color: "#2563eb" }}>+ Add New</option>
       </select>
       
@@ -105,13 +112,15 @@ const DropdownField = ({ value, onChange, isDate, type, styles, options }) => {
 
 import { supabase } from "../utils/supabase";
 
-export default function EditModal({ isOpen, onClose, onSave, onFieldChange, title = "Edit Record", columns, initialData, showPdfUpload = true, tableName }) {
+export default function EditModal({ isOpen, onClose, onSave, onFieldChange, title = "Edit Record", columns, initialData, showPdfUpload = true, tableName, customContent }) {
   const [formData, setFormData] = useState({});
   const [optionsMap, setOptionsMap] = useState({});
 
   useEffect(() => {
     if (initialData) {
       setFormData(initialData);
+    } else if (isOpen) {
+      setFormData({});
     }
   }, [initialData, isOpen]);
 
@@ -203,10 +212,18 @@ export default function EditModal({ isOpen, onClose, onSave, onFieldChange, titl
                     onChange={(newVal) => handleChange(fieldKey, newVal)}
                     styles={styles}
                     options={col.options || optionsMap[fieldKey] || []}
+                    disabled={col.disabled}
                   />
                 </div>
               );
             })}
+            
+            {customContent && (
+              <div style={{ gridColumn: "1 / -1", marginTop: "16px" }}>
+                {customContent}
+              </div>
+            )}
+
             {showPdfUpload && (
               <div style={{ ...styles.formGroup, gridColumn: "1 / -1", marginTop: "10px" }}>
                 <label style={styles.label}>ATTACH PDF (OPTIONAL)</label>

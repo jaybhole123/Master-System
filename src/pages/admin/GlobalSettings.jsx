@@ -98,7 +98,7 @@ const MODULES = [
   {
     id: 'Coal System',
     name: 'Coal System',
-    pages: ['Dashboard', 'Auction', 'Payment Advice', 'SECL Payment Advice', 'Sales Order', 'SECL Intimation', 'Invoice', 'Work Order', 'Dispatch', 'Transport Payment', 'Refund / Lapse', 'Sauda Scale']
+    pages: ['Dashboard', 'Auction', 'Payment Advice', 'SECL Payment Advice', 'Sales Order', 'SECL Intimation', 'Invoice', 'Work Order', 'Dispatch', 'Transport Payment', 'Refund / Lapse', 'Sauda Sale']
   },
   {
     id: 'Global Settings',

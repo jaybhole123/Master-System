@@ -1,7 +1,7 @@
 "use client";
 
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchNotifications } from "../../redux/slice/notificationSlice";
@@ -9,6 +9,7 @@ import supabase from "../../SupabaseClient";
 import { processDailyReminders } from "../../services/dailyReminderService";
 import jbtLogo from "../../assets/jbt.png";
 import jbeLogo from "../../assets/jbe.png";
+import jblLogo from "../../assets/jbl.png";
 import ganeshLogo from "../../assets/ganesh.jpg";
 import useDataStore from "../../modules/document/store/dataStore";
 import {
@@ -137,6 +138,146 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
   const [pageCounts, setPageCounts] = useState({});
   const [coalBadges, setCoalBadges] = useState({});
   const [rentBadges, setRentBadges] = useState({});
+  const [pettyCashBadges, setPettyCashBadges] = useState({});
+  const [hrBadges, setHrBadges] = useState({});
+  const [schedulerBadges, setSchedulerBadges] = useState({});
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchSchedulerCounts = async () => {
+      if (!isSuperAdmin && !systemAccess.includes("Daily Scheduler")) return;
+      try {
+        const fetchCount = async (table, filters = {}) => {
+          let query = supabase.from(table).select('*', { count: 'exact', head: true });
+          for (const [key, val] of Object.entries(filters)) {
+            query = query.eq(key, val);
+          }
+          
+          const userId = localStorage.getItem('user-id');
+          const userName = localStorage.getItem('user-name');
+          
+          // User-specific filtering
+          if (table === 'tasks') {
+            if (userId && userName) {
+               query = query.or(`assigned_staff.eq.${userId},created_by.eq."${userName}"`);
+            }
+          } else if (table === 'someday_tasks') {
+            if (userName) {
+               query = query.eq('created_by', userName);
+            }
+          }
+
+          const { count, error } = await query;
+          if (error) console.error("Badge query error:", error);
+          return count || 0;
+        };
+
+        const today = new Date();
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+        const [
+          dashboardCount, waitingCount, somedayCount
+        ] = await Promise.all([
+          fetchCount('tasks', { status: 'Pending', date: todayStr }),
+          fetchCount('tasks', { status: 'Overdue' }),
+          fetchCount('someday_tasks')
+        ]);
+
+        if (isMounted) {
+          setSchedulerBadges({
+            "Scheduler Dashboard": dashboardCount,
+            "Waiting List": waitingCount,
+            "Someday Tasks": somedayCount
+          });
+        }
+      } catch (err) {
+        console.error("Error fetching scheduler counts", err);
+      }
+    };
+    fetchSchedulerCounts();
+    return () => { isMounted = false; };
+  }, [isSuperAdmin, systemAccess]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchHrCounts = async () => {
+      if (!isSuperAdmin && !systemAccess.includes("HR System")) return;
+      try {
+        const fetchCount = async (table, filterCol, filterVal) => {
+          let query = supabase.from(table).select('*', { count: 'exact', head: true });
+          if (filterCol && filterVal) {
+             query = query.eq(filterCol, filterVal);
+          }
+          const { count } = await query;
+          return count || 0;
+        };
+
+        const [
+          empCount, salaryStrCount, pendingLeaves, payrollCount, pendingIndents
+        ] = await Promise.all([
+          fetchCount('users'),
+          fetchCount('salary_structures'),
+          fetchCount('leave_requests', 'status', 'Pending'),
+          fetchCount('processed_payroll'),
+          fetchCount('indents', 'status', 'Pending')
+        ]);
+
+        if (isMounted) {
+          setHrBadges({
+            "Employee Master": empCount,
+            "Salary Structure": salaryStrCount,
+            "Leave Tracker": pendingLeaves,
+            "Payroll Process": payrollCount,
+            "Create Indent": pendingIndents
+          });
+        }
+      } catch (err) {
+        console.error("Error fetching HR counts", err);
+      }
+    };
+    fetchHrCounts();
+    return () => { isMounted = false; };
+  }, [isSuperAdmin, systemAccess]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchPettyCounts = async () => {
+      // Avoid fetching if user doesn't have access to save requests, unless they are admin
+      if (!isSuperAdmin && !systemAccess.includes("Petty Cash")) return;
+      try {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const todayDateStr = `${year}-${month}-${day}`;
+
+        const fetchCount = async (table) => {
+          const { count } = await supabase.from(table).select('*', { count: 'exact', head: true }).eq('date', todayDateStr);
+          return count || 0;
+        };
+        const [
+          creditsCount, expensesCount, ledgerCount
+        ] = await Promise.all([
+          fetchCount('petty_cash_addcash_credits'),
+          fetchCount('petty_cash_expenses'),
+          fetchCount('ledger')
+        ]);
+
+        if (isMounted) {
+          setPettyCashBadges({
+            "Add Credit": creditsCount,
+            "Expenses": expensesCount,
+            "Ledger": ledgerCount
+          });
+        }
+      } catch (err) {
+        console.error("Error fetching petty cash counts", err);
+      }
+    };
+    fetchPettyCounts();
+    return () => { isMounted = false; };
+  }, [isSuperAdmin, systemAccess]);
+
 
   useEffect(() => {
     let isMounted = true;
@@ -212,7 +353,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
             "Sales Order": salesOrderCount,
             "Refund / Lapse": salesOrderCount,
             "Invoice": invoiceCount,
-            "Sauda Scale": saudaScaleCount,
+            "Sauda Sale": saudaScaleCount,
             "Dispatch": dispatchCount,
             "Work Order": 0,
             "Transport Payment": 0
@@ -249,7 +390,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
   // State for Module Accordions
   const [openModules, setOpenModules] = useState(() => {
     const path = location.pathname;
-    return {
+    const defaultState = {
       "Profile": path.includes("/dashboard/profile"),
       "Rent Management": path.includes("/dashboard/rent-management"),
       "HR System": path.startsWith("/hr"),
@@ -260,14 +401,44 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       "Document & Substruction": path.includes("/document") || path.includes("/doc-dashboard") || path.includes("/resource-manager") || path.includes("/loan") || path.includes("/subscription") || path.includes("/bg") || path === "/",
       "Rent Management Tracker": path.includes("/dashboard/rent-tracker"),
       "Coal System": path.startsWith("/coal-system"),
+      "Letter": path.startsWith("/letter")
     };
+    try {
+      const saved = sessionStorage.getItem('sidebar_open_modules');
+      if (saved) {
+        return { ...defaultState, ...JSON.parse(saved) };
+      }
+    } catch(e) {}
+    return defaultState;
   });
 
+  useEffect(() => {
+    sessionStorage.setItem('sidebar_open_modules', JSON.stringify(openModules));
+  }, [openModules]);
+
+  const navRef = useRef(null);
+  
+  useEffect(() => {
+    const savedScroll = sessionStorage.getItem('sidebar_scroll_pos');
+    if (savedScroll && navRef.current) {
+      navRef.current.scrollTop = parseInt(savedScroll, 10);
+    }
+  }, []);
+
+  const handleNavScroll = (e) => {
+    sessionStorage.setItem('sidebar_scroll_pos', e.target.scrollTop);
+  };
+
   const toggleModule = (moduleName) => {
-    setOpenModules((prev) => ({
-      ...prev,
-      [moduleName]: !prev[moduleName],
-    }));
+    setOpenModules((prev) => {
+      const isCurrentlyOpen = prev[moduleName];
+      const newState = Object.keys(prev).reduce((acc, key) => {
+        acc[key] = false;
+        return acc;
+      }, {});
+      newState[moduleName] = !isCurrentlyOpen;
+      return newState;
+    });
   };
 
   // Check authentication on component mount
@@ -729,6 +900,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/hr/employee-master",
       showFor: ["admin", "user", "HOD"],
       module: "HR System",
+      badge: hrBadges["Employee Master"] > 0 ? hrBadges["Employee Master"] : null,
     },
     {
       href: "/hr/salary-structure",
@@ -737,6 +909,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/hr/salary-structure",
       showFor: ["admin", "user", "HOD"],
       module: "HR System",
+      badge: hrBadges["Salary Structure"] > 0 ? hrBadges["Salary Structure"] : null,
     },
     {
       href: "/hr/attendance",
@@ -753,6 +926,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/hr/leave-tracker",
       showFor: ["admin", "user", "HOD"],
       module: "HR System",
+      badge: hrBadges["Leave Tracker"] > 0 ? hrBadges["Leave Tracker"] : null,
     },
     {
       href: "/hr/payroll-process",
@@ -761,6 +935,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/hr/payroll-process",
       showFor: ["admin", "user", "HOD"],
       module: "HR System",
+      badge: hrBadges["Payroll Process"] > 0 ? hrBadges["Payroll Process"] : null,
     },
     {
       href: "/hr/net-salary",
@@ -785,6 +960,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/hr/create-indent",
       showFor: ["admin", "user", "HOD"],
       module: "HR System",
+      badge: hrBadges["Create Indent"] > 0 ? hrBadges["Create Indent"] : null,
     },
     {
       href: "/hr/inventory",
@@ -835,6 +1011,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/petty-cash/add-case",
       showFor: ["admin", "user", "HOD"],
       module: "Petty Cash",
+      badge: pettyCashBadges["Add Credit"] > 0 ? pettyCashBadges["Add Credit"] : null,
     },
     {
       href: "/petty-cash/expenses",
@@ -843,6 +1020,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/petty-cash/expenses",
       showFor: ["admin", "user", "HOD"],
       module: "Petty Cash",
+      badge: pettyCashBadges["Expenses"] > 0 ? pettyCashBadges["Expenses"] : null,
     },
     {
       href: "/petty-cash/ledger",
@@ -851,6 +1029,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/petty-cash/ledger",
       showFor: ["admin", "user", "HOD"],
       module: "Petty Cash",
+      badge: pettyCashBadges["Ledger"] > 0 ? pettyCashBadges["Ledger"] : null,
     },
     {
       href: "/petty-cash/summary",
@@ -885,6 +1064,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/daily-scheduler/dashboard" || location.pathname === "/daily-scheduler",
       showFor: ["admin", "user", "HOD"],
       module: "Daily Scheduler",
+      badge: schedulerBadges["Scheduler Dashboard"] > 0 ? schedulerBadges["Scheduler Dashboard"] : null,
     },
     {
       href: "/daily-scheduler/waiting-list",
@@ -893,12 +1073,22 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/daily-scheduler/waiting-list",
       showFor: ["admin", "user", "HOD"],
       module: "Daily Scheduler",
+      badge: schedulerBadges["Waiting List"] > 0 ? schedulerBadges["Waiting List"] : null,
     },
     {
       href: "/daily-scheduler/someday",
       label: "Someday Tasks",
       icon: CalendarIcon,
       active: location.pathname === "/daily-scheduler/someday",
+      showFor: ["admin", "user", "HOD"],
+      module: "Daily Scheduler",
+      badge: schedulerBadges["Someday Tasks"] > 0 ? schedulerBadges["Someday Tasks"] : null,
+    },
+    {
+      href: "/daily-scheduler/calendar",
+      label: "Calendar",
+      icon: CalendarIcon,
+      active: location.pathname === "/daily-scheduler/calendar",
       showFor: ["admin", "user", "HOD"],
       module: "Daily Scheduler",
     },
@@ -1002,12 +1192,12 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
     },
     {
       href: "/coal-system/sauda-scale",
-      label: "Sauda Scale",
+      label: "Sauda Sale",
       icon: FileText,
       active: location.pathname === "/coal-system/sauda-scale",
       showFor: ["admin", "user", "HOD"],
       module: "Coal System",
-      badge: coalBadges["Sauda Scale"] > 0 ? coalBadges["Sauda Scale"] : null,
+      badge: coalBadges["Sauda Sale"] > 0 ? coalBadges["Sauda Sale"] : null,
     },
     {
       href: "/dashboard/global-settings",
@@ -1125,27 +1315,29 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
             className="flex items-center h-full w-full relative group cursor-pointer"
           >
             <div className={`flex w-max gap-6 ${isCollapsed ? '' : 'animate-marquee-seamless'}`}>
-              <div className="flex items-center gap-6 shrink-0">
-                <img src={ganeshLogo} alt="Ganesh" className="h-11 w-auto object-contain rounded-lg shadow-sm border border-slate-100 p-0.5 bg-white transition-transform hover:scale-110" />
+              <div className="flex items-center gap-3 shrink-0">
+                <img src={ganeshLogo} alt="Ganesh" className="h-9 w-auto object-contain rounded-lg shadow-sm border border-slate-100 p-0.5 bg-white transition-transform hover:scale-110" />
                 {!isCollapsed && (
                   <>
-                    <img src={jbtLogo} alt="JBT" className="h-9 w-auto object-contain drop-shadow-sm transition-transform hover:scale-110" />
-                    <img src={jbeLogo} alt="JBE" className="h-12 w-auto object-contain drop-shadow-sm transition-transform hover:scale-110" />
+                    <img src={jbtLogo} alt="JBT" className="h-7 w-auto object-contain drop-shadow-sm transition-transform hover:scale-110" />
+                    <img src={jbeLogo} alt="JBE" className="h-10 w-auto object-contain drop-shadow-sm transition-transform hover:scale-110" />
+                    <img src={jblLogo} alt="JBL" className="h-7 w-auto object-contain drop-shadow-sm transition-transform hover:scale-110" />
                   </>
                 )}
               </div>
               {/* Duplicated for seamless scrolling */}
               {!isCollapsed && (
-                <div className="flex items-center gap-6 shrink-0">
-                  <img src={ganeshLogo} alt="Ganesh" className="h-11 w-auto object-contain rounded-lg shadow-sm border border-slate-100 p-0.5 bg-white transition-transform hover:scale-110" />
-                  <img src={jbtLogo} alt="JBT" className="h-9 w-auto object-contain drop-shadow-sm transition-transform hover:scale-110" />
-                  <img src={jbeLogo} alt="JBE" className="h-12 w-auto object-contain drop-shadow-sm transition-transform hover:scale-110" />
+                <div className="flex items-center gap-3 shrink-0">
+                  <img src={ganeshLogo} alt="Ganesh" className="h-9 w-auto object-contain rounded-lg shadow-sm border border-slate-100 p-0.5 bg-white transition-transform hover:scale-110" />
+                  <img src={jbtLogo} alt="JBT" className="h-7 w-auto object-contain drop-shadow-sm transition-transform hover:scale-110" />
+                  <img src={jbeLogo} alt="JBE" className="h-10 w-auto object-contain drop-shadow-sm transition-transform hover:scale-110" />
+                  <img src={jblLogo} alt="JBL" className="h-7 w-auto object-contain drop-shadow-sm transition-transform hover:scale-110" />
                 </div>
               )}
             </div>
           </Link>
         </div>
-        <nav className="flex-1 overflow-y-auto p-2">
+        <nav ref={navRef} onScroll={handleNavScroll} className="flex-1 overflow-y-auto p-2">
           <ul className="space-y-1">
             {Object.entries(
               accessibleRoutes.reduce((acc, route) => {
@@ -1221,8 +1413,10 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                   )}
                   </button>
                 )}
-                {moduleName !== "Master Dashboard" && moduleName !== "Profile" && moduleName !== "Global Settings" && moduleName !== "Rent Management" && moduleName !== "Help Slip" && openModules[moduleName] && !isCollapsed && moduleRoutes.map((route) => (
-                  <li key={route.label}>
+                {moduleName !== "Master Dashboard" && moduleName !== "Profile" && moduleName !== "Global Settings" && moduleName !== "Rent Management" && moduleName !== "Help Slip" && openModules[moduleName] && !isCollapsed && (
+                  <ul className="mt-1 space-y-1 bg-red-50/60 rounded-xl px-2 py-2 mb-2 border border-red-100/50">
+                    {moduleRoutes.map((route) => (
+                      <li key={route.label}>
                 {route.isSubmenu ? (
                   <div className="flex flex-col">
                     <button
@@ -1298,7 +1492,9 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                   </Link>
                 )}
                   </li>
-                ))}
+                    ))}
+                  </ul>
+                )}
               </div>
             ))}
           </ul>

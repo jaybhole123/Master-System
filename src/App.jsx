@@ -63,6 +63,7 @@ import DailyDashboard from "./Daily-Shedular/src/pages/Dashboard"
 import DailyWaitingList from "./Daily-Shedular/src/pages/WaitingList"
 import DailySomedayTasks from "./Daily-Shedular/src/pages/SomedayTasks"
 import DailyReports from "./Daily-Shedular/src/pages/Reports"
+import DailyCalendarView from "./Daily-Shedular/src/pages/CalendarView"
 
 // --- Coal System Imports ---
 import CoalSystemApp from "./CoalSystem/src/App"
@@ -148,6 +149,18 @@ const DailySchedulerWrapper = ({ children }) => (
         <SchedulerProvider>
             <AdminLayout>
                 <div className="daily-scheduler-container p-2 sm:p-4">
+                    {children}
+                </div>
+            </AdminLayout>
+        </SchedulerProvider>
+    </ProtectedRoute>
+);
+
+const DailySchedulerFullWrapper = ({ children }) => (
+    <ProtectedRoute>
+        <SchedulerProvider>
+            <AdminLayout noPadding={true}>
+                <div className="daily-scheduler-container" style={{ width: '100%', height: '100%', padding: '8px 12px' }}>
                     {children}
                 </div>
             </AdminLayout>
@@ -510,6 +523,7 @@ function App() {
                     <Route path="/daily-scheduler/waiting-list" element={<DailySchedulerWrapper><DailyWaitingList /></DailySchedulerWrapper>} />
                     <Route path="/daily-scheduler/someday" element={<DailySchedulerWrapper><DailySomedayTasks /></DailySchedulerWrapper>} />
                     <Route path="/daily-scheduler/reports" element={<DailySchedulerWrapper><DailyReports /></DailySchedulerWrapper>} />
+                    <Route path="/daily-scheduler/calendar" element={<DailySchedulerFullWrapper><DailyCalendarView /></DailySchedulerFullWrapper>} />
 
                     {/* --- Coal System Routes --- */}
                     <Route path="/coal-system" element={<Navigate to="/coal-system/dashboard" replace />} />

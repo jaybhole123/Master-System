@@ -1,12 +1,24 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useScheduler } from '../../context/SchedulerContext';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Bell, Menu } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Bell, Menu, Plus, ChevronDown, CheckSquare, Clock } from 'lucide-react';
 import { format, addDays, subDays } from 'date-fns';
 import { useLocation } from 'react-router-dom';
 
 const Header = ({ currentDate, setCurrentDate, toggleSidebar }) => {
   const { currentUser, setCurrentUser, staffList } = useScheduler();
   const location = useLocation();
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsCreateOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const getPageTitle = () => {
     switch (location.pathname) {
@@ -58,6 +70,80 @@ const Header = ({ currentDate, setCurrentDate, toggleSidebar }) => {
       </div>
 
       <div className="header-actions" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+        
+        {/* Create Dropdown */}
+        <div ref={dropdownRef} style={{ position: 'relative' }}>
+          <button 
+            onClick={() => setIsCreateOpen(!isCreateOpen)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              backgroundColor: '#ffffff',
+              color: '#334155',
+              padding: '0.5rem 1rem 0.5rem 0.75rem',
+              borderRadius: '9999px',
+              border: '1px solid #e2e8f0',
+              fontWeight: '500',
+              fontSize: '0.875rem',
+              cursor: 'pointer',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06)',
+              transition: 'all 0.2s'
+            }}
+            onMouseOver={(e) => e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06)'}
+            onMouseOut={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06)'}
+          >
+            <Plus size={18} color="#ef4444" />
+            <span>Create</span>
+            <ChevronDown size={16} color="#64748b" style={{ marginLeft: '4px' }} />
+          </button>
+
+          {isCreateOpen && (
+            <div style={{
+              position: 'absolute',
+              top: '100%',
+              right: 0,
+              marginTop: '0.5rem',
+              width: '12rem',
+              backgroundColor: 'white',
+              borderRadius: '0.5rem',
+              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+              border: '1px solid #f1f5f9',
+              zIndex: 50,
+              padding: '0.5rem'
+            }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                <button 
+                  onClick={() => setIsCreateOpen(false)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 0.75rem', width: '100%', textAlign: 'left', borderRadius: '0.375rem', cursor: 'pointer', border: 'none', backgroundColor: 'transparent', transition: 'background-color 0.2s', fontSize: '0.875rem', color: '#334155' }}
+                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                >
+                  <CheckSquare size={16} color="#64748b" />
+                  Create Task
+                </button>
+                <button 
+                  onClick={() => setIsCreateOpen(false)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 0.75rem', width: '100%', textAlign: 'left', borderRadius: '0.375rem', cursor: 'pointer', border: 'none', backgroundColor: 'transparent', transition: 'background-color 0.2s', fontSize: '0.875rem', color: '#334155' }}
+                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                >
+                  <CalendarIcon size={16} color="#64748b" />
+                  Create Event
+                </button>
+                <button 
+                  onClick={() => setIsCreateOpen(false)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 0.75rem', width: '100%', textAlign: 'left', borderRadius: '0.375rem', cursor: 'pointer', border: 'none', backgroundColor: 'transparent', transition: 'background-color 0.2s', fontSize: '0.875rem', color: '#334155' }}
+                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                >
+                  <Clock size={16} color="#64748b" />
+                  Add Reminder
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
         <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', position: 'relative' }}>
           <Bell size={20} />
           <span style={{ position: 'absolute', top: '-2px', right: '-2px', width: '8px', height: '8px', backgroundColor: 'var(--status-overdue)', borderRadius: '50%' }}></span>

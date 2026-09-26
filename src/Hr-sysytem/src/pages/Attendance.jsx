@@ -971,8 +971,8 @@ Instructions:
             <table style={{ borderCollapse: 'collapse', margin: '0' }}>
               <thead style={{ position: 'sticky', top: 0, zIndex: 10 }}>
                 <tr>
-                  <th style={{...thStyle, width: '50px', position: 'sticky', top: 0, zIndex: 10}}>Sr.<br/>No.</th>
-                  <th style={{...thStyle, minWidth: '200px', position: 'sticky', top: 0, zIndex: 10}}>Employee Name</th>
+                  <th style={{...thStyle, width: '50px', position: 'sticky', top: 0, left: 0, zIndex: 20, backgroundColor: 'var(--bg-main)'}}>Sr.<br/>No.</th>
+                  <th style={{...thStyle, minWidth: '200px', position: 'sticky', top: 0, left: '50px', zIndex: 20, backgroundColor: 'var(--bg-main)'}}>Employee Name</th>
                   {daysArray.map(day => {
                     const isInvalidDay = day > daysCount;
                     const isSunday = !isInvalidDay && new Date(yearNum, monthNum, day).getDay() === 0;
@@ -994,8 +994,8 @@ Instructions:
                     const stats = dashboardStats.find(s => s.id === emp.id);
                     return (
                       <tr key={emp.id} style={{ backgroundColor: idx % 2 === 0 ? 'var(--bg-card)' : 'rgba(0,0,0,0.02)' }}>
-                        <td style={{...tdStyle, color: 'var(--text-secondary)'}}>{idx + 1}</td>
-                        <td style={{...tdStyle, textAlign: 'left', fontWeight: 600, paddingLeft: '8px', minWidth: '200px'}}>
+                        <td style={{...tdStyle, color: 'var(--text-secondary)', position: 'sticky', left: 0, zIndex: 5, backgroundColor: idx % 2 === 0 ? 'var(--bg-card)' : '#f8fafc'}}>{idx + 1}</td>
+                        <td style={{...tdStyle, textAlign: 'left', fontWeight: 600, paddingLeft: '8px', minWidth: '200px', position: 'sticky', left: '50px', zIndex: 5, backgroundColor: idx % 2 === 0 ? 'var(--bg-card)' : '#f8fafc'}}>
                           {editingEmpId === emp.id ? (
                             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                               <input

@@ -12,6 +12,7 @@ import { sendPasswordResetOTP } from "../services/whatsappService"
 import { KeyRound, ShieldCheck, User as UserIcon, ArrowLeft, RefreshCw, Smartphone, Eye, EyeOff } from "lucide-react"
 import jbtLogo from "../assets/jbt.png"
 import jbeLogo from "../assets/jbe.png"
+import jblLogo from "../assets/jbl.png"
 import ganeshLogo from "../assets/ganesh.jpg"
 import loginBg from "../assets/login.png"
 
@@ -163,6 +164,9 @@ const LoginPage = () => {
                 <div className="bg-white p-1.5 rounded-xl shadow-sm border border-slate-100 transition-transform hover:scale-110">
                   <img src={jbeLogo} alt="JBE Logo" className="h-10 w-auto object-contain" />
                 </div>
+                <div className="bg-white p-1.5 rounded-xl shadow-sm border border-slate-100 transition-transform hover:scale-110">
+                  <img src={jblLogo} alt="JBL Logo" className="h-10 w-auto object-contain" />
+                </div>
               </div>
               <div className="flex items-center gap-4 shrink-0">
                 <div className="bg-white p-1.5 rounded-xl shadow-sm border border-slate-100 transition-transform hover:scale-110">
@@ -173,6 +177,9 @@ const LoginPage = () => {
                 </div>
                 <div className="bg-white p-1.5 rounded-xl shadow-sm border border-slate-100 transition-transform hover:scale-110">
                   <img src={jbeLogo} alt="JBE Logo" className="h-10 w-auto object-contain" />
+                </div>
+                <div className="bg-white p-1.5 rounded-xl shadow-sm border border-slate-100 transition-transform hover:scale-110">
+                  <img src={jblLogo} alt="JBL Logo" className="h-10 w-auto object-contain" />
                 </div>
               </div>
             </div>

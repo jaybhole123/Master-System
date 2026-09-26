@@ -289,43 +289,10 @@ CREATE TABLE public.user_notifications (
   CONSTRAINT user_notifications_notification_id_fkey FOREIGN KEY (notification_id) REFERENCES public.notifications(id),
   CONSTRAINT user_notifications_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
-CREATE TABLE public.rent_records (
-  id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  place character varying NOT NULL,
-  name character varying NOT NULL,
-  phone character varying NOT NULL,
-  date date NOT NULL,
-  method USER-DEFINED DEFAULT 'CASH'::payment_method_enum,
-  month USER-DEFINED NOT NULL,
-  document_url text,
-  status USER-DEFINED DEFAULT 'Pending'::rent_status_enum,
-  created_at timestamp with time zone DEFAULT now(),
-  due_date date,
-  message text,
-  reminder_sent boolean DEFAULT false,
-  owner_name character varying,
-  monthly_rent numeric,
-  security_deposit numeric,
-  agreement_start date,
-  agreement_end date,
-  rent_due_date date,
-  payment_mode character varying,
-  last_rent_received date,
-  payment_status character varying,
-  rent_revision_date date,
-  electricity numeric,
-  maintenance numeric,
-  remarks text,
-  broker_number character varying,
-  second_reminder_date date,
-  second_reminder_sent boolean DEFAULT false,
-  CONSTRAINT rent_records_pkey PRIMARY KEY (id)
-);
 CREATE TABLE public.monthly_attendance (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   employee_id text NOT NULL,
   month_year text NOT NULL,
-  attendance_data jsonb NOT NULL DEFAULT '{}'::jsonb,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
   employee_name character varying,
@@ -360,6 +327,7 @@ CREATE TABLE public.monthly_attendance (
   day_29 text,
   day_30 text,
   day_31 text,
+  salary numeric,
   CONSTRAINT monthly_attendance_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.leave_allotments (
@@ -404,6 +372,8 @@ CREATE TABLE public.salary_structures (
   salary_date date,
   salary_month text,
   absent numeric DEFAULT 0,
+  half_days numeric DEFAULT 0,
+  holidays numeric DEFAULT 0,
   CONSTRAINT salary_structures_pkey PRIMARY KEY (employee_id)
 );
 CREATE TABLE public.payroll_settings (
@@ -611,6 +581,8 @@ CREATE TABLE public.sales_orders (
   tcs character varying,
   lapsed_qty numeric,
   lifted_qty numeric,
+  so_value_rate numeric,
+  less_emd numeric,
   CONSTRAINT sales_orders_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.secl_intimation_format_1 (
@@ -626,6 +598,7 @@ CREATE TABLE public.secl_intimation_format_1 (
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
   updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
   pdf_url text,
+  submitted_date date,
   CONSTRAINT secl_intimation_format_1_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.secl_payment_advices (
@@ -682,7 +655,178 @@ CREATE TABLE public.invoices (
   igst numeric,
   taxable_amt numeric,
   round_off numeric,
+  submitted_date date,
   CONSTRAINT invoices_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.auctions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  deal_id character varying,
+  bidder character varying,
+  auction_source character varying,
+  notification_date date,
+  bid_date date,
+  bid_closing_date date,
+  coal_company character varying,
+  pdf_url text,
+  remarks text,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT auctions_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.auction_items (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  auction_id uuid,
+  mine character varying NOT NULL,
+  coal_grade character varying NOT NULL,
+  quantity_offered numeric NOT NULL,
+  base_price numeric NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT auction_items_pkey PRIMARY KEY (id),
+  CONSTRAINT auction_items_auction_id_fkey FOREIGN KEY (auction_id) REFERENCES public.auctions(id)
+);
+CREATE TABLE public.rent_master (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  property_name text NOT NULL,
+  tenant_name text NOT NULL,
+  tenant_contact text,
+  owner_name text,
+  monthly_rent numeric DEFAULT 0,
+  security_deposit numeric DEFAULT 0,
+  agreement_start date,
+  agreement_end date,
+  rent_due_date_start text,
+  rent_due_date_end text,
+  payment_mode text DEFAULT 'Cash'::text,
+  bank_details text,
+  electricity text DEFAULT 'Exclude'::text,
+  maintenance text DEFAULT 'Exclude'::text,
+  remarks text,
+  document text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT rent_master_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.rent_monthly_tracker (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  rent_master_id bigint,
+  month text NOT NULL,
+  property text,
+  tenant text,
+  rent numeric DEFAULT 0,
+  due_date_start date,
+  due_date_end date,
+  received_date date,
+  payment_mode text DEFAULT 'Cash'::text,
+  bank_details text,
+  status text DEFAULT 'Pending'::text,
+  remarks text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT rent_monthly_tracker_pkey PRIMARY KEY (id),
+  CONSTRAINT rent_monthly_tracker_rent_master_id_fkey FOREIGN KEY (rent_master_id) REFERENCES public.rent_master(id)
+);
+CREATE TABLE public.raw_material_stock (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  category text,
+  material text NOT NULL,
+  opening_stock numeric DEFAULT 0.000,
+  inward numeric DEFAULT 0.000,
+  consumption numeric DEFAULT 0.000,
+  crushing text DEFAULT '0%'::text,
+  fines3 numeric DEFAULT 0.000,
+  fines3_qty numeric DEFAULT 0.000,
+  production numeric DEFAULT 0.000,
+  dispatch numeric DEFAULT 0.000,
+  closing_stock numeric DEFAULT 0.000,
+  unit text,
+  remarks text,
+  attachments jsonb DEFAULT '[]'::jsonb,
+  report_date date NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT raw_material_stock_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.coal_stock (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  category text DEFAULT 'COAL DETAILS'::text,
+  material text NOT NULL,
+  opening_stock numeric DEFAULT 0.000,
+  inward numeric DEFAULT 0.000,
+  consumption numeric DEFAULT 0.000,
+  fc text,
+  moist_loss_pct text,
+  moist_loss_qty numeric DEFAULT 0.000,
+  landed_cost numeric DEFAULT 0.000,
+  dispatch numeric DEFAULT 0.000,
+  closing_stock numeric DEFAULT 0.000,
+  remarks text,
+  report_date date,
+  CONSTRAINT coal_stock_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.item_transfers (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  created_at timestamp with time zone DEFAULT now(),
+  report_date date NOT NULL,
+  entry_type text NOT NULL CHECK (entry_type = ANY (ARRAY['incoming'::text, 'outgoing'::text])),
+  party_name text NOT NULL,
+  material_name text NOT NULL,
+  vehicle_no text,
+  qty numeric DEFAULT 0,
+  rate numeric DEFAULT 0,
+  CONSTRAINT item_transfers_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.sponge_production (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  created_at timestamp with time zone DEFAULT now(),
+  report_date date NOT NULL,
+  source_file text DEFAULT 'Manual Entry'::text,
+  item_grade text NOT NULL,
+  percent numeric,
+  kiln1 numeric DEFAULT 0,
+  kiln2 numeric DEFAULT 0,
+  total numeric DEFAULT 0,
+  CONSTRAINT sponge_production_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.sauda_sale (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  created_at timestamp with time zone DEFAULT now(),
+  date date NOT NULL,
+  main_heading text,
+  item_name text NOT NULL,
+  size_mm text,
+  party_name text NOT NULL,
+  consignee_name text,
+  sauda_quantity numeric DEFAULT 0,
+  rate_amt numeric DEFAULT 0,
+  prv_pending numeric DEFAULT 0,
+  qty_dispatch numeric DEFAULT 0,
+  bal_pending numeric DEFAULT 0,
+  broker text,
+  delivery_terms text,
+  payment_condition text,
+  reference_name text,
+  remarks text,
+  CONSTRAINT sauda_sale_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.sauda_purchase (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  created_at timestamp with time zone DEFAULT now(),
+  date date NOT NULL,
+  main_heading text,
+  item_name text NOT NULL,
+  size_mm text,
+  party_name text NOT NULL,
+  order_quantity numeric DEFAULT 0,
+  rate_mt numeric DEFAULT 0,
+  qty_received numeric DEFAULT 0,
+  bal_pending numeric DEFAULT 0,
+  broker text,
+  delivery_terms text,
+  payment_condition text,
+  reference_name text,
+  remarks text,
+  CONSTRAINT sauda_purchase_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.sauda_scale_2 (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -699,14 +843,9 @@ CREATE TABLE public.sauda_scale_2 (
   do_no character varying,
   due_date date,
   created_at timestamp with time zone DEFAULT now(),
+  lifter_transport character varying,
+  freight numeric,
+  freight_rate numeric,
+  remark text,
   CONSTRAINT sauda_scale_2_pkey PRIMARY KEY (id)
 );
-
-ALTER TABLE public.sauda_scale_2
-  ADD COLUMN lifter_transport character varying,
-  ADD COLUMN freight numeric,
-  ADD COLUMN freight_rate numeric,
-  ADD COLUMN remark text;
-
--- Disable RLS if you are getting "new row violates row-level security policy"
-ALTER TABLE public.sauda_scale_2 DISABLE ROW LEVEL SECURITY;

@@ -19,7 +19,8 @@ export default function MasterDashboard() {
   const username = localStorage.getItem("user-name") || "User";
   
   const [stats, setStats] = useState({
-    tasksData: [],
+    checklistData: [],
+    delegationData: [],
     rentData: [],
     pettyCashData: [],
     hrData: [],
@@ -68,43 +69,50 @@ export default function MasterDashboard() {
     const fetchStats = async () => {
       try {
         // 1. Tasks (Checklist & Delegation)
-        const { data: checklistData } = await supabase.from('checklist').select('status, submission_date, planned_date');
-        const tasks = checklistData || [];
+        const [{ data: checklistRawData }, { data: delegationRawData }] = await Promise.all([
+          supabase.from('checklist').select('status, submission_date, planned_date'),
+          supabase.from('delegation').select('status, submission_date, planned_date')
+        ]);
         
-        let analyzed = 0;
-        let done = 0;
-        let dueToday = 0;
-        let overdue = 0;
-        
-        const todayStr = new Date().toISOString().split('T')[0];
-        
-        tasks.forEach(task => {
-          const statusLower = (task.status || "").toLowerCase();
-          const isCompleted = (task.submission_date !== null) || 
-                              (statusLower === 'yes') || 
-                              (statusLower.includes('done')) || 
-                              (statusLower.includes('completed'));
-                              
-          const pDateStr = task.planned_date ? task.planned_date.split('T')[0] : null;
+        const processTaskData = (tasks) => {
+          let analyzed = 0;
+          let done = 0;
+          let dueToday = 0;
+          let overdue = 0;
           
-          if (pDateStr && pDateStr <= todayStr) {
-            analyzed++;
-            if (isCompleted) {
-              done++;
-            } else if (pDateStr === todayStr) {
-              dueToday++;
-            } else if (pDateStr < todayStr) {
-              overdue++;
+          const todayStr = new Date().toISOString().split('T')[0];
+          
+          (tasks || []).forEach(task => {
+            const statusLower = (task.status || "").toLowerCase();
+            const isCompleted = (task.submission_date !== null) || 
+                                (statusLower === 'yes') || 
+                                (statusLower.includes('done')) || 
+                                (statusLower.includes('completed'));
+                                
+            const pDateStr = task.planned_date ? task.planned_date.split('T')[0] : null;
+            
+            if (pDateStr && pDateStr <= todayStr) {
+              analyzed++;
+              if (isCompleted) {
+                done++;
+              } else if (pDateStr === todayStr) {
+                dueToday++;
+              } else if (pDateStr < todayStr) {
+                overdue++;
+              }
             }
-          }
-        });
-        
-        const tasksChart = [
-          { name: 'Analyzed', value: analyzed, fill: '#3b82f6' },
-          { name: 'Done', value: done, fill: '#10b981' },
-          { name: 'Due Today', value: dueToday, fill: '#f59e0b' },
-          { name: 'Overdue', value: overdue, fill: '#ef4444' }
-        ];
+          });
+          
+          return [
+            { name: 'Analyzed', value: analyzed, fill: '#3b82f6' },
+            { name: 'Done', value: done, fill: '#10b981' },
+            { name: 'Due Today', value: dueToday, fill: '#f59e0b' },
+            { name: 'Overdue', value: overdue, fill: '#ef4444' }
+          ];
+        };
+
+        const checklistChart = processTaskData(checklistRawData);
+        const delegationChart = processTaskData(delegationRawData);
 
         // 3. HR & Global Settings Stats
         const { data: usersData, error: usersError } = await supabase.from('users').select('*');
@@ -236,7 +244,8 @@ export default function MasterDashboard() {
         const dailyTasksNotDone = dailyTotalTasks - dailyCompletedTasks;
 
         setStats({
-          tasksData: tasksChart,
+          checklistData: checklistChart,
+          delegationData: delegationChart,
           pettyCashData: pcChart,
           hrData: hrChart,
           hrTotalEmployees: totalEmployees,
@@ -511,7 +520,7 @@ export default function MasterDashboard() {
         {/* Dynamic Graphical Modules Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           
-          {/* 1. Tasks Module (Donut Chart) */}
+          {/* 1.1 Checklist Tasks Module (Bar Chart) */}
           <div className="bg-white rounded-3xl p-6 shadow-sm border border-blue-100 hover:shadow-xl transition-all duration-300 flex flex-col justify-between">
             <div>
               <div className="flex items-center gap-4 mb-4">
@@ -519,8 +528,8 @@ export default function MasterDashboard() {
                   <CheckSquare size={24} />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-gray-900 leading-tight">Checklist & Tasks</h2>
-                  <p className="text-xs text-gray-500">Task completion overview</p>
+                  <h2 className="text-lg font-bold text-gray-900 leading-tight">Checklist Tasks</h2>
+                  <p className="text-xs text-gray-500">Checklist completion overview</p>
                 </div>
               </div>
               
@@ -531,13 +540,13 @@ export default function MasterDashboard() {
                   </div>
                 ) : (
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={stats.tasksData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <BarChart data={stats.checklistData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                       <XAxis dataKey="name" tick={{fontSize: 10}} interval={0} />
                       <YAxis tick={{fontSize: 10}} />
                       <Tooltip content={<CustomTooltip />} />
                       <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                        {stats.tasksData.map((entry, index) => (
+                        {stats.checklistData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.fill} className="animate-pulse" />
                         ))}
                       </Bar>
@@ -547,6 +556,46 @@ export default function MasterDashboard() {
               </div>
             </div>
             <Link to="/dashboard/admin" className="flex items-center justify-center w-full py-3 px-4 bg-blue-50 text-blue-700 font-bold rounded-xl hover:bg-blue-600 hover:text-white transition-all">
+              Open Module <ArrowRight size={16} className="ml-2" />
+            </Link>
+          </div>
+
+          {/* 1.2 Delegation Tasks Module (Bar Chart) */}
+          <div className="bg-white rounded-3xl p-6 shadow-sm border border-indigo-100 hover:shadow-xl transition-all duration-300 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center gap-4 mb-4">
+                <div className="h-12 w-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                  <Briefcase size={24} />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900 leading-tight">Delegation Tasks</h2>
+                  <p className="text-xs text-gray-500">Delegation completion overview</p>
+                </div>
+              </div>
+              
+              <div className="h-48 w-full mb-4">
+                {stats.loading ? (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Loader2 className="animate-spin text-indigo-300 h-8 w-8" />
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={stats.delegationData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="name" tick={{fontSize: 10}} interval={0} />
+                      <YAxis tick={{fontSize: 10}} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                        {stats.delegationData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.fill} className="animate-pulse" />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </div>
+            <Link to="/dashboard/admin" className="flex items-center justify-center w-full py-3 px-4 bg-indigo-50 text-indigo-700 font-bold rounded-xl hover:bg-indigo-600 hover:text-white transition-all">
               Open Module <ArrowRight size={16} className="ml-2" />
             </Link>
           </div>
@@ -844,7 +893,7 @@ export default function MasterDashboard() {
           </div>
 
           {/* 8. Global Settings */}
-          <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 hover:shadow-xl transition-all duration-300 flex flex-col justify-between">
+          <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 hover:shadow-xl transition-all duration-300 flex flex-col justify-between lg:col-span-3">
             <div>
               <div className="flex items-center gap-4 mb-4">
                 <div className="h-12 w-12 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
@@ -857,7 +906,7 @@ export default function MasterDashboard() {
               </div>
               
               <div className="flex-1 mb-4 w-full">
-                <div className="grid grid-cols-2 gap-2 h-full content-start pt-1">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 h-full content-start pt-1">
                   <div className="flex flex-col items-center justify-center bg-slate-50/80 p-3 rounded-xl border border-slate-200/50 text-center hover:bg-slate-100 transition-colors cursor-pointer">
                     <Users size={18} className="text-slate-600 mb-1.5" />
                     <span className="text-[11px] font-bold text-slate-700 leading-tight">Total Name</span>

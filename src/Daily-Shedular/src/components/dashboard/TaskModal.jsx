@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Paperclip, Trash2, UploadCloud, FileText, Image as ImageIcon, Mic, Square, Radio, PlayCircle, Star } from 'lucide-react';
 import { useScheduler } from '../../context/SchedulerContext';
 import { supabase } from '../../lib/supabase';
-import { format } from 'date-fns';
+import { format, addWeeks, getDay, addDays, isSameMonth } from 'date-fns';
 
 const TaskModal = ({ isOpen, onClose, task, selectedTime, selectedDate }) => {
   const { addTask, updateTask, staffList, categories, currentUser, tasks, generateTimeSlots, formatTime12h } = useScheduler();
@@ -18,7 +18,9 @@ const TaskModal = ({ isOpen, onClose, task, selectedTime, selectedDate }) => {
     category: categories[0] || 'Meeting',
     remark: '',
     attachments: [],
-    color: null
+    color: null,
+    recurring: 'None',
+    recurringLimitToMonth: false
   });
 
   const textareaRef = React.useRef(null);
@@ -214,7 +216,9 @@ const TaskModal = ({ isOpen, onClose, task, selectedTime, selectedDate }) => {
         description: '',
         remark: '',
         attachments: [],
-        color: null
+        color: null,
+        recurring: 'None',
+        recurringLimitToMonth: false
       }));
     }
   }, [task, selectedTime, selectedDate, isOpen, currentUser]);
@@ -222,11 +226,12 @@ const TaskModal = ({ isOpen, onClose, task, selectedTime, selectedDate }) => {
   if (!isOpen) return null;
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
+    const val = type === 'checkbox' ? checked : value;
     setFormData(prev => {
-      const updates = { [name]: value };
+      const updates = { [name]: val };
       if (name === 'startTime') {
-        const currentIndex = timeSlots.indexOf(value);
+        const currentIndex = timeSlots.indexOf(val);
         if (currentIndex !== -1 && currentIndex + 1 < timeSlots.length) {
           updates.endTime = timeSlots[currentIndex + 1];
         }
@@ -273,17 +278,61 @@ const TaskModal = ({ isOpen, onClose, task, selectedTime, selectedDate }) => {
     }, 0);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (task) {
-      updateTask(task.id, formData);
+      await updateTask(task.id, formData);
     } else {
-      addTask({
-        ...formData,
-        createdBy: currentUser?.name || 'Unknown',
-        status: 'Pending',
-        actualDoneDate: null
-      });
+      if (formData.recurring === 'None') {
+        await addTask({
+          ...formData,
+          createdBy: currentUser?.name || 'Unknown',
+          status: 'Pending',
+          actualDoneDate: null
+        });
+      } else {
+        // Calculate next 12 occurrences for recurring task
+        const dayMap = {
+          'Sunday': 0, 'Monday': 1, 'Tuesday': 2,
+          'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6
+        };
+        let targetDay = 0;
+        for (const [dayName, dayIndex] of Object.entries(dayMap)) {
+          if (formData.recurring.includes(dayName)) {
+            targetDay = dayIndex;
+            break;
+          }
+        }
+        
+        const limitToMonth = formData.recurringLimitToMonth;
+        
+        const baseDate = new Date(formData.date);
+        let firstDate = baseDate;
+        // If target day is different from selected date's day, find the next occurrence
+        if (getDay(baseDate) !== targetDay) {
+          let daysToAdd = (targetDay - getDay(baseDate) + 7) % 7;
+          firstDate = addDays(baseDate, daysToAdd);
+        }
+
+        const tasksToCreate = [];
+        for (let i = 0; i < 12; i++) { // Max 12 occurrences anyway
+          const nextDate = addWeeks(firstDate, i);
+          if (limitToMonth && !isSameMonth(nextDate, baseDate)) {
+            break; // Stop if it goes to the next month
+          }
+          const taskDate = format(nextDate, 'yyyy-MM-dd');
+          tasksToCreate.push({
+            ...formData,
+            date: taskDate,
+            createdBy: currentUser?.name || 'Unknown',
+            status: 'Pending',
+            actualDoneDate: null
+          });
+        }
+        
+        // Add them all
+        await Promise.all(tasksToCreate.map(t => addTask(t)));
+      }
     }
     onClose();
   };
@@ -311,12 +360,46 @@ const TaskModal = ({ isOpen, onClose, task, selectedTime, selectedDate }) => {
               <label className="input-label">Task Date</label>
               <input type="text" value={format(new Date(formData.date), 'dd MMM yyyy')} readOnly className="input-field" style={{ backgroundColor: 'var(--bg-color)', color: 'var(--text-secondary)' }} />
             </div>
+            {!task && (
+              <div className="input-group" style={{ gridColumn: '1 / -1' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <div style={{ flex: 1 }}>
+                    <label className="input-label">Recurring</label>
+                    <select name="recurring" value={formData.recurring} onChange={handleChange} className="input-field">
+                      <option value="None">None (One-time)</option>
+                      <option value="Every Monday">Every Monday</option>
+                      <option value="Every Tuesday">Every Tuesday</option>
+                      <option value="Every Wednesday">Every Wednesday</option>
+                      <option value="Every Thursday">Every Thursday</option>
+                      <option value="Every Friday">Every Friday</option>
+                      <option value="Every Saturday">Every Saturday</option>
+                      <option value="Every Sunday">Every Sunday</option>
+                    </select>
+                  </div>
+                  {formData.recurring !== 'None' && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1.5rem' }}>
+                      <input 
+                        type="checkbox" 
+                        id="recurringLimitToMonth"
+                        name="recurringLimitToMonth"
+                        checked={formData.recurringLimitToMonth}
+                        onChange={handleChange}
+                        style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                      />
+                      <label htmlFor="recurringLimitToMonth" style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', cursor: 'pointer', fontWeight: 500 }}>
+                        This Month Only
+                      </label>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div className="input-group">
               <label className="input-label">Start Time *</label>
-              <select name="startTime" value={formData.startTime} onChange={handleChange} className="input-field" required disabled={!task} style={!task ? { backgroundColor: 'var(--bg-color)', color: 'var(--text-secondary)', appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none' } : {}}>
+              <select name="startTime" value={formData.startTime} onChange={handleChange} className="input-field" required>
                 <option value="">Select Time Slot</option>
                 {timeSlots.map(time => (
                   <option key={time} value={time}>{formatTime12h(time)}</option>
@@ -325,7 +408,7 @@ const TaskModal = ({ isOpen, onClose, task, selectedTime, selectedDate }) => {
             </div>
             <div className="input-group">
               <label className="input-label">End Time *</label>
-              <select name="endTime" value={formData.endTime} onChange={handleChange} className="input-field" required disabled={!task} style={!task ? { backgroundColor: 'var(--bg-color)', color: 'var(--text-secondary)', appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none' } : {}}>
+              <select name="endTime" value={formData.endTime} onChange={handleChange} className="input-field" required>
                 <option value="">Select Time Slot</option>
                 {timeSlots.map(time => (
                   <option key={time} value={time}>{formatTime12h(time)}</option>
