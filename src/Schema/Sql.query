@@ -655,6 +655,7 @@ CREATE TABLE public.invoices (
   igst numeric,
   taxable_amt numeric,
   round_off numeric,
+  submitted_date date,
   CONSTRAINT invoices_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.auctions (
@@ -722,4 +723,144 @@ CREATE TABLE public.rent_monthly_tracker (
   updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT rent_monthly_tracker_pkey PRIMARY KEY (id),
   CONSTRAINT rent_monthly_tracker_rent_master_id_fkey FOREIGN KEY (rent_master_id) REFERENCES public.rent_master(id)
+);
+CREATE TABLE public.raw_material_stock (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  category text,
+  material text NOT NULL,
+  opening_stock numeric DEFAULT 0.000,
+  inward numeric DEFAULT 0.000,
+  consumption numeric DEFAULT 0.000,
+  crushing text DEFAULT '0%'::text,
+  fines3 numeric DEFAULT 0.000,
+  fines3_qty numeric DEFAULT 0.000,
+  production numeric DEFAULT 0.000,
+  dispatch numeric DEFAULT 0.000,
+  closing_stock numeric DEFAULT 0.000,
+  unit text,
+  remarks text,
+  attachments jsonb DEFAULT '[]'::jsonb,
+  report_date date NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT raw_material_stock_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.coal_stock (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  category text DEFAULT 'COAL DETAILS'::text,
+  material text NOT NULL,
+  opening_stock numeric DEFAULT 0.000,
+  inward numeric DEFAULT 0.000,
+  consumption numeric DEFAULT 0.000,
+  fc text,
+  moist_loss_pct text,
+  moist_loss_qty numeric DEFAULT 0.000,
+  landed_cost numeric DEFAULT 0.000,
+  dispatch numeric DEFAULT 0.000,
+  closing_stock numeric DEFAULT 0.000,
+  remarks text,
+  report_date date,
+  CONSTRAINT coal_stock_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.item_transfers (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  created_at timestamp with time zone DEFAULT now(),
+  report_date date NOT NULL,
+  entry_type text NOT NULL CHECK (entry_type = ANY (ARRAY['incoming'::text, 'outgoing'::text])),
+  party_name text NOT NULL,
+  material_name text NOT NULL,
+  vehicle_no text,
+  qty numeric DEFAULT 0,
+  rate numeric DEFAULT 0,
+  CONSTRAINT item_transfers_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.sponge_production (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  created_at timestamp with time zone DEFAULT now(),
+  report_date date NOT NULL,
+  source_file text DEFAULT 'Manual Entry'::text,
+  item_grade text NOT NULL,
+  percent numeric,
+  kiln1 numeric DEFAULT 0,
+  kiln2 numeric DEFAULT 0,
+  total numeric DEFAULT 0,
+  CONSTRAINT sponge_production_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.sauda_sale (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  created_at timestamp with time zone DEFAULT now(),
+  date date NOT NULL,
+  main_heading text,
+  item_name text NOT NULL,
+  size_mm text,
+  party_name text NOT NULL,
+  consignee_name text,
+  sauda_quantity numeric DEFAULT 0,
+  rate_amt numeric DEFAULT 0,
+  prv_pending numeric DEFAULT 0,
+  qty_dispatch numeric DEFAULT 0,
+  bal_pending numeric DEFAULT 0,
+  broker text,
+  delivery_terms text,
+  payment_condition text,
+  reference_name text,
+  remarks text,
+  CONSTRAINT sauda_sale_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.sauda_purchase (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  created_at timestamp with time zone DEFAULT now(),
+  date date NOT NULL,
+  main_heading text,
+  item_name text NOT NULL,
+  size_mm text,
+  party_name text NOT NULL,
+  order_quantity numeric DEFAULT 0,
+  rate_mt numeric DEFAULT 0,
+  qty_received numeric DEFAULT 0,
+  bal_pending numeric DEFAULT 0,
+  broker text,
+  delivery_terms text,
+  payment_condition text,
+  reference_name text,
+  remarks text,
+  CONSTRAINT sauda_purchase_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.buy_sauda (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  from_party character varying,
+  order_date date,
+  grade_mines character varying,
+  buyer_name character varying,
+  buy_order_qty numeric,
+  buy_basic_rate numeric,
+  remark text,
+  created_at timestamp with time zone DEFAULT now(),
+  lifter_transport text,
+  freight text,
+  freight_rate numeric,
+  do_no text,
+  due_date date,
+  CONSTRAINT buy_sauda_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.sell_sauda (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  buy_id uuid,
+  seller_name character varying,
+  sell_order_qty numeric,
+  sell_basic_rate numeric,
+  lifter_transport character varying,
+  freight text,
+  freight_rate numeric,
+  do_no character varying,
+  due_date date,
+  remark text,
+  created_at timestamp with time zone DEFAULT now(),
+  from_party text,
+  order_date date,
+  grade_mines text,
+  CONSTRAINT sell_sauda_pkey PRIMARY KEY (id),
+  CONSTRAINT sell_sauda_buy_id_fkey FOREIGN KEY (buy_id) REFERENCES public.buy_sauda(id)
 );

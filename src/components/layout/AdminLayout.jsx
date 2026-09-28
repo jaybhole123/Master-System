@@ -251,15 +251,21 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
         const day = String(today.getDate()).padStart(2, '0');
         const todayDateStr = `${year}-${month}-${day}`;
 
-        const fetchCount = async (table) => {
-          const { count } = await supabase.from(table).select('*', { count: 'exact', head: true }).eq('date', todayDateStr);
+        const fetchCount = async (table, isPending = false) => {
+          let query = supabase.from(table).select('*', { count: 'exact', head: true });
+          if (isPending && table === 'petty_cash_expenses') {
+             query = query.eq('status', 'PENDING');
+          } else {
+             query = query.eq('date', todayDateStr);
+          }
+          const { count } = await query;
           return count || 0;
         };
         const [
           creditsCount, expensesCount, ledgerCount
         ] = await Promise.all([
           fetchCount('petty_cash_addcash_credits'),
-          fetchCount('petty_cash_expenses'),
+          fetchCount('petty_cash_expenses', true),
           fetchCount('ledger')
         ]);
 
@@ -290,24 +296,23 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
           if (filterMonth) {
             query = query.eq('month', filterMonth);
           }
+          if (table === 'rent_monthly_tracker') {
+            query = query.eq('status', 'Pending');
+          }
           const { count } = await query;
           return count || 0;
         };
         const [
-          rentMasterCount,
-          monthlyTrackerCount,
-          rentManagementCount
+          monthlyTrackerCount
         ] = await Promise.all([
-          fetchCount('rent_master'),
-          fetchCount('rent_monthly_tracker', currentMonth),
-          fetchCount('rent_records')
+          fetchCount('rent_monthly_tracker', currentMonth)
         ]);
 
         if (isMounted) {
           setRentBadges({
-            "Rent Master": rentMasterCount,
+            "Rent Master": 0,
             "Monthly Tracker": monthlyTrackerCount,
-            "Rent Management": rentManagementCount
+            "Rent Management": 0
           });
         }
       } catch (err) {
