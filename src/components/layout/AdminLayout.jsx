@@ -1150,15 +1150,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       module: "Coal System",
       badge: coalBadges["Sales Order"] > 0 ? coalBadges["Sales Order"] : null,
     },
-    {
-      href: "/coal-system/work-order",
-      label: "Work Order",
-      icon: FileText,
-      active: location.pathname === "/coal-system/work-order",
-      showFor: ["admin", "user", "HOD"],
-      module: "Coal System",
-      badge: coalBadges["Work Order"] > 0 ? coalBadges["Work Order"] : null,
-    },
+
     {
       href: "/coal-system/dispatch",
       label: "Dispatch",

@@ -383,6 +383,15 @@ function MyDelegation() {
 
     return delegation_done
       .filter((item) => {
+        const assignedUser = item.name || item.assigned_person || "";
+        const userMatch =
+          (userRole || "").trim().toLowerCase() === "admin" ||
+          (userRole || "").trim().toLowerCase() === "superadmin" ||
+          (username || "").trim().toLowerCase() === "admin" ||
+          (assignedUser && assignedUser.trim().toLowerCase() === (username || "").trim().toLowerCase());
+
+        if (!userMatch) return false;
+
         const matchesSearch = debouncedSearchTerm
           ? Object.values(item).some(
             (value) =>
@@ -1621,27 +1630,20 @@ function MyDelegation() {
                             </td>
                             <td className="px-3 sm:px-6 py-2 sm:py-4">
                               {history.image_url ? (
-                                <a
-                                  href={history.image_url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-blue-600 hover:text-blue-800 underline flex items-center"
+                                <button
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    const isPdf = history.image_url.toLowerCase().endsWith('.pdf');
+                                    setViewerMedia({ url: history.image_url, type: isPdf ? 'pdf' : 'image' });
+                                    setViewerOpen(true);
+                                  }}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 rounded-lg text-xs font-bold transition-all border border-blue-100 shadow-sm"
                                 >
-                                  <img
-                                    src={
-                                      history.image_url ||
-                                      "/api/placeholder/32/32"
-                                    }
-                                    alt="Attachment"
-                                    className="h-6 w-6 sm:h-8 sm:w-8 object-cover rounded-md mr-2 flex-shrink-0"
-                                  />
-                                  <span className="text-xs whitespace-normal break-words">
-                                    View
-                                  </span>
-                                </a>
+                                  View
+                                </button>
                               ) : (
-                                <span className="text-gray-400 text-xs">
-                                  No file
+                                <span className="text-gray-400 text-xs font-medium bg-gray-50 px-2 py-1 rounded-md">
+                                  —
                                 </span>
                               )}
                             </td>
@@ -1729,10 +1731,16 @@ function MyDelegation() {
                           )}
                           {history.image_url && (
                             <div className="pt-2 border-t border-gray-50">
-                              <a href={history.image_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-blue-600 font-bold text-xs">
-                                <img src={history.image_url} className="w-8 h-8 rounded object-cover border" alt="preview" />
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  const isPdf = history.image_url.toLowerCase().endsWith('.pdf');
+                                  setViewerMedia({ url: history.image_url, type: isPdf ? 'pdf' : 'image' });
+                                  setViewerOpen(true);
+                                }}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 rounded-lg text-xs font-bold transition-all border border-blue-100 shadow-sm">
                                 View Attachment
-                              </a>
+                              </button>
                             </div>
                           )}
                         </div>
@@ -1966,22 +1974,15 @@ function MyDelegation() {
                                       </button>
                                     </div>
                                   ) : task.image ? (
-                                    <div className="flex items-center space-x-2">
-                                      <img
-                                        src={task.image}
-                                        className="w-8 h-8 rounded object-cover border"
-                                        alt="preview"
-                                      />
                                       <button
                                         onClick={() => {
                                           setViewerMedia({ url: task.image, type: 'image' });
                                           setViewerOpen(true);
                                         }}
-                                        className="text-red-600 text-xs font-bold underline"
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 rounded-lg text-xs font-bold transition-all border border-blue-100 shadow-sm"
                                       >
                                         View
                                       </button>
-                                    </div>
                                   ) : (
                                     <label className="cursor-pointer group">
                                       <div className={`flex items-center justify-center p-2 rounded-lg border-2 border-dashed transition-all ${isSelected ? "border-red-300 group-hover:border-red-500 bg-red-50" : "border-gray-200 bg-gray-50 opacity-50 cursor-not-allowed"}`}>
@@ -2194,12 +2195,11 @@ function MyDelegation() {
                                     </div>
                                   ) : task.image ? (
                                     <div className="flex items-center gap-2 p-2 bg-red-50 rounded border border-red-100">
-                                      <img src={task.image} className="w-8 h-8 rounded object-cover" alt="preview" />
                                       <span className="text-[10px] text-red-700 font-bold">Uploaded</span>
                                       <button onClick={() => {
                                         setViewerMedia({ url: task.image, type: 'image' });
                                         setViewerOpen(true);
-                                      }} className="ml-auto text-red-600 text-[10px] font-bold">View</button>
+                                      }} className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 rounded-lg text-xs font-bold transition-all border border-blue-100 shadow-sm">View</button>
                                     </div>
                                   ) : (
                                     <label className={`flex items-center justify-center gap-2 p-3 border-2 border-dashed rounded-xl transition-all ${isSelected ? "border-red-200 bg-red-50 text-red-600" : "border-gray-100 bg-gray-50 text-gray-300"}`}>

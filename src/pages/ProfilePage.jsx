@@ -33,7 +33,7 @@ export default function ProfilePage() {
 
       const { data, error } = await supabase
         .from('users')
-        .select('number, profile_image')
+        .select('number, profile_image, designation')
         .ilike('user_name', storedUsername)
         .single();
 
@@ -41,10 +41,14 @@ export default function ProfilePage() {
         setUser(prev => ({
           ...prev,
           number: data.number || "Not Provided",
+          designation: data.designation || prev.designation,
           profile_image: data.profile_image || prev.profile_image
         }));
         if (data.profile_image) {
             localStorage.setItem("profile_image", data.profile_image);
+        }
+        if (data.designation) {
+            localStorage.setItem("designation", data.designation);
         }
       }
     };
@@ -218,7 +222,7 @@ export default function ProfilePage() {
                   <Briefcase className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Designation</p>
+                  <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Firm</p>
                   <p className="font-medium text-gray-900 capitalize">{user.designation}</p>
                 </div>
               </div>
@@ -365,7 +369,7 @@ export default function ProfilePage() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-gray-700">Designation</label>
+                <label className="text-sm font-semibold text-gray-700">Firm</label>
                 <input
                   type="text"
                   value={editForm.designation}

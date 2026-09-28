@@ -864,3 +864,23 @@ CREATE TABLE public.sell_sauda (
   CONSTRAINT sell_sauda_pkey PRIMARY KEY (id),
   CONSTRAINT sell_sauda_buy_id_fkey FOREIGN KEY (buy_id) REFERENCES public.buy_sauda(id)
 );
+
+( DISPATCH TRACKING )
+
+CREATE TABLE public.dispatch_records (
+  id uuid NOT NULL DEFAULT extensions.uuid_generate_v4(),
+  do_no text,
+  truck_no text,
+  truck_qty numeric(15, 3),
+  freight numeric(15, 2),
+  receiver_party text,
+  plant_name text,
+  mines_name text,
+  pdf_url text,
+  pdf_name text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT dispatch_records_pkey PRIMARY KEY (id)
+);
+
+ALTER TABLE public.dispatch_records DISABLE ROW LEVEL SECURITY;

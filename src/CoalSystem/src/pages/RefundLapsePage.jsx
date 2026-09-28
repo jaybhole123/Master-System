@@ -7,6 +7,7 @@ export default function RefundLapsePage() {
   const [data, setData] = useState([]);
   const [activeTab, setActiveTab] = useState("refundLapse");
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedDate, setSelectedDate] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [editingIndex, setEditingIndex] = useState(null);
   const [toastMessage, setToastMessage] = useState("");
@@ -110,7 +111,8 @@ export default function RefundLapsePage() {
         const calculatedDmfAmt = lapsed > 0 ? ((royalty * lapsed) * (dmfVal / 100)).toFixed(2) : "-";
 
         const soValueRate = parseFloat(item.so_value_rate) || parseFloat(updatedData.so_value_rate) || 0;
-        const tcsRate = parseFloat(item.tcs) || parseFloat(updatedData.tcs) || 0;
+        const storedTcs = parseFloat(item.tcs) || parseFloat(updatedData.tcs);
+        const tcsRate = !isNaN(storedTcs) && storedTcs > 0 ? storedTcs : (soValueRate / 1.01 * 0.01);
         const calculatedCoalValue = lapsed > 0 ? ((soValueRate - tcsRate) * lapsed).toFixed(2) : (item.coal_value || item.amount || "-");
 
         const emdRate = parseFloat(item.less_emd_rate) || parseFloat(item.less_emd) || 0;
@@ -205,7 +207,8 @@ export default function RefundLapsePage() {
             const dmfAmount = lapsed > 0 ? ((royalty * lapsed) * (storedDmf / 100)).toFixed(2) : "-";
             
             const soValueRate = parseFloat(row.so_value_rate) || 0;
-            const tcsRate = parseFloat(row.tcs) || 0;
+            const storedTcs = parseFloat(row.tcs);
+            const tcsRate = !isNaN(storedTcs) && storedTcs > 0 ? storedTcs : (soValueRate / 1.01 * 0.01);
             const calculatedCoalValue = lapsed > 0 ? ((soValueRate - tcsRate) * lapsed).toFixed(2) : (row.amount || "-");
 
             const doQty = parseFloat(row.quantity) || 0;
@@ -247,7 +250,8 @@ export default function RefundLapsePage() {
               royalty_amount: royaltyAmt,
               tcs: row.tcs || "-",
               so_value_rate: row.so_value_rate || "-",
-              pdf_url: row.pdf_url || null
+              pdf_url: row.pdf_url || null,
+              created_at: row.created_at
             };
           });
           
@@ -281,13 +285,24 @@ export default function RefundLapsePage() {
     return () => observer.disconnect();
   }, [isLoading, data.length, totalCount]);
 
-  const filteredData = data.filter(row => 
-    Object.values(row).some(val => String(val).toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredData = data.filter(row => {
+    const matchesSearch = Object.values(row).some(val => String(val).toLowerCase().includes(searchTerm.toLowerCase()));
+    if (!matchesSearch) return false;
+    
+    if (selectedDate) {
+      if (!row.created_at) return true;
+      const rawDate = new Date(row.created_at);
+      if (isNaN(rawDate)) return false;
+      return rawDate.getDate() === selectedDate.getDate() &&
+             rawDate.getMonth() === selectedDate.getMonth() &&
+             rawDate.getFullYear() === selectedDate.getFullYear();
+    }
+    return true;
+  });
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm]);
+  }, [searchTerm, selectedDate]);
 
   const paginatedData = filteredData;
 
@@ -366,6 +381,46 @@ export default function RefundLapsePage() {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M9 15h1a2 2 0 0 0 0-4H9v4Z"></path></svg>
             PDF
           </button>
+
+          {/* DATE NAVIGATOR */}
+          <div style={{ display: "flex", alignItems: "center", background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "6px", boxShadow: "0 1px 2px rgba(0,0,0,0.02)", height: "34px" }}>
+            <div style={{ display: "flex", alignItems: "center", padding: "2px" }}>
+              <button 
+                onClick={() => setSelectedDate(prev => prev ? (function(){ const d = new Date(prev); d.setDate(d.getDate() - 1); return d; })() : new Date())}
+                style={{ width: "24px", height: "24px", display: "flex", alignItems: "center", justifyContent: "center", background: "transparent", border: "1px solid #e2e8f0", borderRadius: "4px", cursor: "pointer", color: "#64748b" }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+              </button>
+              
+              <button 
+                onClick={() => setSelectedDate(new Date())}
+                style={{ margin: "0 2px", padding: "0 8px", height: "24px", display: "flex", alignItems: "center", justifyContent: "center", background: selectedDate ? "#fef2f2" : "transparent", color: selectedDate ? "#dc2626" : "#64748b", border: "none", borderRadius: "4px", fontSize: "12px", fontWeight: "600", cursor: "pointer" }}
+              >
+                Today
+              </button>
+
+              <button 
+                onClick={() => setSelectedDate(null)}
+                style={{ margin: "0 2px", padding: "0 8px", height: "24px", display: "flex", alignItems: "center", justifyContent: "center", background: !selectedDate ? "#fef2f2" : "transparent", color: !selectedDate ? "#dc2626" : "#64748b", border: "none", borderRadius: "4px", fontSize: "12px", fontWeight: "600", cursor: "pointer" }}
+              >
+                All
+              </button>
+              
+              <button 
+                onClick={() => setSelectedDate(prev => prev ? (function(){ const d = new Date(prev); d.setDate(d.getDate() + 1); return d; })() : new Date())}
+                style={{ width: "24px", height: "24px", display: "flex", alignItems: "center", justifyContent: "center", background: "transparent", border: "1px solid #e2e8f0", borderRadius: "4px", cursor: "pointer", color: "#64748b" }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+              </button>
+            </div>
+            
+            <div style={{ width: "1px", height: "16px", background: "#e2e8f0", margin: "0 4px" }}></div>
+            
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", padding: "0 10px", color: "#0f172a", fontSize: "13px", fontWeight: "600", minWidth: "110px", justifyContent: "center", whiteSpace: "nowrap" }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+              {selectedDate ? selectedDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : "All Data"}
+            </div>
+          </div>
 
           <div style={{ position: "relative", zIndex: 999 }} ref={columnDropdownRef}>
             <button 

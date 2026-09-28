@@ -1,91 +1,140 @@
 import React, { useState, useEffect } from "react";
 import EditModal from "../components/EditModal";
 import { downloadBlob } from "../utils/pdfParser";
+import { supabase } from "../utils/supabase";
 
-const DISPATCH_COLS = [
-  { key: "customerName", label: "Customer Name *" },
-  { key: "dispatchId", label: "Dispatch ID *" },
-  { key: "truckNumber", label: "Truck Number *" },
-  { key: "driverName", label: "Driver Name *" },
-  { key: "driverMobile", label: "Driver Mobile *" },
-  { key: "transporter", label: "Transporter *" },
-  { key: "loadingDate", label: "Loading Date *" },
-  { key: "loadingTime", label: "Loading Time *" },
-  { key: "mineWeight", label: "Mine Weight (MT) *" },
-  { key: "royaltyNumber", label: "Royalty Number *" },
-  { key: "destinationParty", label: "Destination Party *" },
-  { key: "destination", label: "Destination *" },
-  { key: "freightRate", label: "Freight Rate (₹/MT) *" },
-  { key: "advancePaid", label: "Advance Paid (₹) *" },
-  { key: "remarks", label: "Remarks" }
+const INITIAL_COLS = [
+  { key: "doNo", label: "DO No *" },
+  { key: "truckNumber", label: "Truck No *", type: "text" },
+  { key: "truckQty", label: "Truck No Qty *", type: "text" },
+  { key: "freight", label: "Freight *", type: "text" },
+  { key: "receiverParty", label: "Receiver Party *", type: "text" },
+  { key: "plantName", label: "Plant Name *", type: "text" },
+  { key: "minesName", label: "Mines Name *", type: "text" }
 ];
 
 export default function DispatchPage() {
   const [data, setData] = useState([]);
+  const [columns, setColumns] = useState(INITIAL_COLS);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingIndex, setEditingIndex] = useState(null);
 
-  // Load from local storage
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("dispatch_data");
-      if (saved) {
-        let parsed = JSON.parse(saved);
-        const cleanBlobs = (obj) => {
-          if (Array.isArray(obj)) return obj.map(cleanBlobs);
-          if (obj !== null && typeof obj === 'object') {
-            const newObj = {};
-            for (let k in obj) {
-              if (k === 'pdfUrl' && typeof obj[k] === 'string' && obj[k].startsWith('blob:')) {
-                newObj[k] = null;
-              } else {
-                newObj[k] = cleanBlobs(obj[k]);
-              }
-            }
-            return newObj;
-          }
-          return obj;
-        };
-        parsed = cleanBlobs(parsed);
-        setData(parsed);
+    async function fetchDoNumbers() {
+      try {
+        const { data: soData, error } = await supabase
+          .from("sales_orders")
+          .select("sales_order_number");
+        
+        if (!error && soData) {
+          const uniqueOptions = [...new Set(soData.map(s => s.sales_order_number).filter(Boolean))];
+          setColumns(prev => prev.map(c => 
+            c.key === "doNo" ? { ...c, options: uniqueOptions } : c
+          ));
+        }
+      } catch (err) {
+        console.error("Error fetching SO numbers:", err);
       }
-    } catch (e) {
-      console.error(e);
     }
+    fetchDoNumbers();
   }, []);
 
-  const saveToStorage = (newData) => {
-    localStorage.setItem("dispatch_data", JSON.stringify(newData));
+  const fetchDispatchData = async () => {
+    try {
+      const { data: records, error } = await supabase
+        .from("dispatch_records")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      if (records) {
+        const mappedData = records.map(r => ({
+          id: r.id,
+          doNo: r.do_no,
+          truckNumber: r.truck_no,
+          truckQty: r.truck_qty,
+          freight: r.freight,
+          receiverParty: r.receiver_party,
+          plantName: r.plant_name,
+          minesName: r.mines_name,
+          pdfUrl: r.pdf_url,
+          pdfName: r.pdf_name
+        }));
+        setData(mappedData);
+      }
+    } catch (err) {
+      console.error("Error fetching dispatch records:", err);
+    }
   };
 
-  const handleManualAdd = (formData) => {
-    let newData;
-    
-    const formattedItem = {
-      ...formData,
-      pdfUrl: formData.pdfFile ? URL.createObjectURL(formData.pdfFile) : null,
-      pdfName: formData.pdfFile ? formData.pdfFile.name : null,
-    };
-    
-    // Remove the File object before saving so it doesn't break JSON.stringify
-    delete formattedItem.pdfFile;
+  useEffect(() => {
+    fetchDispatchData();
+  }, []);
 
-    if (editingIndex !== null) {
-      newData = [...data];
-      // preserve existing pdfUrl if not updated
-      if (!formattedItem.pdfUrl && newData[editingIndex].pdfUrl) {
-         formattedItem.pdfUrl = newData[editingIndex].pdfUrl;
-         formattedItem.pdfName = newData[editingIndex].pdfName;
+  const handleManualAdd = async (formData) => {
+    try {
+      let pdfUrl = formData.pdfUrl || null;
+      let pdfName = formData.pdfName || null;
+
+      // Basic PDF Upload logic if provided
+      if (formData.pdfFile) {
+        const fileExt = formData.pdfFile.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        
+        // Ensure bucket exists in your Supabase setup, e.g. "documents"
+        const { error: uploadError } = await supabase.storage
+          .from('documents')
+          .upload(`dispatch/${fileName}`, formData.pdfFile);
+        
+        if (!uploadError) {
+          const { data: publicUrlData } = supabase.storage
+            .from('documents')
+            .getPublicUrl(`dispatch/${fileName}`);
+          pdfUrl = publicUrlData.publicUrl;
+          pdfName = formData.pdfFile.name;
+        } else {
+          console.error("PDF upload failed:", uploadError);
+        }
       }
-      newData[editingIndex] = formattedItem;
-    } else {
-      newData = [...data, formattedItem];
+
+      const payload = {
+        do_no: formData.doNo || null,
+        truck_no: formData.truckNumber || null,
+        truck_qty: formData.truckQty ? parseFloat(formData.truckQty) : null,
+        freight: formData.freight ? parseFloat(formData.freight) : null,
+        receiver_party: formData.receiverParty || null,
+        plant_name: formData.plantName || null,
+        mines_name: formData.minesName || null,
+        pdf_url: pdfUrl,
+        pdf_name: pdfName
+      };
+
+      if (editingIndex !== null && data[editingIndex]?.id) {
+        // Update existing record
+        const recordId = data[editingIndex].id;
+        const { error } = await supabase
+          .from("dispatch_records")
+          .update(payload)
+          .eq("id", recordId);
+        
+        if (error) throw error;
+      } else {
+        // Insert new record
+        const { error } = await supabase
+          .from("dispatch_records")
+          .insert([payload]);
+          
+        if (error) throw error;
+      }
+      
+      setIsModalOpen(false);
+      setEditingIndex(null);
+      fetchDispatchData();
+    } catch (err) {
+      console.error("Error saving dispatch record:", err);
+      alert("Failed to save record.");
     }
-    
-    setData(newData);
-    saveToStorage(newData);
-    setIsModalOpen(false);
-    setEditingIndex(null);
   };
 
   const handleEditClick = (index) => {
@@ -93,20 +142,37 @@ export default function DispatchPage() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (index) => {
+  const handleDelete = async (index) => {
     if (window.confirm("Are you sure you want to delete this row?")) {
-      const newData = [...data];
-      newData.splice(index, 1);
-      setData(newData);
-      saveToStorage(newData);
+      try {
+        const recordId = data[index].id;
+        if (!recordId) {
+          const newData = [...data];
+          newData.splice(index, 1);
+          setData(newData);
+          return;
+        }
+
+        const { error } = await supabase
+          .from("dispatch_records")
+          .delete()
+          .eq("id", recordId);
+          
+        if (error) throw error;
+        
+        fetchDispatchData();
+      } catch (err) {
+        console.error("Error deleting record:", err);
+        alert("Failed to delete record.");
+      }
     }
   };
 
   const handleExportCsv = () => {
     if (data.length === 0) return;
-    const header = DISPATCH_COLS.map(c => c.label).join(",") + "\n";
+    const header = columns.map(c => c.label).join(",") + "\n";
     const rows = data.map(row => 
-      DISPATCH_COLS.map(col => `"${(row[col.key] || "").replace(/"/g, '""')}"`).join(",")
+      columns.map(col => `"${(row[col.key] || "").replace(/"/g, '""')}"`).join(",")
     ).join("\n");
     downloadBlob(header + rows, "dispatch_data.csv", "text/csv");
   };
@@ -135,7 +201,7 @@ export default function DispatchPage() {
             <thead>
               <tr>
                 <th>#</th>
-                {DISPATCH_COLS.map(c => <th key={c.key}>{c.label.replace(" *", "")}</th>)}
+                {columns.map(c => <th key={c.key}>{c.label.replace(" *", "")}</th>)}
                 <th>PDF</th>
                 <th>Action</th>
               </tr>
@@ -143,18 +209,18 @@ export default function DispatchPage() {
             <tbody>
               {data.length === 0 ? (
                 <tr>
-                  <td colSpan={DISPATCH_COLS.length + 3} style={{ textAlign: "center", padding: "40px", color: "var(--muted)" }}>
+                  <td colSpan={columns.length + 3} style={{ textAlign: "center", padding: "40px", color: "var(--muted)" }}>
                     No dispatch records found. Click "+ Add Form" to create one.
                   </td>
                 </tr>
               ) : (
                 data.map((row, i) => (
                   <tr key={i}>
-                    <td className="row-num">{i + 1}</td>
-                    {DISPATCH_COLS.map(c => (
-                      <td key={c.key}>{row[c.key] || "-"}</td>
+                    <td className="row-num" data-label="#">{i + 1}</td>
+                    {columns.map(c => (
+                      <td key={c.key} data-label={c.label.replace(" *", "")}>{row[c.key] || "-"}</td>
                     ))}
-                    <td>
+                    <td data-label="PDF">
                       {row.pdfUrl ? (
                         <a href={row.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", textDecoration: "none", fontWeight: 500, fontSize: "12px" }}>
                           View PDF
@@ -163,9 +229,11 @@ export default function DispatchPage() {
                         <span style={{ color: "var(--muted)" }}>-</span>
                       )}
                     </td>
-                    <td style={{ display: "flex", gap: "6px" }}>
-                      <button className="btn outline" style={{ padding: "4px 8px", fontSize: "11px" }} onClick={() => handleEditClick(i)}>Edit</button>
-                      <button className="btn ghost" style={{ padding: "4px 8px", fontSize: "11px", color: "#dc2626" }} onClick={() => handleDelete(i)}>Delete</button>
+                    <td data-label="Action">
+                      <div style={{ display: "flex", gap: "6px", justifyContent: "flex-end" }}>
+                        <button className="btn outline" style={{ padding: "4px 8px", fontSize: "11px" }} onClick={() => handleEditClick(i)}>Edit</button>
+                        <button className="btn ghost" style={{ padding: "4px 8px", fontSize: "11px", color: "#dc2626" }} onClick={() => handleDelete(i)}>Delete</button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -181,7 +249,7 @@ export default function DispatchPage() {
         onSave={handleManualAdd}
         title={editingIndex !== null ? "Edit Dispatch Record" : "Add Dispatch Record"}
         initialData={editingIndex !== null ? data[editingIndex] : {}}
-        columns={DISPATCH_COLS}
+        columns={columns}
       />
     </div>
   );

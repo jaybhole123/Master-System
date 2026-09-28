@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Play, FileText, Image as ImageIcon, Link as LinkIcon, X, Maximize2, ExternalLink } from 'lucide-react';
+import { Play, FileText, Image as ImageIcon, Link as LinkIcon, X, Maximize2, ExternalLink, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import AudioPlayer from './AudioPlayer';
 
@@ -54,6 +54,33 @@ const MediaViewer = ({ isOpen, onClose, media }) => {
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
+                                <button 
+                                    onClick={async (e) => {
+                                        e.preventDefault();
+                                        try {
+                                            const response = await fetch(media.url);
+                                            if (!response.ok) throw new Error('Network response was not ok');
+                                            const blob = await response.blob();
+                                            const blobUrl = window.URL.createObjectURL(blob);
+                                            const a = document.createElement('a');
+                                            a.href = blobUrl;
+                                            a.download = media.url.split('/').pop().split('?')[0] || 'download';
+                                            document.body.appendChild(a);
+                                            a.click();
+                                            document.body.removeChild(a);
+                                            window.URL.revokeObjectURL(blobUrl);
+                                        } catch (error) {
+                                            console.error('Download failed:', error);
+                                            // Fallback to open in new tab if fetch fails (e.g. strict CORS)
+                                            window.open(media.url, '_blank');
+                                        }
+                                    }}
+                                    className="p-2.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-2xl transition-all group lg:flex items-center gap-2 hidden"
+                                    title="Download file"
+                                >
+                                    <span className="text-xs font-bold uppercase tracking-wider">Download</span>
+                                    <Download size={18} />
+                                </button>
                                 <button 
                                     onClick={() => window.open(media.url, '_blank')}
                                     className="p-2.5 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-2xl transition-all group lg:flex items-center gap-2 hidden"

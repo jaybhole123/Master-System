@@ -611,6 +611,16 @@ const AllTasks = () => {
     const completionField = "submission_date";
 
     return historyData.filter((task) => {
+      const assignedUser = task.name || task.assigned_person || task.doer_name || "";
+      const currentUserRole = (userRole || "").trim().toLowerCase();
+      const currentUsername = (username || "").trim().toLowerCase();
+      const isSuperAdmin = currentUsername === "admin";
+      const isAdminRole = currentUserRole === "admin" || currentUserRole === "superadmin";
+
+      const userMatch = isSuperAdmin || isAdminRole || (assignedUser && assignedUser.trim().toLowerCase() === currentUsername);
+
+      if (!userMatch) return false;
+
       const matchesSearch = searchTerm
         ? Object.values(task).some(
           (val) => val && val.toString().toLowerCase().includes(searchTerm.toLowerCase())
