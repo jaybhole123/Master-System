@@ -8,6 +8,7 @@ import jbtLogo from '../../../assets/jbt.png';
 import ganeshLogo from '../../../assets/ganesh.jpg';
 import signatureImg from '../../../assets/signature.png';
 import jblLogo from '../../../assets/jbl.png';
+import jbeLogo from '../../../assets/jbe.png';
 
 const COMPANY_DETAILS = {
   'M/s Jai Bhole Traders': {
@@ -19,8 +20,8 @@ const COMPANY_DETAILS = {
   },
   'Jai Bhole Enterprises': {
     name: 'Jai Bhole Enterprises',
-    logo: ganeshLogo,
-    textColor: '#ff6b52',
+    logo: jbeLogo,
+    textColor: '#000000',
     address: 'N.K. Agrawal & Sons Tower, 3rd Floor, Lane No. 8, Near State Bank of India, New Shanti Nagar, Shankar Nagar, Raipur 492 004 (C.G.)',
     footerContact: 'Mo. : 91654 22000, E-mail : amarnath.agrawal22@gmail.com, GSTIN : 22AHAPA5408K1ZW'
   },
@@ -420,7 +421,6 @@ const OfferLetter = () => {
                   width: 100% !important;
                   max-width: 800px;
                   height: auto !important;
-                  min-height: 100vw;
                   padding: 20px !important;
                 }
               }
@@ -459,9 +459,8 @@ const OfferLetter = () => {
             <div ref={letterRef} className="font-sans text-sm letter-content" style={{ 
               backgroundColor: '#fff', 
               color: '#000', 
-              padding: '40px 60px', 
+              padding: '30px 50px', 
               width: '800px', 
-              minHeight: '1131px', // A4 aspect ratio 1:1.414
               border: '1px solid #ccc',
               margin: '0 auto',
               display: 'flex',
@@ -471,32 +470,40 @@ const OfferLetter = () => {
             }}>
             
             {/* Document Header */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '20px', borderBottom: '2px solid #ccc', paddingBottom: '10px', marginBottom: '15px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', borderBottom: '2px solid #ccc', paddingBottom: '8px', marginBottom: '10px' }}>
               {activeFirm.logo && (
-                <img src={activeFirm.logo} alt={activeFirm.name} style={{ height: '70px', width: 'auto', borderRadius: '4px' }} />
+                <img src={activeFirm.logo} alt={activeFirm.name} style={{ height: '60px', maxWidth: '200px', objectFit: 'contain', position: 'absolute', left: 0 }} />
               )}
               <h1 style={{ 
                 fontSize: '2.2rem', 
                 fontWeight: 'bold', 
                 margin: 0, 
                 color: activeFirm.textColor,
-                fontFamily: '"Impact", "Arial Black", sans-serif'
+                fontFamily: '"Impact", "Arial Black", sans-serif',
+                textAlign: 'center',
+                flex: 1
               }}>
-                {activeFirm.name}
+                {activeFirm.name.split('').map((char, index) => 
+                  (char === 'i' || char === 'I') ? (
+                    <span key={index} style={{ margin: '0 2px' }}>i</span>
+                  ) : (
+                    char
+                  )
+                )}
               </h1>
             </div>
 
-            <h2 style={{ textAlign: 'center', fontSize: '1.2rem', fontWeight: 'bold', textDecoration: 'underline', marginBottom: '15px' }}>
+            <h2 style={{ textAlign: 'center', fontSize: '1.2rem', fontWeight: 'bold', textDecoration: 'underline', marginBottom: '10px' }}>
               OFFER LETTER
             </h2>
 
             {/* Date */}
-            <div style={{ textAlign: 'right', marginBottom: '15px', fontWeight: 'bold' }}>
+            <div style={{ textAlign: 'right', marginBottom: '10px', fontWeight: 'bold' }}>
               DT : - {formData.date ? formData.date.split('-').reverse().join('/') : ''}
             </div>
 
             {/* To Address */}
-            <div style={{ marginBottom: '15px', lineHeight: '1.5' }}>
+            <div style={{ marginBottom: '10px', lineHeight: '1.4' }}>
               <p>To</p>
               <p>{formData.buyerName}</p>
               <p style={{ whiteSpace: 'pre-wrap' }}>{formData.buyerAddress}</p>
@@ -504,26 +511,28 @@ const OfferLetter = () => {
             </div>
 
             {/* Subject */}
-            <p style={{ marginBottom: '15px', fontWeight: 'bold' }}>
+            <p style={{ marginBottom: '10px', fontWeight: 'bold' }}>
               Subject: - {formData.subject}
             </p>
 
-            <p style={{ marginBottom: '10px' }}>Dear Sir,</p>
-            <p style={{ marginBottom: '15px' }}>We would like to offer the terms in connection with supply of Coal to your company.</p>
+            <p style={{ marginBottom: '8px' }}>Dear Sir,</p>
+            <p style={{ marginBottom: '10px' }}>We would like to offer the terms in connection with supply of Coal to your company.</p>
 
             {/* Specifications Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: '200px 50px 1fr', gap: '6px 0', marginBottom: '15px', lineHeight: '1.5' }}>
-              {visibleSpecs.commodity && <><div>Name of Commodity</div><div>:-</div><div>{formData.commodity}</div></>}
-              {visibleSpecs.billingMode && <><div>Billing Mode</div><div>:-</div><div>{formData.billingMode}</div></>}
-              {visibleSpecs.basicPrice && <><div>Basic Price</div><div>:-</div><div>{formData.basicPrice}</div></>}
-              {visibleSpecs.transporting && <><div>Transporting</div><div>:-</div><div>{formData.transporting}</div></>}
-              {visibleSpecs.quantity && <><div>Quantity</div><div>:-</div><div>{formData.quantity}</div></>}
-              {visibleSpecs.moisture && <><div>Moisture</div><div>:-</div><div>{formData.moisture}</div></>}
-              {visibleSpecs.fc && <><div>Fc (ODB)</div><div>:-</div><div>{formData.fc}</div></>}
-              {visibleSpecs.ash && <><div>Ash (ADB)</div><div>:-</div><div>{formData.ash}</div></>}
-              {visibleSpecs.vm && <><div>VM (ADB)</div><div>:-</div><div>{formData.vm}</div></>}
-              {visibleSpecs.size && <><div>Size</div><div>:-</div><div>{formData.size}</div></>}
-            </div>
+            <table style={{ display: 'table', width: '100%', borderCollapse: 'collapse', marginBottom: '10px', lineHeight: '1.4' }}>
+              <tbody style={{ display: 'table-row-group' }}>
+                {visibleSpecs.commodity && <tr style={{ display: 'table-row' }}><td style={{ display: 'table-cell', width: '200px', paddingBottom: '4px', verticalAlign: 'top' }}>Name of Commodity</td><td style={{ display: 'table-cell', width: '30px', paddingBottom: '4px', verticalAlign: 'top' }}>:-</td><td style={{ display: 'table-cell', paddingBottom: '4px', verticalAlign: 'top' }}>{formData.commodity}</td></tr>}
+                {visibleSpecs.billingMode && <tr style={{ display: 'table-row' }}><td style={{ display: 'table-cell', width: '200px', paddingBottom: '4px', verticalAlign: 'top' }}>Billing Mode</td><td style={{ display: 'table-cell', width: '30px', paddingBottom: '4px', verticalAlign: 'top' }}>:-</td><td style={{ display: 'table-cell', paddingBottom: '4px', verticalAlign: 'top' }}>{formData.billingMode}</td></tr>}
+                {visibleSpecs.basicPrice && <tr style={{ display: 'table-row' }}><td style={{ display: 'table-cell', width: '200px', paddingBottom: '4px', verticalAlign: 'top' }}>Basic Price</td><td style={{ display: 'table-cell', width: '30px', paddingBottom: '4px', verticalAlign: 'top' }}>:-</td><td style={{ display: 'table-cell', paddingBottom: '4px', verticalAlign: 'top' }}>{formData.basicPrice}</td></tr>}
+                {visibleSpecs.transporting && <tr style={{ display: 'table-row' }}><td style={{ display: 'table-cell', width: '200px', paddingBottom: '4px', verticalAlign: 'top' }}>Transporting</td><td style={{ display: 'table-cell', width: '30px', paddingBottom: '4px', verticalAlign: 'top' }}>:-</td><td style={{ display: 'table-cell', paddingBottom: '4px', verticalAlign: 'top' }}>{formData.transporting}</td></tr>}
+                {visibleSpecs.quantity && <tr style={{ display: 'table-row' }}><td style={{ display: 'table-cell', width: '200px', paddingBottom: '4px', verticalAlign: 'top' }}>Quantity</td><td style={{ display: 'table-cell', width: '30px', paddingBottom: '4px', verticalAlign: 'top' }}>:-</td><td style={{ display: 'table-cell', paddingBottom: '4px', verticalAlign: 'top' }}>{formData.quantity}</td></tr>}
+                {visibleSpecs.moisture && <tr style={{ display: 'table-row' }}><td style={{ display: 'table-cell', width: '200px', paddingBottom: '4px', verticalAlign: 'top' }}>Moisture</td><td style={{ display: 'table-cell', width: '30px', paddingBottom: '4px', verticalAlign: 'top' }}>:-</td><td style={{ display: 'table-cell', paddingBottom: '4px', verticalAlign: 'top' }}>{formData.moisture}</td></tr>}
+                {visibleSpecs.fc && <tr style={{ display: 'table-row' }}><td style={{ display: 'table-cell', width: '200px', paddingBottom: '4px', verticalAlign: 'top' }}>Fc (ODB)</td><td style={{ display: 'table-cell', width: '30px', paddingBottom: '4px', verticalAlign: 'top' }}>:-</td><td style={{ display: 'table-cell', paddingBottom: '4px', verticalAlign: 'top' }}>{formData.fc}</td></tr>}
+                {visibleSpecs.ash && <tr style={{ display: 'table-row' }}><td style={{ display: 'table-cell', width: '200px', paddingBottom: '4px', verticalAlign: 'top' }}>Ash (ADB)</td><td style={{ display: 'table-cell', width: '30px', paddingBottom: '4px', verticalAlign: 'top' }}>:-</td><td style={{ display: 'table-cell', paddingBottom: '4px', verticalAlign: 'top' }}>{formData.ash}</td></tr>}
+                {visibleSpecs.vm && <tr style={{ display: 'table-row' }}><td style={{ display: 'table-cell', width: '200px', paddingBottom: '4px', verticalAlign: 'top' }}>VM (ADB)</td><td style={{ display: 'table-cell', width: '30px', paddingBottom: '4px', verticalAlign: 'top' }}>:-</td><td style={{ display: 'table-cell', paddingBottom: '4px', verticalAlign: 'top' }}>{formData.vm}</td></tr>}
+                {visibleSpecs.size && <tr style={{ display: 'table-row' }}><td style={{ display: 'table-cell', width: '200px', paddingBottom: '4px', verticalAlign: 'top' }}>Size</td><td style={{ display: 'table-cell', width: '30px', paddingBottom: '4px', verticalAlign: 'top' }}>:-</td><td style={{ display: 'table-cell', paddingBottom: '4px', verticalAlign: 'top' }}>{formData.size}</td></tr>}
+              </tbody>
+            </table>
 
             {/* Note */}
             {formData.noteText && (
@@ -533,7 +542,7 @@ const OfferLetter = () => {
             )}
 
             {/* Closing */}
-            <div style={{ lineHeight: '1.6', marginBottom: '20px' }}>
+            <div style={{ lineHeight: '1.4', marginBottom: '15px' }}>
               <p>We hope you will find our offer competitive.</p>
               <p>We are looking forward to have a long term association with your esteemed organization.</p>
               <p>Please issue Purchase order to start supply of material.</p>
@@ -541,9 +550,9 @@ const OfferLetter = () => {
 
             {/* Footer / Signature */}
             <div style={{ marginTop: 'auto', lineHeight: '1.4' }}>
-              <p style={{ fontWeight: 'bold', marginBottom: '15px' }}>Thanks & Regards</p>
+              <p style={{ fontWeight: 'bold', marginBottom: '10px' }}>Thanks & Regards</p>
               <p>For {formData.companyName}</p>
-              <div style={{ height: '80px', display: 'flex', alignItems: 'center', marginTop: '5px', marginBottom: '5px' }}>
+              <div style={{ height: '60px', display: 'flex', alignItems: 'center', marginTop: '5px', marginBottom: '5px' }}>
                  {formData.signatureDataUrl && (
                    <img src={formData.signatureDataUrl} alt="Signature" style={{ height: '100%', objectFit: 'contain' }} />
                  )}
@@ -553,7 +562,7 @@ const OfferLetter = () => {
             </div>
 
             {/* Bottom Address */}
-            <div style={{ borderTop: '2px solid #ccc', marginTop: '20px', paddingTop: '10px', textAlign: 'center', fontSize: '0.85rem', color: '#6b7280' }}>
+            <div style={{ borderTop: '2px solid #ccc', marginTop: '15px', paddingTop: '8px', textAlign: 'center', fontSize: '0.85rem', color: '#1d4ed8' }}>
               <div>{formData.firmAddress}</div>
               <div>{formData.firmFooterContact}</div>
             </div>

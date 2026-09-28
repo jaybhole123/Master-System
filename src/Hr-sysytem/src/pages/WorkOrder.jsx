@@ -8,6 +8,7 @@ import jbtLogo from '../../../assets/jbt.png';
 import ganeshLogo from '../../../assets/ganesh.jpg';
 import signatureImg from '../../../assets/signature.png';
 import jblLogo from '../../../assets/jbl.png';
+import jbeLogo from '../../../assets/jbe.png';
 
 const COMPANY_DETAILS = {
   'M/s Jai Bhole Traders': {
@@ -20,9 +21,9 @@ const COMPANY_DETAILS = {
   },
   'Jai Bhole Enterprises': {
     name: 'Jai Bhole Enterprises',
-    logo: ganeshLogo,
+    logo: jbeLogo,
     gstin: '22AIXPA7225L1ZU',
-    textColor: '#e85d04',
+    textColor: '#000000',
     address: 'N.K. Agrawal & Sons Tower, 3rd Floor, Lane No. 8, Near State Bank of India, New Shanti Nagar, Shankar Nagar, Raipur 492 004 (C.G.)',
     footerContact: 'Mo. : 91654 22000, E-mail : amarnath.agrawal22@gmail.com, GSTIN : 22AIXPA7225L1ZU'
   },
@@ -38,7 +39,7 @@ const COMPANY_DETAILS = {
     name: 'Jai Bhole Logistics',
     logo: jblLogo,
     gstin: '22AANHA7052H1ZH',
-    textColor: '#000000',
+    textColor: '#e85d04',
     address: 'N.K. Agrawal & Sons Tower, 3rd Floor, Lane No. 8, Near State Bank of India, New Shanti Nagar, Shankar Nagar, Raipur 492 004 (C.G.)',
     footerContact: 'Mo.: 91654 22000, E-mail : amarnath.agrawal22@gmail.com'
   }
@@ -463,7 +464,13 @@ const WorkOrder = () => {
                 textAlign: 'center',
                 flex: 1
               }}>
-                {activeFirm.name}
+                {activeFirm.name.split('').map((char, index) => 
+                  (char === 'i' || char === 'I') ? (
+                    <span key={index} style={{ margin: '0 2px' }}>i</span>
+                  ) : (
+                    char
+                  )
+                )}
               </h1>
             </div>
 
@@ -574,7 +581,7 @@ const WorkOrder = () => {
               <p>{formData.signatoryTitle}</p>
 
               {/* Bottom Address */}
-              <div style={{ borderTop: '2px solid #ccc', marginTop: '10px', paddingTop: '8px', textAlign: 'center', fontSize: '0.85rem', color: '#6b7280' }}>
+              <div style={{ borderTop: '2px solid #ccc', marginTop: '10px', paddingTop: '8px', textAlign: 'center', fontSize: '0.85rem', color: '#1d4ed8' }}>
                 <div>{formData.address}</div>
                 <div>{formData.footerContact}</div>
               </div>
