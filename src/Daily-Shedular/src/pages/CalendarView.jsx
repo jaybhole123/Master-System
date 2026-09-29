@@ -509,7 +509,7 @@ const YearView = ({ currentDate, tasks, onDateClick }) => {
 
 // ─── MAIN CALENDAR VIEW ───
 const CalendarView = () => {
-  const { tasks, allTasks, staffList, fetchTasks, settings } = useScheduler();
+  const { tasks, allTasks, staffList, fetchTasks, settings, markTaskDone, formatTime12h } = useScheduler();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState('month'); // year | month | week | day
   const [modalState, setModalState] = useState({ isOpen: false, time: null, task: null });
@@ -582,6 +582,14 @@ const CalendarView = () => {
   const pendingCount = todayTasks.filter(t => t.status === 'Pending').length;
   const completedCount = todayTasks.filter(t => t.status === 'Completed').length;
   const overdueCount = tasks.filter(t => t.status === 'Overdue').length;
+
+  const currentMonthPendingTasks = useMemo(() => {
+    return tasks.filter(t => {
+      if (t.status !== 'Pending') return false;
+      if (!t.date) return false;
+      return isSameMonth(new Date(t.date), currentDate);
+    });
+  }, [tasks, currentDate]);
 
   const viewBtnStyle = (mode) => ({
     display: 'flex', alignItems: 'center', gap: '4px',
@@ -659,6 +667,34 @@ const CalendarView = () => {
           </div>
         </div>
       </div>
+
+      {/* ── Pending Tasks Marquee ── */}
+      {currentMonthPendingTasks.length > 0 && (
+        <div style={{
+          background: '#fef3c7', borderBottom: '1px solid #fde68a',
+          padding: '6px 16px', display: 'flex', alignItems: 'center', overflow: 'hidden', flexShrink: 0
+        }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#b45309', whiteSpace: 'nowrap', marginRight: '16px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            Pending Tasks ({format(currentDate, 'MMM yyyy')}):
+          </span>
+          <div style={{ flex: 1, overflow: 'hidden', display: 'flex', alignItems: 'center' }}>
+            {/* eslint-disable-next-line jsx-a11y/no-distracting-elements */}
+            <marquee scrollamount="6" onMouseOver={(e) => e.target.stop()} onMouseOut={(e) => e.target.start()}>
+              <div style={{ display: 'flex', gap: '32px' }}>
+                {currentMonthPendingTasks.map(t => (
+                  <span 
+                    key={t.id} 
+                    style={{ fontSize: '0.8rem', fontWeight: 600, color: '#92400e', cursor: 'pointer' }} 
+                    onClick={() => handleTaskClick(t)}
+                  >
+                    • {t.description} <span style={{ opacity: 0.7 }}>({format(new Date(t.date), 'dd MMM')})</span>
+                  </span>
+                ))}
+              </div>
+            </marquee>
+          </div>
+        </div>
+      )}
 
       {/* ── Body ── */}
       <div style={{ flex: 1, display: 'flex', gap: '0', overflow: 'auto', minHeight: 0 }}>
@@ -812,7 +848,7 @@ const CalendarView = () => {
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <Clock size={14} color="var(--text-muted)" />
-                      <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{task.startTime || '—'} – {task.endTime || '—'}</span>
+                      <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{task.startTime ? formatTime12h(task.startTime) : '—'} – {task.endTime ? formatTime12h(task.endTime) : '—'}</span>
                     </div>
                     {task.createdBy && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -826,7 +862,24 @@ const CalendarView = () => {
                       </div>
                     )}
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px', gap: '8px' }}>
+                    {task.status !== 'Completed' && (
+                      <button
+                        onClick={() => {
+                          markTaskDone(task.id);
+                          setTaskDetailModal({ isOpen: false, task: null });
+                        }}
+                        style={{
+                          padding: '8px 18px', borderRadius: '8px', border: 'none', cursor: 'pointer',
+                          background: '#10b981', color: '#fff', fontSize: '0.82rem', fontWeight: 600,
+                          transition: 'background 0.15s',
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = '#059669'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = '#10b981'; }}
+                      >
+                        Mark as Done
+                      </button>
+                    )}
                     <button
                       onClick={() => {
                         setTaskDetailModal({ isOpen: false, task: null });

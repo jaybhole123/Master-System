@@ -360,40 +360,38 @@ const TaskModal = ({ isOpen, onClose, task, selectedTime, selectedDate }) => {
               <label className="input-label">Task Date</label>
               <input type="text" value={format(new Date(formData.date), 'dd MMM yyyy')} readOnly className="input-field" style={{ backgroundColor: 'var(--bg-color)', color: 'var(--text-secondary)' }} />
             </div>
-            {!task && (
-              <div className="input-group" style={{ gridColumn: '1 / -1' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <div style={{ flex: 1 }}>
-                    <label className="input-label">Recurring</label>
-                    <select name="recurring" value={formData.recurring} onChange={handleChange} className="input-field">
-                      <option value="None">None (One-time)</option>
-                      <option value="Every Monday">Every Monday</option>
-                      <option value="Every Tuesday">Every Tuesday</option>
-                      <option value="Every Wednesday">Every Wednesday</option>
-                      <option value="Every Thursday">Every Thursday</option>
-                      <option value="Every Friday">Every Friday</option>
-                      <option value="Every Saturday">Every Saturday</option>
-                      <option value="Every Sunday">Every Sunday</option>
-                    </select>
-                  </div>
-                  {formData.recurring !== 'None' && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1.5rem' }}>
-                      <input 
-                        type="checkbox" 
-                        id="recurringLimitToMonth"
-                        name="recurringLimitToMonth"
-                        checked={formData.recurringLimitToMonth}
-                        onChange={handleChange}
-                        style={{ width: '16px', height: '16px', cursor: 'pointer' }}
-                      />
-                      <label htmlFor="recurringLimitToMonth" style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', cursor: 'pointer', fontWeight: 500 }}>
-                        This Month Only
-                      </label>
-                    </div>
-                  )}
+            <div className="input-group" style={{ gridColumn: '1 / -1' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div style={{ flex: 1 }}>
+                  <label className="input-label">Recurring</label>
+                  <select name="recurring" value={formData.recurring} onChange={handleChange} className="input-field">
+                    <option value="None">None (One-time)</option>
+                    <option value="Every Monday">Every Monday</option>
+                    <option value="Every Tuesday">Every Tuesday</option>
+                    <option value="Every Wednesday">Every Wednesday</option>
+                    <option value="Every Thursday">Every Thursday</option>
+                    <option value="Every Friday">Every Friday</option>
+                    <option value="Every Saturday">Every Saturday</option>
+                    <option value="Every Sunday">Every Sunday</option>
+                  </select>
                 </div>
+                {formData.recurring !== 'None' && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1.5rem' }}>
+                    <input 
+                      type="checkbox" 
+                      id="recurringLimitToMonth"
+                      name="recurringLimitToMonth"
+                      checked={formData.recurringLimitToMonth}
+                      onChange={handleChange}
+                      style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                    />
+                    <label htmlFor="recurringLimitToMonth" style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', cursor: 'pointer', fontWeight: 500 }}>
+                      This Month Only
+                    </label>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
