@@ -7,6 +7,7 @@ import { ReactMediaRecorder } from "react-media-recorder";
 import BulkImportModal from "../../components/BulkImportModal";
 import AdminLayout from "../../components/layout/AdminLayout";
 import AudioPlayer from "../../components/AudioPlayer";
+import Select, { components } from "react-select";
 import { useDispatch, useSelector } from "react-redux";
 import { assignTaskInTable, uniqueDepartmentData, uniqueDoerNameData, uniqueGivenByData } from "../../redux/slice/assignTaskSlice";
 import { customDropdownDetails } from "../../redux/slice/settingSlice";
@@ -30,11 +31,66 @@ const FREQUENCY_OPTIONS = [
     "End of 1st week", "End of 2nd week", "End of 3rd week", "End of 4rth week"
 ];
 
+const customSelectStyles = {
+    control: (base, state) => ({
+        ...base,
+        minHeight: '42px',
+        borderRadius: '0.5rem',
+        borderColor: state.isFocused ? '#ef4444' : '#e5e7eb',
+        backgroundColor: state.isFocused ? '#ffffff' : '#f9fafb',
+        boxShadow: state.isFocused ? '0 0 0 1px #ef4444' : 'none',
+        '&:hover': { borderColor: '#ef4444' },
+        transition: 'all 0.2s ease'
+    }),
+    option: (base, state) => ({
+        ...base,
+        backgroundColor: state.isSelected ? '#fee2e2' : state.isFocused ? '#fef2f2' : 'white',
+        color: state.isSelected ? '#991b1b' : '#374151',
+        cursor: 'pointer',
+        '&:active': { backgroundColor: '#fee2e2' },
+        padding: '8px 12px'
+    }),
+    multiValue: (base) => ({
+        ...base,
+        backgroundColor: '#fee2e2',
+        borderRadius: '0.375rem',
+        padding: '1px'
+    }),
+    multiValueLabel: (base) => ({
+        ...base,
+        color: '#991b1b',
+        fontWeight: 'bold',
+        fontSize: '0.75rem'
+    }),
+    multiValueRemove: (base) => ({
+        ...base,
+        color: '#ef4444',
+        ':hover': {
+            backgroundColor: '#f87171',
+            color: 'white',
+            borderRadius: '0.25rem'
+        },
+    }),
+};
+
+const CustomOption = (props) => {
+    return (
+        <components.Option {...props}>
+            <div className="flex items-center gap-3 py-0.5 cursor-pointer">
+                <div className={`w-4 h-4 rounded flex items-center justify-center border transition-colors ${props.isSelected ? 'bg-red-500 border-red-500' : 'bg-white border-gray-300'}`}>
+                    {props.isSelected && <CheckCircle2 className="w-3 h-3 text-white" />}
+                </div>
+                <span className={`text-sm font-bold transition-colors ${props.isSelected ? 'text-red-800' : 'text-gray-700'}`}>{props.label}</span>
+            </div>
+        </components.Option>
+    );
+};
+
 const defaultTask = () => ({
     id: Date.now() + Math.random(),
     department: "",
     givenBy: "",
-    doer: "",
+    doer: [],
     description: "",
     frequency: "Daily",
     duration: "",
@@ -189,7 +245,7 @@ function TaskCard({ task, index, total, department, doerName, givenBy, dispatch,
                             name="department"
                             value={task.department}
                             onChange={(e) => {
-                                onUpdate(task.id, { department: e.target.value, doer: "" });
+                                onUpdate(task.id, { department: e.target.value, doer: [] });
                                 dispatch(uniqueDoerNameData(e.target.value));
                             }}
                             className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:bg-white transition-all text-sm"
@@ -222,62 +278,89 @@ function TaskCard({ task, index, total, department, doerName, givenBy, dispatch,
                 {/* Doer & Other */}
                 <div className="grid grid-cols-2 gap-3">
                     <div>
-                        <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
-                            Doer's Name <span className="text-red-500">*</span>
-                        </label>
-                        <select
+                        <div className="flex justify-between items-center mb-1.5">
+                            <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide">
+                                Doer's Name <span className="text-red-500">*</span>
+                            </label>
+                            <div className="flex gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const allDeptDoers = getFilteredDoers().map(d => typeof d === 'string' ? d : d.user_name);
+                                        const otherDoers = (Array.isArray(task.doer) ? task.doer : []).filter(d => !getFilteredDoers().some(fd => (typeof fd === 'string' ? fd : fd.user_name) === d));
+                                        onUpdate(task.id, { doer: [...new Set([...allDeptDoers, ...otherDoers])] });
+                                    }}
+                                    className="text-[10px] text-blue-600 hover:text-blue-800 font-bold"
+                                >
+                                    Select All
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const otherDoers = (Array.isArray(task.doer) ? task.doer : []).filter(d => !getFilteredDoers().some(fd => (typeof fd === 'string' ? fd : fd.user_name) === d));
+                                        onUpdate(task.id, { doer: [...otherDoers] });
+                                    }}
+                                    className="text-[10px] text-red-600 hover:text-red-800 font-bold"
+                                >
+                                    Clear
+                                </button>
+                            </div>
+                        </div>
+                        <Select
+                            isMulti
+                            hideSelectedOptions={false}
+                            closeMenuOnSelect={false}
+                            components={{ Option: CustomOption }}
                             name="doer"
-                            value={task.doer}
-                            onChange={handleChange}
-                            className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:bg-white transition-all text-sm"
-                        >
-                            <option value="">Select Doer</option>
-                            {getFilteredDoers().map((d, i) => (
-                                <option key={i} value={typeof d === 'string' ? d : d.user_name}>
-                                    {typeof d === 'string' ? d : d.user_name}
-                                </option>
-                            ))}
-                        </select>
+                            value={(Array.isArray(task.doer) ? task.doer : []).filter(d => getFilteredDoers().some(fd => (typeof fd === 'string' ? fd : fd.user_name) === d)).map(d => ({ value: d, label: d }))}
+                            onChange={(selectedOptions) => {
+                                const newDoers = selectedOptions ? selectedOptions.map(opt => opt.value) : [];
+                                const otherDoers = (Array.isArray(task.doer) ? task.doer : []).filter(d => !getFilteredDoers().some(fd => (typeof fd === 'string' ? fd : fd.user_name) === d));
+                                onUpdate(task.id, { doer: [...newDoers, ...otherDoers] });
+                            }}
+                            options={getFilteredDoers().map(d => ({
+                                value: typeof d === 'string' ? d : d.user_name,
+                                label: typeof d === 'string' ? d : d.user_name
+                            }))}
+                            className="text-sm"
+                            styles={customSelectStyles}
+                            placeholder="Select Doer(s)... (Type to search)"
+                        />
                     </div>
                     <div>
-                        <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
-                            Other
-                        </label>
-                        <select
+                        <div className="flex justify-between items-center mb-1.5">
+                            <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide">
+                                Other
+                            </label>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    onUpdate(task.id, { doer: [] });
+                                }}
+                                className="text-[10px] text-red-600 hover:text-red-800 font-bold"
+                            >
+                                Clear All
+                            </button>
+                        </div>
+                        <Select
+                            isMulti
+                            hideSelectedOptions={false}
+                            closeMenuOnSelect={false}
+                            components={{ Option: CustomOption }}
                             name="otherDoer"
-                            value={task.doer}
-                            onChange={(e) => {
-                                const val = e.target.value;
-                                if (!val) {
-                                    onUpdate(task.id, { doer: "" });
-                                    return;
-                                }
-                                const selectedUser = allUsersList?.find(u => u.user_name === val);
-                                if (selectedUser) {
-                                    let deptToSet = selectedUser.department;
-                                    if (Array.isArray(deptToSet)) deptToSet = deptToSet[0];
-                                    else if (typeof deptToSet === 'string' && deptToSet.includes(',')) deptToSet = deptToSet.split(',')[0].trim();
-                                    else if (typeof deptToSet === 'string' && deptToSet.startsWith('[')) {
-                                        try { deptToSet = JSON.parse(deptToSet)[0]; } catch(err) {}
-                                    }
-                                    
-                                    onUpdate(task.id, { department: deptToSet || task.department, doer: val });
-                                    if (deptToSet) {
-                                        dispatch(uniqueDoerNameData(deptToSet));
-                                    }
-                                } else {
-                                    onUpdate(task.id, { doer: val });
-                                }
+                            value={(Array.isArray(task.doer) ? task.doer : []).map(d => ({ value: d, label: d }))}
+                            onChange={(selectedOptions) => {
+                                const allSelectedDoers = selectedOptions ? selectedOptions.map(opt => opt.value) : [];
+                                onUpdate(task.id, { doer: allSelectedDoers });
                             }}
-                            className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:bg-white transition-all text-sm"
-                        >
-                            <option value="">Select Other Doer</option>
-                            {allUsersList?.map((d, i) => (
-                                <option key={`all-${i}`} value={d.user_name}>
-                                    {d.user_name}
-                                </option>
-                            ))}
-                        </select>
+                            options={(allUsersList || []).map(d => ({
+                                value: d.user_name,
+                                label: d.user_name
+                            }))}
+                            className="text-sm"
+                            styles={customSelectStyles}
+                            placeholder="Select Any Doer(s)... (Type to search)"
+                        />
                     </div>
                 </div>
 
@@ -659,7 +742,7 @@ export default function ChecklistTask() {
             ...defaultTask(),
             department: lastTask?.department || "",
             givenBy: (localStorage.getItem("role")?.toUpperCase() === "HOD" || (localStorage.getItem("role")?.toLowerCase() === "admin" && localStorage.getItem("user-name")?.toLowerCase() !== "admin")) ? localStorage.getItem("user-name") : (lastTask?.givenBy || ""),
-            doer: lastTask?.doer || "",
+            doer: Array.isArray(lastTask?.doer) ? [...lastTask.doer] : [],
             frequency: typeParam === 'delegation' ? "One Time (No Recurrence)" : "Daily",
             frequencyLocked: typeParam === 'delegation'
         }];
@@ -834,7 +917,7 @@ export default function ChecklistTask() {
                 if (!t.department || !t.givenBy) {
                     return { success: false, message: `Task ${i + 1}: Please select Department and Assign From.` };
                 }
-                if (!t.doer || !t.date || (!t.description && !t.recordedAudio && (!t.references || t.references.length === 0))) {
+                if (!t.doer || t.doer.length === 0 || !t.date || (!t.description && !t.recordedAudio && (!t.references || t.references.length === 0))) {
                     return { success: false, message: `Task ${i + 1}: Please fill in Doer, Date, and at least one instructional detail (Desc, Voice Note, or Reference).` };
                 }
                 if (t.references && t.references.length > 0) {
@@ -871,11 +954,18 @@ export default function ChecklistTask() {
             const generationPromises = tasks.map(async (task) => {
                 const dates = await generateDatesForTask(task);
                 const freqKey = freqMap[task.frequency] || "one-time";
-                return dates.map(dueDate => ({
-                    ...task,
-                    dueDate,
-                    frequency: freqKey
-                }));
+                const generatedTasks = [];
+                for (const d of task.doer) {
+                    for (const dueDate of dates) {
+                        generatedTasks.push({
+                            ...task,
+                            doer: d,
+                            dueDate,
+                            frequency: freqKey
+                        });
+                    }
+                }
+                return generatedTasks;
             });
 
             const allResultsArrays = await Promise.all(generationPromises);
@@ -902,7 +992,7 @@ export default function ChecklistTask() {
                 alert(`Task ${i + 1}: Please select Department and Assign From.`);
                 return;
             }
-            if (!t.doer || !t.date || (!t.description && !t.recordedAudio && (!t.references || t.references.length === 0))) {
+            if (!t.doer || t.doer.length === 0 || !t.date || (!t.description && !t.recordedAudio && (!t.references || t.references.length === 0))) {
                 alert(`Task ${i + 1}: Please fill in Doer, Date, and at least one instructional detail (Desc, Voice Note, or Reference).`);
                 return;
             }
@@ -1016,24 +1106,26 @@ export default function ChecklistTask() {
                 const audioUrl = audioUrlMap[task.id];
                 const instructionData = instructionUrlMap[task.id] || {};
 
-                for (const dueDate of dates) {
-                    allTasksToSubmit.push({
-                        department: task.department,
-                        givenBy: task.givenBy,
-                        doer: task.doer,
-                        task_description: task.description,
-                        audio_url: audioUrl,
-                        instruction_attachment_url: instructionData.instructionUrl || null,
-                        instruction_attachment_type: instructionData.instructionType || null,
-                        frequency: freqKey,
-                        duration: task.duration || null,
-                        enableReminders: task.enableReminders,
-                        requireAttachment: task.requireAttachment,
-                        dueDate,
-                        // originalStartDate = the admin-selected start date (same for all occurrences)
-                        originalStartDate: formatDateISO(task.date) + `T${task.time || "09:00"}:00`,
-                        status: "pending"
-                    });
+                for (const d of task.doer) {
+                    for (const dueDate of dates) {
+                        allTasksToSubmit.push({
+                            department: task.department,
+                            givenBy: task.givenBy,
+                            doer: d,
+                            task_description: task.description,
+                            audio_url: audioUrl,
+                            instruction_attachment_url: instructionData.instructionUrl || null,
+                            instruction_attachment_type: instructionData.instructionType || null,
+                            frequency: freqKey,
+                            duration: task.duration || null,
+                            enableReminders: task.enableReminders,
+                            requireAttachment: task.requireAttachment,
+                            dueDate,
+                            // originalStartDate = the admin-selected start date (same for all occurrences)
+                            originalStartDate: formatDateISO(task.date) + `T${task.time || "09:00"}:00`,
+                            status: "pending"
+                        });
+                    }
                 }
             }
 
@@ -1063,28 +1155,30 @@ export default function ChecklistTask() {
                 if (insertedTasks && insertedTasks.length > 0) {
                     for (const uiTask of tasks) {
                         const freqKey = freqMap[uiTask.frequency]?.toLowerCase();
-                        const t = insertedTasks.find(it =>
-                            (it.name === uiTask.doer) &&
-                            (!it.frequency || it.frequency?.toLowerCase() === freqKey || freqKey === "one-time") &&
-                            ((it.task_description || "") === (uiTask.description || "") || (audioUrlMap[uiTask.id] && it.audio_url === audioUrlMap[uiTask.id]))
-                        );
+                        for (const d of uiTask.doer) {
+                            const t = insertedTasks.find(it =>
+                                (it.name === d) &&
+                                (!it.frequency || it.frequency?.toLowerCase() === freqKey || freqKey === "one-time") &&
+                                ((it.task_description || "") === (uiTask.description || "") || (audioUrlMap[uiTask.id] && it.audio_url === audioUrlMap[uiTask.id]))
+                            );
 
-                        if (t) {
-                            const isOneTime = t.frequency?.toLowerCase().includes('one time') ||
-                                t.frequency?.toLowerCase().includes('one-time') ||
-                                t.frequency?.toLowerCase().includes('no recurrence');
+                            if (t) {
+                                const isOneTime = t.frequency?.toLowerCase().includes('one time') ||
+                                    t.frequency?.toLowerCase().includes('one-time') ||
+                                    t.frequency?.toLowerCase().includes('no recurrence');
 
-                            await sendTaskAssignmentNotification({
-                                doerName: t.name,
-                                taskId: t.task_id || t.id,
-                                description: t.task_description || (t.instruction_attachment_url ? `📎 Reference(s) Provided` : ''),
-                                audioUrl: t.audio_url,
-                                startDate: new Date(t.task_start_date).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }),
-                                givenBy: t.given_by,
-                                department: t.department,
-                                duration: t.duration,
-                                taskType: isOneTime ? 'delegation' : 'checklist'
-                            });
+                                await sendTaskAssignmentNotification({
+                                    doerName: t.name,
+                                    taskId: t.task_id || t.id,
+                                    description: t.task_description || (t.instruction_attachment_url ? `📎 Reference(s) Provided` : ''),
+                                    audioUrl: t.audio_url,
+                                    startDate: new Date(t.task_start_date).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }),
+                                    givenBy: t.given_by,
+                                    department: t.department,
+                                    duration: t.duration,
+                                    taskType: isOneTime ? 'delegation' : 'checklist'
+                                });
+                            }
                         }
                     }
                 }
