@@ -131,7 +131,7 @@ const SomedayTasks = () => {
               </div>
             </div>
             <button 
-              onClick={() => setScheduleModal({ isOpen: true, taskId: task.id, date: new Date().toISOString().split('T')[0], startTime: '10:00', endTime: '10:30' })} 
+              onClick={() => setScheduleModal({ isOpen: true, taskId: task.id, date: new Date().toISOString().split('T')[0], startTime: '', endTime: '' })} 
               className="btn btn-outline" style={{ width: '100%' }}
             >
               <CalendarIcon size={16} /> Schedule Task
