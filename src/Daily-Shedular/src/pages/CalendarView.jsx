@@ -678,7 +678,6 @@ const CalendarView = () => {
             Pending Tasks ({format(currentDate, 'MMM yyyy')}):
           </span>
           <div style={{ flex: 1, overflow: 'hidden', display: 'flex', alignItems: 'center' }}>
-            {/* eslint-disable-next-line jsx-a11y/no-distracting-elements */}
             <marquee scrollamount="6" onMouseOver={(e) => e.target.stop()} onMouseOut={(e) => e.target.start()}>
               <div style={{ display: 'flex', gap: '32px' }}>
                 {currentMonthPendingTasks.map(t => (
