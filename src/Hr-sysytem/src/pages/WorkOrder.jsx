@@ -9,6 +9,7 @@ import ganeshLogo from '../../../assets/ganesh.jpg';
 import signatureImg from '../../../assets/signature.png';
 import jblLogo from '../../../assets/jai.logostic.png';
 import jbeLogo from '../../../assets/jbe.png';
+import jblSignature from '../../../assets/logistic.signature.png';
 
 const COMPANY_DETAILS = {
   'M/s Jai Bhole Traders': {
@@ -41,7 +42,8 @@ const COMPANY_DETAILS = {
     gstin: '22AANHA7052H1ZH',
     textColor: '#e85d04',
     address: 'N.K. Agrawal & Sons Tower, 3rd Floor, Lane No. 8, Near State Bank of India, New Shanti Nagar, Shankar Nagar, Raipur 492 004 (C.G.)',
-    footerContact: 'Mo.: 91654 22000, E-mail : amarnath.agrawal22@gmail.com'
+    footerContact: 'Mo.: 91654 22000, E-mail : amarnath.agrawal22@gmail.com',
+    signature: jblSignature
   }
 };
 
@@ -94,7 +96,7 @@ const WorkOrder = () => {
     signatoryTitle: '9165422000',
     address: COMPANY_DETAILS['Jai Bhole Logistics'].address,
     footerContact: COMPANY_DETAILS['Jai Bhole Logistics'].footerContact,
-    signatureDataUrl: ''
+    signatureDataUrl: COMPANY_DETAILS['Jai Bhole Logistics'].signature || ''
   });
 
   const handleChange = (e) => {
@@ -105,7 +107,8 @@ const WorkOrder = () => {
         ...prev, 
         [name]: value,
         address: selectedCompany?.address || '',
-        footerContact: selectedCompany?.footerContact || ''
+        footerContact: selectedCompany?.footerContact || '',
+        signatureDataUrl: selectedCompany?.signature || ''
       }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
@@ -460,7 +463,7 @@ const WorkOrder = () => {
                 fontWeight: 'bold', 
                 margin: 0, 
                 color: activeFirm.textColor,
-                fontFamily: '"Impact", "Arial Black", sans-serif',
+                fontFamily: '"Baloo 2", "Comic Sans MS", sans-serif',
                 textAlign: 'center',
                 flex: 1
               }}>
@@ -572,7 +575,7 @@ const WorkOrder = () => {
             {/* Footer / Signature */}
             <div style={{ marginTop: 'auto', lineHeight: '1.4' }}>
               <p style={{ fontWeight: 'bold' }}>For {formData.companyName}</p>
-              <div style={{ height: '80px', display: 'flex', alignItems: 'center', marginTop: '5px', marginBottom: '5px' }}>
+              <div style={{ height: '140px', display: 'flex', alignItems: 'center', marginTop: '5px', marginBottom: '5px' }}>
                  {formData.signatureDataUrl && (
                    <img src={formData.signatureDataUrl} alt="Signature" style={{ height: '100%', objectFit: 'contain' }} />
                  )}
