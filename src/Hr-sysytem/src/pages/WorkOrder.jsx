@@ -453,7 +453,7 @@ const WorkOrder = () => {
             {/* Document Header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', marginBottom: '10px' }}>
               {activeFirm.logo && (
-                <img src={activeFirm.logo} alt={activeFirm.name} style={{ height: '60px', width: 'auto', borderRadius: '4px', position: 'absolute', left: 0 }} />
+                <img src={activeFirm.logo} alt={activeFirm.name} style={{ height: '85px', width: 'auto', borderRadius: '4px', position: 'absolute', left: 0 }} />
               )}
               <h1 style={{ 
                 fontSize: '2.5rem', 
@@ -478,7 +478,7 @@ const WorkOrder = () => {
                <h2 style={{ fontSize: '1.2rem', fontWeight: 'bold', textDecoration: 'underline', margin: '0 auto', textAlign: 'center' }}>
                   WORK ORDER
                </h2>
-               <div style={{ fontWeight: 'bold', color: activeFirm.textColor, position: 'absolute', right: 0 }}>
+               <div style={{ fontWeight: 'bold', color: '#000000', position: 'absolute', right: 0 }}>
                   DT: - {formData.date ? formData.date.split('-').reverse().join('.') : ''}
                </div>
             </div>
