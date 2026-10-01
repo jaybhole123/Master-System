@@ -48,7 +48,8 @@ import {
   Shield,
   HelpCircle,
   Users,
-  Building2
+  Building2,
+  Truck
 } from "lucide-react";
 
 // Helper: get module & page title from current pathname
@@ -406,6 +407,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       "Document & Substruction": path.includes("/document") || path.includes("/doc-dashboard") || path.includes("/resource-manager") || path.includes("/loan") || path.includes("/subscription") || path.includes("/bg") || path === "/",
       "Rent Management Tracker": path.includes("/dashboard/rent-tracker"),
       "Coal System": path.startsWith("/coal-system"),
+      "Transport Reporting": path.startsWith("/transport-system"),
       "Letter": path.startsWith("/letter")
     };
     try {
@@ -1105,6 +1107,15 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       showFor: ["admin", "user", "HOD"],
       module: "Daily Scheduler",
     },
+    // --- Transport System Module Routes ---
+    {
+      href: "/transport-system/truck-reports",
+      label: "Truck Reports",
+      icon: FileText,
+      active: location.pathname === "/transport-system/truck-reports",
+      showFor: ["admin", "user", "HOD"],
+      module: "Transport Reporting",
+    },
     // --- Coal System Module Routes ---
     {
       href: "/coal-system/dashboard",
@@ -1379,6 +1390,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                       {moduleName === "Rent Management Tracker" && <Banknote className="h-5 w-5 shrink-0" />}
                       {moduleName === "Coal System" && <Database className="h-5 w-5 shrink-0" />}
                       {moduleName === "Letter" && <FileText className="h-5 w-5 shrink-0" />}
+                      {moduleName === "Transport Reporting" && <Truck className="h-5 w-5 shrink-0" />}
                       {!isCollapsed && <span className="text-left leading-tight whitespace-normal break-words pr-1 text-[13.5px]">{moduleName}</span>}
                     </div>
                     {!isCollapsed && (
@@ -1634,6 +1646,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                           {moduleName === "Rent Management Tracker" && <Banknote className="h-5 w-5 shrink-0" />}
                           {moduleName === "Coal System" && <Database className="h-5 w-5 shrink-0" />}
                           {moduleName === "Letter" && <FileText className="h-5 w-5 shrink-0" />}
+                          {moduleName === "Transport Reporting" && <Truck className="h-5 w-5 shrink-0" />}
                           <span className="text-left leading-tight whitespace-normal break-words pr-1 text-[13.5px]">{moduleName}</span>
                         </div>
                         {openModules[moduleName] ? (

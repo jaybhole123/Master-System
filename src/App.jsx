@@ -68,6 +68,9 @@ import DailyCalendarView from "./Daily-Shedular/src/pages/CalendarView"
 // --- Coal System Imports ---
 import CoalSystemApp from "./CoalSystem/src/App"
 
+// --- Transport System Imports ---
+import TruckReports from "./TransportSystem/src/pages/TruckReports"
+
 // --- Data & Delegation Imports ---
 import DataPage from "./pages/admin/DataPage"
 import AdminDataPage from "./pages/admin/admin-data-page"
@@ -172,6 +175,16 @@ const CoalSystemWrapper = ({ children }) => (
     <ProtectedRoute>
         <AdminLayout noPadding={true}>
             <div className="coal-system-container flex flex-col flex-1 w-full min-h-full">
+                {children}
+            </div>
+        </AdminLayout>
+    </ProtectedRoute>
+);
+
+const TransportSystemWrapper = ({ children }) => (
+    <ProtectedRoute>
+        <AdminLayout noPadding={true}>
+            <div className="transport-system-container flex flex-col flex-1 w-full min-h-full bg-gray-50">
                 {children}
             </div>
         </AdminLayout>
@@ -538,6 +551,9 @@ function App() {
                     <Route path="/coal-system/transport-payment" element={<CoalSystemWrapper><CoalSystemApp page="transport-payment" hideNavigation={true} /></CoalSystemWrapper>} />
                     <Route path="/coal-system/refund-lapse" element={<CoalSystemWrapper><CoalSystemApp page="refund-lapse" hideNavigation={true} /></CoalSystemWrapper>} />
                     <Route path="/coal-system/sauda-scale" element={<CoalSystemWrapper><CoalSystemApp page="sauda-scale" hideNavigation={true} /></CoalSystemWrapper>} />
+
+                    {/* --- Transport System Routes --- */}
+                    <Route path="/transport-system/truck-reports" element={<TransportSystemWrapper><TruckReports /></TransportSystemWrapper>} />
 
                     {/* --- Backward Compatibility Redirects (From Snippet 1) --- */}
                     {/* These catch old URLs and forward them to the new structure */}

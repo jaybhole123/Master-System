@@ -1,0 +1,464 @@
+/* Scoped styles for Truck Reports to prevent leaking */
+.truck-reports-container-wrapper {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.truck-reports-container {
+  width: 100%;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+  margin-top: 1rem;
+}
+
+.truck-reports-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.truck-reports-table th {
+  padding: 12px 16px;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 1px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
+  white-space: nowrap;
+}
+
+.truck-reports-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+
+.vehicle-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  font-weight: 500;
+  color: #2563eb;
+  font-size: 0.85rem;
+}
+
+.advance-text {
+  font-weight: 600;
+  color: #ea580c;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.action-btn {
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.2s;
+}
+
+.edit-btn {
+  background: #eff6ff;
+  color: #2563eb;
+  border-color: #bfdbfe;
+}
+.edit-btn:hover {
+  background: #dbeafe;
+}
+
+.delete-btn {
+  background: #fef2f2;
+  color: #dc2626;
+  border-color: #fecaca;
+}
+.delete-btn:hover {
+  background: #fee2e2;
+}
+
+.analytics-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+/* SCOPED CARD STYLES */
+.truck-reports-container .card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.truck-reports-container .card-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.truck-reports-container .card-icon svg {
+  width: 28px;
+  height: 28px;
+}
+
+.truck-reports-container .card-icon.blue { background: #eff6ff; color: #3b82f6; }
+.truck-reports-container .card-icon.orange { background: #fff7ed; color: #f97316; }
+.truck-reports-container .card-icon.green { background: #f0fdf4; color: #22c55e; }
+
+.truck-reports-container .card-info h3 {
+  margin: 0 0 4px 0;
+  font-size: 0.9rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.truck-reports-container .card-info h2 {
+  margin: 0;
+  font-size: 1.6rem;
+  color: #111827;
+  font-weight: 600;
+}
+
+.filters-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.truck-reports-container .search-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  padding: 10px 16px;
+  border-radius: 8px;
+  flex-grow: 1;
+  max-width: 400px;
+}
+
+.truck-reports-container .search-box svg {
+  width: 18px;
+  height: 18px;
+  color: #9ca3af;
+}
+
+.truck-reports-container .search-box input {
+  background: transparent;
+  border: none;
+  outline: none;
+  width: 100%;
+}
+
+.truck-reports-container .date-filters {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+}
+
+.truck-reports-container .date-input {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.truck-reports-container .date-input label {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.truck-reports-container .date-input input {
+  border: 1px solid #e5e7eb;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: white;
+  color: #111827;
+  outline: none;
+}
+.truck-reports-container .date-input input:focus {
+  border-color: #3b82f6;
+}
+
+.truck-reports-container .btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  background: white;
+  border: 1px solid #d1d5db;
+  color: #374151;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.truck-reports-container .btn-secondary:hover {
+  background: #f9fafb;
+}
+
+.reports-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.truck-reports-container .btn-export svg,
+.truck-reports-container .btn-primary svg {
+  width: 18px;
+  height: 18px;
+  margin-right: 6px;
+  display: inline-block;
+  vertical-align: text-bottom;
+}
+
+.truck-reports-container .btn-export {
+  display: inline-flex;
+  align-items: center;
+  background: white;
+  border: 1px solid #d1d5db;
+  color: #374151;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.truck-reports-container .btn-export:hover {
+  background: #f9fafb;
+}
+
+.truck-reports-container .btn-primary {
+  display: inline-flex;
+  align-items: center;
+  background: #ef4444; /* matching the master system red */
+  color: white;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
+}
+
+.truck-reports-container .btn-primary:hover {
+  background: #dc2626;
+}
+
+.truck-reports-container .page-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0;
+  color: #111827;
+}
+
+.truck-reports-container .page-subtitle {
+  color: #6b7280;
+  margin: 4px 0 0 0;
+  font-size: 0.95rem;
+}
+
+/* Modal Styling scoped to avoid conflicts */
+.tr-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(8px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.tr-modal-content {
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 20px;
+  width: 90%;
+  max-width: 750px;
+  padding: 24px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.tr-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.tr-modal-header h2 {
+  margin: 0;
+  font-size: 1.3rem;
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.tr-close-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #64748b;
+}
+
+.tr-modal-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 20px;
+}
+
+.tr-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tr-form-group label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #475569;
+}
+
+.tr-form-group input {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  color: #0f172a;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  outline: none;
+  width: 100%;
+}
+
+.tr-form-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 10px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+/* --- Mobile Responsiveness --- */
+@media (max-width: 768px) {
+  /* Header wrapping */
+  .reports-header-row {
+    flex-direction: column;
+    gap: 16px;
+  }
+  .header-actions {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .truck-reports-container .btn-export,
+  .truck-reports-container .btn-primary {
+    flex: 1;
+    justify-content: center;
+  }
+  
+  /* Filters wrapping */
+  .truck-reports-container .date-filters {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+  .truck-reports-container .date-input {
+    flex: 1;
+    min-width: 120px;
+  }
+  .truck-reports-container .btn-secondary {
+    width: 100%;
+    justify-content: center;
+    margin-top: 8px;
+  }
+  .truck-reports-container .search-box {
+    max-width: 100%;
+  }
+
+  /* Card-based Mobile Table */
+  .truck-reports-table thead {
+    display: none; /* Hide standard headers */
+  }
+  .truck-reports-table tbody {
+    display: block;
+    width: 100%;
+  }
+  .truck-reports-table tbody tr {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 16px;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 12px;
+    background: #ffffff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  }
+  .truck-reports-table tbody td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #f3f4f6;
+    padding: 10px 4px;
+    white-space: normal;
+    text-align: right;
+  }
+  .truck-reports-table tbody td:last-child {
+    border-bottom: none;
+    justify-content: flex-end; /* Align actions to the right */
+  }
+  
+  /* Show data labels */
+  .truck-reports-table tbody td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    margin-right: 16px;
+    text-align: left;
+  }
+
+  /* Modal stacking */
+  .tr-modal-form {
+    grid-template-columns: 1fr;
+  }
+}
