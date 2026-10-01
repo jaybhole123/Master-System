@@ -7,7 +7,6 @@ import SECLFormat2Page from "./SECLFormat2Page";
 import { extractSECLData, toSECLCSV, COLS } from "../utils/seclParser";
 import { downloadBlob } from "../utils/pdfParser";
 import { supabase } from "../utils/supabase";
-import MSTCPage from "./MSTCPage";
 import CLPage from "./CLPage";
 /**
  * SECLIntimationPage — owns the upload/result state for this page.
@@ -179,7 +178,12 @@ export default function SECLIntimationPage({ state, setState }) {
           })
         );
         setState((s) => {
-          const newData = s.data && Array.isArray(s.data) ? [...s.data, ...results] : results;
+          const newData = s.data && Array.isArray(s.data) ? [...s.data] : [];
+          for (const res of results) {
+            if (!newData.some(d => d.pdfName === res.pdfName)) {
+              newData.push(res);
+            }
+          }
           const newFileName = s.fileName ? s.fileName + ", " + (files.length > 1 ? `${files.length} files` : files[0].name) : (files.length > 1 ? `${files.length}_files` : files[0].name);
           return {
             ...s, loading: false, data: newData, fileName: newFileName, view: "results",
@@ -396,19 +400,14 @@ export default function SECLIntimationPage({ state, setState }) {
             className={`btn ${activeTab === 'format2' ? '' : 'outline'}`} 
             onClick={() => setActiveTab('format2')}
           >
-            Format 2 (Allocation)
-          </button>
-          <button 
-            className={`btn ${activeTab === 'mstc' ? '' : 'outline'}`} 
-            onClick={() => setActiveTab('mstc')}
-          >
             MSTC
           </button>
+
           <button 
             className={`btn ${activeTab === 'cl' ? '' : 'outline'}`} 
             onClick={() => setActiveTab('cl')}
           >
-            CL
+            CMPDCIL
           </button>
         </div>
       </div>
@@ -489,9 +488,7 @@ export default function SECLIntimationPage({ state, setState }) {
         <SECLFormat2Page />
       )}
 
-      {activeTab === 'mstc' && (
-        <MSTCPage />
-      )}
+
 
       {activeTab === 'cl' && (
         <CLPage />

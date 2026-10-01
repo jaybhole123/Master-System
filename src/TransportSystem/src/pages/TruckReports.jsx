@@ -4,12 +4,18 @@ import toast, { Toaster } from 'react-hot-toast';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
+import Select, { components } from 'react-select';
 import './TruckReports.css';
 
 export default function TruckReports() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [extraFromOptions, setExtraFromOptions] = useState([]);
+  const [extraDieselOptions, setExtraDieselOptions] = useState([]);
+  const [extraAdvanceOptions, setExtraAdvanceOptions] = useState([]);
   
   const [reportsData, setReportsData] = useState([]);
 
@@ -76,7 +82,34 @@ export default function TruckReports() {
   }, [formData.from, formData.to]);
 
   const handleInputChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    let newFormData = { ...formData, [name]: value };
+    
+    if (['perMT', 'tonnage', 'diesel', 'advance'].includes(name)) {
+      const perMT = parseFloat(name === 'perMT' ? value : newFormData.perMT) || 0;
+      const tonnage = parseFloat(name === 'tonnage' ? value : newFormData.tonnage) || 0;
+      
+      let totalFreight = 0;
+      if (perMT > 0 && tonnage > 0) {
+        totalFreight = Math.round(perMT * tonnage);
+        newFormData.totalFreight = totalFreight.toString();
+      } else {
+        newFormData.totalFreight = '';
+      }
+
+      const dieselStr = String(name === 'diesel' ? value : newFormData.diesel || '');
+      const dieselVal = parseFloat(dieselStr.replace(/[^0-9.]/g, '')) || 0;
+      const advanceVal = parseFloat(name === 'advance' ? value : newFormData.advance) || 0;
+
+      if (totalFreight > 0) {
+        const vehicleBalance = totalFreight - (dieselVal * 101) - advanceVal;
+        newFormData.vehicleBalance = Math.round(vehicleBalance).toString();
+      } else {
+        newFormData.vehicleBalance = '';
+      }
+    }
+    
+    setFormData(newFormData);
   };
 
   const handleAddReport = async (e) => {
@@ -160,15 +193,110 @@ export default function TruckReports() {
   };
 
   // Filter Logic
-  const filteredData = reportsData.filter(row => 
-    row.vehicleNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    row.doNo.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredData = reportsData.filter(row => {
+    const matchesSearch = row.vehicleNo.toLowerCase().includes(searchTerm.toLowerCase()) || row.doNo.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    let matchesDate = true;
+    if (fromDate || toDate) {
+      const rowDate = new Date(row.date);
+      if (fromDate) {
+        const from = new Date(fromDate);
+        if (rowDate < from) matchesDate = false;
+      }
+      if (toDate) {
+        const to = new Date(toDate);
+        if (rowDate > to) matchesDate = false;
+      }
+    }
+
+    return matchesSearch && matchesDate;
+  });
 
   // Dynamic calculations for cards
-  const totalTripsCount = reportsData.length;
-  const totalAdvanceSum = reportsData.reduce((sum, item) => sum + (Number(item.advance) || 0), 0);
-  const totalDieselSum = reportsData.reduce((sum, item) => sum + (parseInt(item.diesel) || 0), 0);
+  const totalTripsCount = filteredData.length;
+  const totalAdvanceSum = filteredData.reduce((sum, item) => sum + (Number(item.advance) || 0), 0);
+  const totalDieselSum = filteredData.reduce((sum, item) => sum + (parseInt(item.diesel) || 0), 0);
+
+  const uniqueFromLocations = [...new Set([...reportsData.map(r => r.from), ...extraFromOptions])].filter(Boolean);
+  const fromOptions = uniqueFromLocations.map(loc => ({ label: loc, value: loc }));
+
+  const CustomMenuList = (props) => {
+    return (
+      <components.MenuList {...props}>
+        {props.children}
+        <div 
+          style={{ padding: '10px 12px', borderTop: '1px solid #e5e7eb', color: 'var(--primary)', cursor: 'pointer', fontWeight: 600, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px', background: '#f8fafc' }}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const newLoc = window.prompt("Enter new Origin City:");
+            if(newLoc && newLoc.trim() !== '') {
+              const val = newLoc.trim().toUpperCase();
+              setExtraFromOptions(prev => [...prev, val]);
+              handleInputChange({ target: { name: 'from', value: val } });
+            }
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          Add New Origin City
+        </div>
+      </components.MenuList>
+    );
+  };
+
+  const uniqueDiesel = [...new Set([...reportsData.map(r => r.diesel), ...extraDieselOptions])].filter(Boolean);
+  const dieselOptions = uniqueDiesel.map(val => ({ label: val, value: val }));
+
+  const DieselMenuList = (props) => {
+    return (
+      <components.MenuList {...props}>
+        {props.children}
+        <div 
+          style={{ padding: '10px 12px', borderTop: '1px solid #e5e7eb', color: 'var(--primary)', cursor: 'pointer', fontWeight: 600, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px', background: '#f8fafc' }}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const newVal = window.prompt("Enter new Diesel value (e.g. 150L):");
+            if(newVal && newVal.trim() !== '') {
+              const val = newVal.trim();
+              setExtraDieselOptions(prev => [...prev, val]);
+              handleInputChange({ target: { name: 'diesel', value: val } });
+            }
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          Add New Diesel Value
+        </div>
+      </components.MenuList>
+    );
+  };
+
+  const uniqueAdvance = [...new Set([...reportsData.map(r => String(r.advance)), ...extraAdvanceOptions])].filter(Boolean);
+  const advanceOptions = uniqueAdvance.map(val => ({ label: val, value: val }));
+
+  const AdvanceMenuList = (props) => {
+    return (
+      <components.MenuList {...props}>
+        {props.children}
+        <div 
+          style={{ padding: '10px 12px', borderTop: '1px solid #e5e7eb', color: 'var(--primary)', cursor: 'pointer', fontWeight: 600, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px', background: '#f8fafc' }}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const newVal = window.prompt("Enter new Advance value (₹):");
+            if(newVal && newVal.trim() !== '') {
+              const val = newVal.trim();
+              setExtraAdvanceOptions(prev => [...prev, val]);
+              handleInputChange({ target: { name: 'advance', value: val } });
+            }
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          Add New Advance Value
+        </div>
+      </components.MenuList>
+    );
+  };
 
   // Export functions
   const exportToPDF = () => {
@@ -302,13 +430,26 @@ export default function TruckReports() {
         <div className="date-filters">
           <div className="date-input">
             <label>From Date</label>
-            <input type="date" />
+            <input 
+              type="date" 
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+            />
           </div>
           <div className="date-input">
             <label>To Date</label>
-            <input type="date" />
+            <input 
+              type="date" 
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+            />
           </div>
-          <button className="btn-secondary">Apply Filter</button>
+          <button 
+            className="btn-secondary" 
+            onClick={() => { setFromDate(''); setToDate(''); }}
+          >
+            Clear Filter
+          </button>
         </div>
       </div>
 
@@ -384,9 +525,33 @@ export default function TruckReports() {
                 <label>Vehicle No.</label>
                 <input type="text" name="vehicleNo" value={formData.vehicleNo} onChange={handleInputChange} placeholder="e.g. UP32 AB 1234" required />
               </div>
-              <div className="tr-form-group">
+              <div className="tr-form-group" style={{ zIndex: 100 }}>
                 <label>From</label>
-                <input type="text" name="from" value={formData.from} onChange={handleInputChange} placeholder="Origin City" required />
+                <Select
+                  isClearable
+                  options={fromOptions}
+                  value={formData.from ? { label: formData.from, value: formData.from } : null}
+                  onChange={(newValue) => handleInputChange({ target: { name: 'from', value: newValue ? newValue.value : '' } })}
+                  placeholder="Select Origin City..."
+                  components={{ MenuList: CustomMenuList }}
+                  styles={{
+                    control: (base) => ({
+                      ...base,
+                      padding: '2px',
+                      borderRadius: '8px',
+                      border: '1px solid #e5e7eb',
+                      boxShadow: 'none',
+                      '&:hover': {
+                        borderColor: '#d1d5db'
+                      }
+                    }),
+                    menu: (base) => ({
+                      ...base,
+                      zIndex: 9999,
+                      overflow: 'hidden'
+                    })
+                  }}
+                />
               </div>
               <div className="tr-form-group">
                 <label>To</label>
@@ -396,13 +561,61 @@ export default function TruckReports() {
                 <label>Distance</label>
                 <input type="text" name="distance" value={formData.distance} onChange={handleInputChange} placeholder="e.g. 1500 km" required />
               </div>
-              <div className="tr-form-group">
+              <div className="tr-form-group" style={{ zIndex: 99 }}>
                 <label>Diesel</label>
-                <input type="text" name="diesel" value={formData.diesel} onChange={handleInputChange} placeholder="e.g. 150L" required />
+                <Select
+                  isClearable
+                  options={dieselOptions}
+                  value={formData.diesel ? { label: formData.diesel, value: formData.diesel } : null}
+                  onChange={(newValue) => handleInputChange({ target: { name: 'diesel', value: newValue ? newValue.value : '' } })}
+                  placeholder="Select or type..."
+                  components={{ MenuList: DieselMenuList }}
+                  styles={{
+                    control: (base) => ({
+                      ...base,
+                      padding: '2px',
+                      borderRadius: '8px',
+                      border: '1px solid #e5e7eb',
+                      boxShadow: 'none',
+                      '&:hover': {
+                        borderColor: '#d1d5db'
+                      }
+                    }),
+                    menu: (base) => ({
+                      ...base,
+                      zIndex: 9999,
+                      overflow: 'hidden'
+                    })
+                  }}
+                />
               </div>
-              <div className="tr-form-group">
+              <div className="tr-form-group" style={{ zIndex: 98 }}>
                 <label>Advance (₹)</label>
-                <input type="text" name="advance" value={formData.advance} onChange={handleInputChange} placeholder="e.g. 5000" required />
+                <Select
+                  isClearable
+                  options={advanceOptions}
+                  value={formData.advance ? { label: formData.advance, value: formData.advance } : null}
+                  onChange={(newValue) => handleInputChange({ target: { name: 'advance', value: newValue ? newValue.value : '' } })}
+                  placeholder="Select or type..."
+                  components={{ MenuList: AdvanceMenuList }}
+                  styles={{
+                    control: (base) => ({
+                      ...base,
+                      padding: '2px',
+                      borderRadius: '8px',
+                      border: '1px solid #e5e7eb',
+                      boxShadow: 'none',
+                      '&:hover': {
+                        borderColor: '#d1d5db'
+                      }
+                    }),
+                    menu: (base) => ({
+                      ...base,
+                      zIndex: 9999,
+                      overflow: 'hidden'
+                    })
+                  }}
+                />
               </div>
               <div className="tr-form-group">
                 <label>DO No.</label>

@@ -4,6 +4,9 @@ import Dropzone from "../components/Dropzone";
 import EditModal from "../components/EditModal";
 import * as pdfjsLib from "pdfjs-dist";
 import workerUrl from "pdfjs-dist/build/pdf.worker.mjs?url";
+import { exportToExcel, exportToPDF } from "../utils/exportHelpers";
+import supabase from "../../../SupabaseClient";
+import { Edit, Trash } from "lucide-react";
 
 // Point pdf.js at the correct worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
@@ -12,32 +15,56 @@ export default function SECLFormat2Page() {
   const fileInputRef = useRef(null);
   
   const [docs, setDocs] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const fetchFromSupabase = async () => {
+    try {
+      const { data, error } = await supabase.from('secl_intimation_format_2').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      console.log("Fetched data from secl_intimation_format_2:", data);
+      
+      const grouped = {};
+      data.forEach(row => {
+        const key = row.file_name || 'Manual Entry';
+        if (!grouped[key]) {
+          grouped[key] = {
+            id: row.id,
+            fileName: row.file_name,
+            pdfUrl: row.pdf_url,
+            company: row.company_name,
+            contact: row.contact_person,
+            period: row.auction_period,
+            rows: []
+          };
+        }
+        grouped[key].rows.push({
+          dbId: row.id,
+          seller: row.seller,
+          bidId: row.bid_id,
+          source: row.source,
+          mode: row.mode,
+          grade: row.grade,
+          size: row.size,
+          offerQty: row.offer_qty,
+          qtyAllotted: row.qty_allotted,
+          bidPrice: row.bid_price,
+          notifiedPrice: row.notified_price,
+          premium: row.premium,
+          balanceQty: row.balance_qty
+        });
+      });
+      const docsArray = Object.values(grouped);
+      setDocs(docsArray);
+      if (docsArray.length > 0) {
+        setView("results");
+      }
+    } catch (err) {
+      console.error("Error fetching from Supabase:", err);
+    }
+  };
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("secl_format2_data");
-      if (saved) {
-        let parsed = JSON.parse(saved);
-        const cleanBlobs = (obj) => {
-          if (Array.isArray(obj)) return obj.map(cleanBlobs);
-          if (obj !== null && typeof obj === 'object') {
-            const newObj = {};
-            for (let k in obj) {
-              if (k === 'pdfUrl' && typeof obj[k] === 'string' && obj[k].startsWith('blob:')) {
-                newObj[k] = null;
-              } else {
-                newObj[k] = cleanBlobs(obj[k]);
-              }
-            }
-            return newObj;
-          }
-          return obj;
-        };
-        setDocs(cleanBlobs(parsed));
-      }
-    } catch (e) {
-      console.error(e);
-    }
+    fetchFromSupabase();
   }, []);
   
   const [view, setView] = useState(docs.length > 0 ? "results" : "drop");
@@ -45,6 +72,8 @@ export default function SECLFormat2Page() {
   const [loadingName, setLoadingName] = useState("");
   const [error, setError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editRowInfo, setEditRowInfo] = useState(null);
+  const [editData, setEditData] = useState(null);
 
   const handleManualAdd = (formData) => {
     const newDoc = {
@@ -80,6 +109,99 @@ export default function SECLFormat2Page() {
     setIsModalOpen(false);
   };
 
+  const handleModalSave = async (formData) => {
+    if (editRowInfo) {
+      if (editRowInfo.dbId) {
+        const updateData = {
+          company_name: formData.company,
+          contact_person: formData.contact,
+          auction_period: formData.period,
+          seller: formData.seller,
+          bid_id: formData.bidId,
+          source: formData.source,
+          mode: formData.mode,
+          grade: formData.grade,
+          size: formData.size,
+          offer_qty: formData.offerQty ? parseFloat(String(formData.offerQty).replace(/,/g, '')) : null,
+          qty_allotted: formData.qtyAllotted ? parseFloat(String(formData.qtyAllotted).replace(/,/g, '')) : null,
+          bid_price: formData.bidPrice ? parseFloat(String(formData.bidPrice).replace(/,/g, '')) : null,
+          notified_price: formData.notifiedPrice ? parseFloat(String(formData.notifiedPrice).replace(/,/g, '')) : null,
+          premium: formData.premium,
+          balance_qty: formData.balanceQty ? parseFloat(String(formData.balanceQty).replace(/,/g, '')) : null,
+        };
+        const { error: updateError } = await supabase.from('secl_intimation_format_2').update(updateData).eq('id', editRowInfo.dbId);
+        if (updateError) {
+          console.error(updateError);
+          showToast("Error updating database.");
+          return;
+        }
+      }
+      setDocs(prev => {
+        const newDocs = [...prev];
+        const doc = newDocs[editRowInfo.dIdx];
+        doc.company = formData.company;
+        doc.contact = formData.contact;
+        doc.period = formData.period;
+        doc.rows[editRowInfo.rIdx] = {
+           ...doc.rows[editRowInfo.rIdx],
+           ...formData
+        };
+        return newDocs;
+      });
+      showToast("Row updated successfully!");
+      setIsModalOpen(false);
+      setEditRowInfo(null);
+      setEditData(null);
+    } else {
+      handleManualAdd(formData);
+    }
+  };
+
+  const handleDeleteRow = async (dIdx, rIdx, dbId) => {
+    if (!window.confirm("Are you sure you want to delete this row?")) return;
+    if (dbId) {
+      try {
+        const { error } = await supabase.from('secl_intimation_format_2').delete().eq('id', dbId);
+        if (error) throw error;
+        showToast("Row deleted from database.");
+      } catch (err) {
+        console.error(err);
+        showToast("Error deleting from database.");
+        return;
+      }
+    }
+    setDocs(prev => {
+      const newDocs = [...prev];
+      newDocs[dIdx].rows.splice(rIdx, 1);
+      if (newDocs[dIdx].rows.length === 0) {
+        newDocs.splice(dIdx, 1);
+      }
+      return newDocs;
+    });
+  };
+
+  const openEditModal = (r) => {
+    setEditRowInfo({ dIdx: r._dIdx, rIdx: r._rIdx, dbId: r.dbId });
+    setEditData({
+      company: r._doc.company,
+      contact: r._doc.contact,
+      period: r._doc.period,
+      seller: r.seller,
+      bidId: r.bidId,
+      source: r.source,
+      mode: r.mode,
+      grade: r.grade,
+      size: r.size,
+      offerQty: r.offerQty,
+      qtyAllotted: r.qtyAllotted,
+      bidPrice: r.bidPrice,
+      notifiedPrice: r.notifiedPrice,
+      premium: r.premium,
+      balanceQty: r.balanceQty
+    });
+    setIsModalOpen(true);
+  };
+
   async function extractTextFromPdf(file) {
     const buf = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
@@ -113,11 +235,14 @@ export default function SECLFormat2Page() {
     const re = /SECL\s+(\S+)\s+((?:[A-Za-z]+\s?){1,2})\s+(Road|Rail)\s+(\w+)\s+(\w+)\s+(Sized\s*Rom\s*\(-?\)?\s*100\s*mm\)|Sized\s*Rom\s*\(-100mm\))\s+([\d.,]+)\s+([\d.,]+|-)\s*(?:MT)?\s+([\d.,]+|-)\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)/g;
     let m;
     while ((m = re.exec(text)) !== null) {
-      rows.push({
+      const row = {
         seller: "SECL", bidId: m[1] === "-" ? "—" : m[1], source: m[2].trim(), mode: m[3], grade: m[4], size: m[6].trim(),
         offerQty: m[7], qtyAllotted: m[8] === "-" ? "—" : m[8], bidPrice: m[9] === "-" ? "—" : m[9],
         notifiedPrice: m[10], premium: m[12] + "%", balanceQty: m[13]
-      });
+      };
+      if (!rows.some(r => JSON.stringify(r) === JSON.stringify(row))) {
+        rows.push(row);
+      }
     }
     // ECA-style allocated info row
     const ecaRe = /Road\s+([A-Za-z0-9 &]+?)\s+([\d.]+)\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)\s+(\d+)\b/;
@@ -143,6 +268,7 @@ export default function SECLFormat2Page() {
 
     const newDocs = [];
     for (const file of files) {
+      if (docs.some(d => d.fileName === file.name)) continue;
       try {
         const text = await extractTextFromPdf(file);
         const fields = parseGenericFields(text);
@@ -187,11 +313,125 @@ export default function SECLFormat2Page() {
   const toggleRaw = (id) => {
     setDocs((prev) => prev.map(d => d.id === id ? { ...d, showRaw: !d.showRaw } : d));
   };
+  const exportCols = [
+    { key: "company", label: "Company Name" },
+    { key: "seller", label: "Seller" },
+    { key: "contact", label: "Contact Person" },
+    { key: "period", label: "Auction Period" },
+    { key: "bidId", label: "Bid ID" },
+    { key: "source", label: "Source" },
+    { key: "mode", label: "Mode" },
+    { key: "grade", label: "Grade" },
+    { key: "size", label: "Size" },
+    { key: "offerQty", label: "Offer Qty" },
+    { key: "qtyAllotted", label: "Allotted (MT)" },
+    { key: "bidPrice", label: "Bid ₹/MT" },
+    { key: "notifiedPrice", label: "Notified ₹/MT" },
+    { key: "premium", label: "Premium" },
+    { key: "balanceQty", label: "Balance Qty" }
+  ];
 
-  const handleSave = () => {
+  const getExportData = () => {
+    return docs.flatMap(d => {
+      return (d.rows || []).map(r => ({
+        company: d.company || "",
+        seller: r.seller || "",
+        contact: d.contact || "",
+        period: d.period || "",
+        bidId: r.bidId || "",
+        source: r.source || "",
+        mode: r.mode || "",
+        grade: r.grade || "",
+        size: r.size || "",
+        offerQty: r.offerQty || "",
+        qtyAllotted: r.qtyAllotted || "",
+        bidPrice: r.bidPrice || "",
+        notifiedPrice: r.notifiedPrice || "",
+        premium: r.premium || "",
+        balanceQty: r.balanceQty || ""
+      }));
+    });
+  };
+
+  const handleExportExcel = () => {
+    exportToExcel(getExportData(), exportCols, "MSTC_Extracted_Data");
+  };
+
+  const handleExportPdf = () => {
+    exportToPDF(getExportData(), exportCols, "MSTC_Extracted_Data", "MSTC Summary Table");
+  };
+
+  const handleSave = async () => {
     if (docs.length === 0) return;
-    localStorage.setItem("secl_format2_data", JSON.stringify(docs));
-    showToast("Data saved to LocalStorage successfully!");
+    
+    showToast("Saving PDFs to cloud...");
+    setLoading(true);
+    let updatedDocs = [...docs];
+    try {
+      for (let i = 0; i < updatedDocs.length; i++) {
+        const d = updatedDocs[i];
+        let pdf_url = d.pdfUrl || null;
+        if (pdf_url && pdf_url.startsWith("blob:")) {
+          try {
+            const response = await fetch(pdf_url);
+            const blob = await response.blob();
+            const fileName = d.fileName || `mstc_${Date.now()}.pdf`;
+            const filePath = `pdfs/${Date.now()}_${fileName}`;
+            
+            const { error: uploadError } = await supabase.storage
+              .from("secl-pdfs")
+              .upload(filePath, blob, { contentType: "application/pdf", upsert: true });
+
+            if (!uploadError) {
+              const { data: publicUrlData } = supabase.storage
+                .from("secl-pdfs")
+                .getPublicUrl(filePath);
+              pdf_url = publicUrlData?.publicUrl || null;
+            } else {
+              console.warn("PDF upload failed:", uploadError);
+            }
+          } catch (e) {
+            console.error("Error fetching blob", e);
+          }
+        }
+        updatedDocs[i].pdfUrl = pdf_url;
+        
+        // Save to Supabase
+        const dbRows = d.rows.filter(r => !r.dbId).map(r => ({
+          company_name: d.company,
+          contact_person: d.contact,
+          auction_period: d.period,
+          seller: r.seller,
+          bid_id: r.bidId,
+          source: r.source,
+          mode: r.mode,
+          grade: r.grade,
+          size: r.size,
+          offer_qty: r.offerQty === "—" || r.offerQty === "-" ? null : parseFloat(String(r.offerQty).replace(/,/g, '')),
+          qty_allotted: r.qtyAllotted === "—" || r.qtyAllotted === "-" ? null : parseFloat(String(r.qtyAllotted).replace(/,/g, '')),
+          bid_price: r.bidPrice === "—" || r.bidPrice === "-" ? null : parseFloat(String(r.bidPrice).replace(/,/g, '')),
+          notified_price: r.notifiedPrice === "—" || r.notifiedPrice === "-" ? null : parseFloat(String(r.notifiedPrice).replace(/,/g, '')),
+          premium: r.premium,
+          balance_qty: r.balanceQty === "—" || r.balanceQty === "-" ? null : parseFloat(String(r.balanceQty).replace(/,/g, '')),
+          pdf_url: pdf_url,
+          file_name: d.fileName
+        }));
+        
+        if (dbRows.length > 0) {
+          const { error: dbError } = await supabase.from('secl_intimation_format_2').insert(dbRows);
+          if (dbError) console.error("Database insert error:", dbError);
+        }
+      }
+      
+      // Refresh state from DB to get dbIds
+      await fetchFromSupabase();
+      showToast("Data and PDFs saved to Supabase successfully!");
+    } catch(err) {
+      console.error(err);
+      showToast("Error saving PDFs");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -244,16 +484,46 @@ export default function SECLFormat2Page() {
 
       {view === "results" && docs.length > 0 && (
         <div className="results-container slide-up">
-          <div className="results-header">
-            <div className="results-title">
-              <div style={{ fontSize: 24, marginRight: 12 }}>📋</div>
-              <div>
-                <h3>SECL Format 2 Extracted Data</h3>
-                <p>{docs.length} file(s) loaded</p>
+          <div className="results-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
+            <div className="results-title" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ fontSize: 24 }}>📋</div>
+              <h3 style={{ margin: 0 }}>SECL Format 2 Extracted Data</h3>
+              <p style={{ margin: 0, color: 'var(--muted)', fontSize: '14px', paddingTop: '2px' }}>{docs.length} file(s) loaded</p>
+            </div>
+            <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+              {/* SEARCH BAR */}
+              <div style={{ position: "relative" }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)" }}>
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input 
+                  type="text" 
+                  placeholder="Search..." 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  style={{ padding: "6px 12px 6px 30px", border: "1px solid var(--line)", borderRadius: "6px", fontSize: "13px", width: "220px", outline: "none", color: "var(--text)", background: "var(--surface)" }}
+                />
               </div>
             </div>
             <div className="results-actions" style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-              
+              <button className="btn ghost" onClick={handleExportExcel} style={{ borderColor: "#107c41", color: "#107c41", display: "inline-flex", alignItems: "center", gap: "6px", background: "rgba(16, 124, 65, 0.04)" }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="8" y1="13" x2="16" y2="13"></line>
+                  <line x1="8" y1="17" x2="16" y2="17"></line>
+                </svg>
+                EXCEL
+              </button>
+              <button className="btn ghost" onClick={handleExportPdf} style={{ borderColor: "#d6251b", color: "#d6251b", display: "inline-flex", alignItems: "center", gap: "6px", background: "rgba(214, 37, 27, 0.04)" }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <path d="M9 15h1a2 2 0 0 0 0-4H9v4Z"></path>
+                </svg>
+                PDF
+              </button>
               <button 
                 className="btn ghost" 
                 onClick={handleSave} 
@@ -279,7 +549,11 @@ export default function SECLFormat2Page() {
                   if (e.target.files.length) handleFiles(Array.from(e.target.files));
                 }} 
               />
-              <button className="btn outline" onClick={() => setIsModalOpen(true)}>
+              <button className="btn outline" onClick={() => {
+                setEditRowInfo(null);
+                setEditData(null);
+                setIsModalOpen(true);
+              }}>
                 + Add Form
               </button>
               <button className="btn outline" onClick={() => fileInputRef.current?.click()}>
@@ -287,100 +561,52 @@ export default function SECLFormat2Page() {
               </button>
             </div>
           </div>
-
-          <div className="summary-section" style={{ marginTop: 0 }}>
-            <div className="summary-header">
-              <div className="summary-title">All allocations, side by side</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginTop: '32px' }}>
+            <div style={{ background: 'white', padding: '20px', borderRadius: '8px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+              <div style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--muted)', fontWeight: 600, marginBottom: '8px' }}>Total Allotted (MT)</div>
+              <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--primary)' }}>
+                {docs.reduce((sum, d) => sum + (d.rows?.reduce((rSum, r) => rSum + (Number(String(r.qtyAllotted).replace(/,/g, '')) || 0), 0) || 0), 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+              </div>
             </div>
-            <div className="summary-table-wrap">
-              <table className="stable">
-                <thead>
-                  <tr>
-                    <th>Company Name</th>
-                    <th>Period of Auction</th>
-                    <th>Seller</th>
-                    <th>Source Name</th>
-                    <th>Grade</th>
-                    <th>Representative</th>
-                    <th>Quantity Allotted (MT)</th>
-                    <th>Bid Price (Rs/MT)</th>
-                    <th>Preview</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {docs.map((d) => (
-                    d.rows.map((r, idx) => (
-                      <tr key={`${d.id}-${idx}`}>
-                        <td style={{ fontWeight: 600 }}>{d.company}</td>
-                        <td>{d.period}</td>
-                        <td>{r.seller}</td>
-                        <td>{r.source}</td>
-                        <td>{r.grade}</td>
-                        <td>{d.contact}</td>
-                        <td style={{ color: "var(--ember)", fontWeight: 600 }}>{r.qtyAllotted}</td>
-                        <td style={{ color: "var(--ember)", fontWeight: 600 }}>{r.bidPrice}</td>
-                        <td>
-                          {d.pdfUrl ? (
-                            <a href={d.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", textDecoration: "none", fontWeight: 500, fontSize: "12px" }}>
-                              View PDF
-                            </a>
-                          ) : (
-                            <span style={{ color: "var(--muted)" }}>-</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))
-                  ))}
-                </tbody>
-              </table>
+            <div style={{ background: 'white', padding: '20px', borderRadius: '8px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+              <div style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--muted)', fontWeight: 600, marginBottom: '8px' }}>Total Balance Qty</div>
+              <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--ember)' }}>
+                {docs.reduce((sum, d) => sum + (d.rows?.reduce((rSum, r) => rSum + (Number(String(r.balanceQty).replace(/,/g, '')) || 0), 0) || 0), 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+              </div>
             </div>
           </div>
 
           <div className="results-content" style={{ marginTop: 32 }}>
-            <h3 style={{ fontSize: 18, marginBottom: 16, color: "var(--text)" }}>Document Detail</h3>
-            {docs.map((d) => (
-              <div key={d.id} style={{ marginBottom: 32, padding: 24, background: "white", border: "1px solid #e5e7eb", borderRadius: 8 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20, borderBottom: "1px solid #e5e7eb", paddingBottom: 16 }}>
-                  <div>
-                    <h3 style={{ fontSize: 20, margin: "0 0 4px 0", color: "var(--text)" }}>{d.company}</h3>
-                    <div style={{ fontSize: 13, color: "var(--muted)" }}>{d.docType} ({d.fileName})</div>
-                  </div>
-                  <span style={{ fontSize: 12, padding: "4px 10px", background: "#f3f4f6", borderRadius: 16, fontWeight: 500 }}>
-                    Ref: {d.buyerRef}
-                  </span>
-                </div>
+            <h3 style={{ fontSize: 18, marginBottom: 16, color: "var(--text)" }}>Extracted Items</h3>
+            <div style={{ padding: 24, background: "white", border: "1px solid #e5e7eb", borderRadius: 8 }}>
+              <div className="summary-table-wrap" style={{ border: "1px solid #e5e7eb" }}>
+                <table className="stable">
+                  <thead style={{ background: "#f9fafb" }}>
+                    <tr>
+                      <th>#</th><th>Seller</th><th>Contact Person</th><th>Auction Period</th><th>Bid ID</th><th>Source</th><th>Mode</th><th>Grade</th><th>Size</th>
+                      <th>Offer Qty</th><th>Allotted</th><th>Bid ₹/MT</th><th>Notified ₹/MT</th><th>Premium</th><th>Balance Qty</th><th>Preview</th><th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(() => {
+                      const allRows = docs.flatMap((d, dIdx) => (d.rows || []).map((r, rIdx) => ({ ...r, _doc: d, _dIdx: dIdx, _rIdx: rIdx })));
+                      const filteredRows = allRows.filter(r => {
+                        if (!searchTerm) return true;
+                        const lower = searchTerm.toLowerCase();
+                        const values = [...Object.values(r), r._doc.company, r._doc.period, r._doc.contact];
+                        return values.some(v => String(v || "").toLowerCase().includes(lower));
+                      });
 
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 20, marginBottom: 24 }}>
-                  <div>
-                    <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--muted)", marginBottom: 4, fontWeight: 600 }}>Contact Person</div>
-                    <div style={{ fontSize: 14, fontWeight: 500 }}>{d.contact}</div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--muted)", marginBottom: 4, fontWeight: 600 }}>PAN</div>
-                    <div style={{ fontSize: 14, fontWeight: 500 }}>{d.pan}</div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--muted)", marginBottom: 4, fontWeight: 600 }}>Auction No / ID</div>
-                    <div style={{ fontSize: 14, fontWeight: 500 }}>{d.auctionNo}</div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--muted)", marginBottom: 4, fontWeight: 600 }}>Auction Period</div>
-                    <div style={{ fontSize: 14, fontWeight: 500 }}>{d.period}</div>
-                  </div>
-                </div>
+                      if (filteredRows.length === 0) {
+                        return <tr><td colSpan="16" style={{ textAlign: "center", padding: "40px", color: "var(--muted)" }}>No matching records found.</td></tr>;
+                      }
 
-                <div className="summary-table-wrap" style={{ marginBottom: 16, border: "1px solid #e5e7eb" }}>
-                  <table className="stable">
-                    <thead style={{ background: "#f9fafb" }}>
-                      <tr>
-                        <th>Seller</th><th>Bid ID</th><th>Source</th><th>Mode</th><th>Grade</th><th>Size</th>
-                        <th>Offer Qty</th><th>Allotted</th><th>Bid ₹/MT</th><th>Notified ₹/MT</th><th>Premium</th><th>Balance Qty</th><th>Preview</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {d.rows.map((r, i) => (
+                      return filteredRows.map((r, i) => (
                         <tr key={i}>
+                          <td>{i + 1}</td>
                           <td>{r.seller}</td>
+                          <td>{r._doc.contact}</td>
+                          <td>{r._doc.period}</td>
                           <td>{r.bidId}</td>
                           <td>{r.source}</td>
                           <td>{r.mode}</td>
@@ -393,33 +619,38 @@ export default function SECLFormat2Page() {
                           <td>{r.premium}</td>
                           <td>{r.balanceQty}</td>
                           <td>
-                            {d.pdfUrl && (
-                              <a href={d.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", textDecoration: "none", fontWeight: 500, fontSize: "12px" }}>
+                            {r._doc.pdfUrl ? (
+                              <a href={r._doc.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", textDecoration: "none", fontWeight: 500, fontSize: "12px" }}>
                                 View PDF
                               </a>
+                            ) : (
+                              <span style={{ color: "var(--muted)" }}>-</span>
                             )}
                           </td>
+                          <td>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              <button 
+                                onClick={() => openEditModal(r)} 
+                                style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'transparent', border: '1px solid #93c5fd', color: '#dc2626', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 500 }}
+                              >
+                                <Edit size={14} /> Edit
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteRow(r._dIdx, r._rIdx, r.dbId)} 
+                                style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'transparent', border: '1px solid #fca5a5', color: '#dc2626', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 500 }}
+                              >
+                                <Trash size={14} /> Delete
+                              </button>
+                            </div>
+                          </td>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                <div style={{ marginTop: 16 }}>
-                  <button 
-                    onClick={() => toggleRaw(d.id)}
-                    style={{ background: "none", border: "none", color: "var(--primary)", textDecoration: "underline", cursor: "pointer", fontSize: 13, padding: 0 }}
-                  >
-                    {d.showRaw ? "Hide extracted text" : "Show extracted text ↴"}
-                  </button>
-                  {d.showRaw && (
-                    <div style={{ marginTop: 12, padding: 16, background: "#1f2937", color: "#e5e7eb", fontFamily: "monospace", fontSize: 12, whiteSpace: "pre-wrap", maxHeight: 300, overflowY: "auto", borderRadius: 6 }}>
-                      {d.raw}
-                    </div>
-                  )}
-                </div>
+                      ));
+                    })()}
+                  </tbody>
+                </table>
               </div>
-            ))}
+            </div>
+
           </div>
         </div>
       )}
@@ -427,18 +658,25 @@ export default function SECLFormat2Page() {
       <EditModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSave={handleManualAdd}
-        title="Add Manual Entry"
-        initialData={{}}
+        onSave={handleModalSave}
+        title={editRowInfo ? "Edit Row" : "Add Manual Entry"}
+        initialData={editData || {}}
         columns={[
-          { key: "company", label: "Company Name" },
-          { key: "period", label: "Period of Auction" },
-          { key: "seller", label: "Seller" },
-          { key: "source", label: "Source Name" },
-          { key: "grade", label: "Grade" },
-          { key: "contact", label: "Representative" },
-          { key: "qtyAllotted", label: "Quantity Allotted (MT)" },
-          { key: "bidPrice", label: "Bid Price (Rs/MT)" }
+          { key: "company", label: "Company Name", type: "text" },
+          { key: "seller", label: "Seller", type: "text" },
+          { key: "contact", label: "Contact Person", type: "text" },
+          { key: "period", label: "Auction Period", type: "text" },
+          { key: "bidId", label: "Bid ID", type: "text" },
+          { key: "source", label: "Source", type: "text" },
+          { key: "mode", label: "Mode", type: "text" },
+          { key: "grade", label: "Grade", type: "text" },
+          { key: "size", label: "Size", type: "text" },
+          { key: "offerQty", label: "Offer Qty", type: "text" },
+          { key: "qtyAllotted", label: "Allotted (MT)", type: "text" },
+          { key: "bidPrice", label: "Bid ₹/MT", type: "text" },
+          { key: "notifiedPrice", label: "Notified ₹/MT", type: "text" },
+          { key: "premium", label: "Premium", type: "text" },
+          { key: "balanceQty", label: "Balance Qty", type: "text" }
         ]}
       />
     </div>

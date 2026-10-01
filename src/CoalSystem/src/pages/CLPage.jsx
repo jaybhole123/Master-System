@@ -4,6 +4,9 @@ import Dropzone from "../components/Dropzone";
 import EditModal from "../components/EditModal";
 import * as pdfjsLib from "pdfjs-dist";
 import workerUrl from "pdfjs-dist/build/pdf.worker.mjs?url";
+import { exportToExcel, exportToPDF } from "../utils/exportHelpers";
+import supabase from "../../../SupabaseClient";
+import { Edit, Trash } from "lucide-react";
 
 // Point pdf.js at the correct worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
@@ -12,6 +15,7 @@ export default function CLPage() {
   const fileInputRef = useRef(null);
   
   const [docs, setDocs] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [view, setView] = useState("drop");
   const [loading, setLoading] = useState(false);
   const [loadingName, setLoadingName] = useState("");
@@ -19,6 +23,8 @@ export default function CLPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [tesseractLoaded, setTesseractLoaded] = useState(false);
   const [statusMsg, setStatusMsg] = useState("");
+  const [editRowInfo, setEditRowInfo] = useState(null);
+  const [editData, setEditData] = useState(null);
 
   useEffect(() => {
     // Load Tesseract script if not present
@@ -43,6 +49,69 @@ export default function CLPage() {
     };
 
     initScripts();
+  }, []);
+
+  const fetchFromSupabase = async () => {
+    try {
+      const { data, error } = await supabase.from('secl_cmpdcil').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+
+      const grouped = {};
+      data.forEach(row => {
+        const key = row.file_name || 'Manual Entry';
+        if (!grouped[key]) {
+          grouped[key] = {
+            id: row.id,
+            fileName: row.file_name,
+            pdfUrl: row.pdf_url,
+            data: {
+              info: {
+                'Company': row.company,
+                'Contact Person': row.contact_person,
+                'Auction ID': row.auction_id,
+                'Auction Ref No': row.auction_ref_no,
+                'Auction Start': row.auction_start,
+                'Auction End': row.auction_end,
+                'Mail Date': row.mail_date,
+                'Buyer Ref No': row.buyer_ref_no
+              },
+              rows: []
+            }
+          };
+        }
+        grouped[key].data.rows.push({
+          dbId: row.id,
+          subsidiary: row.subsidiary,
+          source: row.source,
+          bidId: row.bid_id,
+          mode: row.mode,
+          repGrade: row.rep_grade,
+          size: row.size,
+          offerQty: row.offer_qty,
+          repNotifiedPrice: row.rep_notified_price,
+          colliery: row.colliery,
+          grade: row.grade,
+          allocatedQty: row.allocated_qty,
+          bidPrice: row.bid_price,
+          collNotified: row.coll_notified,
+          finalBid: row.final_bid,
+          supplyRange: row.supply_range,
+          premium: row.premium,
+          seniority: row.seniority,
+          thirdParty: row.third_party,
+          value: row.value_rs
+        });
+      });
+      const docsArray = Object.values(grouped);
+      setDocs(docsArray);
+      if (docsArray.length > 0) setView("results");
+    } catch (e) {
+      console.error("Failed to load saved data from Supabase", e);
+    }
+  };
+
+  useEffect(() => {
+    fetchFromSupabase();
   }, []);
 
   const NUM = s => { if (s === null || s === undefined) return null; const n = parseFloat(String(s).replace(/,/g, '')); return isNaN(n) ? null : n; };
@@ -101,7 +170,9 @@ export default function CLPage() {
         const p = (row.bidPrice - row.repNotifiedPrice) / row.repNotifiedPrice * 100;
         if (Math.abs(p - row.premium) > 0.05) R.warns.push(`Bid ID ${m[1]}: premium ${row.premium}% likha hai, par (Bid − Notified)/Notified = ${p.toFixed(2)}% aata hai. Koi number galat padha gaya ho sakta hai.`);
       }
-      R.rows.push(row);
+      if (!R.rows.some(r => JSON.stringify(r) === JSON.stringify(row))) {
+        R.rows.push(row);
+      }
     });
 
     const ni = txt.search(/^\s*\W?\s*Note\s*:/im);
@@ -166,6 +237,7 @@ export default function CLPage() {
 
     const newDocs = [];
     for (const file of files) {
+      if (docs.some(d => d.fileName === file.name)) continue;
       try {
         setStatusMsg(`PDF khol rahe hain... (${file.name})`);
         const doc = await pdfjsLib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
@@ -245,6 +317,78 @@ export default function CLPage() {
     setLoading(false);
     setStatusMsg("");
   };
+  const exportCols = [
+    { key: "company", label: "Company" },
+    { key: "contactPerson", label: "Contact Person" },
+    { key: "auctionId", label: "Auction ID" },
+    { key: "auctionRefNo", label: "Auction Ref No" },
+    { key: "auctionStart", label: "Auction Start" },
+    { key: "auctionEnd", label: "Auction End" },
+    { key: "mailDate", label: "Mail Date" },
+    { key: "buyerRefNo", label: "Buyer Ref No" },
+    { key: "subsidiary", label: "Subsidiary" },
+    { key: "source", label: "Source" },
+    { key: "bidId", label: "Bid ID" },
+    { key: "mode", label: "Mode" },
+    { key: "repGrade", label: "Rep. Grade" },
+    { key: "size", label: "Size" },
+    { key: "offerQty", label: "Offer Qty" },
+    { key: "repNotifiedPrice", label: "Rep. Notified Price" },
+    { key: "colliery", label: "Colliery" },
+    { key: "grade", label: "Grade" },
+    { key: "allocatedQty", label: "Allocated (MT)" },
+    { key: "bidPrice", label: "Bid ₹/MT" },
+    { key: "collNotified", label: "Coll. Notified" },
+    { key: "finalBid", label: "Final Bid" },
+    { key: "supplyRange", label: "Supply Range" },
+    { key: "premium", label: "Premium %" },
+    { key: "seniority", label: "Seniority" },
+    { key: "thirdParty", label: "Third Party" },
+    { key: "value", label: "Value ₹" }
+  ];
+
+  const getExportData = () => {
+    return docs.flatMap(d => {
+      const info = d.data.info || {};
+      return (d.data.rows || []).map(r => ({
+        company: info['Company'] || "",
+        contactPerson: info['Contact Person'] || "",
+        auctionId: info['Auction ID'] || "",
+        auctionRefNo: info['Auction Ref No'] || "",
+        auctionStart: info['Auction Start'] || "",
+        auctionEnd: info['Auction End'] || "",
+        mailDate: info['Mail Date'] || "",
+        buyerRefNo: info['Buyer Ref No'] || "",
+        subsidiary: r.subsidiary || "",
+        source: r.source || "",
+        bidId: r.bidId || "",
+        mode: r.mode || "",
+        repGrade: r.repGrade || "",
+        size: r.size || "",
+        offerQty: r.offerQty || "",
+        repNotifiedPrice: r.repNotifiedPrice || "",
+        colliery: r.colliery || "",
+        grade: r.collieryGrade || r.grade || "",
+        allocatedQty: r.allocatedQty || "",
+        bidPrice: r.bidPrice || "",
+        collNotified: r.collieryNotified || r.collNotified || "",
+        finalBid: r.finalBid || "",
+        supplyRange: r.supplyRange || "",
+        premium: r.premium || "",
+        seniority: r.seniority || "",
+        thirdParty: r.thirdParty || "",
+        value: r.value || ""
+      }));
+    });
+  };
+
+  const handleExportExcel = () => {
+    exportToExcel(getExportData(), exportCols, "CMPDCIL_Extracted_Data");
+  };
+
+  const handleExportPdf = () => {
+    exportToPDF(getExportData(), exportCols, "CMPDCIL_Extracted_Data", "CMPDCIL Summary Table");
+  };
 
   const handleReset = () => {
     setDocs([]);
@@ -254,13 +398,240 @@ export default function CLPage() {
     setError(null);
   };
 
-  const handleSave = () => {
-    showToast("Feature coming soon!");
+  const handleSave = async () => {
+    if (docs.length === 0) return;
+    
+    showToast("Saving PDFs to cloud...");
+    setLoading(true);
+    let updatedDocs = [...docs];
+    try {
+      for (let i = 0; i < updatedDocs.length; i++) {
+        const d = updatedDocs[i];
+        let pdf_url = d.pdfUrl || null;
+        if (pdf_url && pdf_url.startsWith("blob:")) {
+          try {
+            const response = await fetch(pdf_url);
+            const blob = await response.blob();
+            const fileName = d.fileName || `cmpdcil_${Date.now()}.pdf`;
+            const filePath = `pdfs/${Date.now()}_${fileName}`;
+            
+            const { error: uploadError } = await supabase.storage
+              .from("secl-pdfs")
+              .upload(filePath, blob, { contentType: "application/pdf", upsert: true });
+
+            if (!uploadError) {
+              const { data: publicUrlData } = supabase.storage
+                .from("secl-pdfs")
+                .getPublicUrl(filePath);
+              pdf_url = publicUrlData?.publicUrl || null;
+            } else {
+              console.warn("PDF upload failed:", uploadError);
+            }
+          } catch (e) {
+            console.error("Error fetching blob", e);
+          }
+        }
+        updatedDocs[i].pdfUrl = pdf_url;
+        
+        // Save to Supabase
+        const dbRows = (d.data.rows || []).filter(r => !r.dbId).map(r => ({
+          company: d.data.info['Company'] || "",
+          contact_person: d.data.info['Contact Person'] || "",
+          auction_id: d.data.info['Auction ID'] || "",
+          auction_ref_no: d.data.info['Auction Ref No'] || "",
+          auction_start: d.data.info['Auction Start'] || "",
+          auction_end: d.data.info['Auction End'] || "",
+          mail_date: d.data.info['Mail Date'] || "",
+          buyer_ref_no: d.data.info['Buyer Ref No'] || "",
+          subsidiary: r.subsidiary || "",
+          source: r.source || "",
+          bid_id: r.bidId || "",
+          mode: r.mode || "",
+          rep_grade: r.repGrade || "",
+          size: r.size || "",
+          offer_qty: NUM(r.offerQty),
+          rep_notified_price: NUM(r.repNotifiedPrice),
+          colliery: r.colliery || "",
+          grade: r.collieryGrade || r.grade || "",
+          allocated_qty: NUM(r.allocatedQty),
+          bid_price: NUM(r.bidPrice),
+          coll_notified: NUM(r.collieryNotified || r.collNotified),
+          final_bid: NUM(r.finalBid),
+          supply_range: r.supplyRange || "",
+          premium: r.premium || "",
+          seniority: r.seniority || "",
+          third_party: r.thirdParty || "",
+          value_rs: NUM(r.value),
+          pdf_url: pdf_url,
+          file_name: d.fileName
+        }));
+        
+        if (dbRows.length > 0) {
+          const { error: dbError } = await supabase.from('secl_cmpdcil').insert(dbRows);
+          if (dbError) console.error("Database insert error:", dbError);
+        }
+      }
+      
+      await fetchFromSupabase();
+      showToast("Data and PDFs saved to Supabase successfully!");
+    } catch(err) {
+      console.error(err);
+      showToast("Error saving PDFs");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleManualAdd = (formData) => {
     showToast("Manual entry for CL coming soon!");
     setIsModalOpen(false);
+  };
+
+  const handleModalSave = async (formData) => {
+    if (editRowInfo) {
+      if (editRowInfo.dbId) {
+        const updateData = {
+          company: formData.company,
+          contact_person: formData.contactPerson,
+          auction_id: formData.auctionId,
+          auction_ref_no: formData.auctionRefNo,
+          auction_start: formData.auctionStart,
+          auction_end: formData.auctionEnd,
+          mail_date: formData.mailDate,
+          buyer_ref_no: formData.buyerRefNo,
+          subsidiary: formData.subsidiary,
+          source: formData.source,
+          bid_id: formData.bidId,
+          mode: formData.mode,
+          rep_grade: formData.repGrade,
+          size: formData.size,
+          offer_qty: NUM(formData.offerQty),
+          rep_notified_price: NUM(formData.repNotifiedPrice),
+          colliery: formData.colliery,
+          grade: formData.grade,
+          allocated_qty: NUM(formData.allocatedQty),
+          bid_price: NUM(formData.bidPrice),
+          coll_notified: NUM(formData.collNotified),
+          final_bid: NUM(formData.finalBid),
+          supply_range: formData.supplyRange,
+          premium: formData.premium,
+          seniority: formData.seniority,
+          third_party: formData.thirdParty,
+          value_rs: NUM(formData.value)
+        };
+        const { error: updateError } = await supabase.from('secl_cmpdcil').update(updateData).eq('id', editRowInfo.dbId);
+        if (updateError) {
+          console.error(updateError);
+          showToast("Error updating database.");
+          return;
+        }
+      }
+      setDocs(prev => {
+        const newDocs = [...prev];
+        const newDoc = {
+          ...newDocs[editRowInfo.dIdx],
+          data: {
+            ...newDocs[editRowInfo.dIdx].data,
+            info: { ...newDocs[editRowInfo.dIdx].data.info },
+            rows: [...newDocs[editRowInfo.dIdx].data.rows]
+          }
+        };
+
+        newDoc.data.info = {
+          ...newDoc.data.info,
+          'Company': formData.company,
+          'Contact Person': formData.contactPerson,
+          'Auction ID': formData.auctionId,
+          'Auction Ref No': formData.auctionRefNo,
+          'Auction Start': formData.auctionStart,
+          'Auction End': formData.auctionEnd,
+          'Mail Date': formData.mailDate,
+          'Buyer Ref No': formData.buyerRefNo,
+        };
+        newDoc.data.rows[editRowInfo.rIdx] = {
+           ...newDoc.data.rows[editRowInfo.rIdx],
+           ...formData
+        };
+        
+        newDocs[editRowInfo.dIdx] = newDoc;
+        return newDocs;
+      });
+      showToast("Row updated successfully!");
+      setIsModalOpen(false);
+      setEditRowInfo(null);
+      setEditData(null);
+    } else {
+      handleManualAdd(formData);
+    }
+  };
+
+  const handleDeleteRow = async (dIdx, rIdx, dbId) => {
+    if (!window.confirm("Are you sure you want to delete this row?")) return;
+    if (dbId) {
+      try {
+        const { error } = await supabase.from('secl_cmpdcil').delete().eq('id', dbId);
+        if (error) throw error;
+        showToast("Row deleted from database.");
+      } catch (err) {
+        console.error(err);
+        showToast("Error deleting from database.");
+        return;
+      }
+    }
+    setDocs(prev => {
+      const newDocs = [...prev];
+      const newDoc = {
+        ...newDocs[dIdx],
+        data: {
+          ...newDocs[dIdx].data,
+          rows: [...newDocs[dIdx].data.rows]
+        }
+      };
+      
+      newDoc.data.rows.splice(rIdx, 1);
+      
+      if (newDoc.data.rows.length === 0) {
+        newDocs.splice(dIdx, 1);
+      } else {
+        newDocs[dIdx] = newDoc;
+      }
+      
+      return newDocs;
+    });
+  };
+
+  const openEditModal = (r) => {
+    setEditRowInfo({ dIdx: r._dIdx, rIdx: r._rIdx, dbId: r.dbId });
+    setEditData({
+      company: r._doc?.data?.info['Company'],
+      contactPerson: r._doc?.data?.info['Contact Person'],
+      auctionId: r._doc?.data?.info['Auction ID'],
+      auctionRefNo: r._doc?.data?.info['Auction Ref No'],
+      auctionStart: r._doc?.data?.info['Auction Start'],
+      auctionEnd: r._doc?.data?.info['Auction End'],
+      mailDate: r._doc?.data?.info['Mail Date'],
+      buyerRefNo: r._doc?.data?.info['Buyer Ref No'],
+      subsidiary: r.subsidiary,
+      source: r.source,
+      bidId: r.bidId,
+      mode: r.mode,
+      repGrade: r.repGrade,
+      size: r.size,
+      offerQty: r.offerQty,
+      repNotifiedPrice: r.repNotifiedPrice,
+      colliery: r.colliery,
+      grade: r.collieryGrade || r.grade,
+      allocatedQty: r.allocatedQty,
+      bidPrice: r.bidPrice,
+      collNotified: r.collieryNotified || r.collNotified,
+      finalBid: r.finalBid,
+      supplyRange: r.supplyRange,
+      premium: r.premium,
+      seniority: r.seniority,
+      thirdParty: r.thirdParty,
+      value: r.value
+    });
+    setIsModalOpen(true);
   };
 
   const saveFile = (name, text, type) => {
@@ -345,19 +716,48 @@ export default function CLPage() {
         </>
       )}
 
-      {view === "results" && docs.length > 0 && (
+      {view === "results" && (
         <div className="results-container slide-up">
-          <div className="results-header">
-            <div className="results-title">
-              <div style={{ fontSize: 24, marginRight: 12 }}>📋</div>
-              <div>
-                <h3>CL Extracted Data</h3>
-                <p>{docs.length} file(s) loaded</p>
+          <div className="results-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
+            <div className="results-title" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ fontSize: 24 }}>📋</div>
+              <h3 style={{ margin: 0 }}>CL Extracted Data</h3>
+              <p style={{ margin: 0, color: 'var(--muted)', fontSize: '14px', paddingTop: '2px' }}>{docs.length} file(s) loaded</p>
+            </div>
+            <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+              {/* SEARCH BAR */}
+              <div style={{ position: "relative" }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)" }}>
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input 
+                  type="text" 
+                  placeholder="Search..." 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  style={{ padding: "6px 12px 6px 30px", border: "1px solid var(--line)", borderRadius: "6px", fontSize: "13px", width: "220px", outline: "none", color: "var(--text)", background: "var(--surface)" }}
+                />
               </div>
             </div>
             <div className="results-actions" style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-
-              <button 
+              <button className="btn ghost" onClick={handleExportExcel} style={{ borderColor: "#107c41", color: "#107c41", display: "inline-flex", alignItems: "center", gap: "6px", background: "rgba(16, 124, 65, 0.04)" }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="8" y1="13" x2="16" y2="13"></line>
+                  <line x1="8" y1="17" x2="16" y2="17"></line>
+                </svg>
+                EXCEL
+              </button>
+              <button className="btn ghost" onClick={handleExportPdf} style={{ borderColor: "#d6251b", color: "#d6251b", display: "inline-flex", alignItems: "center", gap: "6px", background: "rgba(214, 37, 27, 0.04)" }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <path d="M9 15h1a2 2 0 0 0 0-4H9v4Z"></path>
+                </svg>
+                PDF
+              </button>              <button 
                 className="btn ghost" 
                 onClick={handleSave} 
                 style={{ 
@@ -382,7 +782,11 @@ export default function CLPage() {
                   if (e.target.files.length) handleFiles(Array.from(e.target.files));
                 }} 
               />
-              <button className="btn outline" onClick={() => setIsModalOpen(true)}>
+              <button className="btn outline" onClick={() => {
+                setEditRowInfo(null);
+                setEditData(null);
+                setIsModalOpen(true);
+              }}>
                 + Add Form
               </button>
               <button className="btn outline" onClick={() => fileInputRef.current?.click()}>
@@ -390,154 +794,125 @@ export default function CLPage() {
               </button>
             </div>
           </div>
-
-          <div className="summary-section" style={{ marginTop: 0 }}>
-            <div className="summary-header">
-              <div className="summary-title">Key Performance Indicators (KPIs)</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginTop: '32px' }}>
+            <div style={{ background: 'white', padding: '20px', borderRadius: '8px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+              <div style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--muted)', fontWeight: 600, marginBottom: '8px' }}>Total Allocated (MT)</div>
+              <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--primary)' }}>{inr(docs.reduce((sum, doc) => sum + (doc.data.rows?.reduce((rSum, r) => rSum + (Number(r.allocatedQty) || 0), 0) || 0), 0))}</div>
             </div>
-            <div className="summary-table-wrap">
-              <table className="stable">
-                <thead>
-                  <tr>
-                    <th>File</th>
-                    <th>Buyer Ref No</th>
-                    <th>Total Allocated (MT)</th>
-                    <th>Bid Price (Rs/MT)</th>
-                    <th>Premium (%)</th>
-                    <th>Coal Value (Rs)</th>
-                    <th>Payment Last Date</th>
-                    <th>Preview</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {docs.map((doc) => (
-                    <tr key={doc.id}>
-                      <td style={{ fontWeight: 600 }}>{doc.fileName}</td>
-                      <td>{doc.data.info['Buyer Ref No'] || '-'}</td>
-                      <td style={{ color: "var(--ember)", fontWeight: 600 }}>{inr(doc.data.totals?.qty)}</td>
-                      <td>{inr(doc.data.rows[0]?.bidPrice)}</td>
-                      <td>{inr(doc.data.rows[0]?.premium)}</td>
-                      <td style={{ color: "var(--ember)", fontWeight: 600 }}>{inr(doc.data.totals?.value)}</td>
-                      <td>{doc.data.payBy || '-'}</td>
-                      <td>
-                        {doc.pdfUrl ? (
-                          <a href={doc.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", textDecoration: "none", fontWeight: 500, fontSize: "12px" }}>
-                            View PDF
-                          </a>
-                        ) : (
-                          <span style={{ color: "var(--muted)" }}>-</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div style={{ background: 'white', padding: '20px', borderRadius: '8px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+              <div style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--muted)', fontWeight: 600, marginBottom: '8px' }}>Total Value ₹</div>
+              <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--ember)' }}>{inr(docs.reduce((sum, doc) => sum + (doc.data.rows?.reduce((rSum, r) => rSum + (Number(r.value) || 0), 0) || 0), 0))}</div>
             </div>
           </div>
 
           <div className="results-content" style={{ marginTop: 32 }}>
-            <h3 style={{ fontSize: 18, marginBottom: 16, color: "var(--text)" }}>Document Detail</h3>
-            {docs.map((doc) => (
-              <div key={doc.id} style={{ marginBottom: 32, padding: 24, background: "white", border: "1px solid #e5e7eb", borderRadius: 8 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20, borderBottom: "1px solid #e5e7eb", paddingBottom: 16 }}>
-                  <div>
-                    <h3 style={{ fontSize: 20, margin: "0 0 4px 0", color: "var(--text)" }}>{doc.data.info['Company'] || 'Allocation Letter'}</h3>
-                    <div style={{ fontSize: 13, color: "var(--muted)" }}>{doc.fileName}</div>
+            <h3 style={{ fontSize: 18, marginBottom: 16, color: "var(--text)" }}>Extracted Items</h3>
+            
+            {(() => {
+               const allWarns = docs.flatMap(d => (d.data.warns || []));
+               if (allWarns.length > 0) {
+                 return (
+                  <div style={{ background: "#fff4e5", border: "1px solid #ffcc80", borderRadius: 8, padding: "10px 12px", marginBottom: 14, fontSize: 13, color: "#e65100" }}>
+                    <div>⚠ This data has been extracted via OCR/PDF. Please verify the amounts and quantity values against the original PDF.</div>
+                    {allWarns.map((w, i) => <div key={i}>⚠ {w}</div>)}
                   </div>
-                  {doc.data.info['Mail Date'] && (
-                    <span style={{ fontSize: 12, padding: "4px 10px", background: "#f3f4f6", borderRadius: 16, fontWeight: 500 }}>
-                      Mail Date: {doc.data.info['Mail Date']}
-                    </span>
-                  )}
-                </div>
+                 );
+               }
+               return (
+                  <div style={{ background: "#fff4e5", border: "1px solid #ffcc80", borderRadius: 8, padding: "10px 12px", marginBottom: 14, fontSize: 13, color: "#e65100" }}>
+                    <div>⚠ This data has been extracted via OCR/PDF. Please verify the amounts and quantity values against the original PDF.</div>
+                  </div>
+               );
+            })()}
 
-                <div style={{ background: "#fff4e5", border: "1px solid #ffcc80", borderRadius: 8, padding: "10px 12px", marginBottom: 14, fontSize: 13, color: "#e65100" }}>
-                  <div>⚠ Ye data OCR/PDF se padha gaya hai. Paise aur quantity wale numbers ek baar original PDF se zaroor mila lein.</div>
-                  {doc.data.warns && doc.data.warns.length > 0 && doc.data.warns.map((w, i) => <div key={i}>⚠ {w}</div>)}
-                </div>
-
-                <h4 style={{ fontSize: 15, marginBottom: 12 }}>Auction &amp; Bidder Details</h4>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 24 }}>
-                  {Object.entries(doc.data.info).map(([k, v], idx) => (
-                    v ? (
-                      <div key={idx}>
-                        <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 4, fontWeight: 600 }}>{k}</div>
-                        <div style={{ fontSize: 14, fontWeight: 500 }}>{v}</div>
-                      </div>
-                    ) : null
-                  ))}
-                </div>
-
-                <h4 style={{ fontSize: 15, marginBottom: 12 }}>Quantity Allotted</h4>
-                <div className="summary-table-wrap" style={{ marginBottom: 24, border: "1px solid #e5e7eb" }}>
+            <div style={{ padding: 24, background: "white", border: "1px solid #e5e7eb", borderRadius: 8 }}>
+                <div className="summary-table-wrap" style={{ border: "1px solid #e5e7eb" }}>
                   <table className="stable">
                     <thead style={{ background: "#f9fafb" }}>
                       <tr>
-                        <th>#</th><th>Subsidiary</th><th>Source</th><th>Bid ID</th><th>Mode</th><th>Rep. Grade</th><th>Size</th>
+                        <th>#</th><th>Company</th><th>Contact Person</th><th>Auction ID</th><th>Auction Ref No</th><th>Auction Start</th><th>Auction End</th><th>Mail Date</th><th>Buyer Ref No</th>
+                        <th>Subsidiary</th><th>Source</th><th>Bid ID</th><th>Mode</th><th>Rep. Grade</th><th>Size</th>
                         <th>Offer Qty</th><th>Rep. Notified</th><th>Colliery</th><th>Grade</th><th>Allocated</th>
                         <th>Bid ₹/MT</th><th>Coll. Notified</th><th>Final Bid</th><th>Supply Range</th><th>Premium %</th>
-                        <th>Seniority</th><th>Third Party</th><th>Value ₹</th>
+                        <th>Seniority</th><th>Third Party</th><th>Value ₹</th><th>Preview</th><th>Action</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {doc.data.rows.map((r, i) => (
-                        <tr key={i}>
-                          <td>{i + 1}</td>
-                          <td>{r.subsidiary}</td>
-                          <td>{r.source}</td>
-                          <td>{r.bidId}</td>
-                          <td>{r.mode}</td>
-                          <td>{r.repGrade}</td>
-                          <td>{r.size}</td>
-                          <td>{inr(r.offerQty)}</td>
-                          <td>{inr(r.repNotifiedPrice)}</td>
-                          <td>{r.colliery}</td>
-                          <td>{r.collieryGrade}</td>
-                          <td style={{ color: "var(--ember)", fontWeight: 500 }}>{inr(r.allocatedQty)}</td>
-                          <td style={{ color: "var(--ember)", fontWeight: 500 }}>{inr(r.bidPrice, 0)}</td>
-                          <td>{inr(r.collieryNotified)}</td>
-                          <td>{inr(r.finalBid, 0)}</td>
-                          <td>{r.supplyRange || '-'}</td>
-                          <td>{inr(r.premium)}</td>
-                          <td>{r.seniority}</td>
-                          <td>{r.thirdParty}</td>
-                          <td>{inr(r.value)}</td>
-                        </tr>
-                      ))}
+                      {(() => {
+                        const allRows = docs.flatMap((d, dIdx) => (d.data.rows || []).map((r, rIdx) => ({ ...r, _doc: d, _dIdx: dIdx, _rIdx: rIdx })));
+                        const filteredRows = allRows.filter(r => {
+                          if (!searchTerm) return true;
+                          const lower = searchTerm.toLowerCase();
+                          const values = [...Object.values(r), ...(Object.values(r._doc.data.info || {}))];
+                          return values.some(v => String(v || "").toLowerCase().includes(lower));
+                        });
+
+                        if (filteredRows.length === 0) {
+                          return <tr><td colSpan="30" style={{ textAlign: "center", padding: "40px", color: "var(--muted)" }}>No matching records found.</td></tr>;
+                        }
+
+                        return filteredRows.map((r, i) => (
+                          <tr key={i}>
+                            <td>{i + 1}</td>
+                            <td>{r._doc.data.info['Company'] || '-'}</td>
+                            <td>{r._doc.data.info['Contact Person'] || '-'}</td>
+                            <td>{r._doc.data.info['Auction ID'] || '-'}</td>
+                            <td>{r._doc.data.info['Auction Ref No'] || '-'}</td>
+                            <td>{r._doc.data.info['Auction Start'] || '-'}</td>
+                            <td>{r._doc.data.info['Auction End'] || '-'}</td>
+                            <td>{r._doc.data.info['Mail Date'] || '-'}</td>
+                            <td>{r._doc.data.info['Buyer Ref No'] || '-'}</td>
+                            <td>{r.subsidiary}</td>
+                            <td>{r.source}</td>
+                            <td>{r.bidId}</td>
+                            <td>{r.mode}</td>
+                            <td>{r.repGrade}</td>
+                            <td>{r.size}</td>
+                            <td>{inr(r.offerQty)}</td>
+                            <td>{inr(r.repNotifiedPrice)}</td>
+                            <td>{r.colliery}</td>
+                            <td>{r.collieryGrade}</td>
+                            <td style={{ color: "var(--ember)", fontWeight: 500 }}>{inr(r.allocatedQty)}</td>
+                            <td style={{ color: "var(--ember)", fontWeight: 500 }}>{inr(r.bidPrice, 0)}</td>
+                            <td>{inr(r.collieryNotified)}</td>
+                            <td>{inr(r.finalBid, 0)}</td>
+                            <td>{r.supplyRange || '-'}</td>
+                            <td>{inr(r.premium)}</td>
+                            <td>{r.seniority}</td>
+                            <td>{r.thirdParty}</td>
+                            <td>{inr(r.value)}</td>
+                            <td>
+                              {r._doc.pdfUrl ? (
+                                <a href={r._doc.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", textDecoration: "none", fontWeight: 500, fontSize: "12px" }}>
+                                  View PDF
+                               </a>
+                              ) : (
+                                <span style={{ color: "var(--muted)" }}>-</span>
+                              )}
+                            </td>
+                            <td>
+                              <div style={{ display: 'flex', gap: '8px' }}>
+                                <button 
+                                  onClick={() => openEditModal(r)} 
+                                  style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'transparent', border: '1px solid #93c5fd', color: '#dc2626', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 500 }}
+                                >
+                                  <Edit size={14} /> Edit
+                                </button>
+                                <button 
+                                  onClick={() => handleDeleteRow(r._dIdx, r._rIdx, r.dbId)} 
+                                  style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'transparent', border: '1px solid #fca5a5', color: '#dc2626', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 500 }}
+                                >
+                                  <Trash size={14} /> Delete
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ));
+                      })()}
                     </tbody>
-                    <tfoot>
-                      <tr style={{ fontWeight: "bold", background: "#f7f8fa" }}>
-                        <td colSpan="11" style={{ textAlign: "right" }}>Total</td>
-                        <td>{inr(doc.data.totals?.qty)}</td>
-                        <td colSpan="7"></td>
-                        <td>{inr(doc.data.totals?.value)}</td>
-                      </tr>
-                    </tfoot>
                   </table>
                 </div>
-
-                <div style={{ marginTop: 24 }}>
-                  <details style={{ marginBottom: 12 }}>
-                    <summary style={{ cursor: "pointer", color: "var(--primary)", fontWeight: 500, fontSize: 14 }}>
-                      Verify karne ke liye PDF ke pages dekhein
-                    </summary>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 12 }}>
-                      {doc.imgs && doc.imgs.map((src, i) => (
-                        <img key={i} src={src} alt={`Page ${i+1}`} style={{ maxWidth: "100%", border: "1px solid #e5e7eb", borderRadius: 4 }} />
-                      ))}
-                    </div>
-                  </details>
-                  <details>
-                    <summary style={{ cursor: "pointer", color: "var(--primary)", fontWeight: 500, fontSize: 14 }}>
-                      Padha hua raw text dekhein (OCR / PDF)
-                    </summary>
-                    <pre style={{ marginTop: 12, padding: 16, background: "#1f2937", color: "#e5e7eb", fontFamily: "monospace", fontSize: 12, whiteSpace: "pre-wrap", maxHeight: 300, overflowY: "auto", borderRadius: 6 }}>
-                      {doc.raw}
-                    </pre>
-                  </details>
-                </div>
-              </div>
-            ))}
+            </div>
           </div>
         </div>
       )}
@@ -545,13 +920,37 @@ export default function CLPage() {
       <EditModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSave={handleManualAdd}
-        title="Add Manual Entry"
-        initialData={{}}
+        onSave={handleModalSave}
+        title={editRowInfo ? "Edit Row" : "Add Manual Entry"}
+        initialData={editData || {}}
         columns={[
-          { key: "buyerRef", label: "Buyer Ref No" },
-          { key: "allocatedQty", label: "Total Allocated (MT)" },
-          { key: "bidPrice", label: "Bid Price (Rs/MT)" }
+          { key: "company", label: "Company", type: "text" },
+          { key: "contactPerson", label: "Contact Person", type: "text" },
+          { key: "auctionId", label: "Auction ID", type: "text" },
+          { key: "auctionRefNo", label: "Auction Ref No", type: "text" },
+          { key: "auctionStart", label: "Auction Start", type: "text" },
+          { key: "auctionEnd", label: "Auction End", type: "text" },
+          { key: "mailDate", label: "Mail Date", type: "text" },
+          { key: "buyerRefNo", label: "Buyer Ref No", type: "text" },
+          { key: "subsidiary", label: "Subsidiary", type: "text" },
+          { key: "source", label: "Source", type: "text" },
+          { key: "bidId", label: "Bid ID", type: "text" },
+          { key: "mode", label: "Mode", type: "text" },
+          { key: "repGrade", label: "Rep. Grade", type: "text" },
+          { key: "size", label: "Size", type: "text" },
+          { key: "offerQty", label: "Offer Qty", type: "text" },
+          { key: "repNotifiedPrice", label: "Rep. Notified Price", type: "text" },
+          { key: "colliery", label: "Colliery", type: "text" },
+          { key: "grade", label: "Grade", type: "text" },
+          { key: "allocatedQty", label: "Allocated (MT)", type: "text" },
+          { key: "bidPrice", label: "Bid ₹/MT", type: "text" },
+          { key: "collNotified", label: "Coll. Notified", type: "text" },
+          { key: "finalBid", label: "Final Bid", type: "text" },
+          { key: "supplyRange", label: "Supply Range", type: "text" },
+          { key: "premium", label: "Premium %", type: "text" },
+          { key: "seniority", label: "Seniority", type: "text" },
+          { key: "thirdParty", label: "Third Party", type: "text" },
+          { key: "value", label: "Value ₹", type: "text" }
         ]}
       />
     </div>

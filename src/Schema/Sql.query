@@ -884,3 +884,67 @@ CREATE TABLE public.dispatch_records (
 );
 
 ALTER TABLE public.dispatch_records DISABLE ROW LEVEL SECURITY;
+
+CREATE TABLE public.secl_intimation_format_2 (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  company_name text,
+  contact_person text,
+  auction_period text,
+  seller text,
+  bid_id text,
+  source text,
+  mode text,
+  grade text,
+  size text,
+  offer_qty numeric,
+  qty_allotted numeric,
+  bid_price numeric,
+  notified_price numeric,
+  premium text,
+  balance_qty numeric,
+  pdf_url text,
+  file_name text,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT secl_intimation_format_2_pkey PRIMARY KEY (id)
+);
+
+ALTER TABLE public.secl_intimation_format_2 DISABLE ROW LEVEL SECURITY;
+
+CREATE TABLE public.secl_cmpdcil (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  company text,
+  contact_person text,
+  auction_id text,
+  auction_ref_no text,
+  auction_start text,
+  auction_end text,
+  mail_date text,
+  buyer_ref_no text,
+  subsidiary text,
+  source text,
+  bid_id text,
+  mode text,
+  rep_grade text,
+  size text,
+  offer_qty numeric,
+  rep_notified_price numeric,
+  colliery text,
+  grade text,
+  allocated_qty numeric,
+  bid_price numeric,
+  coll_notified numeric,
+  final_bid numeric,
+  supply_range text,
+  premium text,
+  seniority text,
+  third_party text,
+  value_rs numeric,
+  pdf_url text,
+  file_name text,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT secl_cmpdcil_pkey PRIMARY KEY (id)
+);
+
+ALTER TABLE public.secl_cmpdcil DISABLE ROW LEVEL SECURITY;
