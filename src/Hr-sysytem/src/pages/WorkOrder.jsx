@@ -7,7 +7,7 @@ import { toast } from 'react-hot-toast';
 import jbtLogo from '../../../assets/jbt.png';
 import ganeshLogo from '../../../assets/ganesh.jpg';
 import signatureImg from '../../../assets/signature.png';
-import jblLogo from '../../../assets/jbl.png';
+import jblLogo from '../../../assets/jai.logostic.png';
 import jbeLogo from '../../../assets/jbe.png';
 
 const COMPANY_DETAILS = {

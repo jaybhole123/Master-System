@@ -153,7 +153,7 @@ export default function SalaryStructure() {
   const handleSelectChange = (e) => {
     const empId = e.target.value;
     setSelectedEmp(empId);
-    const selectedEmployeeDetails = employees.find(emp => emp.id === empId);
+    const selectedEmployeeDetails = employees.find(emp => String(emp.id) === String(empId));
 
     if(salaries[empId]) {
       setFormData(prev => ({
@@ -282,7 +282,7 @@ export default function SalaryStructure() {
       const monthYearStr = `${formData.salaryMonth} ${year}`;
       
       try {
-        const selectedEmployeeDetails = employees.find(emp => emp.id === selectedEmp);
+        const selectedEmployeeDetails = employees.find(emp => String(emp.id) === String(selectedEmp));
         const empNameToMatch = selectedEmployeeDetails ? selectedEmployeeDetails.name : '';
 
         const { data, error } = await supabase
