@@ -253,9 +253,6 @@ export default function SECLFormat2Page() {
               </div>
             </div>
             <div className="results-actions" style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-              <button className="btn outline" onClick={handleReset}>
-                Start Over
-              </button>
               
               <button 
                 className="btn ghost" 

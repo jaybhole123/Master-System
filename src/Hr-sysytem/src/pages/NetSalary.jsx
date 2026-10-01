@@ -36,13 +36,27 @@ export default function NetSalary() {
   const [selectedRows, setSelectedRows] = useState([]);
 
   const [visibleCols, setVisibleCols] = useState({
-    empName: true, department: true, designation: true, salaryDate: true, salaryMonth: true, basic: true, hra: true, allowances: true,
-    monthAdvance: true, gross: true, totalDays: true, present: true, absent: true, leaves: true,
-    leaveDeduct: true, monthRecov: true, prevAdvDeduct: true, pf: true,
-    esic: true, pTax: true, otherDeduct: true, totalDeduct: true, netSalary: true,
+    empName: true, department: true, designation: true, salaryDate: true, salaryMonth: true, basic: true, hra: false, allowances: false,
+    monthAdvance: false, gross: true, totalDays: true, present: true, absent: true, leaves: true,
+    leaveDeduct: true, monthRecov: false, prevAdvDeduct: false, pf: false,
+    esic: false, pTax: false, otherDeduct: false, totalDeduct: true, netSalary: true,
     paymentStatus: true, bankAcc: true
   });
   const [showColMenu, setShowColMenu] = useState(false);
+  const colMenuRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (colMenuRef.current && !colMenuRef.current.contains(event.target)) {
+        setShowColMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   const toggleCol = (col) => setVisibleCols(prev => ({ ...prev, [col]: !prev[col] }));
   
   const selectAllCols = (select) => {
@@ -578,7 +592,7 @@ export default function NetSalary() {
               <div className="px-3 py-1 bg-blue-50 text-blue-600 rounded-md font-bold text-sm">12%</div>
             </div>
             <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 sm:gap-3 w-full md:w-auto flex-1 justify-start md:justify-end">
-              <div className="relative flex items-center w-full sm:w-auto">
+              <div className="relative flex items-center w-full sm:w-auto" ref={colMenuRef}>
                 <button 
                   onClick={() => setShowColMenu(!showColMenu)}
                   className="w-full sm:w-auto px-3 py-1.5 border border-gray-300 rounded-md bg-white text-gray-700 font-medium flex items-center justify-center gap-1.5 text-sm whitespace-nowrap hover:bg-gray-50"
@@ -586,22 +600,35 @@ export default function NetSalary() {
                   <GripVertical size={14} /> Columns
                 </button>
                 {showColMenu && (
-                  <div className="absolute right-0 top-full mt-2 bg-white border border-gray-200 rounded-lg shadow-xl z-50 w-[220px] p-3 max-h-[400px] overflow-y-auto flex flex-col">
-                    <h4 className="m-0 mb-2 text-sm text-gray-500 border-b border-gray-100 pb-2 text-left">Toggle Columns</h4>
-                    <div className="flex justify-between mb-2">
+                  <div className="absolute right-0 top-full mt-2 bg-white border border-gray-200 rounded-lg shadow-xl z-50 w-64 p-3 max-h-[400px] overflow-y-auto overflow-x-hidden">
+                    <h4 className="m-0 mb-2 text-sm text-gray-500 border-b border-gray-100 pb-2 text-left" style={{ textAlign: 'left' }}>Toggle Columns</h4>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                       <button onClick={() => selectAllCols(true)} className="bg-transparent border-none text-primary text-xs cursor-pointer p-0 font-medium">Select All</button>
                       <button onClick={() => selectAllCols(false)} className="bg-transparent border-none text-gray-500 text-xs cursor-pointer p-0 font-medium">Deselect All</button>
                     </div>
-                    {Object.keys(visibleCols).map(key => (
-                      <div 
-                        key={key} 
-                        onClick={() => toggleCol(key)}
-                        className="flex items-center justify-start gap-2 py-1.5 cursor-pointer text-sm text-gray-800"
-                      >
-                        <input type="checkbox" checked={visibleCols[key]} readOnly className="cursor-pointer m-0 w-4 h-4 shrink-0" />
-                        <span className="text-left">{key === 'designation' ? 'Firm' : key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</span>
-                      </div>
-                    ))}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '4px' }}>
+                      {Object.keys(visibleCols).map(key => (
+                        <div 
+                          key={key} 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleCol(key);
+                          }}
+                          style={{ display: 'grid', gridTemplateColumns: '16px 1fr', alignItems: 'center', width: '100%', padding: '6px 8px', gap: '12px' }}
+                          className="cursor-pointer hover:bg-gray-50 rounded-md transition-colors"
+                        >
+                          <input 
+                            type="checkbox" 
+                            checked={visibleCols[key]} 
+                            readOnly 
+                            style={{ margin: 0, padding: 0, width: '16px', height: '16px', cursor: 'pointer', justifySelf: 'start' }} 
+                          />
+                          <span style={{ textAlign: 'left', whiteSpace: 'nowrap', fontSize: '14px', color: '#1f2937', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {key === 'designation' ? 'Firm' : key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -674,16 +701,10 @@ export default function NetSalary() {
           <div className="hidden md:block">
             <div 
               ref={tableRef}
-              onMouseDown={handleMouseDown}
-              onMouseLeave={handleMouseLeave}
-              onMouseUp={handleMouseUp}
-              onMouseMove={handleMouseMove}
               style={{ 
                 overflow: 'auto', 
                 maxHeight: 'calc(100vh - 280px)', 
-                paddingBottom: '12px',
-                cursor: isMouseDown ? 'grabbing' : 'grab',
-                userSelect: isMouseDown ? 'none' : 'auto'
+                paddingBottom: '12px'
               }}
             >
               <table style={{ minWidth: '1500px', borderCollapse: 'collapse', margin: '0' }}>

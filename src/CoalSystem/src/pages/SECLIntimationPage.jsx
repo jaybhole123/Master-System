@@ -7,6 +7,8 @@ import SECLFormat2Page from "./SECLFormat2Page";
 import { extractSECLData, toSECLCSV, COLS } from "../utils/seclParser";
 import { downloadBlob } from "../utils/pdfParser";
 import { supabase } from "../utils/supabase";
+import MSTCPage from "./MSTCPage";
+import CLPage from "./CLPage";
 /**
  * SECLIntimationPage — owns the upload/result state for this page.
  */
@@ -388,13 +390,25 @@ export default function SECLIntimationPage({ state, setState }) {
             className={`btn ${activeTab === 'format1' ? '' : 'outline'}`} 
             onClick={() => setActiveTab('format1')}
           >
-            Format 1 (Intimation)
+            M-junction
           </button>
           <button 
             className={`btn ${activeTab === 'format2' ? '' : 'outline'}`} 
             onClick={() => setActiveTab('format2')}
           >
             Format 2 (Allocation)
+          </button>
+          <button 
+            className={`btn ${activeTab === 'mstc' ? '' : 'outline'}`} 
+            onClick={() => setActiveTab('mstc')}
+          >
+            MSTC
+          </button>
+          <button 
+            className={`btn ${activeTab === 'cl' ? '' : 'outline'}`} 
+            onClick={() => setActiveTab('cl')}
+          >
+            CL
           </button>
         </div>
       </div>
@@ -473,6 +487,14 @@ export default function SECLIntimationPage({ state, setState }) {
 
       {activeTab === 'format2' && (
         <SECLFormat2Page />
+      )}
+
+      {activeTab === 'mstc' && (
+        <MSTCPage />
+      )}
+
+      {activeTab === 'cl' && (
+        <CLPage />
       )}
 
       {activeTab === 'format1' && (
