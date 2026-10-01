@@ -101,6 +101,11 @@ const MODULES = [
     pages: ['Dashboard', 'Auction', 'Payment Advice', 'SECL Payment Advice', 'Sales Order', 'SECL Intimation', 'Invoice', 'Work Order', 'Dispatch', 'Transport Payment', 'Refund / Lapse', 'Sauda Sale']
   },
   {
+    id: 'Transport Reporting',
+    name: 'Transport Reporting',
+    pages: ['Truck Reports']
+  },
+  {
     id: 'Global Settings',
     name: 'Global Settings',
     pages: ['Global Settings']
