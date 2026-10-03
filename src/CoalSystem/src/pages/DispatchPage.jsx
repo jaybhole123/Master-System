@@ -5,8 +5,13 @@ import { supabase } from "../utils/supabase";
 
 const INITIAL_COLS = [
   { key: "doNo", label: "DO No *" },
+  { key: "orderNo", label: "Order No", type: "text" },
+  { key: "orderQty", label: "Order Qty", type: "number" },
+  { key: "orderRate", label: "Order Rate", type: "number" },
   { key: "truckNumber", label: "Truck No *", type: "text" },
   { key: "truckQty", label: "Truck No Qty *", type: "text" },
+  { key: "dispatchQty", label: "Dispatch Qty", type: "number" },
+  { key: "balanceQty", label: "Balance Qty", type: "number" },
   { key: "freight", label: "Freight *", type: "text" },
   { key: "receiverParty", label: "Receiver Party *", type: "text" },
   { key: "plantName", label: "Plant Name *", type: "text" },
@@ -52,8 +57,13 @@ export default function DispatchPage() {
         const mappedData = records.map(r => ({
           id: r.id,
           doNo: r.do_no,
+          orderNo: r.order_no,
+          orderQty: r.order_qty,
+          orderRate: r.order_rate,
           truckNumber: r.truck_no,
           truckQty: r.truck_qty,
+          dispatchQty: r.dispatch_qty,
+          balanceQty: r.balance_qty,
           freight: r.freight,
           receiverParty: r.receiver_party,
           plantName: r.plant_name,
@@ -100,8 +110,13 @@ export default function DispatchPage() {
 
       const payload = {
         do_no: formData.doNo || null,
+        order_no: formData.orderNo || null,
+        order_qty: formData.orderQty ? parseFloat(formData.orderQty) : null,
+        order_rate: formData.orderRate ? parseFloat(formData.orderRate) : null,
         truck_no: formData.truckNumber || null,
         truck_qty: formData.truckQty ? parseFloat(formData.truckQty) : null,
+        dispatch_qty: formData.dispatchQty ? parseFloat(formData.dispatchQty) : null,
+        balance_qty: formData.balanceQty ? parseFloat(formData.balanceQty) : null,
         freight: formData.freight ? parseFloat(formData.freight) : null,
         receiver_party: formData.receiverParty || null,
         plant_name: formData.plantName || null,
@@ -182,15 +197,40 @@ export default function DispatchPage() {
     downloadBlob(JSON.stringify(data, null, 2), "dispatch_data.json", "application/json");
   };
 
+  const totalDispatchQty = data.reduce((sum, item) => sum + (Number(item.dispatchQty) || 0), 0);
+  const totalBalanceQty = data.reduce((sum, item) => sum + (Number(item.balanceQty) || 0), 0);
+
   return (
     <div className="page-content">
-      <div style={{ padding: "0 0 20px 0", borderBottom: "1px solid var(--border)", marginBottom: 20 }}>
+      <div style={{ padding: "0 0 10px 0", borderBottom: "1px solid var(--border)", marginBottom: 15 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h2 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: 24 }}>Dispatch Tracking</h2>
           <div style={{ display: "flex", gap: "10px" }}>
             <button className="btn" onClick={() => { setEditingIndex(null); setIsModalOpen(true); }}>
               + Add Form
             </button>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginBottom: '24px' }}>
+        <div style={{ background: '#fff', padding: '20px', borderRadius: '12px', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+          <div style={{ width: '56px', height: '56px', borderRadius: '12px', background: '#eff6ff', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 9l7 7 7-7"></path><path d="M12 3v13"></path><path d="M3 21h18"></path></svg>
+          </div>
+          <div>
+            <h3 style={{ margin: '0 0 4px 0', fontSize: '0.9rem', color: '#6b7280', fontWeight: '500' }}>Total Dispatch Qty</h3>
+            <h2 style={{ margin: 0, fontSize: '1.6rem', color: '#111827', fontWeight: '600' }}>{totalDispatchQty.toFixed(2)}</h2>
+          </div>
+        </div>
+        
+        <div style={{ background: '#fff', padding: '20px', borderRadius: '12px', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+          <div style={{ width: '56px', height: '56px', borderRadius: '12px', background: '#fff7ed', color: '#f97316', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><path d="M8 12h8"></path></svg>
+          </div>
+          <div>
+            <h3 style={{ margin: '0 0 4px 0', fontSize: '0.9rem', color: '#6b7280', fontWeight: '500' }}>Total Balance Qty</h3>
+            <h2 style={{ margin: 0, fontSize: '1.6rem', color: '#111827', fontWeight: '600' }}>{totalBalanceQty.toFixed(2)}</h2>
           </div>
         </div>
       </div>
