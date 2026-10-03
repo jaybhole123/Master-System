@@ -14,8 +14,12 @@ export default function TruckReports() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [extraFromOptions, setExtraFromOptions] = useState([]);
+  const [extraToOptions, setExtraToOptions] = useState([]);
   const [extraDieselOptions, setExtraDieselOptions] = useState([]);
   const [extraAdvanceOptions, setExtraAdvanceOptions] = useState([]);
+  const [promptModal, setPromptModal] = useState({ isOpen: false, type: null, title: '', placeholder: '' });
+  const [promptValue, setPromptValue] = useState('');
+  const [visibleCount, setVisibleCount] = useState(50);
   
   const [reportsData, setReportsData] = useState([]);
 
@@ -27,7 +31,7 @@ export default function TruckReports() {
     const { data, error } = await supabase
       .from('truck_reports')
       .select('*')
-      .order('date', { ascending: false });
+      .order('created_at', { ascending: true });
     
     if (error) {
       console.error('Error fetching data:', error);
@@ -212,6 +216,18 @@ export default function TruckReports() {
     return matchesSearch && matchesDate;
   });
 
+  const displayedData = filteredData.slice(0, visibleCount);
+
+  const handleTableScroll = (e) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.target;
+    // Load more when user scrolls near the bottom (within 50px)
+    if (scrollHeight - scrollTop <= clientHeight + 50) {
+      if (visibleCount < filteredData.length) {
+        setVisibleCount(prev => prev + 50);
+      }
+    }
+  };
+
   // Dynamic calculations for cards
   const totalTripsCount = filteredData.length;
   const totalAdvanceSum = filteredData.reduce((sum, item) => sum + (Number(item.advance) || 0), 0);
@@ -229,16 +245,35 @@ export default function TruckReports() {
           onMouseDown={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            const newLoc = window.prompt("Enter new Origin City:");
-            if(newLoc && newLoc.trim() !== '') {
-              const val = newLoc.trim().toUpperCase();
-              setExtraFromOptions(prev => [...prev, val]);
-              handleInputChange({ target: { name: 'from', value: val } });
-            }
+            setPromptModal({ isOpen: true, type: 'from', title: 'Enter new Origin City', placeholder: 'e.g. DELHI' });
+            setPromptValue('');
           }}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
           Add New Origin City
+        </div>
+      </components.MenuList>
+    );
+  };
+
+  const uniqueToLocations = [...new Set([...reportsData.map(r => r.to), ...extraToOptions])].filter(Boolean);
+  const toOptions = uniqueToLocations.map(loc => ({ label: loc, value: loc }));
+
+  const ToMenuList = (props) => {
+    return (
+      <components.MenuList {...props}>
+        {props.children}
+        <div 
+          style={{ padding: '10px 12px', borderTop: '1px solid #e5e7eb', color: 'var(--primary)', cursor: 'pointer', fontWeight: 600, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px', background: '#f8fafc' }}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setPromptModal({ isOpen: true, type: 'to', title: 'Enter new Destination City', placeholder: 'e.g. MUMBAI' });
+            setPromptValue('');
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          Add New Destination City
         </div>
       </components.MenuList>
     );
@@ -256,12 +291,8 @@ export default function TruckReports() {
           onMouseDown={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            const newVal = window.prompt("Enter new Diesel value (e.g. 150L):");
-            if(newVal && newVal.trim() !== '') {
-              const val = newVal.trim();
-              setExtraDieselOptions(prev => [...prev, val]);
-              handleInputChange({ target: { name: 'diesel', value: val } });
-            }
+            setPromptModal({ isOpen: true, type: 'diesel', title: 'Enter new Diesel value', placeholder: 'e.g. 150L' });
+            setPromptValue('');
           }}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
@@ -283,12 +314,8 @@ export default function TruckReports() {
           onMouseDown={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            const newVal = window.prompt("Enter new Advance value (₹):");
-            if(newVal && newVal.trim() !== '') {
-              const val = newVal.trim();
-              setExtraAdvanceOptions(prev => [...prev, val]);
-              handleInputChange({ target: { name: 'advance', value: val } });
-            }
+            setPromptModal({ isOpen: true, type: 'advance', title: 'Enter new Advance value (₹)', placeholder: 'e.g. 5000' });
+            setPromptValue('');
           }}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
@@ -454,7 +481,7 @@ export default function TruckReports() {
       </div>
 
       {/* Table Area */}
-      <div className="table-wrapper">
+      <div className="table-wrapper" onScroll={handleTableScroll}>
         <table className="truck-reports-table">
           <thead>
             <tr>
@@ -476,7 +503,7 @@ export default function TruckReports() {
             </tr>
           </thead>
           <tbody>
-            {filteredData.length > 0 ? filteredData.map((row, index) => (
+            {displayedData.length > 0 ? displayedData.map((row, index) => (
               <tr key={index}>
                 <td data-label="S.No">{row.sNo}</td>
                 <td data-label="Date">{row.date}</td>
@@ -506,6 +533,18 @@ export default function TruckReports() {
             )}
           </tbody>
         </table>
+        
+        {visibleCount < filteredData.length && (
+          <div style={{ textAlign: 'center', padding: '1rem', borderTop: '1px solid #e5e7eb' }}>
+            <button 
+              className="btn-secondary" 
+              onClick={() => setVisibleCount(prev => prev + 50)}
+              style={{ width: 'auto', padding: '8px 24px', borderRadius: '20px' }}
+            >
+              Load More Data...
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Add New Report Modal */}
@@ -553,15 +592,39 @@ export default function TruckReports() {
                   }}
                 />
               </div>
-              <div className="tr-form-group">
+              <div className="tr-form-group" style={{ zIndex: 99 }}>
                 <label>To</label>
-                <input type="text" name="to" value={formData.to} onChange={handleInputChange} placeholder="Destination City" required />
+                <Select
+                  isClearable
+                  options={toOptions}
+                  value={formData.to ? { label: formData.to, value: formData.to } : null}
+                  onChange={(newValue) => handleInputChange({ target: { name: 'to', value: newValue ? newValue.value : '' } })}
+                  placeholder="Select Destination City..."
+                  components={{ MenuList: ToMenuList }}
+                  styles={{
+                    control: (base) => ({
+                      ...base,
+                      padding: '2px',
+                      borderRadius: '8px',
+                      border: '1px solid #e5e7eb',
+                      boxShadow: 'none',
+                      '&:hover': {
+                        borderColor: '#d1d5db'
+                      }
+                    }),
+                    menu: (base) => ({
+                      ...base,
+                      zIndex: 9999,
+                      overflow: 'hidden'
+                    })
+                  }}
+                />
               </div>
               <div className="tr-form-group">
                 <label>Distance</label>
                 <input type="text" name="distance" value={formData.distance} onChange={handleInputChange} placeholder="e.g. 1500 km" required />
               </div>
-              <div className="tr-form-group" style={{ zIndex: 99 }}>
+              <div className="tr-form-group" style={{ zIndex: 98 }}>
                 <label>Diesel</label>
                 <Select
                   isClearable
@@ -589,7 +652,7 @@ export default function TruckReports() {
                   }}
                 />
               </div>
-              <div className="tr-form-group" style={{ zIndex: 98 }}>
+              <div className="tr-form-group" style={{ zIndex: 97 }}>
                 <label>Advance (₹)</label>
                 <Select
                   isClearable
@@ -646,6 +709,142 @@ export default function TruckReports() {
                 <button type="submit" className="btn-primary">{editingId ? 'Update Report' : 'Save Report'}</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Prompt Modal */}
+      {promptModal.isOpen && (
+        <div className="tr-modal-overlay" style={{ zIndex: 10001, backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ 
+            background: '#ffffff', 
+            borderRadius: '16px', 
+            width: '90%', 
+            maxWidth: '420px', 
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+            overflow: 'hidden',
+            animation: 'modalSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+          }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fcfcfc' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <div style={{ background: '#fee2e2', color: '#dc2626', padding: '10px', borderRadius: '12px', display: 'flex', boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.5)' }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </div>
+                <div>
+                  <h2 style={{ fontSize: '1.15rem', fontWeight: '700', color: '#0f172a', margin: '0 0 2px 0' }}>{promptModal.title}</h2>
+                  <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>Add a new option to the system</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setPromptModal({ isOpen: false, type: null, title: '', placeholder: '' })}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '6px', borderRadius: '8px', display: 'flex', transition: 'all 0.2s' }}
+                onMouseOver={(e) => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = '#0f172a'; }}
+                onMouseOut={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#94a3b8'; }}
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+            </div>
+            
+            <div style={{ padding: '24px' }}>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>
+                New Value
+              </label>
+              <input 
+                type="text" 
+                value={promptValue} 
+                onChange={(e) => setPromptValue(e.target.value)} 
+                placeholder={promptModal.placeholder}
+                autoFocus
+                style={{ 
+                  width: '100%', 
+                  padding: '14px 16px', 
+                  borderRadius: '10px', 
+                  border: '2px solid #e2e8f0',
+                  fontSize: '0.95rem',
+                  outline: 'none',
+                  transition: 'all 0.2s ease',
+                  background: '#f8fafc',
+                  color: '#0f172a'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#ef4444';
+                  e.target.style.boxShadow = '0 0 0 4px rgba(239, 68, 68, 0.1)';
+                  e.target.style.background = '#ffffff';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#e2e8f0';
+                  e.target.style.boxShadow = 'none';
+                  e.target.style.background = '#f8fafc';
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    document.getElementById('prompt-add-btn').click();
+                  }
+                }}
+              />
+              
+              <div style={{ marginTop: '28px', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                <button 
+                  type="button" 
+                  onClick={() => setPromptModal({ isOpen: false, type: null, title: '', placeholder: '' })}
+                  style={{ 
+                    padding: '10px 20px', 
+                    borderRadius: '8px', 
+                    border: '1px solid #cbd5e1', 
+                    background: '#ffffff', 
+                    color: '#475569', 
+                    fontWeight: '600', 
+                    fontSize: '0.9rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.background = '#f8fafc'}
+                  onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}
+                >
+                  Cancel
+                </button>
+                <button 
+                  id="prompt-add-btn" 
+                  type="button" 
+                  onClick={() => {
+                    if (promptValue.trim()) {
+                      const val = (promptModal.type === 'from' || promptModal.type === 'to') ? promptValue.trim().toUpperCase() : promptValue.trim();
+                      if (promptModal.type === 'from') {
+                        setExtraFromOptions(prev => [...prev, val]);
+                        handleInputChange({ target: { name: 'from', value: val } });
+                      } else if (promptModal.type === 'to') {
+                        setExtraToOptions(prev => [...prev, val]);
+                        handleInputChange({ target: { name: 'to', value: val } });
+                      } else if (promptModal.type === 'diesel') {
+                        setExtraDieselOptions(prev => [...prev, val]);
+                        handleInputChange({ target: { name: 'diesel', value: val } });
+                      } else if (promptModal.type === 'advance') {
+                        setExtraAdvanceOptions(prev => [...prev, val]);
+                        handleInputChange({ target: { name: 'advance', value: val } });
+                      }
+                    }
+                    setPromptModal({ isOpen: false, type: null, title: '', placeholder: '' });
+                  }}
+                  style={{ 
+                    padding: '10px 24px', 
+                    borderRadius: '8px', 
+                    border: 'none', 
+                    background: '#ef4444', 
+                    color: '#ffffff', 
+                    fontWeight: '600', 
+                    fontSize: '0.9rem',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 6px -1px rgba(239, 68, 68, 0.2)',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseOver={(e) => { e.currentTarget.style.background = '#dc2626'; }}
+                  onMouseOut={(e) => { e.currentTarget.style.background = '#ef4444'; }}
+                >
+                  Save Option
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

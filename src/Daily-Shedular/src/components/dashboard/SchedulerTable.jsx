@@ -70,7 +70,7 @@ const SchedulerTable = ({ currentDate, onAddTask, selectedTaskIds = [], setSelec
             const timeRange = `${format(timeDate, 'hh:mm a')} - ${format(endTimeDate, 'hh:mm a')}`;
             
             const slotTasks = tasks.filter(t => 
-              isSameDay(new Date(t.date), currentDate) && 
+              t.date === format(currentDate, 'yyyy-MM-dd') && 
               t.startTime === time
             );
 

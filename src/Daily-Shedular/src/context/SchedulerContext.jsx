@@ -56,19 +56,42 @@ export const SchedulerProvider = ({ children }) => {
   };
 
   const fetchTasks = async () => {
-    const { data: tasksData } = await supabase.from('tasks').select('*');
-    if (tasksData) {
-      const camelCaseTasks = tasksData.map(t => ({
-        ...t,
-        startTime: t.start_time.substring(0, 5),
-        endTime: t.end_time ? t.end_time.substring(0, 5) : null,
-        assignedStaff: t.assigned_staff,
-        createdBy: t.created_by,
-        actualDoneDate: t.actual_done_date,
-        color: t.color,
-        attachments: t.attachments ? JSON.parse(t.attachments) : []
-      }));
-      setTasks(camelCaseTasks);
+    try {
+      const { data: tasksData, error } = await supabase
+        .from('tasks')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(5000);
+      if (error) {
+        console.error("Error fetching tasks:", error);
+        return;
+      }
+      if (tasksData) {
+        const camelCaseTasks = tasksData.map(t => {
+          let parsedAttachments = [];
+          try {
+            if (t.attachments) {
+              parsedAttachments = typeof t.attachments === 'string' ? JSON.parse(t.attachments) : t.attachments;
+            }
+          } catch (e) {
+            console.error("Error parsing attachments for task", t.id);
+          }
+          return {
+            ...t,
+            date: t.date ? t.date.split('T')[0] : null,
+            startTime: t.start_time ? t.start_time.substring(0, 5) : '10:00',
+            endTime: t.end_time ? t.end_time.substring(0, 5) : null,
+            assignedStaff: t.assigned_staff,
+            createdBy: t.created_by,
+            actualDoneDate: t.actual_done_date,
+            color: t.color,
+            attachments: parsedAttachments
+          };
+        });
+        setTasks(camelCaseTasks);
+      }
+    } catch (err) {
+      console.error("Exception in fetchTasks:", err);
     }
   };
 
@@ -251,7 +274,7 @@ export const SchedulerProvider = ({ children }) => {
       dbPayload.assigned_staff = newTask.assignedStaff;
     }
 
-    const { error } = await supabase.from('someday_tasks').insert(dbPayload);
+    const { data, error } = await supabase.from('someday_tasks').insert(dbPayload).select();
     
     if (error) {
       console.error("Someday task insert error:", error);
@@ -259,7 +282,8 @@ export const SchedulerProvider = ({ children }) => {
       return;
     }
 
-    setSomedayTasks(prev => [...prev, newTask]);
+    // Refresh from DB to guarantee it shows correctly with DB-generated fields
+    await fetchSomedayTasks();
   };
   
   const scheduleSomedayTask = async (id, scheduleData) => {

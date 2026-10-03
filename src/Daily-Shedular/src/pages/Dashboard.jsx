@@ -9,7 +9,7 @@ import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Check, Search } fr
 
 const Dashboard = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const { tasks, somedayTasks, staffList, markTaskDone, markAllPendingDone, rescheduleTask, scheduleSomedayTask, fetchTasks, fetchSomedayTasks } = useScheduler();
+  const { tasks, allTasks, somedayTasks, staffList, markTaskDone, markAllPendingDone, rescheduleTask, scheduleSomedayTask, fetchTasks, fetchSomedayTasks, currentUser } = useScheduler();
 
   useEffect(() => {
     fetchTasks();
@@ -25,7 +25,7 @@ const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   const overdueTasks = tasks.filter(t => t.status === 'Overdue');
-  const todaysTasks = tasks.filter(t => isSameDay(new Date(t.date), currentDate)).filter(t => {
+  const todaysTasks = tasks.filter(t => t.date === format(currentDate, 'yyyy-MM-dd')).filter(t => {
     if (!searchQuery) return true;
     const lowerQuery = searchQuery.toLowerCase();
     return (t.description || '').toLowerCase().includes(lowerQuery) ||
