@@ -950,29 +950,29 @@ export default function MasterDashboard() {
               
               <div className="flex-1 mb-4 w-full flex flex-col lg:flex-row gap-6">
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 h-full content-start pt-1 flex-1">
-                  <div className="flex flex-col items-center justify-center bg-stone-50/80 p-4 rounded-xl border border-stone-200/50 text-center hover:bg-stone-100 transition-colors">
-                    <span className="text-xs font-bold text-slate-700 leading-tight">Valid Sales Orders</span>
-                    <span className="text-lg font-black text-emerald-600 mt-1">{coalStats.loading ? <Loader2 className="animate-spin h-4 w-4 inline" /> : coalStats.soValid}</span>
+                  <div className="flex flex-col justify-center bg-white p-5 rounded-lg border border-slate-200 shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all cursor-default">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-2">Valid Sales Orders</span>
+                    <span className="text-2xl font-black text-red-600 font-mono tracking-tight leading-none">{coalStats.loading ? <Loader2 className="animate-spin h-5 w-5 inline" /> : coalStats.soValid}</span>
                   </div>
-                  <div className="flex flex-col items-center justify-center bg-stone-50/80 p-4 rounded-xl border border-stone-200/50 text-center hover:bg-stone-100 transition-colors">
-                    <span className="text-xs font-bold text-slate-700 leading-tight">Expired Sales Orders</span>
-                    <span className="text-lg font-black text-rose-600 mt-1">{coalStats.loading ? <Loader2 className="animate-spin h-4 w-4 inline" /> : coalStats.soExpired}</span>
+                  <div className="flex flex-col justify-center bg-white p-5 rounded-lg border border-slate-200 shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all cursor-default">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-2">Expired Sales Orders</span>
+                    <span className="text-2xl font-black text-red-600 font-mono tracking-tight leading-none">{coalStats.loading ? <Loader2 className="animate-spin h-5 w-5 inline" /> : coalStats.soExpired}</span>
                   </div>
-                  <div className="flex flex-col items-center justify-center bg-stone-50/80 p-4 rounded-xl border border-stone-200/50 text-center hover:bg-stone-100 transition-colors">
-                    <span className="text-xs font-bold text-slate-700 leading-tight">Valid Payment Advices</span>
-                    <span className="text-lg font-black text-emerald-600 mt-1">{coalStats.loading ? <Loader2 className="animate-spin h-4 w-4 inline" /> : coalStats.paValid}</span>
+                  <div className="flex flex-col justify-center bg-white p-5 rounded-lg border border-slate-200 shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all cursor-default">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-2">Valid Payment Advices</span>
+                    <span className="text-2xl font-black text-red-600 font-mono tracking-tight leading-none">{coalStats.loading ? <Loader2 className="animate-spin h-5 w-5 inline" /> : coalStats.paValid}</span>
                   </div>
-                  <div className="flex flex-col items-center justify-center bg-stone-50/80 p-4 rounded-xl border border-stone-200/50 text-center hover:bg-stone-100 transition-colors">
-                    <span className="text-xs font-bold text-slate-700 leading-tight">Expired Payment Advices</span>
-                    <span className="text-lg font-black text-rose-600 mt-1">{coalStats.loading ? <Loader2 className="animate-spin h-4 w-4 inline" /> : coalStats.paExpired}</span>
+                  <div className="flex flex-col justify-center bg-white p-5 rounded-lg border border-slate-200 shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all cursor-default">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-2">Expired Payment Advices</span>
+                    <span className="text-2xl font-black text-red-600 font-mono tracking-tight leading-none">{coalStats.loading ? <Loader2 className="animate-spin h-5 w-5 inline" /> : coalStats.paExpired}</span>
                   </div>
-                  <div className="flex flex-col items-center justify-center bg-stone-50/80 p-4 rounded-xl border border-stone-200/50 text-center hover:bg-stone-100 transition-colors">
-                    <span className="text-xs font-bold text-slate-700 leading-tight">Qty Allotted</span>
-                    <span className="text-lg font-black text-stone-700 mt-1">{coalStats.loading ? <Loader2 className="animate-spin h-4 w-4 inline" /> : `${coalStats.seclQty.toLocaleString('en-IN')} MT`}</span>
+                  <div className="flex flex-col justify-center bg-white p-5 rounded-lg border border-slate-200 shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all cursor-default">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-2">Qty Allotted</span>
+                    <span className="text-2xl font-black text-red-600 font-mono tracking-tight leading-none">{coalStats.loading ? <Loader2 className="animate-spin h-5 w-5 inline" /> : `${coalStats.seclQty.toLocaleString('en-IN')} MT`}</span>
                   </div>
-                  <div className="flex flex-col items-center justify-center bg-stone-50/80 p-4 rounded-xl border border-stone-200/50 text-center hover:bg-stone-100 transition-colors">
-                    <span className="text-xs font-bold text-slate-700 leading-tight">Winning Bid</span>
-                    <span className="text-lg font-black text-stone-700 mt-1">{coalStats.loading ? <Loader2 className="animate-spin h-4 w-4 inline" /> : `₹ ${coalStats.seclBid >= 1000 ? (coalStats.seclBid / 1000).toFixed(2) + ' K' : coalStats.seclBid}`}</span>
+                  <div className="flex flex-col justify-center bg-white p-5 rounded-lg border border-slate-200 shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all cursor-default">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-2">Winning Bid</span>
+                    <span className="text-2xl font-black text-red-600 font-mono tracking-tight leading-none">{coalStats.loading ? <Loader2 className="animate-spin h-5 w-5 inline" /> : `₹ ${coalStats.seclBid >= 1000 ? (coalStats.seclBid / 1000).toFixed(2) + ' K' : coalStats.seclBid}`}</span>
                   </div>
                 </div>
                 

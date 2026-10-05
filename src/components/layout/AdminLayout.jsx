@@ -911,7 +911,6 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/hr/employee-master",
       showFor: ["admin", "user", "HOD"],
       module: "HR System",
-      badge: hrBadges["Employee Master"] > 0 ? hrBadges["Employee Master"] : null,
     },
     {
       href: "/hr/salary-structure",
@@ -920,7 +919,6 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/hr/salary-structure",
       showFor: ["admin", "user", "HOD"],
       module: "HR System",
-      badge: hrBadges["Salary Structure"] > 0 ? hrBadges["Salary Structure"] : null,
     },
     {
       href: "/hr/attendance",
@@ -937,7 +935,6 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/hr/leave-tracker",
       showFor: ["admin", "user", "HOD"],
       module: "HR System",
-      badge: hrBadges["Leave Tracker"] > 0 ? hrBadges["Leave Tracker"] : null,
     },
     {
       href: "/hr/payroll-process",
@@ -946,7 +943,6 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/hr/payroll-process",
       showFor: ["admin", "user", "HOD"],
       module: "HR System",
-      badge: hrBadges["Payroll Process"] > 0 ? hrBadges["Payroll Process"] : null,
     },
     {
       href: "/hr/net-salary",
@@ -971,7 +967,6 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/hr/create-indent",
       showFor: ["admin", "user", "HOD"],
       module: "HR System",
-      badge: hrBadges["Create Indent"] > 0 ? hrBadges["Create Indent"] : null,
     },
     {
       href: "/hr/inventory",
