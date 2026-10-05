@@ -14,6 +14,8 @@ import jbtLogo from "../assets/jbt.png"
 import jbeLogo from "../assets/jbe.png"
 import jblLogo from "../assets/jbl.png"
 import ganeshLogo from "../assets/ganesh.jpg"
+import askLogo from "../assets/ASK.png"
+import jaiLogostic from "../assets/jai.logostic.png"
 import loginBg from "../assets/login.png"
 
 const LoginPage = () => {
@@ -153,10 +155,16 @@ const LoginPage = () => {
             <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none"></div>
             <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none"></div>
             
-            <div className="flex w-max animate-marquee-seamless gap-4">
-              <div className="flex items-center gap-4 shrink-0">
+            <div className="flex w-max animate-marquee-seamless">
+              <div className="flex items-center gap-4 shrink-0 pr-4">
                 <div className="bg-white p-1.5 rounded-xl shadow-sm border border-slate-100 transition-transform hover:scale-110">
                   <img src={ganeshLogo} alt="Ganesh Logo" className="h-10 w-auto object-contain rounded-md" />
+                </div>
+                <div className="bg-white p-1.5 rounded-xl shadow-sm border border-slate-100 transition-transform hover:scale-110">
+                  <img src={askLogo} alt="ASK Logo" className="h-7 max-w-[140px] w-auto object-contain" />
+                </div>
+                <div className="bg-white p-1.5 rounded-xl shadow-sm border border-slate-100 transition-transform hover:scale-110">
+                  <img src={jaiLogostic} alt="Jai Logostic Logo" className="h-9 max-w-[140px] w-auto object-contain" />
                 </div>
                 <div className="bg-white p-1.5 rounded-xl shadow-sm border border-slate-100 transition-transform hover:scale-110">
                   <img src={jbtLogo} alt="JBT Logo" className="h-10 w-auto object-contain" />
@@ -168,9 +176,15 @@ const LoginPage = () => {
                   <img src={jblLogo} alt="JBL Logo" className="h-10 w-auto object-contain" />
                 </div>
               </div>
-              <div className="flex items-center gap-4 shrink-0">
+              <div className="flex items-center gap-4 shrink-0 pr-4">
                 <div className="bg-white p-1.5 rounded-xl shadow-sm border border-slate-100 transition-transform hover:scale-110">
                   <img src={ganeshLogo} alt="Ganesh Logo" className="h-10 w-auto object-contain rounded-md" />
+                </div>
+                <div className="bg-white p-1.5 rounded-xl shadow-sm border border-slate-100 transition-transform hover:scale-110">
+                  <img src={askLogo} alt="ASK Logo" className="h-7 max-w-[140px] w-auto object-contain" />
+                </div>
+                <div className="bg-white p-1.5 rounded-xl shadow-sm border border-slate-100 transition-transform hover:scale-110">
+                  <img src={jaiLogostic} alt="Jai Logostic Logo" className="h-9 max-w-[140px] w-auto object-contain" />
                 </div>
                 <div className="bg-white p-1.5 rounded-xl shadow-sm border border-slate-100 transition-transform hover:scale-110">
                   <img src={jbtLogo} alt="JBT Logo" className="h-10 w-auto object-contain" />

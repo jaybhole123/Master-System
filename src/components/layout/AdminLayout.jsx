@@ -11,6 +11,8 @@ import jbtLogo from "../../assets/jbt.png";
 import jbeLogo from "../../assets/jbe.png";
 import jblLogo from "../../assets/jbl.png";
 import ganeshLogo from "../../assets/ganesh.jpg";
+import askLogo from "../../assets/ASK.png";
+import jaiLogostic from "../../assets/jai.logostic.png";
 import useDataStore from "../../modules/document/store/dataStore";
 import {
   CheckSquare,
@@ -1321,11 +1323,13 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
             to="/master-dashboard"
             className="flex items-center h-full w-full relative group cursor-pointer"
           >
-            <div className={`flex w-max gap-6 ${isCollapsed ? '' : 'animate-marquee-seamless'}`}>
-              <div className="flex items-center gap-3 shrink-0">
+            <div className={`flex w-max ${isCollapsed ? '' : 'animate-marquee-seamless'}`}>
+              <div className="flex items-center gap-4 shrink-0 pr-6">
                 <img src={ganeshLogo} alt="Ganesh" className="h-9 w-auto object-contain rounded-lg shadow-sm border border-slate-100 p-0.5 bg-white transition-transform hover:scale-110" />
                 {!isCollapsed && (
                   <>
+                    <img src={askLogo} alt="ASK" className="h-6 max-w-[120px] w-auto object-contain drop-shadow-sm transition-transform hover:scale-110" />
+                    <img src={jaiLogostic} alt="Jai Logostic" className="h-8 max-w-[120px] w-auto object-contain drop-shadow-sm transition-transform hover:scale-110" />
                     <img src={jbtLogo} alt="JBT" className="h-7 w-auto object-contain drop-shadow-sm transition-transform hover:scale-110" />
                     <img src={jbeLogo} alt="JBE" className="h-10 w-auto object-contain drop-shadow-sm transition-transform hover:scale-110" />
                     <img src={jblLogo} alt="JBL" className="h-7 w-auto object-contain drop-shadow-sm transition-transform hover:scale-110" />
@@ -1334,8 +1338,10 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
               </div>
               {/* Duplicated for seamless scrolling */}
               {!isCollapsed && (
-                <div className="flex items-center gap-3 shrink-0">
+                <div className="flex items-center gap-4 shrink-0 pr-6">
                   <img src={ganeshLogo} alt="Ganesh" className="h-9 w-auto object-contain rounded-lg shadow-sm border border-slate-100 p-0.5 bg-white transition-transform hover:scale-110" />
+                  <img src={askLogo} alt="ASK" className="h-6 max-w-[120px] w-auto object-contain drop-shadow-sm transition-transform hover:scale-110" />
+                  <img src={jaiLogostic} alt="Jai Logostic" className="h-8 max-w-[120px] w-auto object-contain drop-shadow-sm transition-transform hover:scale-110" />
                   <img src={jbtLogo} alt="JBT" className="h-7 w-auto object-contain drop-shadow-sm transition-transform hover:scale-110" />
                   <img src={jbeLogo} alt="JBE" className="h-10 w-auto object-contain drop-shadow-sm transition-transform hover:scale-110" />
                   <img src={jblLogo} alt="JBL" className="h-7 w-auto object-contain drop-shadow-sm transition-transform hover:scale-110" />
