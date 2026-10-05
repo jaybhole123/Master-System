@@ -7,7 +7,7 @@ import HighlightText from "./HighlightText";
 export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAddFiles, onSave, onDeleteRow, onUpdateRow, onAddManual, onPageChange, totalCount, isFetching }) {
   const fileInputRef = useRef(null);
   const observerRef = useRef(null);
-  const [activeTab, setActiveTab] = useState("summary");
+  const [activeTab, setActiveTab] = useState("pending");
   const [editingIndex, setEditingIndex] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDate, setSelectedDate] = useState(null);
@@ -105,10 +105,15 @@ export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAd
     return result;
   }, [allItems, searchTerm, selectedDate]);
 
+
+  const pendingItems = useMemo(() => filteredItems.filter(item => item.status !== 'done'), [filteredItems]);
+  const historyItems = useMemo(() => filteredItems.filter(item => item.status === 'done'), [filteredItems]);
+  const itemsToDisplay = activeTab === "history" ? historyItems : (activeTab === "pending" ? pendingItems : filteredItems);
+
   const statusCounts = useMemo(() => {
     let expired = 0;
     let valid = 0;
-    filteredItems.forEach(d => {
+    itemsToDisplay.forEach(d => {
       const daysLeft = getDaysLeft(d.dueDate);
       if (daysLeft === "Expired") {
         expired++;
@@ -117,7 +122,7 @@ export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAd
       }
     });
     return { expired, valid };
-  }, [filteredItems]);
+  }, [itemsToDisplay]);
 
   // Grouping logic (matching HTML exactly)
   const { groups, order, tQty, tAmt, tGrand, tTcs, tInclTotal } = useMemo(() => {
@@ -125,9 +130,9 @@ export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAd
     const order = [];
     let tQty = 0, tAmt = 0, tGrand = 0, tTcs = 0, tInclTotal = 0;
 
-    filteredItems.forEach((rec, index) => {
+    itemsToDisplay.forEach((rec, index) => {
       // Add a stable index property for Edit/Delete ops if not already present
-      const r = { ...rec, _originalIndex: index };
+      const r = { ...rec, _originalIndex: filteredItems.indexOf(rec) }; // Find real index in allItems/filteredItems
       
       const cn = r.customerName || "Unknown";
       if (!groups[cn]) {
@@ -149,7 +154,7 @@ export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAd
     });
     
     return { groups, order, tQty, tAmt, tGrand, tTcs, tInclTotal };
-  }, [filteredItems]);
+  }, [itemsToDisplay, filteredItems]);
 
   // Excel Export matching the HTML logic
   const handleExportExcel = () => {
@@ -224,8 +229,7 @@ export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAd
     { key: "dueDate", label: "Due Date" },
     { key: "bidPrice", dbKey: "bid_price", label: "Bid Price" },
     { key: "incl50", dbKey: "incl_50", label: "Including 50 PMT" },
-    { key: "inclTotal", dbKey: "incl_total", label: "Including 50 Total" },
-    { key: "tcsAmount", dbKey: "tcs_amount", label: "TCS Amount" }
+    { key: "remark", dbKey: "remark", label: "Remark" }
   ];
 
   const [showColumnDropdown, setShowColumnDropdown] = useState(false);
@@ -243,6 +247,8 @@ export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAd
     { key: "bidPrice", label: "Bid Price" },
     { key: "incl50", label: "Including 50" },
     { key: "createdAt", label: "Submitted Date" },
+    { key: "status", label: "Status" },
+    { key: "remark", label: "Remark" },
     { key: "preview", label: "Preview" },
     { key: "action", label: "Action" }
   ];
@@ -271,30 +277,7 @@ export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAd
 
   return (
     <section id="results">
-      {/* ACTION BAR */}
-      <div className="results-bar">
-        <div>
-          <div className="results-file" id="resFileName">{fileName}</div>
-          <div className="results-hint">SECL Payment Advice Analyzer</div>
-        </div>
-        <div className="results-actions" style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
-
-          <button className="btn ghost" onClick={handleExportExcel} style={{ borderColor: "#107c41", color: "#107c41", display: "inline-flex", alignItems: "center", gap: "6px", background: "rgba(16, 124, 65, 0.04)" }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line></svg>
-            EXCEL
-          </button>
-          <button className="btn ghost" onClick={handleExportPdf} style={{ borderColor: "#d6251b", color: "#d6251b", display: "inline-flex", alignItems: "center", gap: "6px", background: "rgba(214, 37, 27, 0.04)" }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M9 15h1a2 2 0 0 0 0-4H9v4Z"></path></svg>
-            PDF
-          </button>
-          
-          <input type="file" multiple ref={fileInputRef} onChange={handleFileChange} style={{ display: "none" }} accept=".pdf" />
-          <button className="btn outline" onClick={onAddManual}>+ MANUAL ENTRY</button>
-          <button className="btn" onClick={() => fileInputRef.current?.click()}>ADD PDF</button>
-        </div>
-      </div>
-
-      <div className="results-content">
+            <div className="results-content">
         {/* TOTALS CARDS */}
         {allItems && allItems.length > 0 && (
           <div style={{ display: "flex", gap: "16px", marginBottom: "24px", flexWrap: "wrap" }}>
@@ -339,135 +322,166 @@ export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAd
           </div>
         )}
 
-      {/* ── Tabs ── */}
-      <div style={{ display: "flex", borderBottom: "1px solid var(--line)", marginBottom: "20px" }}>
-        <button 
-          onClick={() => setActiveTab("summary")}
-          style={{
-            background: "none",
-            border: "none",
-            padding: "10px 20px",
-            fontSize: "14px",
-            fontWeight: "600",
-            color: activeTab === "summary" ? "var(--primary, #dc2626)" : "var(--muted)",
-            borderBottom: activeTab === "summary" ? "2px solid var(--primary, #dc2626)" : "2px solid transparent",
-            cursor: "pointer",
-            transition: "all 0.2s"
-          }}
-        >
-          Extracted Payment Records
-        </button>
-        <button 
-          onClick={() => setActiveTab("leftDays")}
-          style={{
-            background: "none",
-            border: "none",
-            padding: "10px 20px",
-            fontSize: "14px",
-            fontWeight: "600",
-            color: activeTab === "leftDays" ? "var(--primary, #dc2626)" : "var(--muted)",
-            borderBottom: activeTab === "leftDays" ? "2px solid var(--primary, #dc2626)" : "2px solid transparent",
-            cursor: "pointer",
-            transition: "all 0.2s"
-          }}
-        >
-          Left Days Summary
-        </button>
-      </div>
-
-      {/* ── Shared Toolbar ── */}
-      <div className="toolbar-wrapper">
-        {/* SEARCH BAR */}
-        <div style={{ position: "relative" }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)" }}>
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-          </svg>
-          <input 
-            type="text" 
-            placeholder="Search..." 
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ padding: "6px 12px 6px 30px", border: "1px solid var(--line)", borderRadius: "6px", fontSize: "13px", width: "220px", outline: "none", color: "var(--text)", background: "transparent" }}
-          />
-        </div>
-
-        {/* DATE NAVIGATOR */}
-        <div style={{ display: "flex", alignItems: "center", background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "6px", boxShadow: "0 1px 2px rgba(0,0,0,0.02)" }}>
-          <div style={{ display: "flex", alignItems: "center", padding: "4px" }}>
+            {/* ── Tabs & Toolbar ── */}
+      <div style={{ padding: "0", marginBottom: "24px" }}>
+        
+        {/* ROW 1: Tabs & Action Buttons */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", borderBottom: "1px solid var(--line)", marginBottom: "16px", paddingBottom: "0", flexWrap: "wrap", gap: "16px" }}>
+          
+          <div style={{ display: "flex", marginBottom: "-1px" }}>
             <button 
-              onClick={() => setSelectedDate(prev => prev ? (function(){ const d = new Date(prev); d.setDate(d.getDate() - 1); return d; })() : new Date())}
-              style={{ width: "28px", height: "28px", display: "flex", alignItems: "center", justifyContent: "center", background: "transparent", border: "1px solid #e2e8f0", borderRadius: "4px", cursor: "pointer", color: "#64748b" }}
+              onClick={() => setActiveTab("pending")}
+              style={{
+                background: "none", border: "none", padding: "10px 20px", fontSize: "14px", fontWeight: "600",
+                color: activeTab === "pending" ? "var(--primary, #dc2626)" : "var(--muted)",
+                borderBottom: activeTab === "pending" ? "2px solid var(--primary, #dc2626)" : "2px solid transparent",
+                cursor: "pointer", transition: "all 0.2s"
+              }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+              Pending
             </button>
-            
             <button 
-              onClick={() => setSelectedDate(new Date())}
-              style={{ margin: "0 2px", padding: "0 10px", height: "28px", display: "flex", alignItems: "center", justifyContent: "center", background: selectedDate ? "#fef2f2" : "transparent", color: selectedDate ? "#dc2626" : "#64748b", border: "none", borderRadius: "4px", fontSize: "13px", fontWeight: "600", cursor: "pointer" }}
+              onClick={() => setActiveTab("history")}
+              style={{
+                background: "none", border: "none", padding: "10px 20px", fontSize: "14px", fontWeight: "600",
+                color: activeTab === "history" ? "var(--primary, #dc2626)" : "var(--muted)",
+                borderBottom: activeTab === "history" ? "2px solid var(--primary, #dc2626)" : "2px solid transparent",
+                cursor: "pointer", transition: "all 0.2s"
+              }}
             >
-              Today
+              History
             </button>
-
             <button 
-              onClick={() => setSelectedDate(null)}
-              style={{ margin: "0 2px", padding: "0 10px", height: "28px", display: "flex", alignItems: "center", justifyContent: "center", background: !selectedDate ? "#fef2f2" : "transparent", color: !selectedDate ? "#dc2626" : "#64748b", border: "none", borderRadius: "4px", fontSize: "13px", fontWeight: "600", cursor: "pointer" }}
+              onClick={() => setActiveTab("leftDays")}
+              style={{
+                background: "none", border: "none", padding: "10px 20px", fontSize: "14px", fontWeight: "600",
+                color: activeTab === "leftDays" ? "var(--primary, #dc2626)" : "var(--muted)",
+                borderBottom: activeTab === "leftDays" ? "2px solid var(--primary, #dc2626)" : "2px solid transparent",
+                cursor: "pointer", transition: "all 0.2s"
+              }}
             >
-              All
-            </button>
-            
-            <button 
-              onClick={() => setSelectedDate(prev => prev ? (function(){ const d = new Date(prev); d.setDate(d.getDate() + 1); return d; })() : new Date())}
-              style={{ width: "28px", height: "28px", display: "flex", alignItems: "center", justifyContent: "center", background: "transparent", border: "1px solid #e2e8f0", borderRadius: "4px", cursor: "pointer", color: "#64748b" }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+              Left Days Summary
             </button>
           </div>
-          
-          <div style={{ width: "1px", height: "20px", background: "#e2e8f0", margin: "0 4px" }}></div>
-          
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "0 14px", color: "#0f172a", fontSize: "14px", fontWeight: "600", minWidth: "130px", justifyContent: "center", whiteSpace: "nowrap" }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-            {selectedDate ? selectedDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : "All Data"}
+
+          <div className="results-actions" style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap", paddingBottom: "12px" }}>
+            <button className="btn ghost" onClick={handleExportExcel} style={{ borderColor: "#107c41", color: "#107c41", display: "inline-flex", alignItems: "center", gap: "6px", background: "rgba(16, 124, 65, 0.04)" }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line></svg>
+              EXCEL
+            </button>
+            <button className="btn ghost" onClick={handleExportPdf} style={{ borderColor: "#d6251b", color: "#d6251b", display: "inline-flex", alignItems: "center", gap: "6px", background: "rgba(214, 37, 27, 0.04)" }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M9 15h1a2 2 0 0 0 0-4H9v4Z"></path></svg>
+              PDF
+            </button>
+            
+            <input type="file" multiple ref={fileInputRef} onChange={handleFileChange} style={{ display: "none" }} accept=".pdf" />
+            <button className="btn outline" onClick={onAddManual}>+ MANUAL ENTRY</button>
+            <button className="btn" onClick={() => fileInputRef.current?.click()}>UPLOAD PDF</button>
           </div>
         </div>
 
-        {/* COLUMNS TOGGLE DROPDOWN */}
-        <div style={{ position: "relative" }} ref={columnDropdownRef}>
-          <button 
-            className="btn ghost" 
-            onClick={() => setShowColumnDropdown(!showColumnDropdown)}
-            style={{ display: "inline-flex", alignItems: "center", gap: "8px", borderRadius: "6px", padding: "6px 12px", fontSize: "14px", fontWeight: "500", cursor: "pointer", transition: "all 0.15s ease" }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="12" y1="3" x2="12" y2="21"></line></svg>
-            Columns
-          </button>
-          {showColumnDropdown && (
-            <div style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, width: "220px", background: "var(--panel)", border: "1px solid var(--line)", borderRadius: "8px", boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)", zIndex: 100, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-              <div style={{ padding: "12px 14px", borderBottom: "1px solid var(--line)", fontSize: "13px", fontWeight: "600", color: "var(--text)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span>Toggle Columns</span>
+        {/* ROW 2: Tools */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
+            {/* Empty space on left to align tools on right, or we can just justify flex-end */}
+            <div style={{ flex: 1 }}></div>
+            
+            <div style={{ display: "flex", gap: "16px", alignItems: "center", flexWrap: "wrap" }}>
+              {/* SEARCH BAR */}
+              <div style={{ position: "relative" }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)" }}>
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input 
+                  type="text" 
+                  placeholder="Search..." 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  style={{ padding: "6px 12px 6px 30px", border: "1px solid var(--line)", borderRadius: "6px", fontSize: "13px", width: "160px", outline: "none", color: "var(--text)", background: "transparent" }}
+                />
               </div>
-              <div style={{ padding: "10px 14px", display: "flex", gap: "12px", borderBottom: "1px solid var(--line)", fontSize: "12px", background: "rgba(0,0,0,0.02)" }}>
-                <button onClick={() => setAllColumns(true)} style={{ color: "var(--primary, #dc2626)", background: "none", border: "none", cursor: "pointer", padding: 0, fontWeight: "600" }}>Select All</button>
-                <button onClick={() => setAllColumns(false)} style={{ color: "var(--muted)", background: "none", border: "none", cursor: "pointer", padding: 0, fontWeight: "500" }}>Deselect All</button>
+
+              {/* DATE NAVIGATOR */}
+              <div style={{ display: "flex", alignItems: "center", background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "6px", boxShadow: "0 1px 2px rgba(0,0,0,0.02)" }}>
+                <div style={{ display: "flex", alignItems: "center", padding: "4px" }}>
+                  <button 
+                    onClick={() => setSelectedDate(prev => prev ? (function(){ const d = new Date(prev); d.setDate(d.getDate() - 1); return d; })() : new Date())}
+                    style={{ width: "28px", height: "28px", display: "flex", alignItems: "center", justifyContent: "center", background: "transparent", border: "1px solid #e2e8f0", borderRadius: "4px", cursor: "pointer", color: "#64748b" }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                  </button>
+                  
+                  <button 
+                    onClick={() => setSelectedDate(new Date())}
+                    style={{ margin: "0 2px", padding: "0 10px", height: "28px", display: "flex", alignItems: "center", justifyContent: "center", background: selectedDate ? "#fef2f2" : "transparent", color: selectedDate ? "#dc2626" : "#64748b", border: "none", borderRadius: "4px", fontSize: "13px", fontWeight: "600", cursor: "pointer" }}
+                  >
+                    Today
+                  </button>
+
+                  <button 
+                    onClick={() => setSelectedDate(null)}
+                    style={{ margin: "0 2px", padding: "0 10px", height: "28px", display: "flex", alignItems: "center", justifyContent: "center", background: !selectedDate ? "#fef2f2" : "transparent", color: !selectedDate ? "#dc2626" : "#64748b", border: "none", borderRadius: "4px", fontSize: "13px", fontWeight: "600", cursor: "pointer" }}
+                  >
+                    All
+                  </button>
+                  
+                  <button 
+                    onClick={() => setSelectedDate(prev => prev ? (function(){ const d = new Date(prev); d.setDate(d.getDate() + 1); return d; })() : new Date())}
+                    style={{ width: "28px", height: "28px", display: "flex", alignItems: "center", justifyContent: "center", background: "transparent", border: "1px solid #e2e8f0", borderRadius: "4px", cursor: "pointer", color: "#64748b" }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                  </button>
+                </div>
+                
+                <div style={{ width: "1px", height: "20px", background: "#e2e8f0", margin: "0 4px" }}></div>
+                
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "0 14px", color: "#0f172a", fontSize: "14px", fontWeight: "600", minWidth: "130px", justifyContent: "center", whiteSpace: "nowrap" }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                  {selectedDate ? selectedDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : "All Data"}
+                </div>
               </div>
-              <div style={{ maxHeight: "220px", overflowY: "auto", padding: "8px 0" }}>
-                {allTableColumns.map(col => (
-                  <label key={col.key} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 14px", cursor: "pointer", transition: "background 0.15s ease", color: "var(--text)" }} onMouseOver={e => e.currentTarget.style.background="rgba(0,0,0,0.04)"} onMouseOut={e => e.currentTarget.style.background="transparent"}>
-                    <input 
-                      type="checkbox" 
-                      checked={visibleCols[col.key] || false}
-                      onChange={() => toggleColumn(col.key)}
-                      style={{ cursor: "pointer", width: "16px", height: "16px", accentColor: "var(--primary, #dc2626)", margin: 0 }}
-                    />
-                    <span style={{ fontSize: "13px", userSelect: "none" }}>{col.label}</span>
-                  </label>
-                ))}
+
+              {/* COLUMNS TOGGLE DROPDOWN */}
+              <div style={{ position: "relative" }} ref={columnDropdownRef}>
+                <button 
+                  className="btn ghost" 
+                  onClick={() => setShowColumnDropdown(!showColumnDropdown)}
+                  style={{ display: "inline-flex", alignItems: "center", gap: "8px", borderRadius: "6px", padding: "6px 12px", fontSize: "14px", fontWeight: "500", cursor: "pointer", transition: "all 0.15s ease", border: "1px solid var(--line)" }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="12" y1="3" x2="12" y2="21"></line></svg>
+                  Columns
+                </button>
+                {showColumnDropdown && (
+                  <div style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, width: "220px", background: "var(--panel)", border: "1px solid var(--line)", borderRadius: "8px", boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)", zIndex: 100, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+                    <div style={{ padding: "12px 14px", borderBottom: "1px solid var(--line)", fontSize: "13px", fontWeight: "600", color: "var(--text)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span>Toggle Columns</span>
+                    </div>
+                    <div style={{ padding: "10px 14px", display: "flex", gap: "12px", borderBottom: "1px solid var(--line)", fontSize: "12px", background: "rgba(0,0,0,0.02)" }}>
+                      <button onClick={() => setAllColumns(true)} style={{ color: "var(--primary, #dc2626)", background: "none", border: "none", cursor: "pointer", padding: 0, fontWeight: "600" }}>Select All</button>
+                      <button onClick={() => setAllColumns(false)} style={{ color: "var(--muted)", background: "none", border: "none", cursor: "pointer", padding: 0, fontWeight: "500" }}>Deselect All</button>
+                    </div>
+                    <div style={{ maxHeight: "220px", overflowY: "auto", padding: "8px 0" }}>
+                      {allTableColumns.map(col => (
+                        <label key={col.key} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 14px", cursor: "pointer", transition: "background 0.15s ease", color: "var(--text)" }} onMouseOver={e => e.currentTarget.style.background="rgba(0,0,0,0.04)"} onMouseOut={e => e.currentTarget.style.background="transparent"}>
+                          <input 
+                            type="checkbox" 
+                            checked={visibleCols[col.key] || false}
+                            onChange={() => toggleColumn(col.key)}
+                            style={{ cursor: "pointer", width: "16px", height: "16px", accentColor: "var(--primary, #dc2626)", margin: 0 }}
+                          />
+                          <span style={{ fontSize: "13px", userSelect: "none" }}>{col.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
-          )}
         </div>
       </div>
+
+{/* ── Shared Toolbar ── */}
+      
 
         {/* LEFT DAYS SUMMARY TABLE */}
         {activeTab === "leftDays" && filteredItems.length > 0 && (
@@ -542,10 +556,10 @@ export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAd
         )}
 
         {/* TABLE */}
-        {activeTab === "summary" && (
+        {(activeTab === "pending" || activeTab === "history") && (
         <div className="summary-section" style={{ marginTop: 0 }}>
           <div className="summary-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-            <div className="summary-title">Extracted Payment Records</div>
+            <div className="summary-title">{activeTab === "pending" ? "Pending Records" : "History Records"}</div>
           </div>
           <div className="summary-table-wrap">
             {allItems.length > 0 ? (
@@ -563,6 +577,8 @@ export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAd
                     {visibleCols.bidPrice && <th className="r">Bid Price<br /><small style={{ fontWeight: 400, textTransform: "none" }}>PMT (Basic)</small></th>}
                     {visibleCols.incl50 && <th className="r">Including 50<br /><small style={{ fontWeight: 400, textTransform: "none" }}>PMT Rate</small></th>}
                     {visibleCols.createdAt && <th>Submitted Date</th>}
+                    {visibleCols.status && <th style={{ width: "90px" }}>Status</th>}
+                    {visibleCols.remark && <th>Remark</th>}
                     {visibleCols.preview && <th>Preview</th>}
                     {visibleCols.action && <th style={{ width: "60px", textAlign: "center" }}>Action</th>}
                   </tr>
@@ -599,6 +615,24 @@ export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAd
                             {visibleCols.createdAt && <td className="date" data-label="Submitted Date">
                               {r.createdAt ? new Date(r.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : <span style={{ color: "var(--muted)" }}>-</span>}
                             </td>}
+                            {visibleCols.status && <td data-label="Status" style={{ textAlign: "center" }}>
+                              <span style={{
+                                display: "inline-block",
+                                padding: "4px 12px",
+                                borderRadius: "12px",
+                                fontSize: "13px",
+                                fontWeight: "600",
+                                textTransform: "capitalize",
+                                background: r.status === "done" ? "#dcfce7" : "#fef3c7",
+                                color: r.status === "done" ? "#15803d" : "#b45309",
+                                border: r.status === "done" ? "1px solid #bbf7d0" : "1px solid #fde68a"
+                              }}>
+                                {r.status === "done" ? "Done" : "Pending"}
+                              </span>
+                            </td>}
+                            {visibleCols.remark && <td data-label="Remark" style={{ color: "var(--text)", fontSize: "13px" }}>
+                              <HighlightText text={r.remark || "-"} highlight={searchTerm} />
+                            </td>}
                             {visibleCols.preview && <td data-label="Preview">
                               {r.pdfUrl ? (
                                 <a href={r.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", textDecoration: "none", fontWeight: 500, fontSize: "12px" }}>
@@ -610,6 +644,17 @@ export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAd
                             </td>}
                             {visibleCols.action && <td data-label="Action">
                               <div style={{ display: "flex", gap: "6px", alignItems: "center", justifyContent: "flex-end" }}>
+                                  {activeTab === "pending" && (
+                                    <button
+                                      style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px", padding: "4px 8px", fontSize: "11px", fontWeight: "500", borderRadius: "4px", border: "1px solid rgba(59, 130, 246, 0.3)", background: "transparent", color: "#3b82f6", boxShadow: "0 1px 2px rgba(0,0,0,0.05)", transition: "all 0.15s ease" }}
+                                      onMouseOver={(e) => { e.currentTarget.style.background = "rgba(59, 130, 246, 0.1)"; }}
+                                      onMouseOut={(e) => { e.currentTarget.style.background = "transparent"; }}
+                                      onClick={() => { onUpdateRow && onUpdateRow(r._originalIndex, { status: 'done' }); }}
+                                      title="Mark as Done"
+                                    >
+                                      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Done
+                                    </button>
+                                  )}
                                   <button
                                     style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px", padding: "4px 8px", fontSize: "11px", fontWeight: "500", borderRadius: "4px", border: "1px solid rgba(22, 163, 74, 0.3)", background: "transparent", color: "#16a34a", boxShadow: "0 1px 2px rgba(0,0,0,0.05)", transition: "all 0.15s ease" }}
                                     onMouseOver={(e) => { e.currentTarget.style.background = "rgba(22, 163, 74, 0.1)"; }}
@@ -725,6 +770,7 @@ export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAd
         initialData={editingIndex !== null ? allItems[editingIndex] : null}
         tableName="secl_payment_advices"
         columns={EDIT_COLS}
+        showPdfUpload={false}
       />
     </section>
   );

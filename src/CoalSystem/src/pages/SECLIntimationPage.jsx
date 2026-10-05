@@ -55,7 +55,8 @@ export default function SECLIntimationPage({ state, setState }) {
               "Grade / Size": row.grade_size,
               "Quantity Allotted": row.quantity_allotted,
               "Winning Bid Price (Rs/MT)": row.winning_bid_price_rs_mt,
-              "Prev": row.previous_value || ""
+              "Prev": row.previous_value || "",
+              status: row.status || 'pending'
             }]
           }));
 
@@ -104,13 +105,14 @@ export default function SECLIntimationPage({ state, setState }) {
       const insertPayload = {
         name_of_bidder: formData.bidderName || "",
         submitted_date: formData.submittedDate || new Date().toISOString().split('T')[0],
-        date_of_auction: formData.auctionDate || "",
+        date_of_auction: formData.auctionDate || null,
         seller_name: formData.sellerName || "",
         source_name: formData.sourceName || "",
         grade_size: formData.gradeSize || "",
         quantity_allotted: parseFloat(formData.qtyAllotted) || 0,
         winning_bid_price_rs_mt: parseFloat(formData.bidPrice) || 0,
         pdf_url,
+        status: 'pending'
       };
 
       const { data: inserted, error } = await supabase
@@ -137,7 +139,8 @@ export default function SECLIntimationPage({ state, setState }) {
           "Source Name": formData.sourceName,
           "Grade / Size": formData.gradeSize,
           "Quantity Allotted": formData.qtyAllotted,
-          "Winning Bid Price (Rs/MT)": formData.bidPrice
+          "Winning Bid Price (Rs/MT)": formData.bidPrice,
+          status: 'pending'
         }]
       };
 
@@ -258,13 +261,14 @@ export default function SECLIntimationPage({ state, setState }) {
             return {
               name_of_bidder: d.meta?.["Name of Bidder"] || "",
               submitted_date: d.meta?.["Submitted Date"] || new Date().toISOString().split('T')[0],
-              date_of_auction: d.meta?.["Date of Auction"] || "",
+              date_of_auction: d.meta?.["Date of Auction"] || null,
               seller_name: item["Seller Name"] || "",
               source_name: item["Source Name"] || "",
               grade_size: item["Grade / Size"] || "",
               quantity_allotted: parseFloat(item["Quantity Allotted"]) || 0,
               winning_bid_price_rs_mt: parseFloat(item["Winning Bid Price (Rs/MT)"] || item["Winning Bid Price Rs/MT"]) || 0,
               pdf_url,
+              status: 'pending'
             };
           })
         )
@@ -334,6 +338,7 @@ export default function SECLIntimationPage({ state, setState }) {
 
   const handleUpdateRow = async (index, updatedRow) => {
     let rowId = null;
+    let updatePayload = null;
 
     setState((s) => {
       const newData = [...s.data];
@@ -346,14 +351,30 @@ export default function SECLIntimationPage({ state, setState }) {
           rowId = newData[i].id;
 
           const newItems = [...newData[i].items];
-          newItems[itemIndex] = updatedRow;
+          const mergedItem = { ...newItems[itemIndex], ...updatedRow };
+          newItems[itemIndex] = mergedItem;
+          
           // Also update meta if bidder/date changed
           const updatedMeta = {
             ...newData[i].meta,
-            "Name of Bidder": updatedRow["Name of Bidder"] || newData[i].meta?.["Name of Bidder"],
-            "Date of Auction": updatedRow["Date of Auction"] || newData[i].meta?.["Date of Auction"],
+            ...(updatedRow["Name of Bidder"] !== undefined && { "Name of Bidder": updatedRow["Name of Bidder"] }),
+            ...(updatedRow["Date of Auction"] !== undefined && { "Date of Auction": updatedRow["Date of Auction"] }),
+            ...(updatedRow["Submitted Date"] !== undefined && { "Submitted Date": updatedRow["Submitted Date"] }),
           };
           newData[i] = { ...newData[i], items: newItems, meta: updatedMeta };
+          
+          updatePayload = {
+            name_of_bidder: updatedMeta["Name of Bidder"] || "",
+            submitted_date: updatedMeta["Submitted Date"] || null,
+            date_of_auction: updatedMeta["Date of Auction"] || null,
+            seller_name: mergedItem["Seller Name"] || "",
+            source_name: mergedItem["Source Name"] || "",
+            grade_size: mergedItem["Grade / Size"] || "",
+            quantity_allotted: parseFloat(mergedItem["Quantity Allotted"]) || 0,
+            winning_bid_price_rs_mt: parseFloat(mergedItem["Winning Bid Price (Rs/MT)"] || mergedItem["Winning Bid Price Rs/MT"]) || 0,
+            status: mergedItem.status || 'pending'
+          };
+          
           break;
         }
         currentIndex += itemsCount;
@@ -362,18 +383,8 @@ export default function SECLIntimationPage({ state, setState }) {
     });
 
     // Update in Supabase if we have an id
-    if (rowId) {
+    if (rowId && updatePayload) {
       try {
-        const updatePayload = {
-          name_of_bidder: updatedRow["Name of Bidder"] || updatedRow._meta?.["Name of Bidder"] || "",
-          submitted_date: updatedRow["Submitted Date"] || updatedRow._meta?.["Submitted Date"] || "",
-          date_of_auction: updatedRow["Date of Auction"] || updatedRow._meta?.["Date of Auction"] || "",
-          seller_name: updatedRow["Seller Name"] || "",
-          source_name: updatedRow["Source Name"] || "",
-          grade_size: updatedRow["Grade / Size"] || "",
-          quantity_allotted: parseFloat(updatedRow["Quantity Allotted"]) || 0,
-          winning_bid_price_rs_mt: parseFloat(updatedRow["Winning Bid Price (Rs/MT)"] || updatedRow["Winning Bid Price Rs/MT"]) || 0,
-        };
         const { error } = await supabase.from('secl_intimation_format_1').update(updatePayload).eq('id', rowId);
         if (error) throw error;
         showToast("Updated in Supabase successfully!");

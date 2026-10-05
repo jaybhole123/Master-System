@@ -29,7 +29,7 @@ export default function SalesOrderResults({
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDate, setSelectedDate] = useState(null);
-  const [activeTab, setActiveTab] = useState("summary"); // "leftDays" or "summary"
+  const [activeTab, setActiveTab] = useState("pending"); // "pending", "history", or "leftDays"
 
   // --- COLUMN TOGGLE LOGIC ---
   const [showColumnDropdown, setShowColumnDropdown] = useState(false);
@@ -47,6 +47,7 @@ export default function SalesOrderResults({
     { key: "amount", label: "Amount(INR)" },
     { key: "left_days", label: "Left Days" },
     { key: "submitted_date", label: "Submitted Date" },
+    { key: "status", label: "Status" },
     { key: "preview", label: "Preview" },
     { key: "action", label: "Action" }
   ];
@@ -108,11 +109,18 @@ export default function SalesOrderResults({
       rate_per_te: display(reqPay?.rate_per_te || d.pricing?.[0]?.rate_per_te),
       amount: display(reqPay?.amount || d.totals?.requisite_payment || d.pricing?.[0]?.amount),
       submitted_date: d.created_at ? new Date(d.created_at).toLocaleDateString() : "-",
+      status: d.status || 'pending'
     };
   };
 
   const filteredData = useMemo(() => {
     let result = dataArray.map((raw, idx) => ({ raw, summary: buildSummaryRow(raw), idx }));
+
+    if (activeTab === "pending" || activeTab === "summary") {
+      result = result.filter(({ raw }) => raw.status !== 'done');
+    } else if (activeTab === "history") {
+      result = result.filter(({ raw }) => raw.status === 'done');
+    }
 
     if (selectedDate) {
       result = result.filter(({ raw }) => {
@@ -134,7 +142,7 @@ export default function SalesOrderResults({
     }
     
     return result;
-  }, [dataArray, searchTerm, selectedDate]);
+  }, [dataArray, searchTerm, selectedDate, activeTab]);
 
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files || []).filter(f => f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf"));
@@ -292,12 +300,12 @@ export default function SalesOrderResults({
       )}
       
       {/* ── Action bar ── */}
-      <div className="results-bar">
-        <div>
+      <div className="results-bar" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px", paddingBottom: "16px", borderBottom: "1px solid var(--line)", marginBottom: "16px" }}>
+        <div style={{ display: "none" }}>
           <div className="results-file">{fileName}</div>
           <div className="results-hint">Sales Order Extracted</div>
         </div>
-        <div className="results-actions">
+        <div className="results-actions" style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
 
           <button 
             className="btn ghost" 
@@ -343,51 +351,10 @@ export default function SalesOrderResults({
             + ADD FORM
           </button>
           <button className="btn" onClick={() => fileInputRef.current?.click()}>
-            ADD PDF
+            UPLOAD PDF
           </button>
         </div>
-      </div>
-
-      {/* ── Cards and detailed tables removed per user request ── */}
-
-      {/* ── TABS ── */}
-      <div style={{ display: "flex", gap: "16px", marginTop: "24px", marginBottom: "16px", borderBottom: "1px solid var(--line)" }}>
-        <button
-          onClick={() => setActiveTab("summary")}
-          style={{
-            background: "none",
-            border: "none",
-            padding: "12px 16px",
-            fontSize: "15px",
-            fontWeight: activeTab === "summary" ? "700" : "500",
-            color: activeTab === "summary" ? "var(--primary, #dc2626)" : "var(--muted)",
-            borderBottom: activeTab === "summary" ? "2px solid var(--primary, #dc2626)" : "2px solid transparent",
-            cursor: "pointer",
-            transition: "all 0.2s"
-          }}
-        >
-          Summary Data Table
-        </button>
-        <button
-          onClick={() => setActiveTab("leftDays")}
-          style={{
-            background: "none",
-            border: "none",
-            padding: "12px 16px",
-            fontSize: "15px",
-            fontWeight: activeTab === "leftDays" ? "700" : "500",
-            color: activeTab === "leftDays" ? "var(--primary, #dc2626)" : "var(--muted)",
-            borderBottom: activeTab === "leftDays" ? "2px solid var(--primary, #dc2626)" : "2px solid transparent",
-            cursor: "pointer",
-            transition: "all 0.2s"
-          }}
-        >
-          Left Days Summary
-        </button>
-      </div>
-
-      {/* ── Shared Toolbar ── */}
-      <div className="toolbar-wrapper">
+        <div className="toolbar-wrapper" style={{ display: "flex", gap: "16px", alignItems: "center", flexWrap: "wrap" }}>
           {/* SEARCH BAR */}
           <div style={{ position: "relative" }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)" }}>
@@ -479,6 +446,56 @@ export default function SalesOrderResults({
             )}
           </div>
         </div>
+      </div>
+
+      {/* ── Cards and detailed tables removed per user request ── */}
+
+      {/* ── TABS ── */}
+      <div style={{ display: "flex", gap: "16px", marginTop: "24px", marginBottom: "16px", borderBottom: "1px solid var(--line)" }}>
+        <button
+          onClick={() => setActiveTab("pending")}
+          style={{
+            background: "none", border: "none", padding: "12px 16px", fontSize: "15px",
+            fontWeight: activeTab === "pending" ? "700" : "500",
+            color: activeTab === "pending" ? "var(--primary, #dc2626)" : "var(--muted)",
+            borderBottom: activeTab === "pending" ? "2px solid var(--primary, #dc2626)" : "2px solid transparent",
+            cursor: "pointer", transition: "all 0.2s"
+          }}
+        >
+          Pending Records
+        </button>
+        <button
+          onClick={() => setActiveTab("history")}
+          style={{
+            background: "none", border: "none", padding: "12px 16px", fontSize: "15px",
+            fontWeight: activeTab === "history" ? "700" : "500",
+            color: activeTab === "history" ? "var(--primary, #dc2626)" : "var(--muted)",
+            borderBottom: activeTab === "history" ? "2px solid var(--primary, #dc2626)" : "2px solid transparent",
+            cursor: "pointer", transition: "all 0.2s"
+          }}
+        >
+          History Records
+        </button>
+        <button
+          onClick={() => setActiveTab("leftDays")}
+          style={{
+            background: "none",
+            border: "none",
+            padding: "12px 16px",
+            fontSize: "15px",
+            fontWeight: activeTab === "leftDays" ? "700" : "500",
+            color: activeTab === "leftDays" ? "var(--primary, #dc2626)" : "var(--muted)",
+            borderBottom: activeTab === "leftDays" ? "2px solid var(--primary, #dc2626)" : "2px solid transparent",
+            cursor: "pointer",
+            transition: "all 0.2s"
+          }}
+        >
+          Left Days Summary
+        </button>
+      </div>
+
+      {/* ── Shared Toolbar ── */}
+      
 
       {/* ── Left Days Summary Table ── */}
       {activeTab === "leftDays" && (
@@ -554,10 +571,10 @@ export default function SalesOrderResults({
       )}
 
       {/* ── Summary Data Table ── */}
-      {activeTab === "summary" && (
+      {(activeTab === "pending" || activeTab === "history" || activeTab === "summary") && (
       <div className="table-card">
         <div className="table-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-          <div className="table-title">Summary Data Table</div>
+          <div className="table-title">{activeTab === "pending" ? "Pending Records" : (activeTab === "history" ? "History Records" : "Summary Data Table")}</div>
         </div>
         <div className="table-scroll" style={{ overflowX: "auto" }}>
           <table className="stable">
@@ -575,6 +592,7 @@ export default function SalesOrderResults({
                 {visibleCols.amount && <th className="num">Amount(INR)</th>}
                 {visibleCols.left_days && <th>Left Days</th>}
                 {visibleCols.submitted_date && <th>Submitted Date</th>}
+                {visibleCols.status && <th>Status</th>}
                 {visibleCols.preview && <th>Preview</th>}
                 {visibleCols.action && <th>Action</th>}
               </tr>
@@ -597,6 +615,15 @@ export default function SalesOrderResults({
                       {getDaysLeft(summaryRow.sales_order_valid_to)}
                     </td>}
                     {visibleCols.submitted_date && <td data-label="Submitted Date"><HighlightText text={summaryRow.submitted_date} highlight={searchTerm} /></td>}
+                    {visibleCols.status && <td data-label="Status">
+                      <span style={{
+                        display: "inline-flex", alignItems: "center", gap: "4px", padding: "4px 8px", fontSize: "11px", fontWeight: "600", borderRadius: "999px",
+                        background: summaryRow.status === 'done' ? "rgba(34, 197, 94, 0.1)" : "rgba(234, 179, 8, 0.1)",
+                        color: summaryRow.status === 'done' ? "#16a34a" : "#ca8a04", border: `1px solid ${summaryRow.status === 'done' ? "rgba(34, 197, 94, 0.2)" : "rgba(234, 179, 8, 0.2)"}`
+                      }}>
+                        {summaryRow.status === 'done' ? 'Done' : 'Pending'}
+                      </span>
+                    </td>}
                     {visibleCols.preview && <td data-label="Preview">
                       {d.pdfUrl ? (
                         <a href={d.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", textDecoration: "none", fontWeight: 500, fontSize: "12px" }}>
@@ -608,6 +635,23 @@ export default function SalesOrderResults({
                     </td>}
                     {visibleCols.action && <td data-label="Action">
                       <div style={{ display: "flex", gap: "6px", alignItems: "center", justifyContent: "flex-end" }}>
+                      {activeTab === "pending" && (
+                        <button
+                          style={{
+                            cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px",
+                            padding: "4px 8px", fontSize: "11px", fontWeight: "500", borderRadius: "4px",
+                            border: "1px solid rgba(59, 130, 246, 0.3)", background: "transparent",
+                            color: "#3b82f6", boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+                            transition: "all 0.15s ease",
+                          }}
+                          onMouseOver={(e) => { e.currentTarget.style.background = "rgba(59, 130, 246, 0.1)"; }}
+                          onMouseOut={(e) => { e.currentTarget.style.background = "transparent"; }}
+                          onClick={() => { onUpdateRow && onUpdateRow(index, { status: 'done' }); }}
+                          title="Mark as Done"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Done
+                        </button>
+                      )}
                       <button
                           style={{
                             cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px",
@@ -665,7 +709,7 @@ export default function SalesOrderResults({
         </div>
       )}
 
-      {activeTab === "summary" && (
+      {(activeTab === "pending" || activeTab === "history" || activeTab === "summary") && (
         <div style={{ marginTop: "16px", padding: "16px 20px", display: "flex", justifyContent: "flex-end", borderTop: "1px solid var(--line)", background: "var(--panel)", borderRadius: "var(--radius)", border: "1px solid var(--line)" }}>
           <button className="btn" onClick={onSave} style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "var(--ember-bright)", color: "white", padding: "8px 24px", fontSize: "14px", fontWeight: "600", border: "none", borderRadius: "6px", cursor: "pointer", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}>
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>

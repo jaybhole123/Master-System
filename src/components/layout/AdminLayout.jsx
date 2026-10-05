@@ -330,7 +330,11 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       if (!isSuperAdmin && !systemAccess.includes("Coal System")) return;
       try {
         const fetchCount = async (table) => {
-          const { count } = await supabase.from(table).select('*', { count: 'exact', head: true });
+          // Count only pending/active records (where status is null or not 'done')
+          const { count } = await supabase
+            .from(table)
+            .select('*', { count: 'exact', head: true })
+            .or('status.is.null,status.neq.done');
           return count || 0;
         };
         const [

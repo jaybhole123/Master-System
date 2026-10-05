@@ -1,316 +1,341 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
   BarChart, Bar
 } from "recharts";
-import { INR } from "../utils/format";
 import { supabase } from "../utils/supabase";
 
-const COLORS = ["#004080", "#dc2626", "#6dbf8a", "#f59e0b", "#d6251b"];
+const PIE_COLORS = ["#3b82f6", "#ef4444", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899", "#14b8a6", "#f97316"];
 
 export default function Dashboard({ onNavigate }) {
-  const [stats, setStats] = useState({
-    totalDocs: 0,
-    totalValue: 0,
-    activeAuctions: 0,
-    distData: [
-      { name: "No Data", value: 1 }
-    ],
-    soExpired: 0,
-    soValid: 0,
-    seclQty: 0,
-    seclBid: 0,
-    paExpired: 0,
-    paValid: 0
+  const [loading, setLoading] = useState(true);
+  const [raw, setRaw] = useState({
+    salesOrders: [], invoices: [], paymentAdvices: [],
+    seclF1: [], seclF2: [], cmpdcil: [],
+    auctions: [], auctionItems: [], dispatch: []
   });
 
-  const [dynamicTrendData, setDynamicTrendData] = useState([]);
-  const [dynamicActivityData, setDynamicActivityData] = useState([]);
-
   useEffect(() => {
-    const fetchDashboardData = async () => {
+    (async () => {
       try {
         const [
-          { data: invoices },
           { data: salesOrders },
+          { data: invoices },
           { data: paymentAdvices },
-          { data: seclIntimations }
+          { data: seclF1 },
+          { data: seclF2 },
+          { data: cmpdcil },
+          { data: auctions },
+          { data: auctionItems },
+          { data: dispatch }
         ] = await Promise.all([
-          supabase.from('invoices').select('created_at, invoice_date, total_amount'),
-          supabase.from('sales_orders').select('created_at, sales_order_valid_from, sales_order_valid_to, amount'),
-          supabase.from('secl_payment_advices').select('created_at, auction_date, grand_total, due_date'),
-          supabase.from('secl_intimation_format_1').select('created_at, quantity_allotted, winning_bid_price_rs_mt')
+          supabase.from('sales_orders').select('*'),
+          supabase.from('invoices').select('*'),
+          supabase.from('secl_payment_advices').select('*'),
+          supabase.from('secl_intimation_format_1').select('*'),
+          supabase.from('secl_intimation_format_2').select('*'),
+          supabase.from('secl_cmpdcil').select('*'),
+          supabase.from('auctions').select('*'),
+          supabase.from('auction_items').select('*'),
+          supabase.from('dispatch_records').select('*')
         ]);
-
-        const safeArr = (arr) => Array.isArray(arr) ? arr : [];
-        const inv = safeArr(invoices);
-        const so = safeArr(salesOrders);
-        const pa = safeArr(paymentAdvices);
-        const secl = safeArr(seclIntimations);
-        const aucCount = 0; // Auctions not yet in DB
-
-        const totalDocs = inv.length + so.length + pa.length + secl.length + aucCount;
-
-        let totalValue = 0;
-        inv.forEach(i => totalValue += Number(i.total_amount) || 0);
-        so.forEach(s => totalValue += Number(s.amount) || 0);
-        pa.forEach(p => totalValue += Number(p.grand_total) || 0);
-
-        // The Document Distribution Pie Chart is calculated after the sub-card stats are computed below.
-
-        // Calculate Sub-card Stats
-        let soExpired = 0;
-        let soValid = 0;
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        so.forEach(s => {
-          if (!s.sales_order_valid_to || s.sales_order_valid_to === "-" || s.sales_order_valid_to === "Not Found") {
-            soValid++;
-          } else {
-            const validTo = new Date(s.sales_order_valid_to);
-            if (isNaN(validTo)) {
-              soValid++;
-            } else {
-              validTo.setHours(0, 0, 0, 0);
-              const diffTime = validTo - today;
-              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-              if (diffDays < 0) soExpired++;
-              else soValid++;
-            }
-          }
+        setRaw({
+          salesOrders: salesOrders || [],
+          invoices: invoices || [],
+          paymentAdvices: paymentAdvices || [],
+          seclF1: seclF1 || [],
+          seclF2: seclF2 || [],
+          cmpdcil: cmpdcil || [],
+          auctions: auctions || [],
+          auctionItems: auctionItems || [],
+          dispatch: dispatch || []
         });
-
-        let seclQty = 0;
-        let seclBid = 0;
-        secl.forEach(s => {
-          seclQty += Number(s.quantity_allotted) || 0;
-          seclBid += Number(s.winning_bid_price_rs_mt) || 0;
-        });
-
-        let paExpired = 0;
-        let paValid = 0;
-        pa.forEach(p => {
-          if (!p.due_date || p.due_date === "-" || p.due_date === "Not Found") {
-            paValid++;
-          } else {
-            const validTo = new Date(p.due_date);
-            if (isNaN(validTo)) {
-              paValid++;
-            } else {
-              validTo.setHours(0, 0, 0, 0);
-              const diffTime = validTo - today;
-              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-              if (diffDays < 0) paExpired++;
-              else paValid++;
-            }
-          }
-        });
-
-        // Update Document Distribution Pie Chart using the new sub-card splits
-        let distData = [
-          { name: "Valid Sales Orders", value: soValid },
-          { name: "Expired Sales Orders", value: soExpired },
-          { name: "Valid Payment Advices", value: paValid },
-          { name: "Expired Payment Advices", value: paExpired },
-          { name: "SECL Extractions", value: secl.length },
-          { name: "Invoices", value: inv.length }
-        ].filter(d => d.value > 0);
-
-        if (distData.length === 0) {
-          distData = [{ name: "No Data", value: 1 }];
-        }
-
-        // --- CALC TREND DATA (Last 6 Months) ---
-        // Use document dates for real business trend analysis
-        const parseDocDate = (dateStr, fallbackStr) => {
-          if (!dateStr || dateStr === "-") return new Date(fallbackStr);
-          // Try to handle DD-MMM-YYYY or YYYY-MM-DD
-          const d = new Date(dateStr);
-          return isNaN(d.getTime()) ? new Date(fallbackStr) : d;
-        };
-
-        const trendRecords = [
-          ...inv.map(i => ({ date: parseDocDate(i.invoice_date, i.created_at), val: Number(i.total_amount) || 0 })),
-          ...so.map(s => ({ date: parseDocDate(s.sales_order_valid_from, s.created_at), val: Number(s.amount) || 0 })),
-          ...pa.map(p => ({ date: parseDocDate(p.auction_date, p.created_at), val: Number(p.grand_total) || 0 })),
-          ...secl.map(s => ({ date: new Date(s.created_at), val: 0 }))
-        ];
-
-        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-        const now = new Date();
-        const tDataMap = {};
-        for (let i = 5; i >= 0; i--) {
-          const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-          const key = `${d.getFullYear()}-${d.getMonth()}`;
-          tDataMap[key] = { month: monthNames[d.getMonth()], documents: 0, revenue: 0, sortKey: d.getTime() };
-        }
-
-        trendRecords.forEach(r => {
-          if (isNaN(r.date.getTime())) return;
-          const key = `${r.date.getFullYear()}-${r.date.getMonth()}`;
-          if (tDataMap[key]) {
-            tDataMap[key].documents += 1;
-            tDataMap[key].revenue += r.val;
-          }
-        });
-        
-        const newTrendData = Object.values(tDataMap).sort((a,b) => a.sortKey - b.sortKey).map(t => ({
-          month: t.month, documents: t.documents, revenue: t.revenue
-        }));
-
-        // --- CALC ACTIVITY DATA (Last 7 Days) ---
-        // Use created_at to track when the extractor was actually used
-        const activityRecords = [
-          ...inv.map(i => ({ date: new Date(i.created_at) })),
-          ...so.map(s => ({ date: new Date(s.created_at) })),
-          ...pa.map(p => ({ date: new Date(p.created_at) })),
-          ...secl.map(s => ({ date: new Date(s.created_at) }))
-        ];
-        const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-        const actDataMap = {};
-        for (let i = 6; i >= 0; i--) {
-          const d = new Date(now);
-          d.setDate(d.getDate() - i);
-          const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-          actDataMap[key] = { name: dayNames[d.getDay()], processed: 0, sortKey: d.getTime() };
-        }
-
-        activityRecords.forEach(r => {
-          if (isNaN(r.date.getTime())) return;
-          const key = `${r.date.getFullYear()}-${r.date.getMonth()}-${r.date.getDate()}`;
-          if (actDataMap[key]) {
-            actDataMap[key].processed += 1;
-          }
-        });
-
-        const newActivityData = Object.values(actDataMap).sort((a,b) => a.sortKey - b.sortKey).map(a => ({
-          name: a.name, processed: a.processed
-        }));
-
-        setStats({
-          totalDocs,
-          totalValue,
-          activeAuctions: aucCount,
-          distData,
-          soExpired,
-          soValid,
-          seclQty,
-          seclBid,
-          paExpired,
-          paValid
-        });
-        
-        setDynamicTrendData(newTrendData);
-        setDynamicActivityData(newActivityData);
-
-      } catch(err) {
-        console.error("Dashboard analysis error:", err);
+      } catch (err) {
+        console.error("Dashboard fetch error:", err);
+      } finally {
+        setLoading(false);
       }
-    };
-    
-    fetchDashboardData();
+    })();
   }, []);
 
-  const formatCompact = (val) => {
-    if (val >= 10000000) return (val / 10000000).toFixed(2) + " Cr";
-    if (val >= 100000) return (val / 100000).toFixed(2) + " L";
-    if (val >= 1000) return (val / 1000).toFixed(2) + " K";
-    return INR(val); // Fallback to standard INR for small values
+  const stats = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const { salesOrders, invoices, paymentAdvices, seclF1, seclF2, cmpdcil, auctions, auctionItems, dispatch } = raw;
+
+    // Sales Orders
+    let soValid = 0, soExpired = 0, soTotalQty = 0, soTotalAmt = 0;
+    salesOrders.forEach(s => {
+      soTotalQty += Number(s.quantity) || 0;
+      soTotalAmt += Number(s.amount) || 0;
+      if (!s.sales_order_valid_to || s.sales_order_valid_to === "-" || s.sales_order_valid_to === "Not Found") {
+        soValid++;
+      } else {
+        const vt = new Date(s.sales_order_valid_to);
+        if (isNaN(vt)) soValid++;
+        else { vt.setHours(0,0,0,0); vt < today ? soExpired++ : soValid++; }
+      }
+    });
+
+    // Payment Advices
+    let paValid = 0, paExpired = 0, paTotalAmt = 0;
+    paymentAdvices.forEach(p => {
+      paTotalAmt += Number(p.grand_total) || 0;
+      if (!p.due_date || p.due_date === "-" || p.due_date === "Not Found") {
+        paValid++;
+      } else {
+        const vt = new Date(p.due_date);
+        if (isNaN(vt)) paValid++;
+        else { vt.setHours(0,0,0,0); vt < today ? paExpired++ : paValid++; }
+      }
+    });
+
+    // SECL Intimation Format 1 (M-junction)
+    let f1Qty = 0, f1Bid = 0, f1Pending = 0, f1Done = 0;
+    seclF1.forEach(s => {
+      f1Qty += Number(s.quantity_allotted) || 0;
+      f1Bid += Number(s.winning_bid_price_rs_mt) || 0;
+      s.status === 'done' ? f1Done++ : f1Pending++;
+    });
+
+    // SECL Intimation Format 2 (MSTC)
+    let f2Qty = 0, f2Bid = 0, f2Pending = 0, f2Done = 0;
+    seclF2.forEach(s => {
+      f2Qty += Number(s.qty_allotted) || 0;
+      f2Bid += Number(s.bid_price) || 0;
+      s.status === 'done' ? f2Done++ : f2Pending++;
+    });
+
+    // CMPDCIL
+    let clQty = 0, clValue = 0, clPending = 0, clDone = 0;
+    cmpdcil.forEach(s => {
+      clQty += Number(s.allocated_qty) || 0;
+      clValue += Number(s.value_rs) || 0;
+      s.status === 'done' ? clDone++ : clPending++;
+    });
+
+    // Invoices
+    let invTotal = 0;
+    invoices.forEach(i => invTotal += Number(i.total_amount) || 0);
+
+    // Auctions
+    const aucCount = auctions.length;
+    let aucTotalQty = 0;
+    auctionItems.forEach(a => aucTotalQty += Number(a.quantity_offered) || 0);
+
+    // Dispatch
+    let dispQty = 0, dispFreight = 0;
+    dispatch.forEach(d => {
+      dispQty += Number(d.truck_qty) || 0;
+      dispFreight += Number(d.freight) || 0;
+    });
+
+    // All SECL totals
+    const seclTotalQty = f1Qty + f2Qty + clQty;
+    const seclTotalPending = f1Pending + f2Pending + clPending;
+    const seclTotalDone = f1Done + f2Done + clDone;
+
+    // Pie chart data
+    let distData = [
+      { name: "Sales Orders", value: salesOrders.length },
+      { name: "Invoices", value: invoices.length },
+      { name: "Payment Advices", value: paymentAdvices.length },
+      { name: "M-junction", value: seclF1.length },
+      { name: "MSTC", value: seclF2.length },
+      { name: "CMPDCIL", value: cmpdcil.length },
+      { name: "Auctions", value: auctions.length },
+      { name: "Dispatch", value: dispatch.length }
+    ].filter(d => d.value > 0);
+    if (distData.length === 0) distData = [{ name: "No Data", value: 1 }];
+
+    // Trend data (last 6 months)
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const now = new Date();
+    const tMap = {};
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      tMap[key] = { month: monthNames[d.getMonth()], docs: 0, value: 0, sk: d.getTime() };
+    }
+    const allRecords = [
+      ...invoices.map(i => ({ date: new Date(i.created_at), val: Number(i.total_amount) || 0 })),
+      ...salesOrders.map(s => ({ date: new Date(s.created_at), val: Number(s.amount) || 0 })),
+      ...paymentAdvices.map(p => ({ date: new Date(p.created_at), val: Number(p.grand_total) || 0 })),
+      ...seclF1.map(s => ({ date: new Date(s.created_at), val: 0 })),
+      ...seclF2.map(s => ({ date: new Date(s.created_at), val: 0 })),
+      ...cmpdcil.map(s => ({ date: new Date(s.created_at), val: 0 })),
+      ...dispatch.map(d => ({ date: new Date(d.created_at), val: 0 }))
+    ];
+    allRecords.forEach(r => {
+      if (isNaN(r.date?.getTime())) return;
+      const key = `${r.date.getFullYear()}-${r.date.getMonth()}`;
+      if (tMap[key]) { tMap[key].docs++; tMap[key].value += r.val; }
+    });
+    const trendData = Object.values(tMap).sort((a, b) => a.sk - b.sk).map(t => ({ month: t.month, documents: t.docs, value: t.value }));
+
+    // Activity data (last 7 days)
+    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const actMap = {};
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now); d.setDate(d.getDate() - i);
+      const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      actMap[key] = { name: dayNames[d.getDay()], count: 0, sk: d.getTime() };
+    }
+    allRecords.forEach(r => {
+      if (isNaN(r.date?.getTime())) return;
+      const key = `${r.date.getFullYear()}-${r.date.getMonth()}-${r.date.getDate()}`;
+      if (actMap[key]) actMap[key].count++;
+    });
+    const activityData = Object.values(actMap).sort((a, b) => a.sk - b.sk).map(a => ({ name: a.name, processed: a.count }));
+
+    const totalDocs = salesOrders.length + invoices.length + paymentAdvices.length + seclF1.length + seclF2.length + cmpdcil.length + auctions.length + dispatch.length;
+    const totalValue = soTotalAmt + invTotal + paTotalAmt;
+
+    return {
+      totalDocs, totalValue,
+      soValid, soExpired, soTotalQty, soTotalAmt, soCount: salesOrders.length,
+      paValid, paExpired, paTotalAmt, paCount: paymentAdvices.length,
+      f1Qty, f1Bid, f1Count: seclF1.length, f1Pending, f1Done,
+      f2Qty, f2Bid, f2Count: seclF2.length, f2Pending, f2Done,
+      clQty, clValue, clCount: cmpdcil.length, clPending, clDone,
+      seclTotalQty, seclTotalPending, seclTotalDone,
+      invTotal, invCount: invoices.length,
+      aucCount, aucTotalQty,
+      dispQty, dispFreight, dispCount: dispatch.length,
+      distData, trendData, activityData
+    };
+  }, [raw]);
+
+  const fmtNum = (v) => Number(v || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+  const fmtCurrency = (v) => {
+    const n = Number(v) || 0;
+    if (n >= 10000000) return `₹${(n / 10000000).toFixed(2)} Cr`;
+    if (n >= 100000) return `₹${(n / 100000).toFixed(2)} L`;
+    if (n >= 1000) return `₹${(n / 1000).toFixed(2)} K`;
+    return `₹${n.toLocaleString('en-IN')}`;
   };
+
+  if (loading) return (
+    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "60vh" }}>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ width: 48, height: 48, border: "4px solid #e5e7eb", borderTopColor: "#dc2626", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 16px" }} />
+        <p style={{ color: "var(--muted)", fontSize: 14 }}>Loading dashboard...</p>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    </div>
+  );
 
   return (
     <div style={{ maxWidth: "100%", margin: "0 auto", padding: "10px 32px 40px" }}>
-      <div style={{ marginBottom: 30 }}>
-        <h1 style={{ fontFamily: "var(--font-display)", fontSize: 32, margin: "0 0 8px 0", color: "var(--text)" }}>
-          Dashboard Overview
-        </h1>
-        <p style={{ color: "var(--muted)", fontSize: 15, margin: 0 }}>
-          Real-time analytics and document extraction statistics across all Coal System modules.
-        </p>
+      {/* HEADER */}
+      <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 16 }}>
+        <div>
+          <h1 style={{ fontFamily: "var(--font-display)", fontSize: 28, margin: "0 0 6px 0", color: "var(--text)" }}>
+            Dashboard Overview
+          </h1>
+          <p style={{ color: "var(--muted)", fontSize: 14, margin: 0 }}>
+            Real-time analytics across all Coal System modules
+          </p>
+        </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <div style={{ background: "linear-gradient(135deg, #dc2626, #b91c1c)", color: "#fff", padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 700, letterSpacing: "0.02em" }}>
+            {stats.totalDocs} Total Records
+          </div>
+          <div style={{ background: "linear-gradient(135deg, #059669, #047857)", color: "#fff", padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 700 }}>
+            {fmtCurrency(stats.totalValue)}
+          </div>
+        </div>
       </div>
 
-      {/* TOP STATS REMOVED PER USER REQUEST */}
-
-      <h3 style={{ fontFamily: "var(--font-display)", fontSize: 16, margin: "0 0 20px 0", color: "var(--text)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-        Extraction Summaries
-      </h3>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 20, marginBottom: 32 }}>
-        <StatCard 
-          title="Total Valid (Sales Order)" 
-          value={stats.soValid.toLocaleString()} 
-          delta="Active DOs" 
-          icon={<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>} 
-          trend="up" 
-        />
-        <StatCard 
-          title="Total Expired (Sales Order)" 
-          value={stats.soExpired.toLocaleString()} 
-          delta="Expired DOs" 
-          icon={<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>} 
-          trend="down" 
-        />
-        <StatCard 
-          title="Total Valid (Payment Advice)" 
-          value={stats.paValid.toLocaleString()} 
-          delta="Active Payment Advices" 
-          icon={<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>} 
-          trend="up" 
-        />
-        <StatCard 
-          title="Total Expired (Payment Advice)" 
-          value={stats.paExpired.toLocaleString()} 
-          delta="Expired Payment Advices" 
-          icon={<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>} 
-          trend="down" 
-        />
-        <StatCard 
-          title="Total Qty Allotted (SECL Intimation)" 
-          value={`${stats.seclQty.toLocaleString('en-IN')} MT`} 
-          delta="From Intimation" 
-          icon={<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>} 
-          trend="neutral" 
-        />
-        <StatCard 
-          title="Total Winning Bid (SECL Intimation)" 
-          value={`₹ ${formatCompact(stats.seclBid)}`} 
-          delta="From Intimation" 
-          icon={<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3h12M6 8h12M6 13h8.5l-8.5 8M10 8c0 3-2 5-5 5"></path></svg>} 
-          trend="neutral" 
-        />
+      {/* ═══════════ SECTION 1: SECL INTIMATION ═══════════ */}
+      <SectionTitle title="SECL Intimation" icon="📑" onNavigate={() => onNavigate("secl-intimation")} />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 16 }}>
+        <MiniCard label="Total Allotted" value={`${fmtNum(stats.seclTotalQty)} MT`} color="#3b82f6" />
+        <MiniCard label="Total Pending" value={stats.seclTotalPending} color="#f59e0b" badge="Pending" />
+        <MiniCard label="Total Done" value={stats.seclTotalDone} color="#10b981" badge="Done" />
+      </div>
+      {/* Sub-breakdown */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16, marginBottom: 32 }}>
+        <SubSection title="M-junction" items={[
+          { label: "Records", value: stats.f1Count },
+          { label: "Qty Allotted", value: `${fmtNum(stats.f1Qty)} MT` },
+          { label: "Winning Bid", value: fmtCurrency(stats.f1Bid) },
+          { label: "Pending", value: stats.f1Pending, color: "#f59e0b" },
+          { label: "Done", value: stats.f1Done, color: "#10b981" }
+        ]} color="#3b82f6" />
+        <SubSection title="MSTC" items={[
+          { label: "Records", value: stats.f2Count },
+          { label: "Qty Allotted", value: `${fmtNum(stats.f2Qty)} MT` },
+          { label: "Bid Price", value: fmtCurrency(stats.f2Bid) },
+          { label: "Pending", value: stats.f2Pending, color: "#f59e0b" },
+          { label: "Done", value: stats.f2Done, color: "#10b981" }
+        ]} color="#8b5cf6" />
+        <SubSection title="CMPDCIL" items={[
+          { label: "Records", value: stats.clCount },
+          { label: "Allocated", value: `${fmtNum(stats.clQty)} MT` },
+          { label: "Value", value: fmtCurrency(stats.clValue) },
+          { label: "Pending", value: stats.clPending, color: "#f59e0b" },
+          { label: "Done", value: stats.clDone, color: "#10b981" }
+        ]} color="#14b8a6" />
       </div>
 
-      {/* MAIN CHARTS ROW */}
+      {/* ═══════════ SECTION 2: SALES ORDER ═══════════ */}
+      <SectionTitle title="Sales Order (DO)" icon="📄" onNavigate={() => onNavigate("sales-order")} />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 32 }}>
+        <MiniCard label="Total DOs" value={stats.soCount} color="#3b82f6" />
+        <MiniCard label="Active DOs" value={stats.soValid} color="#10b981" badge="Valid" />
+        <MiniCard label="Expired DOs" value={stats.soExpired} color="#ef4444" badge="Expired" />
+        <MiniCard label="Total Quantity" value={`${fmtNum(stats.soTotalQty)} MT`} color="#8b5cf6" />
+        <MiniCard label="Total Amount" value={fmtCurrency(stats.soTotalAmt)} color="#f59e0b" />
+      </div>
+
+      {/* ═══════════ SECTION 3: SECL PAYMENT ADVICE ═══════════ */}
+      <SectionTitle title="SECL Payment Advice" icon="💰" onNavigate={() => onNavigate("secl-payment-advice")} />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 32 }}>
+        <MiniCard label="Total Advices" value={stats.paCount} color="#3b82f6" />
+        <MiniCard label="Active" value={stats.paValid} color="#10b981" badge="Valid" />
+        <MiniCard label="Expired" value={stats.paExpired} color="#ef4444" badge="Expired" />
+        <MiniCard label="Grand Total" value={fmtCurrency(stats.paTotalAmt)} color="#f59e0b" />
+      </div>
+
+      {/* ═══════════ SECTION 4: INVOICE ═══════════ */}
+      <SectionTitle title="Invoice" icon="🧾" onNavigate={() => onNavigate("invoice")} />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 32 }}>
+        <MiniCard label="Total Invoices" value={stats.invCount} color="#3b82f6" />
+        <MiniCard label="Total Amount" value={fmtCurrency(stats.invTotal)} color="#10b981" />
+      </div>
+
+      {/* ═══════════ SECTION 5: AUCTION ═══════════ */}
+      <SectionTitle title="Auction / Deal" icon="🔨" onNavigate={() => onNavigate("auction")} />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 32 }}>
+        <MiniCard label="Total Auctions" value={stats.aucCount} color="#8b5cf6" />
+        <MiniCard label="Qty Offered" value={`${fmtNum(stats.aucTotalQty)} MT`} color="#f59e0b" />
+      </div>
+
+      {/* ═══════════ SECTION 6: DISPATCH ═══════════ */}
+      <SectionTitle title="Dispatch Tracking" icon="🚛" onNavigate={() => onNavigate("dispatch")} />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 32 }}>
+        <MiniCard label="Total Dispatches" value={stats.dispCount} color="#3b82f6" />
+        <MiniCard label="Total Qty" value={`${fmtNum(stats.dispQty)} MT`} color="#10b981" />
+        <MiniCard label="Total Freight" value={fmtCurrency(stats.dispFreight)} color="#f59e0b" />
+      </div>
+
+      {/* ═══════════ CHARTS ROW ═══════════ */}
       <div className="dash-grid-main" style={{ marginBottom: 24 }}>
-        {/* Donut Chart */}
+        {/* Document Distribution Pie */}
         <div className="card" style={{ padding: 24 }}>
-          <h3 style={{ fontFamily: "var(--font-display)", fontSize: 16, margin: "0 0 20px 0", color: "var(--text)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+          <h3 style={{ fontFamily: "var(--font-display)", fontSize: 15, margin: "0 0 20px 0", color: "var(--text)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
             Document Distribution
           </h3>
-          <div style={{ height: 300, width: "100%", display: "flex", justifyContent: "center", alignItems: "center" }}>
+          <div style={{ height: 320, width: "100%", display: "flex", justifyContent: "center", alignItems: "center" }}>
             <ResponsiveContainer>
               <PieChart>
-                <Pie 
-                  data={stats.distData} 
-                  innerRadius={70} 
-                  outerRadius={110} 
-                  paddingAngle={5} 
-                  dataKey="value" 
-                  stroke="none"
-                >
-                  {stats.distData.map((entry, index) => {
-                    let color = COLORS[index % COLORS.length];
-                    if (entry.name === "No Data") color = "#e5e7eb";
-                    else if (entry.name.includes("Expired")) color = "#ef4444"; // red
-                    else if (entry.name.includes("Valid")) color = "#10b981";   // green
-                    else if (entry.name.includes("SECL")) color = "#f59e0b";    // orange
-                    else if (entry.name.includes("Invoices")) color = "#dc2626";// blue
-                    return <Cell key={`cell-${index}`} fill={color} />;
-                  })}
+                <Pie data={stats.distData} innerRadius={70} outerRadius={115} paddingAngle={4} dataKey="value" stroke="none">
+                  {stats.distData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                 </Pie>
-                <RechartsTooltip contentStyle={{ borderRadius: 8, border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} />
-                <Legend iconType="circle" wrapperStyle={{ fontSize: 12, paddingTop: 20 }} />
+                <RechartsTooltip contentStyle={{ borderRadius: 8, border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", fontSize: 13 }} />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: 12, paddingTop: 16 }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -318,17 +343,62 @@ export default function Dashboard({ onNavigate }) {
 
         {/* Quick Links */}
         <div className="card" style={{ padding: 24, display: "flex", flexDirection: "column" }}>
-          <h3 style={{ fontFamily: "var(--font-display)", fontSize: 16, margin: "0 0 20px 0", color: "var(--text)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-            Quick Extractors
+          <h3 style={{ fontFamily: "var(--font-display)", fontSize: 15, margin: "0 0 20px 0", color: "var(--text)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            Quick Navigation
           </h3>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10, flex: 1, overflowY: "auto" }}>
-            <QuickLink title="Auction / Deal" icon="🔨" onClick={() => onNavigate("auction")} />
-            <QuickLink title="SECL Extractions" icon="📑" onClick={() => onNavigate("secl-intimation")} />
-            <QuickLink title="SECL Payment Advice" icon="📑" onClick={() => onNavigate("secl-payment-advice")} />
-            <QuickLink title="Sales Order (DO)" icon="📄" onClick={() => onNavigate("sales-order")} />
-            <QuickLink title="Invoice" icon="🧾" onClick={() => onNavigate("invoice")} />
-            <QuickLink title="Work Order" icon="📋" onClick={() => onNavigate("work-order")} />
-            <QuickLink title="Dispatch" icon="🚛" onClick={() => onNavigate("dispatch")} />
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1, overflowY: "auto" }}>
+            <QuickLink title="Auction / Deal" icon="🔨" count={stats.aucCount} onClick={() => onNavigate("auction")} />
+            <QuickLink title="SECL Intimation" icon="📑" count={stats.f1Count + stats.f2Count + stats.clCount} onClick={() => onNavigate("secl-intimation")} />
+            <QuickLink title="SECL Payment Advice" icon="💰" count={stats.paCount} onClick={() => onNavigate("secl-payment-advice")} />
+            <QuickLink title="Sales Order (DO)" icon="📄" count={stats.soCount} onClick={() => onNavigate("sales-order")} />
+            <QuickLink title="Invoice" icon="🧾" count={stats.invCount} onClick={() => onNavigate("invoice")} />
+            <QuickLink title="Dispatch" icon="🚛" count={stats.dispCount} onClick={() => onNavigate("dispatch")} />
+            <QuickLink title="Refund / Lapse" icon="🔄" count="" onClick={() => onNavigate("refund-lapse")} />
+          </div>
+        </div>
+      </div>
+
+      {/* ═══════════ TREND + ACTIVITY ═══════════ */}
+      <div className="dash-grid-main" style={{ marginBottom: 24 }}>
+        {/* Monthly Trend */}
+        <div className="card" style={{ padding: 24 }}>
+          <h3 style={{ fontFamily: "var(--font-display)", fontSize: 15, margin: "0 0 20px 0", color: "var(--text)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            Monthly Document Trend
+          </h3>
+          <div style={{ height: 260 }}>
+            <ResponsiveContainer>
+              <AreaChart data={stats.trendData}>
+                <defs>
+                  <linearGradient id="gradDocs" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#6b7280" }} />
+                <YAxis tick={{ fontSize: 12, fill: "#6b7280" }} allowDecimals={false} />
+                <RechartsTooltip contentStyle={{ borderRadius: 8, border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", fontSize: 13 }} />
+                <Area type="monotone" dataKey="documents" stroke="#3b82f6" fill="url(#gradDocs)" strokeWidth={2.5} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Weekly Activity */}
+        <div className="card" style={{ padding: 24 }}>
+          <h3 style={{ fontFamily: "var(--font-display)", fontSize: 15, margin: "0 0 20px 0", color: "var(--text)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            Weekly Activity
+          </h3>
+          <div style={{ height: 260 }}>
+            <ResponsiveContainer>
+              <BarChart data={stats.activityData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#6b7280" }} />
+                <YAxis tick={{ fontSize: 12, fill: "#6b7280" }} allowDecimals={false} />
+                <RechartsTooltip contentStyle={{ borderRadius: 8, border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", fontSize: 13 }} />
+                <Bar dataKey="processed" fill="#dc2626" radius={[6, 6, 0, 0]} barSize={28} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
       </div>
@@ -336,52 +406,108 @@ export default function Dashboard({ onNavigate }) {
   );
 }
 
-function StatCard({ title, value, delta, icon, trend }) {
-  let deltaColor = "var(--muted)";
-  if (trend === "up") deltaColor = "#10b981"; // green
-  if (trend === "down") deltaColor = "#ef4444"; // red
+/* ════════ Sub-components ════════ */
 
+function SectionTitle({ title, icon, onNavigate }) {
   return (
-    <div className="card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: 12 }}>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <span style={{ fontSize: 20 }}>{icon}</span>
+        <h3 style={{ fontFamily: "var(--font-display)", fontSize: 15, margin: 0, color: "var(--text)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+          {title}
+        </h3>
+      </div>
+      <button
+        onClick={onNavigate}
+        style={{
+          background: "none", border: "1px solid var(--line)", borderRadius: 6, padding: "5px 12px",
+          fontSize: 12, color: "var(--muted)", cursor: "pointer", fontWeight: 600,
+          transition: "all 0.2s"
+        }}
+        onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--ember)"; e.currentTarget.style.color = "var(--ember)"; }}
+        onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--line)"; e.currentTarget.style.color = "var(--muted)"; }}
+      >
+        View All →
+      </button>
+    </div>
+  );
+}
+
+function MiniCard({ label, value, color, badge }) {
+  return (
+    <div
+      className="card"
+      style={{
+        padding: "20px 24px", display: "flex", flexDirection: "column", gap: 8,
+        transition: "transform 0.2s, box-shadow 0.2s", cursor: "default",
+        background: "var(--panel)", border: "1px solid var(--line)", borderRadius: "var(--radius)"
+      }}
+      onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.08)"; }}
+      onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = ""; }}
+    >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>{title}</span>
-        <span style={{ fontSize: 24, opacity: 0.8 }}>{icon}</span>
+        <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</span>
+        {badge && (
+          <span style={{
+            fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 10,
+            background: color === "#10b981" ? "#d1fae5" : color === "#ef4444" ? "#fee2e2" : "#fef3c7",
+            color: color === "#10b981" ? "#065f46" : color === "#ef4444" ? "#991b1b" : "#92400e"
+          }}>
+            {badge}
+          </span>
+        )}
       </div>
-      <div style={{ fontFamily: "var(--font-mono)", fontSize: value.length > 8 ? 28 : 36, fontWeight: 700, color: "var(--ember-bright)", margin: "4px 0", lineHeight: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+      <div style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 28, fontWeight: 800, color: "var(--ember-bright)", lineHeight: 1.1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
         {value}
-      </div>
-      <div style={{ fontSize: 13, color: deltaColor, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
-        {trend === "up" && "↑"}
-        {trend === "down" && "↓"}
-        {delta}
       </div>
     </div>
   );
 }
 
-function QuickLink({ title, icon, onClick }) {
+function SubSection({ title, items, color }) {
   return (
-    <div 
+    <div className="card" style={{ padding: "20px 24px", background: "var(--panel)", border: "1px solid var(--line)", borderRadius: "var(--radius)" }}>
+      <div style={{ fontSize: 16, fontWeight: 800, color: "var(--text)", marginBottom: 18, textTransform: "uppercase", letterSpacing: "0.04em", borderBottom: "1px solid var(--line)", paddingBottom: "10px" }}>{title}</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        {items.map((item, i) => (
+          <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 15 }}>
+            <span style={{ color: "var(--muted)", fontWeight: 600 }}>{item.label}</span>
+            <span style={{ fontWeight: 800, fontSize: 16, color: "var(--ember-bright)", fontFamily: "var(--font-mono, monospace)" }}>{item.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function QuickLink({ title, icon, count, onClick }) {
+  return (
+    <div
       onClick={onClick}
-      style={{ 
-        display: "flex", alignItems: "center", gap: 14, padding: "14px 16px", 
+      style={{
+        display: "flex", alignItems: "center", gap: 12, padding: "12px 14px",
         border: "1px solid var(--line)", borderRadius: 8, cursor: "pointer",
         transition: "all 0.2s ease", background: "var(--panel-2)"
       }}
-      onMouseEnter={(e) => {
+      onMouseEnter={e => {
         e.currentTarget.style.borderColor = "var(--ember)";
         e.currentTarget.style.background = "var(--ember-dim)";
         e.currentTarget.style.transform = "translateX(4px)";
       }}
-      onMouseLeave={(e) => {
+      onMouseLeave={e => {
         e.currentTarget.style.borderColor = "var(--line)";
         e.currentTarget.style.background = "var(--panel-2)";
         e.currentTarget.style.transform = "translateX(0)";
       }}
     >
-      <div style={{ fontSize: 20 }}>{icon}</div>
-      <div style={{ fontWeight: 600, fontSize: 13.5, color: "var(--text)" }}>{title}</div>
-      <div style={{ marginLeft: "auto", color: "var(--muted)", fontWeight: "bold" }}>→</div>
+      <div style={{ fontSize: 18 }}>{icon}</div>
+      <div style={{ fontWeight: 600, fontSize: 13, color: "var(--text)", flex: 1 }}>{title}</div>
+      {count !== "" && (
+        <div style={{ background: "var(--ember-dim)", color: "var(--ember)", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 10 }}>
+          {count}
+        </div>
+      )}
+      <div style={{ color: "var(--muted)", fontWeight: "bold", fontSize: 14 }}>→</div>
     </div>
   );
 }

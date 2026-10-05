@@ -10,7 +10,7 @@ export default function SECLIntimationResults({ data, fileName, onReset, onAddFi
   const allItems = dataArray.flatMap(d => 
     (d.items || []).map(item => ({ ...item, _meta: d.meta, pdfUrl: d.pdfUrl, pdfName: d.pdfName }))
   );
-  const [activeTab, setActiveTab] = useState("table");
+  const [activeTab, setActiveTab] = useState("pending");
   const [editingIndex, setEditingIndex] = useState(null);
   const fileInputRef = useRef(null);
 
@@ -24,14 +24,15 @@ export default function SECLIntimationResults({ data, fileName, onReset, onAddFi
   const allTableColumns = [
     { key: "srNo", label: "S.No." },
     { key: "bidderName", label: "Name of Bidder" },
-    { key: "submittedDate", label: "Submitted Date" },
     { key: "auctionDate", label: "Date of Auction" },
     { key: "sellerName", label: "Seller Name" },
     { key: "sourceName", label: "Source Name" },
     { key: "gradeSize", label: "Grade / Size" },
     { key: "qtyAllotted", label: "Quantity Allotted" },
     { key: "bidPrice", label: "Winning Bid Price Rs/MT" },
+    { key: "status", label: "Status" },
     { key: "preview", label: "Preview" },
+    { key: "submittedDate", label: "Submitted Date" },
     { key: "action", label: "Action" }
   ];
 
@@ -49,6 +50,12 @@ export default function SECLIntimationResults({ data, fileName, onReset, onAddFi
 
   const filteredItems = React.useMemo(() => {
     let result = allItems;
+    
+    if (activeTab === "pending") {
+      result = result.filter(item => item.status !== 'done');
+    } else if (activeTab === "history") {
+      result = result.filter(item => item.status === 'done');
+    }
     if (selectedDate) {
       result = result.filter(item => {
         const itemDateStr = item._meta?.["Submitted Date"];
@@ -72,7 +79,7 @@ export default function SECLIntimationResults({ data, fileName, onReset, onAddFi
       });
     }
     return result;
-  }, [allItems, searchTerm, selectedDate]);
+  }, [allItems, searchTerm, selectedDate, activeTab]);
 
   const totals = React.useMemo(() => {
     let totalQty = 0;
@@ -198,7 +205,7 @@ export default function SECLIntimationResults({ data, fileName, onReset, onAddFi
 
       {/* ── Action bar ── */}
       <div className="results-bar">
-        <div>
+        <div style={{ display: "none" }}>
           <div className="results-file" id="resFileName">{fileName}</div>
           <div className="results-hint">SECL Intimation Extracted</div>
         </div>
@@ -248,7 +255,7 @@ export default function SECLIntimationResults({ data, fileName, onReset, onAddFi
             + ADD FORM
           </button>
           <button className="btn" onClick={() => fileInputRef.current?.click()}>
-            ADD PDF
+            UPLOAD PDF
           </button>
         </div>
       </div>
@@ -257,7 +264,32 @@ export default function SECLIntimationResults({ data, fileName, onReset, onAddFi
 
         <div className="summary-section" style={{ marginTop: 0 }}>
           <div className="summary-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-            <div className="summary-title">Extracted Items</div>
+            <div style={{ display: "flex", gap: "16px" }}>
+              <button
+                onClick={() => setActiveTab("pending")}
+                style={{
+                  background: "none", border: "none", padding: "12px 16px", fontSize: "15px",
+                  fontWeight: activeTab === "pending" ? "700" : "500",
+                  color: activeTab === "pending" ? "var(--primary, #dc2626)" : "var(--muted)",
+                  borderBottom: activeTab === "pending" ? "2px solid var(--primary, #dc2626)" : "2px solid transparent",
+                  cursor: "pointer", transition: "all 0.2s"
+                }}
+              >
+                Pending Records
+              </button>
+              <button
+                onClick={() => setActiveTab("history")}
+                style={{
+                  background: "none", border: "none", padding: "12px 16px", fontSize: "15px",
+                  fontWeight: activeTab === "history" ? "700" : "500",
+                  color: activeTab === "history" ? "var(--primary, #dc2626)" : "var(--muted)",
+                  borderBottom: activeTab === "history" ? "2px solid var(--primary, #dc2626)" : "2px solid transparent",
+                  cursor: "pointer", transition: "all 0.2s"
+                }}
+              >
+                History Records
+              </button>
+            </div>
           
           <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
             {/* SEARCH BAR */}
@@ -359,14 +391,15 @@ export default function SECLIntimationResults({ data, fileName, onReset, onAddFi
                   <tr>
                     {visibleCols.srNo && <th style={{ width: "50px", textAlign: "center" }}>S.No.</th>}
                     {visibleCols.bidderName && <th>Name of Bidder</th>}
-                    {visibleCols.submittedDate && <th>Submitted Date</th>}
                     {visibleCols.auctionDate && <th>Date of Auction</th>}
                     {visibleCols.sellerName && <th>Seller Name</th>}
                     {visibleCols.sourceName && <th>Source Name</th>}
                     {visibleCols.gradeSize && <th>Grade / Size</th>}
                     {visibleCols.qtyAllotted && <th>Quantity Allotted</th>}
                     {visibleCols.bidPrice && <th>Winning Bid Price Rs/MT</th>}
+                    {visibleCols.status && <th>Status</th>}
                     {visibleCols.preview && <th>Preview</th>}
+                    {visibleCols.submittedDate && <th>Submitted Date</th>}
                     {visibleCols.action && <th>Action</th>}
                   </tr>
                 </thead>
@@ -376,13 +409,21 @@ export default function SECLIntimationResults({ data, fileName, onReset, onAddFi
                       <tr key={i}>
                         {visibleCols.srNo && <td data-label="S.No." style={{ textAlign: "center", fontWeight: "600", color: "var(--muted)", fontSize: "13px", fontFamily: "var(--font-mono, monospace)" }}>{String((currentPage - 1) * pageSize + i + 1).padStart(2, "0")}</td>}
                         {visibleCols.bidderName && <td data-label="Name of Bidder" style={{ fontWeight: "600", color: "var(--text)" }}><HighlightText text={row._meta?.['Name of Bidder'] || "—"} highlight={searchTerm} /></td>}
-                        {visibleCols.submittedDate && <td data-label="Submitted Date"><HighlightText text={row._meta?.['Submitted Date'] || "—"} highlight={searchTerm} /></td>}
                         {visibleCols.auctionDate && <td data-label="Date of Auction"><HighlightText text={row._meta?.['Date of Auction'] || "—"} highlight={searchTerm} /></td>}
                         {visibleCols.sellerName && <td data-label="Seller Name"><HighlightText text={row["Seller Name"] || "—"} highlight={searchTerm} /></td>}
                         {visibleCols.sourceName && <td data-label="Source Name"><HighlightText text={row["Source Name"] || "—"} highlight={searchTerm} /></td>}
                         {visibleCols.gradeSize && <td data-label="Grade / Size"><HighlightText text={row["Grade / Size"] || "—"} highlight={searchTerm} /></td>}
                         {visibleCols.qtyAllotted && <td data-label="Quantity Allotted"><HighlightText text={row["Quantity Allotted"] != null && row["Quantity Allotted"] !== "" ? String(row["Quantity Allotted"]) : "—"} highlight={searchTerm} /></td>}
                         {visibleCols.bidPrice && <td data-label="Winning Bid Price Rs/MT"><HighlightText text={row["Winning Bid Price (Rs/MT)"] != null && row["Winning Bid Price (Rs/MT)"] !== "" ? String(row["Winning Bid Price (Rs/MT)"]) : "—"} highlight={searchTerm} /></td>}
+                        {visibleCols.status && <td data-label="Status">
+                          <span style={{
+                            display: "inline-flex", alignItems: "center", gap: "4px", padding: "4px 8px", fontSize: "11px", fontWeight: "600", borderRadius: "999px",
+                            background: row.status === 'done' ? "rgba(34, 197, 94, 0.1)" : "rgba(234, 179, 8, 0.1)",
+                            color: row.status === 'done' ? "#16a34a" : "#ca8a04", border: `1px solid ${row.status === 'done' ? "rgba(34, 197, 94, 0.2)" : "rgba(234, 179, 8, 0.2)"}`
+                          }}>
+                            {row.status === 'done' ? 'Done' : 'Pending'}
+                          </span>
+                        </td>}
                         {visibleCols.preview && <td data-label="Preview">
                           {row.pdfUrl ? (
                             <a href={row.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", textDecoration: "none", fontWeight: 500, fontSize: "12px" }}>
@@ -392,9 +433,27 @@ export default function SECLIntimationResults({ data, fileName, onReset, onAddFi
                             <span style={{ color: "var(--muted)" }}>-</span>
                           )}
                         </td>}
+                        {visibleCols.submittedDate && <td data-label="Submitted Date"><HighlightText text={row._meta?.['Submitted Date'] || "—"} highlight={searchTerm} /></td>}
                         {visibleCols.action && (
                           <td data-label="Action">
                             <div style={{ display: "flex", gap: "6px", alignItems: "center", justifyContent: "flex-end" }}>
+                              {activeTab === "pending" && (
+                                <button
+                                  style={{
+                                    cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px",
+                                    padding: "4px 8px", fontSize: "11px", fontWeight: "500", borderRadius: "4px",
+                                    border: "1px solid rgba(59, 130, 246, 0.3)", background: "transparent",
+                                    color: "#3b82f6", boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+                                    transition: "all 0.15s ease",
+                                  }}
+                                  onMouseOver={(e) => { e.currentTarget.style.background = "rgba(59, 130, 246, 0.1)"; }}
+                                  onMouseOut={(e) => { e.currentTarget.style.background = "transparent"; }}
+                                  onClick={() => { onUpdateRow && onUpdateRow(i, { status: 'done' }); }}
+                                  title="Mark as Done"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Done
+                                </button>
+                              )}
                               <button
                                 style={{
                                   cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px",
@@ -479,12 +538,14 @@ export default function SECLIntimationResults({ data, fileName, onReset, onAddFi
             );
           })()}
 
+          {activeTab === "pending" && (
           <div style={{ padding: "16px 20px", display: "flex", justifyContent: "flex-end", borderTop: "1px solid var(--line)", background: "var(--panel)", borderBottomLeftRadius: "var(--radius)", borderBottomRightRadius: "var(--radius)" }}>
             <button className="btn" onClick={onSave} style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "var(--ember-bright)", color: "white", padding: "8px 24px", fontSize: "14px", fontWeight: "600", border: "none", borderRadius: "6px", cursor: "pointer", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}>
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
               SAVE DATA
             </button>
           </div>
+          )}
         </div>
       </div>
       

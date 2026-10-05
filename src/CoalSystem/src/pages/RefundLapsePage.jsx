@@ -9,7 +9,7 @@ export default function RefundLapsePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDate, setSelectedDate] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [editingIndex, setEditingIndex] = useState(null);
+  const [editingId, setEditingId] = useState(null);
   const [toastMessage, setToastMessage] = useState("");
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   
@@ -27,13 +27,13 @@ export default function RefundLapsePage() {
     { key: "do_last_date", label: "Do Last Date" },
     { key: "do_qty", label: "Do Qty" },
     { key: "lifted_qty", label: "Lifted Qty" },
+    { key: "rate_pmt", label: "Rate PMT" },
+    { key: "royalty_pmt", label: "Royalty PMT" },
     { key: "lapsed_qty", label: "Lapsed Qty" },
     { key: "qty_deduct", label: "Qty deduct" },
-    { key: "rate_pmt", label: "Rate PMT" },
     { key: "coal_value", label: "COAL VALUE" },
     { key: "less_emd", label: "LESS EMD" },
     { key: "refund_amt_of_coal", label: "REFUND AMT OF COAL" },
-    { key: "royalty_pmt", label: "Royalty PMT" },
     { key: "royalty_amount", label: "ROYALTY AMOUNT" },
     { key: "nemt_amount", label: "NEMT" },
     { key: "dmf_amount", label: "DMF" },
@@ -84,7 +84,8 @@ export default function RefundLapsePage() {
   }, []);
 
   const handleSaveEdit = async (updatedData) => {
-    const item = data[editingIndex];
+    const itemIndex = data.findIndex(d => d.id === editingId);
+    const item = data[itemIndex];
     if (item && item.id) {
       try {
         const lapsedForDb = updatedData.lapsed_qty ? parseFloat(updatedData.lapsed_qty) : null;
@@ -113,10 +114,10 @@ export default function RefundLapsePage() {
         const soValueRate = parseFloat(item.so_value_rate) || parseFloat(updatedData.so_value_rate) || 0;
         const storedTcs = parseFloat(item.tcs) || parseFloat(updatedData.tcs);
         const tcsRate = !isNaN(storedTcs) && storedTcs > 0 ? storedTcs : (soValueRate / 1.01 * 0.01);
-        const calculatedCoalValue = lapsed > 0 ? ((soValueRate - tcsRate) * lapsed).toFixed(2) : (item.coal_value || item.amount || "-");
+        const calculatedCoalValue = lapsed > 0 ? ((soValueRate - tcsRate) * lapsed).toFixed(2) : "-";
 
         const emdRate = parseFloat(item.less_emd_rate) || parseFloat(item.less_emd) || 0;
-        const calculatedLessEmd = lapsed > 0 ? (lapsed * emdRate).toFixed(2) : (item.less_emd || "-");
+        const calculatedLessEmd = lapsed > 0 ? (lapsed * emdRate).toFixed(2) : "-";
 
         let calculatedRefund = "-";
         if (calculatedCoalValue !== "-" && calculatedLessEmd !== "-") {
@@ -125,7 +126,7 @@ export default function RefundLapsePage() {
 
         // Update local state
         const newData = [...data];
-        newData[editingIndex] = { 
+        newData[itemIndex] = { 
           ...item, 
           ...updatedData, 
           lapsed_qty: updatedData.lapsed_qty || "-", 
@@ -146,10 +147,10 @@ export default function RefundLapsePage() {
       }
     } else {
         const newData = [...data];
-        newData[editingIndex] = { ...item, ...updatedData };
+        newData[itemIndex] = { ...item, ...updatedData };
         setData(newData);
     }
-    setEditingIndex(null);
+    setEditingId(null);
   };
 
   const handleDelete = async (row) => {
@@ -209,13 +210,13 @@ export default function RefundLapsePage() {
             const soValueRate = parseFloat(row.so_value_rate) || 0;
             const storedTcs = parseFloat(row.tcs);
             const tcsRate = !isNaN(storedTcs) && storedTcs > 0 ? storedTcs : (soValueRate / 1.01 * 0.01);
-            const calculatedCoalValue = lapsed > 0 ? ((soValueRate - tcsRate) * lapsed).toFixed(2) : (row.amount || "-");
+            const calculatedCoalValue = lapsed > 0 ? ((soValueRate - tcsRate) * lapsed).toFixed(2) : "-";
 
             const doQty = parseFloat(row.quantity) || 0;
             const computedLiftedQty = row.quantity ? (doQty - lapsed) : (row.lifted_qty || "-");
 
             const emdRate = parseFloat(row.less_emd) || 0;
-            const calculatedLessEmd = lapsed > 0 ? (lapsed * emdRate).toFixed(2) : (row.less_emd || "-");
+            const calculatedLessEmd = lapsed > 0 ? (lapsed * emdRate).toFixed(2) : "-";
 
             let calculatedRefund = "-";
             if (calculatedCoalValue !== "-" && calculatedLessEmd !== "-") {
@@ -528,10 +529,12 @@ export default function RefundLapsePage() {
                   </td>
                 </tr>
               ) : (
-                paginatedData.map((row, i) => (
-                  <tr key={i}>
+                paginatedData.map((row, i) => {
+                  const hasLapsed = parseFloat(row.lapsed_qty) > 0;
+                  return (
+                  <tr key={i} style={{ backgroundColor: hasLapsed ? "#fef9c3" : "transparent" }}>
                     {columns.map(col => (
-                      visibleCols[col.key] && <td key={col.key}>
+                      visibleCols[col.key] && <td key={col.key} style={{ fontSize: "14px", fontWeight: hasLapsed ? "500" : "400" }}>
                         {col.key === "preview" ? (
                           row.pdf_url ? (
                             <a href={row.pdf_url} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", textDecoration: "none", fontWeight: 500, fontSize: "12px" }}>
@@ -561,7 +564,7 @@ export default function RefundLapsePage() {
                           }}
                           onMouseOver={(e) => { e.currentTarget.style.background = "rgba(22, 163, 74, 0.1)"; }}
                           onMouseOut={(e) => { e.currentTarget.style.background = "transparent"; }}
-                          onClick={() => setEditingIndex(i)}
+                          onClick={() => setEditingId(row.id)}
                           title="Edit"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
@@ -585,7 +588,8 @@ export default function RefundLapsePage() {
                       </div>
                     </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -623,7 +627,7 @@ export default function RefundLapsePage() {
                   <div style={{ display: "flex", gap: "8px", borderTop: "1px solid var(--line)", paddingTop: "12px", justifyContent: "flex-end" }}>
                     <button
                       style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "4px", padding: "6px 12px", fontSize: "12px", fontWeight: "500", borderRadius: "4px", border: "1px solid rgba(22, 163, 74, 0.3)", background: "transparent", color: "#16a34a" }}
-                      onClick={() => setEditingIndex(i)}
+                      onClick={() => setEditingId(row.id)}
                     >
                       Edit
                     </button>
@@ -675,9 +679,9 @@ export default function RefundLapsePage() {
                 paginatedData.map((row, i) => (
                   <tr key={i}>
                     {summaryColumns.map(col => (
-                      <td key={col.key}>
+                      <td key={col.key} style={{ fontSize: "14px" }}>
                         {col.key === "party_name" ? (
-                          <span style={{ fontWeight: "bold", fontSize: "14px", color: "var(--text)" }}>{row[col.key]}</span>
+                          <span style={{ fontWeight: "bold", color: "var(--text)" }}>{row[col.key]}</span>
                         ) : (
                           row[col.key]
                         )}
@@ -734,15 +738,19 @@ export default function RefundLapsePage() {
       )}
 
       <EditModal
-        isOpen={editingIndex !== null}
-        onClose={() => setEditingIndex(null)}
+        isOpen={editingId !== null}
+        onClose={() => setEditingId(null)}
         onSave={handleSaveEdit}
         title="Edit Refund / Lapse Entry"
+        maxWidth="500px"
         showPdfUpload={false}
-        initialData={editingIndex !== null ? {
-          ...data[editingIndex],
-          lapsed_qty: data[editingIndex].lapsed_qty === "-" ? "" : data[editingIndex].lapsed_qty
-        } : null}
+        initialData={editingId !== null ? (function() {
+          const item = data.find(d => d.id === editingId);
+          return item ? {
+            ...item,
+            lapsed_qty: item.lapsed_qty === "-" ? "" : item.lapsed_qty
+          } : null;
+        })() : null}
         columns={[
           { key: "lapsed_qty", label: "Lapsed Qty", type: "number" }
         ]}

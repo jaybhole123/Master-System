@@ -10,6 +10,7 @@ export default defineConfig({
   ],
   server: {
     port: 5180,
+    host: true,
   },
   base: "/", // Changed from "./" to "/"
   build: {

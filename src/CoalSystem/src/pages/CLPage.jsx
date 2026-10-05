@@ -6,7 +6,7 @@ import * as pdfjsLib from "pdfjs-dist";
 import workerUrl from "pdfjs-dist/build/pdf.worker.mjs?url";
 import { exportToExcel, exportToPDF } from "../utils/exportHelpers";
 import supabase from "../../../SupabaseClient";
-import { Edit, Trash } from "lucide-react";
+import { Edit, Trash, CheckCircle } from "lucide-react";
 
 // Point pdf.js at the correct worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
@@ -16,6 +16,7 @@ export default function CLPage() {
   
   const [docs, setDocs] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeTab, setActiveTab] = useState("pending");
   const [view, setView] = useState("drop");
   const [loading, setLoading] = useState(false);
   const [loadingName, setLoadingName] = useState("");
@@ -80,6 +81,7 @@ export default function CLPage() {
           };
         }
         grouped[key].data.rows.push({
+          status: row.status || 'pending',
           dbId: row.id,
           subsidiary: row.subsidiary,
           source: row.source,
@@ -565,6 +567,27 @@ export default function CLPage() {
     }
   };
 
+  
+  const handleMarkDone = async (dIdx, rIdx, dbId, currentStatus) => {
+    const newStatus = currentStatus === 'done' ? 'pending' : 'done';
+    if (dbId) {
+      try {
+        const { error } = await supabase.from('secl_cmpdcil').update({ status: newStatus }).eq('id', dbId);
+        if (error) throw error;
+      } catch (err) {
+        console.error(err);
+        showToast("Error updating status.");
+        return;
+      }
+    }
+    setDocs(prev => {
+      const newDocs = [...prev];
+      newDocs[dIdx].rows[rIdx].status = newStatus;
+      return newDocs;
+    });
+    showToast(newStatus === 'done' ? 'Marked as Done!' : 'Moved to Pending');
+  };
+
   const handleDeleteRow = async (dIdx, rIdx, dbId) => {
     if (!window.confirm("Are you sure you want to delete this row?")) return;
     if (dbId) {
@@ -718,11 +741,30 @@ export default function CLPage() {
 
       {view === "results" && (
         <div className="results-container slide-up">
-          <div className="results-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
-            <div className="results-title" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ fontSize: 24 }}>📋</div>
-              <h3 style={{ margin: 0 }}>CL Extracted Data</h3>
-              <p style={{ margin: 0, color: 'var(--muted)', fontSize: '14px', paddingTop: '2px' }}>{docs.length} file(s) loaded</p>
+          <div className="results-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px', borderBottom: "1px solid var(--line)", paddingBottom: "16px", marginBottom: "24px" }}>
+            <div style={{ display: "flex", marginBottom: "-17px" }}>
+              <button 
+                onClick={() => setActiveTab("pending")}
+                style={{
+                  background: "none", border: "none", padding: "10px 20px", fontSize: "14px", fontWeight: "600",
+                  color: activeTab === "pending" ? "var(--primary, #dc2626)" : "var(--muted)",
+                  borderBottom: activeTab === "pending" ? "2px solid var(--primary, #dc2626)" : "2px solid transparent",
+                  cursor: "pointer", transition: "all 0.2s"
+                }}
+              >
+                Pending
+              </button>
+              <button 
+                onClick={() => setActiveTab("history")}
+                style={{
+                  background: "none", border: "none", padding: "10px 20px", fontSize: "14px", fontWeight: "600",
+                  color: activeTab === "history" ? "var(--primary, #dc2626)" : "var(--muted)",
+                  borderBottom: activeTab === "history" ? "2px solid var(--primary, #dc2626)" : "2px solid transparent",
+                  cursor: "pointer", transition: "all 0.2s"
+                }}
+              >
+                History
+              </button>
             </div>
             <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
               {/* SEARCH BAR */}
@@ -797,11 +839,33 @@ export default function CLPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginTop: '32px' }}>
             <div style={{ background: 'white', padding: '20px', borderRadius: '8px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
               <div style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--muted)', fontWeight: 600, marginBottom: '8px' }}>Total Allocated (MT)</div>
-              <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--primary)' }}>{inr(docs.reduce((sum, doc) => sum + (doc.data.rows?.reduce((rSum, r) => rSum + (Number(r.allocatedQty) || 0), 0) || 0), 0))}</div>
+              <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--primary)' }}>{(() => {
+                const allRows = docs.flatMap((d, dIdx) => (d.data.rows || []).map((r, rIdx) => ({ ...r, _doc: d, _dIdx: dIdx, _rIdx: rIdx })));
+                const filteredRows = allRows.filter(r => {
+                  const statusMatch = activeTab === "pending" ? r.status !== 'done' : r.status === 'done';
+                  if (!statusMatch) return false;
+                  if (!searchTerm) return true;
+                  const lower = searchTerm.toLowerCase();
+                  const values = [...Object.values(r), ...(Object.values(r._doc.data.info || {}))];
+                  return values.some(v => String(v || "").toLowerCase().includes(lower));
+                });
+                return inr(filteredRows.reduce((sum, r) => sum + (Number(r.allocatedQty) || 0), 0));
+              })()}</div>
             </div>
             <div style={{ background: 'white', padding: '20px', borderRadius: '8px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
               <div style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--muted)', fontWeight: 600, marginBottom: '8px' }}>Total Value ₹</div>
-              <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--ember)' }}>{inr(docs.reduce((sum, doc) => sum + (doc.data.rows?.reduce((rSum, r) => rSum + (Number(r.value) || 0), 0) || 0), 0))}</div>
+              <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--ember)' }}>{(() => {
+                const allRows = docs.flatMap((d, dIdx) => (d.data.rows || []).map((r, rIdx) => ({ ...r, _doc: d, _dIdx: dIdx, _rIdx: rIdx })));
+                const filteredRows = allRows.filter(r => {
+                  const statusMatch = activeTab === "pending" ? r.status !== 'done' : r.status === 'done';
+                  if (!statusMatch) return false;
+                  if (!searchTerm) return true;
+                  const lower = searchTerm.toLowerCase();
+                  const values = [...Object.values(r), ...(Object.values(r._doc.data.info || {}))];
+                  return values.some(v => String(v || "").toLowerCase().includes(lower));
+                });
+                return inr(filteredRows.reduce((sum, r) => sum + (Number(r.value) || 0), 0));
+              })()}</div>
             </div>
           </div>
 
@@ -834,13 +898,15 @@ export default function CLPage() {
                         <th>Subsidiary</th><th>Source</th><th>Bid ID</th><th>Mode</th><th>Rep. Grade</th><th>Size</th>
                         <th>Offer Qty</th><th>Rep. Notified</th><th>Colliery</th><th>Grade</th><th>Allocated</th>
                         <th>Bid ₹/MT</th><th>Coll. Notified</th><th>Final Bid</th><th>Supply Range</th><th>Premium %</th>
-                        <th>Seniority</th><th>Third Party</th><th>Value ₹</th><th>Preview</th><th>Action</th>
+                        <th>Seniority</th><th>Third Party</th><th>Value ₹</th><th>Status</th><th>Preview</th><th>Action</th>
                       </tr>
                     </thead>
                     <tbody>
                       {(() => {
                         const allRows = docs.flatMap((d, dIdx) => (d.data.rows || []).map((r, rIdx) => ({ ...r, _doc: d, _dIdx: dIdx, _rIdx: rIdx })));
                         const filteredRows = allRows.filter(r => {
+                        const statusMatch = activeTab === "pending" ? r.status !== 'done' : r.status === 'done';
+                        if (!statusMatch) return false;
                           if (!searchTerm) return true;
                           const lower = searchTerm.toLowerCase();
                           const values = [...Object.values(r), ...(Object.values(r._doc.data.info || {}))];
@@ -882,6 +948,19 @@ export default function CLPage() {
                             <td>{r.thirdParty}</td>
                             <td>{inr(r.value)}</td>
                             <td>
+                            <span style={{ 
+                              padding: "4px 12px", 
+                              borderRadius: "16px", 
+                              fontSize: "12px", 
+                              fontWeight: "600", 
+                              display: "inline-block",
+                              backgroundColor: r.status === "done" ? "#d1fae5" : "#fef3c7",
+                              color: r.status === "done" ? "#065f46" : "#92400e"
+                            }}>
+                              {r.status === "done" ? "Done" : "Pending"}
+                            </span>
+                          </td>
+                          <td>
                               {r._doc.pdfUrl ? (
                                 <a href={r._doc.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", textDecoration: "none", fontWeight: 500, fontSize: "12px" }}>
                                   View PDF
@@ -893,6 +972,12 @@ export default function CLPage() {
                             <td>
                               <div style={{ display: 'flex', gap: '8px' }}>
                                 <button 
+                                onClick={() => handleMarkDone(r._dIdx, r._rIdx, r.dbId, r.status)} 
+                                style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'transparent', border: '1px solid #86efac', color: '#16a34a', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 500 }}
+                              >
+                                <CheckCircle size={14} /> {r.status === 'done' ? 'Undo' : 'Done'}
+                              </button>
+                              <button 
                                   onClick={() => openEditModal(r)} 
                                   style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'transparent', border: '1px solid #93c5fd', color: '#dc2626', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 500 }}
                                 >

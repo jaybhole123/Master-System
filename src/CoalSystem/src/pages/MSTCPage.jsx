@@ -277,7 +277,7 @@ export default function MSTCPage() {
       {view === "results" && docs.length > 0 && (
         <div className="results-container slide-up">
           <div className="results-header">
-            <div className="results-title">
+            <div className="results-title" style={{ display: 'none' }}>
               <div style={{ fontSize: 24, marginRight: 12 }}>📋</div>
               <div>
                 <h3>MSTC Extracted Data</h3>

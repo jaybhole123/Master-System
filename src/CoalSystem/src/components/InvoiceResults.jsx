@@ -99,8 +99,8 @@ export default function InvoiceResults({ data, fileName, onReset, onAddFiles, on
   return (
     <section id="results">
       {/* ── Action bar ── */}
-      <div className="results-bar">
-        <div>
+      <div className="results-bar" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px", paddingBottom: "16px", borderBottom: "1px solid var(--line)", marginBottom: "16px" }}>
+        <div style={{ display: "none" }}>
           <div className="results-file" id="resFileName">{fileName}</div>
           <div className="results-hint">Invoice Extracted</div>
         </div>
@@ -150,17 +150,10 @@ export default function InvoiceResults({ data, fileName, onReset, onAddFiles, on
             + ADD FORM
           </button>
           <button className="btn" onClick={() => fileInputRef.current?.click()}>
-            ADD PDF
+            UPLOAD PDF
           </button>
         </div>
-      </div>
-
-      <div className="results-content">
-        <div className="summary-section" style={{ marginTop: 0 }}>
-          <div className="summary-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-            <div className="summary-title">Extracted Invoice Items</div>
-          
-          <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
             {/* SEARCH BAR */}
             <div style={{ position: "relative" }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)" }}>
@@ -254,6 +247,14 @@ export default function InvoiceResults({ data, fileName, onReset, onAddFiles, on
               )}
               </div>
             </div>
+      </div>
+
+      <div className="results-content">
+        <div className="summary-section" style={{ marginTop: 0 }}>
+          <div className="summary-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+            <div className="summary-title">Extracted Invoice Items</div>
+          
+          
           </div>
           <div className="summary-table-wrap">
             {filteredItems && filteredItems.length > 0 ? (

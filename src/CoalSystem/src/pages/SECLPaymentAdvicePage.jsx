@@ -59,7 +59,9 @@ export default function SECLPaymentAdvicePage({ state, setState }) {
               incl50: row.incl_50,
               inclTotal: row.incl_total,
               pdfUrl: row.pdf_url || null,
-              pdfName: "Supabase DB"
+              pdfName: "Supabase DB",
+              status: row.status || 'pending',
+              remark: row.remark || ""
             };
           });
 
@@ -105,13 +107,13 @@ export default function SECLPaymentAdvicePage({ state, setState }) {
       requisitePayment: isNaN(req) ? null : req,
       grandTotal: isNaN(grand) ? null : grand,
       grandPMT,
-      auctionDate: formData.auctionDate || 'Not Found',
-      dueDate: formData.dueDate || 'Not Found',
       bidPrice: isNaN(bid) ? null : bid,
       pdfTcsTotal: formData.tcsAmount ? parseFloat(formData.tcsAmount) : 0,
       tcsAmount: formData.tcsAmount ? parseFloat(formData.tcsAmount) : 0,
       incl50,
-      inclTotal
+      inclTotal,
+      status: 'pending',
+      remark: formData.remark || ""
     };
 
     try {
@@ -128,7 +130,9 @@ export default function SECLPaymentAdvicePage({ state, setState }) {
         pdf_tcs_total: newItem.pdfTcsTotal,
         tcs_amount: newItem.tcsAmount,
         incl_50: newItem.incl50,
-        incl_total: newItem.inclTotal
+        incl_total: newItem.inclTotal,
+        status: newItem.status,
+        remark: newItem.remark
       };
 
       const { data: inserted, error } = await supabase
@@ -276,6 +280,7 @@ export default function SECLPaymentAdvicePage({ state, setState }) {
             tcs_amount: d.tcsAmount || null,
             incl_50: d.incl50 || null,
             incl_total: d.inclTotal || null,
+            status: d.status || 'pending',
             pdf_url,
           };
         })
@@ -341,7 +346,9 @@ export default function SECLPaymentAdvicePage({ state, setState }) {
           bid_price: updatedRow.bidPrice,
           tcs_amount: updatedRow.tcsAmount,
           incl_50: updatedRow.incl50,
-          incl_total: updatedRow.inclTotal
+          incl_total: updatedRow.inclTotal,
+          status: updatedRow.status || 'pending',
+          remark: updatedRow.remark || ""
         };
         const { error } = await supabase.from('secl_payment_advices').update(updatePayload).eq('id', rowId);
         if (error) throw error;
@@ -431,9 +438,9 @@ export default function SECLPaymentAdvicePage({ state, setState }) {
           { key: "dueDate", label: "Due Date" },
           { key: "bidPrice", dbKey: "bid_price", label: "Bid Price PMT" },
           { key: "incl50", dbKey: "incl_50", label: "Including 50 PMT Rate" },
-          { key: "inclTotal", dbKey: "incl_total", label: "Including 50 Total" },
-          { key: "tcsAmount", dbKey: "tcs_amount", label: "TCS Amount" }
+          { key: "remark", dbKey: "remark", label: "Remark" }
         ]}
+        showPdfUpload={false}
       />
     </div>
   );

@@ -154,7 +154,7 @@ export default function Results({ data, fileName, onReset, onAddFiles, onExportJ
             + ADD FORM
           </button>
           <button className="btn" onClick={() => fileInputRef.current?.click()}>
-            ADD PDF
+            UPLOAD PDF
           </button>
         </div>
       </div>

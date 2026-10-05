@@ -73,7 +73,8 @@ export default function SalesOrderPage({ state, setState }) {
             totals: {
               requisite_payment: row.amount
             },
-            so_value_rate: row.so_value_rate
+            so_value_rate: row.so_value_rate,
+            status: row.status || 'pending'
           }));
 
           setState(s => {
@@ -160,6 +161,7 @@ export default function SalesOrderPage({ state, setState }) {
         so_value_rate: parseNum(formData.so_value_rate),
         rate_per_te: parseNum(formData.rate_per_te),
         amount: parseNum(formData.amount),
+        status: 'pending'
       };
 
       const { data: inserted, error } = await supabase
@@ -189,7 +191,8 @@ export default function SalesOrderPage({ state, setState }) {
         line_items: [{ quantity: formData.quantity, mine: formData.mine }],
         pricing: [{ description: "Requisite Payment", rate_per_te: formData.rate_per_te, amount: formData.amount }],
         totals: { requisite_payment: formData.amount },
-        so_value_rate: formData.so_value_rate
+        so_value_rate: formData.so_value_rate,
+        status: 'pending'
       };
 
       setState((s) => ({
@@ -411,7 +414,8 @@ export default function SalesOrderPage({ state, setState }) {
           dmf: dmf?.description ? parseNum(dmf.description.match(/(\d+(?:\.\d+)?)%/)?.[1]) || 30 : 30,
           tcs: parseNum(tcsValue),
           so_value_rate: parseNum(soValueRate),
-          less_emd: parseNum(lessEmdRate)
+          less_emd: parseNum(lessEmdRate),
+          status: d.status || 'pending'
         };
       }));
 
@@ -465,43 +469,55 @@ export default function SalesOrderPage({ state, setState }) {
     const item = { ...data[index] };
     
     // Update nested objects safely
-    item.receiver = { ...item.receiver, name: updatedRow.name };
-    item.sold_to_party = { ...item.sold_to_party, name: updatedRow.name };
-    item.company = { ...item.company, office_area: updatedRow.office_area };
-    item.mine_info = { ...item.mine_info, mine: updatedRow.mine };
+    if (updatedRow.name !== undefined) {
+      item.receiver = { ...item.receiver, name: updatedRow.name };
+      item.sold_to_party = { ...item.sold_to_party, name: updatedRow.name };
+    }
+    if (updatedRow.office_area !== undefined) {
+      item.company = { ...item.company, office_area: updatedRow.office_area };
+    }
+    if (updatedRow.mine !== undefined) {
+      item.mine_info = { ...item.mine_info, mine: updatedRow.mine };
+    }
     
-    item.order_info = { 
-      ...item.order_info, 
-      sales_order_number: updatedRow.sales_order_number,
-      sales_order_valid_from: updatedRow.sales_order_valid_from,
-      sales_order_valid_to: updatedRow.sales_order_valid_to
-    };
+    if (updatedRow.sales_order_number !== undefined || updatedRow.sales_order_valid_from !== undefined || updatedRow.sales_order_valid_to !== undefined) {
+      item.order_info = { 
+        ...item.order_info, 
+        ...(updatedRow.sales_order_number !== undefined && { sales_order_number: updatedRow.sales_order_number }),
+        ...(updatedRow.sales_order_valid_from !== undefined && { sales_order_valid_from: updatedRow.sales_order_valid_from }),
+        ...(updatedRow.sales_order_valid_to !== undefined && { sales_order_valid_to: updatedRow.sales_order_valid_to })
+      };
+    }
     
     if (item.line_items && item.line_items.length > 0) {
       item.line_items[0] = {
         ...item.line_items[0],
-        quantity: updatedRow.quantity,
-        mine: updatedRow.mine
+        ...(updatedRow.quantity !== undefined && { quantity: updatedRow.quantity }),
+        ...(updatedRow.mine !== undefined && { mine: updatedRow.mine })
       };
     }
     
     // Find Requisite Payment row to update
-    if (item.pricing && item.pricing.length > 0) {
+    if (item.pricing && item.pricing.length > 0 && (updatedRow.rate_per_te !== undefined || updatedRow.amount !== undefined)) {
       const reqIndex = item.pricing.findIndex(p => p.description?.toLowerCase().includes("requisite payment"));
       if (reqIndex !== -1) {
         item.pricing[reqIndex] = {
           ...item.pricing[reqIndex],
-          rate_per_te: updatedRow.rate_per_te,
-          amount: updatedRow.amount
+          ...(updatedRow.rate_per_te !== undefined && { rate_per_te: updatedRow.rate_per_te }),
+          ...(updatedRow.amount !== undefined && { amount: updatedRow.amount })
         };
       } else {
         // Fallback, update the first pricing item
         item.pricing[0] = {
           ...item.pricing[0],
-          rate_per_te: updatedRow.rate_per_te,
-          amount: updatedRow.amount
+          ...(updatedRow.rate_per_te !== undefined && { rate_per_te: updatedRow.rate_per_te }),
+          ...(updatedRow.amount !== undefined && { amount: updatedRow.amount })
         };
       }
+    }
+
+    if (updatedRow.status !== undefined) {
+      item.status = updatedRow.status;
     }
 
     // If it has an id, update it in Supabase
@@ -522,20 +538,22 @@ export default function SalesOrderPage({ state, setState }) {
           return `${year}-${month}-${day}`;
         };
 
-        const updatePayload = {
-          name: updatedRow.name || null,
-          sales_order_number: updatedRow.sales_order_number || null,
-          sales_order_valid_from: parseDate(updatedRow.sales_order_valid_from),
-          sales_order_valid_to: parseDate(updatedRow.sales_order_valid_to),
-          office_area: updatedRow.office_area || null,
-          mine: updatedRow.mine || null,
-          quantity: parseNum(updatedRow.quantity),
-          rate_per_te: parseNum(updatedRow.rate_per_te),
-          amount: parseNum(updatedRow.amount)
-        };
+        const updatePayload = {};
+        if (updatedRow.name !== undefined) updatePayload.name = updatedRow.name || null;
+        if (updatedRow.sales_order_number !== undefined) updatePayload.sales_order_number = updatedRow.sales_order_number || null;
+        if (updatedRow.sales_order_valid_from !== undefined) updatePayload.sales_order_valid_from = parseDate(updatedRow.sales_order_valid_from);
+        if (updatedRow.sales_order_valid_to !== undefined) updatePayload.sales_order_valid_to = parseDate(updatedRow.sales_order_valid_to);
+        if (updatedRow.office_area !== undefined) updatePayload.office_area = updatedRow.office_area || null;
+        if (updatedRow.mine !== undefined) updatePayload.mine = updatedRow.mine || null;
+        if (updatedRow.quantity !== undefined) updatePayload.quantity = parseNum(updatedRow.quantity);
+        if (updatedRow.rate_per_te !== undefined) updatePayload.rate_per_te = parseNum(updatedRow.rate_per_te);
+        if (updatedRow.amount !== undefined) updatePayload.amount = parseNum(updatedRow.amount);
+        if (updatedRow.status !== undefined) updatePayload.status = updatedRow.status;
 
-        const { error: dbError } = await supabase.from('sales_orders').update(updatePayload).eq('id', item.id);
-        if (dbError) throw dbError;
+        if (Object.keys(updatePayload).length > 0) {
+          const { error: dbError } = await supabase.from('sales_orders').update(updatePayload).eq('id', item.id);
+          if (dbError) throw dbError;
+        }
         showToast("Updated in database successfully");
       } catch (err) {
         console.error("Error updating database:", err);

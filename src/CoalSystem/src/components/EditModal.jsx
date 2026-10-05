@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-const DropdownField = ({ value, onChange, isDate, type, styles, options, disabled }) => {
+const DropdownField = ({ value, onChange, isDate, type, styles, options, disabled, isAddMode, colName }) => {
   const [isInput, setIsInput] = useState(false);
 
   if (isDate) {
@@ -15,14 +15,14 @@ const DropdownField = ({ value, onChange, isDate, type, styles, options, disable
     );
   }
 
-  if (type === "number" || type === "text") {
+  if (type !== "select") {
     return (
       <input
-        type={type}
+        type={type || "text"}
         value={value || ""}
         onChange={(e) => onChange(e.target.value)}
         style={{ ...styles.input, width: "100%", backgroundColor: disabled ? "#f1f5f9" : "var(--panel)" }}
-        placeholder={`Enter ${type}...`}
+        placeholder={`Enter ${colName || "value"}...`}
         disabled={disabled}
       />
     );
@@ -132,7 +132,7 @@ const DropdownField = ({ value, onChange, isDate, type, styles, options, disable
 
 import { supabase } from "../utils/supabase";
 
-export default function EditModal({ isOpen, onClose, onSave, onFieldChange, title = "Edit Record", columns, initialData, showPdfUpload = true, tableName, customContent }) {
+export default function EditModal({ isOpen, onClose, onSave, onFieldChange, title = "Edit Record", columns, initialData, showPdfUpload = true, tableName, customContent, maxWidth }) {
   const [formData, setFormData] = useState({});
   const [optionsMap, setOptionsMap] = useState({});
 
@@ -208,7 +208,7 @@ export default function EditModal({ isOpen, onClose, onSave, onFieldChange, titl
 
   return (
     <div className="modal-overlay" style={styles.overlay}>
-      <div className="modal-content" style={styles.content}>
+      <div className="modal-content" style={{ ...styles.content, maxWidth: maxWidth || "800px" }}>
         <div style={styles.header}>
           <h2 style={styles.title}>{title}</h2>
           <button style={styles.closeBtn} onClick={onClose}>&times;</button>
@@ -233,6 +233,8 @@ export default function EditModal({ isOpen, onClose, onSave, onFieldChange, titl
                     styles={styles}
                     options={col.options || optionsMap[fieldKey] || []}
                     disabled={col.disabled}
+                    isAddMode={!initialData || Object.keys(initialData).length === 0}
+                    colName={col.label}
                   />
                 </div>
               );
