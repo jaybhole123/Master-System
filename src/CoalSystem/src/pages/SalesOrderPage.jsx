@@ -405,7 +405,7 @@ export default function SalesOrderPage({ state, setState }) {
           sales_order_valid_from: parseDate(d.order_info?.sales_order_valid_from),
           sales_order_valid_to: parseDate(d.order_info?.sales_order_valid_to),
           office_area: d.company?.office_area || d.mine_info?.area || null,
-          mine: d.mine_info?.mine || d.line_items?.[0]?.mine || null,
+          mine: d.line_items?.[0]?.mine || d.mine_info?.mine || null,
           quantity: parseNum(d.line_items?.[0]?.quantity || d.mine_info?.quantity_words),
           rate_per_te: parseNum(reqPay?.rate_per_te || d.pricing?.[0]?.rate_per_te),
           amount: parseNum(reqPay?.amount || d.totals?.requisite_payment || d.pricing?.[0]?.amount),
@@ -600,6 +600,7 @@ export default function SalesOrderPage({ state, setState }) {
                     <th>Office Area</th>
                     <th>Quantity</th>
                     <th>Mine</th>
+                    <th>Mine 2</th>
                     <th className="num">Rate Per TE(INR)</th>
                     <th className="num">Amount(INR)</th>
                     <th>Left Days</th>

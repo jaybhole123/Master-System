@@ -37,12 +37,14 @@ export default function SalesOrderResults({
 
   const allTableColumns = [
     { key: "sno", label: "S.No" },
+    { key: "mine", label: "Mine" },
+    { key: "quantity", label: "Quantity" },
     { key: "name", label: "Name" },
     { key: "sales_order_number", label: "Sales Order Number" },
     { key: "sales_order_valid_from", label: "Sales Order Valid From" },
     { key: "sales_order_valid_to", label: "Sales Order Valid To" },
     { key: "office_area", label: "Office Area" },
-    { key: "quantity", label: "Quantity" },
+    { key: "mine2", label: "Mine 2" },
     { key: "rate_per_te", label: "Rate Per TE(INR)" },
     { key: "amount", label: "Amount(INR)" },
     { key: "left_days", label: "Left Days" },
@@ -53,7 +55,12 @@ export default function SalesOrderResults({
   ];
 
   const [visibleCols, setVisibleCols] = useState(
-    allTableColumns.reduce((acc, col) => ({ ...acc, [col.key]: true }), {})
+    allTableColumns.reduce((acc, col) => {
+      if (col.key === 'rate_per_te' || col.key === 'amount') {
+        return { ...acc, [col.key]: false };
+      }
+      return { ...acc, [col.key]: true };
+    }, {})
   );
 
   const toggleColumn = (key) => {
@@ -104,7 +111,8 @@ export default function SalesOrderResults({
       sales_order_valid_to: display(d.order_info?.sales_order_valid_to),
       office_area: display(d.company?.office_area || d.mine_info?.area),
       quantity: display(d.line_items?.[0]?.quantity || d.mine_info?.quantity_words),
-      mine: display(d.mine_info?.mine || d.line_items?.[0]?.mine),
+      mine: display(d.line_items?.[0]?.mine || d.mine_info?.mine),
+      mine2: display(d.mine_info?.mine),
       so_value_rate: display(d.so_value_rate || d.pricing?.find(p => p.description?.toLowerCase().includes("so value") || p.description?.toLowerCase().includes("grand total including emd"))?.rate_per_te),
       rate_per_te: display(reqPay?.rate_per_te || d.pricing?.[0]?.rate_per_te),
       amount: display(reqPay?.amount || d.totals?.requisite_payment || d.pricing?.[0]?.amount),
@@ -581,13 +589,14 @@ export default function SalesOrderResults({
             <thead>
               <tr>
                 {visibleCols.sno && <th style={{ width: "52px", textAlign: "center" }}>S.No</th>}
+                {visibleCols.mine && <th>Mine</th>}
+                {visibleCols.quantity && <th>Quantity</th>}
                 {visibleCols.name && <th>Name</th>}
                 {visibleCols.sales_order_number && <th>Sales Order Number</th>}
                 {visibleCols.sales_order_valid_from && <th>Sales Order Valid From</th>}
                 {visibleCols.sales_order_valid_to && <th>Sales Order Valid To</th>}
                 {visibleCols.office_area && <th>Office Area</th>}
-                {visibleCols.quantity && <th>Quantity</th>}
-                {visibleCols.mine && <th>Mine</th>}
+                {visibleCols.mine2 && <th>Mine 2</th>}
                 {visibleCols.rate_per_te && <th className="num">Rate Per TE(INR)</th>}
                 {visibleCols.amount && <th className="num">Amount(INR)</th>}
                 {visibleCols.left_days && <th>Left Days</th>}
@@ -601,14 +610,15 @@ export default function SalesOrderResults({
               {filteredData.map(({ raw: d, summary: summaryRow, idx: index }, rowNum) => {
                 return (
                   <tr key={index}>
-                    {visibleCols.sno && <td data-label="S.No" style={{ textAlign: "center", color: "var(--muted)", fontFamily: "var(--font-mono, monospace)", fontSize: "12px", fontWeight: 600 }}>{String((currentPage - 1) * pageSize + rowNum + 1).padStart(2, "0")}</td>}
+                    {visibleCols.sno && <td data-label="S.No" style={{ textAlign: "center", color: "var(--muted)", fontFamily: "var(--font-mono, monospace)", fontSize: "12px", fontWeight: 600 }}>{String(rowNum + 1).padStart(2, "0")}</td>}
+                    {visibleCols.mine && <td data-label="Mine"><HighlightText text={summaryRow.mine} highlight={searchTerm} /></td>}
+                    {visibleCols.quantity && <td data-label="Quantity"><HighlightText text={summaryRow.quantity} highlight={searchTerm} /></td>}
                     {visibleCols.name && <td data-label="Name" style={{ fontWeight: "600", color: "var(--text)" }}><HighlightText text={summaryRow.name} highlight={searchTerm} /></td>}
                     {visibleCols.sales_order_number && <td data-label="Sales Order Number"><HighlightText text={summaryRow.sales_order_number} highlight={searchTerm} /></td>}
                     {visibleCols.sales_order_valid_from && <td data-label="Sales Order Valid From"><HighlightText text={summaryRow.sales_order_valid_from} highlight={searchTerm} /></td>}
                     {visibleCols.sales_order_valid_to && <td data-label="Sales Order Valid To"><HighlightText text={summaryRow.sales_order_valid_to} highlight={searchTerm} /></td>}
                     {visibleCols.office_area && <td data-label="Office Area"><HighlightText text={summaryRow.office_area} highlight={searchTerm} /></td>}
-                    {visibleCols.quantity && <td data-label="Quantity"><HighlightText text={summaryRow.quantity} highlight={searchTerm} /></td>}
-                    {visibleCols.mine && <td data-label="Mine"><HighlightText text={summaryRow.mine} highlight={searchTerm} /></td>}
+                    {visibleCols.mine2 && <td data-label="Mine 2"><HighlightText text={summaryRow.mine2} highlight={searchTerm} /></td>}
                     {visibleCols.rate_per_te && <td data-label="Rate Per TE(INR)" className="num"><HighlightText text={summaryRow.rate_per_te} highlight={searchTerm} /></td>}
                     {visibleCols.amount && <td data-label="Amount(INR)" className="num"><HighlightText text={summaryRow.amount} highlight={searchTerm} /></td>}
                     {visibleCols.left_days && <td data-label="Left Days" className="blink-text" style={{ color: getDaysLeft(summaryRow.sales_order_valid_to) === "Expired" ? "#dc2626" : "inherit", fontWeight: getDaysLeft(summaryRow.sales_order_valid_to) === "Expired" ? "500" : "normal" }}>
