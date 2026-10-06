@@ -228,7 +228,7 @@ export default function RefundLapsePage() {
 
             return {
               id: row.id,
-              sno: String(index + 1).padStart(2, "0"),
+              sno: String(from + index + 1).padStart(2, "0"),
               party_name: row.name || "-",
               nemt: nemtDisplay,
               dmf: dmfDisplay,

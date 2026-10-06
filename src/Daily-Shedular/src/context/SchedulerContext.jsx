@@ -57,17 +57,37 @@ export const SchedulerProvider = ({ children }) => {
 
   const fetchTasks = async () => {
     try {
-      const { data: tasksData, error } = await supabase
-        .from('tasks')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(5000);
-      if (error) {
-        console.error("Error fetching tasks:", error);
-        return;
+      let allTasks = [];
+      let from = 0;
+      const step = 1000;
+      let hasMore = true;
+
+      while (hasMore) {
+        const { data: tasksData, error } = await supabase
+          .from('tasks')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .range(from, from + step - 1);
+
+        if (error) {
+          console.error("Error fetching tasks:", error);
+          break;
+        }
+
+        if (tasksData && tasksData.length > 0) {
+          allTasks = [...allTasks, ...tasksData];
+          if (tasksData.length < step) {
+            hasMore = false;
+          } else {
+            from += step;
+          }
+        } else {
+          hasMore = false;
+        }
       }
-      if (tasksData) {
-        const camelCaseTasks = tasksData.map(t => {
+
+      if (allTasks) {
+        const camelCaseTasks = allTasks.map(t => {
           let parsedAttachments = [];
           try {
             if (t.attachments) {

@@ -203,8 +203,27 @@ export default function MasterDashboard() {
         ];
 
         // 6. Daily Scheduler (Overall Stats + Day-wise)
-        const { data: dailyTasksData } = await supabase.from('tasks').select('date, status');
-        const dailyTasks = dailyTasksData || [];
+        let dailyTasks = [];
+        let from = 0;
+        const step = 1000;
+        let hasMore = true;
+        while (hasMore) {
+          const { data: chunk, error } = await supabase.from('tasks').select('date, status').range(from, from + step - 1);
+          if (error) {
+            console.error("Error fetching daily tasks:", error);
+            break;
+          }
+          if (chunk && chunk.length > 0) {
+            dailyTasks = [...dailyTasks, ...chunk];
+            if (chunk.length < step) {
+              hasMore = false;
+            } else {
+              from += step;
+            }
+          } else {
+            hasMore = false;
+          }
+        }
         
         let dailyTotalTasks = dailyTasks.length;
         let dailyCompletedTasks = 0;
