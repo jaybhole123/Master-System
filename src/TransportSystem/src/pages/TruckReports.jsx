@@ -45,7 +45,10 @@ export default function TruckReports() {
         from: item.from_location,
         to: item.to_location,
         distance: item.distance,
+        partyName: item.party_name,
+        doPartyName: item.do_party_name,
         diesel: item.diesel,
+        dieselPrice: item.diesel_price,
         advance: item.advance,
         doNo: item.do_no,
         tonnage: item.tonnage,
@@ -59,7 +62,7 @@ export default function TruckReports() {
   };
 
   const [formData, setFormData] = useState({
-    date: '', vehicleNo: '', from: '', to: '', distance: '', diesel: '', advance: '', doNo: '', totalTrips: '', vehicleBalance: '', perMT: '', tonnage: '', totalFreight: ''
+    date: '', vehicleNo: '', from: '', to: '', distance: '', partyName: '', doPartyName: '', diesel: '', dieselPrice: '', advance: '', doNo: '', totalTrips: '', vehicleBalance: '', perMT: '', tonnage: '', totalFreight: ''
   });
 
   // Predefined mock distances for auto-fetch feature
@@ -89,7 +92,7 @@ export default function TruckReports() {
     const { name, value } = e.target;
     let newFormData = { ...formData, [name]: value };
     
-    if (['perMT', 'tonnage', 'diesel', 'advance'].includes(name)) {
+    if (['perMT', 'tonnage', 'diesel', 'dieselPrice', 'advance'].includes(name)) {
       const perMT = parseFloat(name === 'perMT' ? value : newFormData.perMT) || 0;
       const tonnage = parseFloat(name === 'tonnage' ? value : newFormData.tonnage) || 0;
       
@@ -103,10 +106,11 @@ export default function TruckReports() {
 
       const dieselStr = String(name === 'diesel' ? value : newFormData.diesel || '');
       const dieselVal = parseFloat(dieselStr.replace(/[^0-9.]/g, '')) || 0;
+      const dieselPriceVal = parseFloat(name === 'dieselPrice' ? value : newFormData.dieselPrice) || 0;
       const advanceVal = parseFloat(name === 'advance' ? value : newFormData.advance) || 0;
 
       if (totalFreight > 0) {
-        const vehicleBalance = totalFreight - (dieselVal * 101) - advanceVal;
+        const vehicleBalance = totalFreight - (dieselVal * dieselPriceVal) - advanceVal;
         newFormData.vehicleBalance = Math.round(vehicleBalance).toString();
       } else {
         newFormData.vehicleBalance = '';
@@ -125,7 +129,10 @@ export default function TruckReports() {
       from_location: formData.from,
       to_location: formData.to,
       distance: formData.distance,
+      party_name: formData.partyName,
+      do_party_name: formData.doPartyName,
       diesel: formData.diesel,
+      diesel_price: Number(formData.dieselPrice) || 0,
       advance: Number(formData.advance) || 0,
       do_no: formData.doNo,
       tonnage: Number(formData.tonnage) || 0,
@@ -167,7 +174,7 @@ export default function TruckReports() {
     
     // Refresh data from server
     await fetchReports();
-    setFormData({ date: '', vehicleNo: '', from: '', to: '', distance: '', diesel: '', advance: '', doNo: '', totalTrips: '', vehicleBalance: '', perMT: '', tonnage: '', totalFreight: '' });
+    setFormData({ date: '', vehicleNo: '', from: '', to: '', distance: '', partyName: '', doPartyName: '', diesel: '', dieselPrice: '', advance: '', doNo: '', totalTrips: '', vehicleBalance: '', perMT: '', tonnage: '', totalFreight: '' });
     setIsModalOpen(false);
     setEditingId(null);
   };
@@ -437,7 +444,7 @@ export default function TruckReports() {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg>
           </div>
           <div className="card-info">
-            <h3>Total Diesel</h3>
+            <h3>Total Diesel Liter</h3>
             <h2>{totalDieselSum.toLocaleString()} L</h2>
           </div>
         </div>
@@ -488,12 +495,15 @@ export default function TruckReports() {
               <th>S.No</th>
               <th>Date</th>
               <th>Vehicle No.</th>
+              <th>Party Name</th>
               <th>From</th>
               <th>To</th>
               <th>Distance</th>
-              <th>Diesel</th>
+              <th>Diesel Liter</th>
+              <th>Diesel Price</th>
               <th>Advance</th>
               <th>DO No.</th>
+              <th>DO Party Name</th>
               <th>Tonnage</th>
               <th>Total Freight</th>
               <th>Total Trips</th>
@@ -508,12 +518,15 @@ export default function TruckReports() {
                 <td data-label="S.No">{row.sNo}</td>
                 <td data-label="Date">{row.date}</td>
                 <td data-label="Vehicle No."><span className="vehicle-badge">{row.vehicleNo}</span></td>
+                <td data-label="Party Name">{row.partyName}</td>
                 <td data-label="From">{row.from}</td>
                 <td data-label="To">{row.to}</td>
                 <td data-label="Distance">{row.distance}</td>
-                <td data-label="Diesel">{row.diesel}</td>
+                <td data-label="Diesel Liter">{row.diesel}</td>
+                <td data-label="Diesel Price">₹{row.dieselPrice}</td>
                 <td data-label="Advance"><span className="advance-text">₹{row.advance}</span></td>
                 <td data-label="DO No.">{row.doNo}</td>
+                <td data-label="DO Party Name">{row.doPartyName}</td>
                 <td data-label="Tonnage">{row.tonnage}</td>
                 <td data-label="Total Freight">₹{row.totalFreight}</td>
                 <td data-label="Total Trips">{row.totalTrips}</td>
@@ -553,7 +566,7 @@ export default function TruckReports() {
           <div className="tr-modal-content">
             <div className="tr-modal-header">
               <h2>{editingId ? 'Edit Truck Report' : 'Add New Truck Report'}</h2>
-              <button className="tr-close-btn" onClick={() => { setIsModalOpen(false); setEditingId(null); setFormData({ date: '', vehicleNo: '', from: '', to: '', distance: '', diesel: '', advance: '', doNo: '', totalTrips: '', vehicleBalance: '', perMT: '', tonnage: '', totalFreight: '' }); }}>&times;</button>
+              <button className="tr-close-btn" onClick={() => { setIsModalOpen(false); setEditingId(null); setFormData({ date: '', vehicleNo: '', from: '', to: '', distance: '', partyName: '', doPartyName: '', diesel: '', dieselPrice: '', advance: '', doNo: '', totalTrips: '', vehicleBalance: '', perMT: '', tonnage: '', totalFreight: '' }); }}>&times;</button>
             </div>
             <form onSubmit={handleAddReport} className="tr-modal-form">
               <div className="tr-form-group">
@@ -563,6 +576,10 @@ export default function TruckReports() {
               <div className="tr-form-group">
                 <label>Vehicle No.</label>
                 <input type="text" name="vehicleNo" value={formData.vehicleNo} onChange={handleInputChange} placeholder="e.g. UP32 AB 1234" required />
+              </div>
+              <div className="tr-form-group">
+                <label>Party Name</label>
+                <input type="text" name="partyName" value={formData.partyName} onChange={handleInputChange} placeholder="e.g. ABC Logistics" />
               </div>
               <div className="tr-form-group" style={{ zIndex: 100 }}>
                 <label>From</label>
@@ -625,7 +642,7 @@ export default function TruckReports() {
                 <input type="text" name="distance" value={formData.distance} onChange={handleInputChange} placeholder="e.g. 1500 km" required />
               </div>
               <div className="tr-form-group" style={{ zIndex: 98 }}>
-                <label>Diesel</label>
+                <label>Diesel Liter</label>
                 <Select
                   isClearable
                   options={dieselOptions}
@@ -681,8 +698,16 @@ export default function TruckReports() {
                 />
               </div>
               <div className="tr-form-group">
+                <label>Diesel Price (₹)</label>
+                <input type="number" name="dieselPrice" value={formData.dieselPrice} onChange={handleInputChange} placeholder="e.g. 101" />
+              </div>
+              <div className="tr-form-group">
                 <label>DO No.</label>
                 <input type="text" name="doNo" value={formData.doNo} onChange={handleInputChange} placeholder="e.g. DO-1004" required />
+              </div>
+              <div className="tr-form-group">
+                <label>DO Party Name</label>
+                <input type="text" name="doPartyName" value={formData.doPartyName} onChange={handleInputChange} placeholder="e.g. XYZ Transports" />
               </div>
               <div className="tr-form-group">
                 <label>Total Trips</label>
@@ -705,7 +730,7 @@ export default function TruckReports() {
                 <input type="number" name="totalFreight" value={formData.totalFreight} onChange={handleInputChange} placeholder="e.g. 48000" required />
               </div>
               <div className="tr-form-actions">
-                <button type="button" className="btn-secondary" onClick={() => { setIsModalOpen(false); setEditingId(null); setFormData({ date: '', vehicleNo: '', from: '', to: '', distance: '', diesel: '', advance: '', doNo: '', totalTrips: '', vehicleBalance: '', perMT: '', tonnage: '', totalFreight: '' }); }}>Cancel</button>
+                <button type="button" className="btn-secondary" onClick={() => { setIsModalOpen(false); setEditingId(null); setFormData({ date: '', vehicleNo: '', from: '', to: '', distance: '', partyName: '', doPartyName: '', diesel: '', dieselPrice: '', advance: '', doNo: '', totalTrips: '', vehicleBalance: '', perMT: '', tonnage: '', totalFreight: '' }); }}>Cancel</button>
                 <button type="submit" className="btn-primary">{editingId ? 'Update Report' : 'Save Report'}</button>
               </div>
             </form>

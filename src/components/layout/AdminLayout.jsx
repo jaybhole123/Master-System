@@ -1110,6 +1110,14 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
     },
     // --- Transport System Module Routes ---
     {
+      href: "/transport-system/dashboard",
+      label: "Dashboard",
+      icon: LayoutDashboard,
+      active: location.pathname === "/transport-system/dashboard" || location.pathname === "/transport-system",
+      showFor: ["admin", "user", "HOD"],
+      module: "Transport Reporting",
+    },
+    {
       href: "/transport-system/truck-reports",
       label: "Truck Reports",
       icon: FileText,

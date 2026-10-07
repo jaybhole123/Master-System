@@ -69,6 +69,7 @@ import DailyCalendarView from "./Daily-Shedular/src/pages/CalendarView"
 import CoalSystemApp from "./CoalSystem/src/App"
 
 // --- Transport System Imports ---
+import TransportDashboard from "./TransportSystem/src/pages/TransportDashboard"
 import TruckReports from "./TransportSystem/src/pages/TruckReports"
 
 // --- Data & Delegation Imports ---
@@ -553,6 +554,8 @@ function App() {
                     <Route path="/coal-system/sauda-scale" element={<CoalSystemWrapper><CoalSystemApp page="sauda-scale" hideNavigation={true} /></CoalSystemWrapper>} />
 
                     {/* --- Transport System Routes --- */}
+                    <Route path="/transport-system" element={<Navigate to="/transport-system/dashboard" replace />} />
+                    <Route path="/transport-system/dashboard" element={<TransportSystemWrapper><TransportDashboard /></TransportSystemWrapper>} />
                     <Route path="/transport-system/truck-reports" element={<TransportSystemWrapper><TruckReports /></TransportSystemWrapper>} />
 
                     {/* --- Backward Compatibility Redirects (From Snippet 1) --- */}
