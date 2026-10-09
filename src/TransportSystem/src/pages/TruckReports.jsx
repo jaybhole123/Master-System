@@ -22,6 +22,7 @@ export default function TruckReports() {
   const [visibleCount, setVisibleCount] = useState(50);
   
   const [reportsData, setReportsData] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchReports();
@@ -59,6 +60,7 @@ export default function TruckReports() {
       }));
       setReportsData(formattedData);
     }
+    setLoading(false);
   };
 
   const [formData, setFormData] = useState({
@@ -393,6 +395,24 @@ export default function TruckReports() {
     XLSX.writeFile(workbook, "Truck_Reports.xlsx");
   };
 
+  if (loading) {
+    return (
+      <div className="p-6 bg-gray-50 min-h-screen animate-pulse">
+        <div className="h-8 bg-gray-200 rounded-md w-1/4 mb-2"></div>
+        <div className="h-4 bg-gray-200 rounded-md w-1/3 mb-8"></div>
+        
+        <div className="flex gap-4 mb-8">
+          <div className="h-24 bg-gray-200 rounded-xl flex-1"></div>
+          <div className="h-24 bg-gray-200 rounded-xl flex-1"></div>
+          <div className="h-24 bg-gray-200 rounded-xl flex-1"></div>
+        </div>
+        
+        <div className="h-16 bg-gray-200 rounded-xl w-full mb-4"></div>
+        <div className="h-96 bg-gray-200 rounded-xl w-full"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="truck-reports-container-wrapper">
       <div className="truck-reports-container bg-white text-gray-900 rounded-lg p-6 shadow-sm">
@@ -517,7 +537,11 @@ export default function TruckReports() {
               <tr key={index}>
                 <td data-label="S.No">{row.sNo}</td>
                 <td data-label="Date">{row.date}</td>
-                <td data-label="Vehicle No."><span className="vehicle-badge">{row.vehicleNo}</span></td>
+                <td data-label="Vehicle No.">
+                  <span className="vehicle-badge">
+                    {row.vehicleNo?.toUpperCase().includes('CG') ? row.vehicleNo : `CG-10-CG ${row.vehicleNo}`}
+                  </span>
+                </td>
                 <td data-label="Party Name">{row.partyName}</td>
                 <td data-label="From">{row.from}</td>
                 <td data-label="To">{row.to}</td>

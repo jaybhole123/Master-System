@@ -71,6 +71,7 @@ import CoalSystemApp from "./CoalSystem/src/App"
 // --- Transport System Imports ---
 import TransportDashboard from "./TransportSystem/src/pages/TransportDashboard"
 import TruckReports from "./TransportSystem/src/pages/TruckReports"
+import FastagReport from "./TransportSystem/src/pages/FastagReport"
 
 // --- Data & Delegation Imports ---
 import DataPage from "./pages/admin/DataPage"
@@ -557,6 +558,7 @@ function App() {
                     <Route path="/transport-system" element={<Navigate to="/transport-system/dashboard" replace />} />
                     <Route path="/transport-system/dashboard" element={<TransportSystemWrapper><TransportDashboard /></TransportSystemWrapper>} />
                     <Route path="/transport-system/truck-reports" element={<TransportSystemWrapper><TruckReports /></TransportSystemWrapper>} />
+                    <Route path="/transport-system/fastag-reports" element={<TransportSystemWrapper><FastagReport /></TransportSystemWrapper>} />
 
                     {/* --- Backward Compatibility Redirects (From Snippet 1) --- */}
                     {/* These catch old URLs and forward them to the new structure */}

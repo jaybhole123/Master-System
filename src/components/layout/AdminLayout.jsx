@@ -1125,6 +1125,14 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       showFor: ["admin", "user", "HOD"],
       module: "Transport Reporting",
     },
+    {
+      href: "/transport-system/fastag-reports",
+      label: "Fastag Reports",
+      icon: FileText,
+      active: location.pathname === "/transport-system/fastag-reports",
+      showFor: ["admin", "user", "HOD"],
+      module: "Transport Reporting",
+    },
     // --- Coal System Module Routes ---
     {
       href: "/coal-system/dashboard",

@@ -55,7 +55,27 @@ export default function TransportDashboard() {
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center h-full p-8 text-lg font-semibold text-gray-600">Loading Dashboard...</div>;
+    return (
+      <div className="p-6 bg-gray-50 min-h-full animate-pulse">
+        <div className="mb-6">
+          <div className="h-8 bg-gray-200 rounded-md w-1/4 mb-2"></div>
+          <div className="h-4 bg-gray-200 rounded-md w-1/3"></div>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 h-24">
+              <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
+              <div className="h-6 bg-gray-200 rounded w-3/4"></div>
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          <div className="h-64 bg-gray-200 rounded-xl"></div>
+          <div className="h-64 bg-gray-200 rounded-xl"></div>
+        </div>
+        <div className="h-64 bg-gray-200 rounded-xl w-full"></div>
+      </div>
+    );
   }
 
   // Filtering Logic
@@ -203,9 +223,7 @@ export default function TransportDashboard() {
         "Date": formatDateDisplay(truck.date),
         "Vehicle No.": truck.name || '-',
         "Total Trips": truck.trips,
-        "Party Name": truck.party_name || '-',
         "DO No.": truck.do_no || '-',
-        "DO Party Name": truck.do_party_name || '-',
         "Freight (₹)": truck.freight || 0,
         "Vehicle Bal. (₹)": truck.balance || 0
       }));
@@ -218,7 +236,7 @@ export default function TransportDashboard() {
       const doc = new jsPDF('landscape');
       doc.text(`Trip Details Report ${exportStart ? `(${formatDateDisplay(exportStart)} to ${formatDateDisplay(exportEnd)})` : ''}`, 14, 15);
       
-      const tableColumn = ["S.No.", "Date", "Vehicle No.", "Total Trips", "Party Name", "DO No.", "DO Party Name", "Freight", "Vehicle Bal."];
+      const tableColumn = ["S.No.", "Date", "Vehicle No.", "Total Trips", "DO No.", "Freight", "Vehicle Bal."];
       const tableRows = [];
 
       exportTruckWiseData.forEach((truck, idx) => {
@@ -227,9 +245,7 @@ export default function TransportDashboard() {
           formatDateDisplay(truck.date),
           truck.name || '-',
           truck.trips,
-          truck.party_name || '-',
           truck.do_no || '-',
-          truck.do_party_name || '-',
           `Rs ${(truck.freight || 0).toLocaleString()}`,
           `Rs ${(truck.balance || 0).toLocaleString()}`
         ]);
@@ -249,66 +265,33 @@ export default function TransportDashboard() {
         <p className="text-gray-500 text-sm mt-1">Overview of trips, trucks, and financial distribution.</p>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-2 mb-6 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-        {['This Month', 'Last Month', 'Last 3 Months', 'This Year', 'All Time', 'Custom'].map((filter) => (
-          <button
-            key={filter}
-            onClick={() => setFilterType(filter)}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors border ${
-              filterType === filter 
-                ? 'bg-red-600 text-white border-red-600' 
-                : 'bg-white text-red-600 border-red-600 hover:bg-red-50'
-            }`}
-          >
-            {filter}
-          </button>
-        ))}
-        
-        {filterType === 'Custom' && (
-          <div className="flex items-center gap-2 ml-2">
-            <input 
-              type="date" 
-              value={customStart}
-              onChange={(e) => setCustomStart(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 outline-none focus:border-red-600"
-            />
-            <span className="text-gray-500 text-sm">to</span>
-            <input 
-              type="date" 
-              value={customEnd}
-              onChange={(e) => setCustomEnd(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 outline-none focus:border-red-600"
-            />
-          </div>
-        )}
-      </div>
+
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-          <div className="text-xs font-medium text-gray-500 mb-1">Total Trips</div>
-          <div className="text-xl font-bold text-blue-600">{totalTrips}</div>
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+          <div className="text-sm font-medium text-gray-500 mb-1">Total Trips</div>
+          <div className="text-2xl font-bold text-blue-600">{totalTrips}</div>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-          <div className="text-xs font-medium text-gray-500 mb-1">Total Distance</div>
-          <div className="text-xl font-bold text-cyan-600">{totalDistance.toLocaleString()} km</div>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+          <div className="text-sm font-medium text-gray-500 mb-1">Total Distance</div>
+          <div className="text-2xl font-bold text-cyan-600">{totalDistance.toLocaleString()} km</div>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-          <div className="text-xs font-medium text-gray-500 mb-1">Total Freight</div>
-          <div className="text-xl font-bold text-green-600">₹ {totalFreight.toLocaleString()}</div>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+          <div className="text-sm font-medium text-gray-500 mb-1">Total Freight</div>
+          <div className="text-2xl font-bold text-green-600">₹ {totalFreight.toLocaleString()}</div>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-          <div className="text-xs font-medium text-gray-500 mb-1">Total Advance</div>
-          <div className="text-xl font-bold text-orange-500">₹ {totalAdvance.toLocaleString()}</div>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+          <div className="text-sm font-medium text-gray-500 mb-1">Total Advance</div>
+          <div className="text-2xl font-bold text-orange-500">₹ {totalAdvance.toLocaleString()}</div>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-          <div className="text-xs font-medium text-gray-500 mb-1">Total Diesel Liter</div>
-          <div className="text-xl font-bold text-purple-600">{totalDieselLiter.toLocaleString()} L</div>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+          <div className="text-sm font-medium text-gray-500 mb-1">Total Diesel Liter</div>
+          <div className="text-2xl font-bold text-purple-600">{totalDieselLiter.toLocaleString()} L</div>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-          <div className="text-xs font-medium text-gray-500 mb-1">Total Vehicle Bal.</div>
-          <div className="text-xl font-bold text-red-600">₹ {totalBalance.toLocaleString()}</div>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+          <div className="text-sm font-medium text-gray-500 mb-1">Total Vehicle Bal.</div>
+          <div className="text-2xl font-bold text-red-600">₹ {totalBalance.toLocaleString()}</div>
         </div>
       </div>
 
@@ -360,7 +343,38 @@ export default function TransportDashboard() {
       <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-100 p-6 overflow-hidden">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4">
           <h2 className="text-lg font-bold text-gray-800">Trip Details Report</h2>
-          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+          <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+            {/* Filter Dropdown */}
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 cursor-pointer shadow-sm hover:border-gray-400 transition-colors"
+            >
+              {['This Month', 'Last Month', 'Last 3 Months', 'This Year', 'All Time', 'Custom'].map((filter) => (
+                <option key={filter} value={filter}>
+                  {filter}
+                </option>
+              ))}
+            </select>
+            
+            {filterType === 'Custom' && (
+              <div className="flex items-center gap-2">
+                <input 
+                  type="date" 
+                  value={customStart}
+                  onChange={(e) => setCustomStart(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 outline-none focus:border-red-600"
+                />
+                <span className="text-gray-500 text-sm">to</span>
+                <input 
+                  type="date" 
+                  value={customEnd}
+                  onChange={(e) => setCustomEnd(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 outline-none focus:border-red-600"
+                />
+              </div>
+            )}
+
             <div className="relative flex-1 sm:flex-none">
               <input 
                 type="text" 
@@ -392,9 +406,7 @@ export default function TransportDashboard() {
                 <th className="py-3 px-4 min-w-[120px]">Date</th>
                 <th className="py-3 px-4">Vehicle No.</th>
                 <th className="py-3 px-4">Total Trips</th>
-                <th className="py-3 px-4">Party Name</th>
                 <th className="py-3 px-4">DO No.</th>
-                <th className="py-3 px-4">DO Party Name</th>
                 <th className="py-3 px-4">Freight (₹)</th>
                 <th className="py-3 px-4">Vehicle Bal. (₹)</th>
               </tr>
@@ -404,18 +416,18 @@ export default function TransportDashboard() {
                 <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                   <td className="py-3 px-4 text-gray-600">{idx + 1}</td>
                   <td className="py-3 px-4 text-gray-600">{formatDateDisplay(truck.date)}</td>
-                  <td className="py-3 px-4 font-medium text-gray-800">{truck.name || '-'}</td>
+                  <td className="py-3 px-4 font-medium text-gray-800">
+                    {truck.name ? (truck.name.toUpperCase().includes('CG') ? truck.name : `CG-10-CG ${truck.name}`) : '-'}
+                  </td>
                   <td className="py-3 px-4 text-blue-600 font-medium">{truck.trips}</td>
-                  <td className="py-3 px-4 text-gray-600">{truck.party_name || '-'}</td>
                   <td className="py-3 px-4 text-gray-600">{truck.do_no || '-'}</td>
-                  <td className="py-3 px-4 text-gray-600">{truck.do_party_name || '-'}</td>
                   <td className="py-3 px-4 text-green-600 font-medium">₹ {(truck.freight || 0).toLocaleString()}</td>
                   <td className="py-3 px-4 text-red-500 font-medium">₹ {(truck.balance || 0).toLocaleString()}</td>
                 </tr>
               ))}
               {searchedReports.length === 0 && (
                 <tr>
-                  <td colSpan="9" className="py-8 text-center text-gray-500">No data available for analysis</td>
+                  <td colSpan="7" className="py-8 text-center text-gray-500">No data available for analysis</td>
                 </tr>
               )}
             </tbody>
