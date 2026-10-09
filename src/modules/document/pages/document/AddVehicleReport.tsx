@@ -231,7 +231,7 @@ const AddVehicleReport: React.FC<AddVehicleReportProps> = ({ isOpen, onClose, on
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Purchase Date</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Registration Date</label>
               <input
                 type="date"
                 name="purchaseDate"

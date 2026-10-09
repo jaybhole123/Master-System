@@ -1118,6 +1118,30 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       module: "Transport Reporting",
     },
     {
+      href: "/transport-system/purchase-truck",
+      label: "Purchase Truck",
+      icon: Truck,
+      active: location.pathname === "/transport-system/purchase-truck",
+      showFor: ["admin", "user", "HOD"],
+      module: "Transport Reporting",
+    },
+    {
+      href: "/transport-system/fastag",
+      label: "Fastag",
+      icon: Banknote,
+      active: location.pathname === "/transport-system/fastag",
+      showFor: ["admin", "user", "HOD"],
+      module: "Transport Reporting",
+    },
+    {
+      href: "/transport-system/Challan",
+      label: "Challan",
+      icon: Shield,
+      active: location.pathname === "/transport-system/Challan",
+      showFor: ["admin", "user", "HOD"],
+      module: "Transport Reporting",
+    },
+    {
       href: "/transport-system/truck-reports",
       label: "Truck Reports",
       icon: FileText,
@@ -1125,14 +1149,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       showFor: ["admin", "user", "HOD"],
       module: "Transport Reporting",
     },
-    {
-      href: "/transport-system/fastag-reports",
-      label: "Fastag Reports",
-      icon: FileText,
-      active: location.pathname === "/transport-system/fastag-reports",
-      showFor: ["admin", "user", "HOD"],
-      module: "Transport Reporting",
-    },
+
     // --- Coal System Module Routes ---
     {
       href: "/coal-system/dashboard",

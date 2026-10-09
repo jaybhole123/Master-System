@@ -18,6 +18,8 @@ export default function TransportDashboard() {
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterVehicleNo, setFilterVehicleNo] = useState('');
+  const [filterDoNo, setFilterDoNo] = useState('');
 
   // Export Modal State
   const [showExportModal, setShowExportModal] = useState(false);
@@ -85,6 +87,9 @@ export default function TransportDashboard() {
     today.setHours(23, 59, 59, 999); // End of today
 
     filtered = filtered.filter(item => {
+      if (filterVehicleNo && item.vehicle_no !== filterVehicleNo) return false;
+      if (filterDoNo && item.do_no !== filterDoNo) return false;
+
       if (!item.date) {
         return filterType === 'All Time'; // Only show items without dates in All Time
       }
@@ -121,6 +126,10 @@ export default function TransportDashboard() {
   };
 
   const filteredReports = getFilteredData();
+
+  // Extract unique options for dropdowns
+  const uniqueVehicles = [...new Set(reportsData.map(item => item.vehicle_no).filter(Boolean))].sort();
+  const uniqueDoNumbers = [...new Set(reportsData.map(item => item.do_no).filter(Boolean))].sort();
 
   // Analytics Calculations
   const totalTrips = filteredReports.length;
@@ -268,30 +277,30 @@ export default function TransportDashboard() {
 
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-          <div className="text-sm font-medium text-gray-500 mb-1">Total Trips</div>
-          <div className="text-2xl font-bold text-blue-600">{totalTrips}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px', marginBottom: '24px' }}>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
+          <div className="text-2xl font-bold text-blue-600 mb-1">{totalTrips}</div>
+          <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Total Trips</div>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-          <div className="text-sm font-medium text-gray-500 mb-1">Total Distance</div>
-          <div className="text-2xl font-bold text-cyan-600">{totalDistance.toLocaleString()} km</div>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
+          <div className="text-2xl font-bold text-cyan-600 mb-1">{totalDistance.toLocaleString()} km</div>
+          <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Total Distance</div>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-          <div className="text-sm font-medium text-gray-500 mb-1">Total Freight</div>
-          <div className="text-2xl font-bold text-green-600">₹ {totalFreight.toLocaleString()}</div>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
+          <div className="text-2xl font-bold text-green-600 mb-1">₹ {totalFreight.toLocaleString()}</div>
+          <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Total Freight</div>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-          <div className="text-sm font-medium text-gray-500 mb-1">Total Advance</div>
-          <div className="text-2xl font-bold text-orange-500">₹ {totalAdvance.toLocaleString()}</div>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
+          <div className="text-2xl font-bold text-orange-500 mb-1">₹ {totalAdvance.toLocaleString()}</div>
+          <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Total Advance</div>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-          <div className="text-sm font-medium text-gray-500 mb-1">Total Diesel Liter</div>
-          <div className="text-2xl font-bold text-purple-600">{totalDieselLiter.toLocaleString()} L</div>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
+          <div className="text-2xl font-bold text-purple-600 mb-1">{totalDieselLiter.toLocaleString()} L</div>
+          <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Total Diesel Liter</div>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-          <div className="text-sm font-medium text-gray-500 mb-1">Total Vehicle Bal.</div>
-          <div className="text-2xl font-bold text-red-600">₹ {totalBalance.toLocaleString()}</div>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
+          <div className="text-2xl font-bold text-red-600 mb-1">₹ {totalBalance.toLocaleString()}</div>
+          <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Total Vehicle Bal.</div>
         </div>
       </div>
 
@@ -357,6 +366,24 @@ export default function TransportDashboard() {
               ))}
             </select>
             
+            <select
+              value={filterVehicleNo}
+              onChange={(e) => setFilterVehicleNo(e.target.value)}
+              className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 cursor-pointer shadow-sm hover:border-gray-400 transition-colors"
+            >
+              <option value="">All Vehicles</option>
+              {uniqueVehicles.map(v => <option key={v} value={v}>{v}</option>)}
+            </select>
+
+            <select
+              value={filterDoNo}
+              onChange={(e) => setFilterDoNo(e.target.value)}
+              className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 cursor-pointer shadow-sm hover:border-gray-400 transition-colors"
+            >
+              <option value="">All DO Numbers</option>
+              {uniqueDoNumbers.map(d => <option key={d} value={d}>{d}</option>)}
+            </select>
+
             {filterType === 'Custom' && (
               <div className="flex items-center gap-2">
                 <input 

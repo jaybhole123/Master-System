@@ -140,6 +140,7 @@ export default function SalaryStructure() {
     esicApplicable: false,
     totalDays: 0,
     presentDays: 0,
+    halfDays: 0,
     absent: 0,
     leaves: 0,
     leaveDeduction: 0,
@@ -168,6 +169,7 @@ export default function SalaryStructure() {
         esicApplicable: salaries[empId].esicApplicable === true,
         totalDays: 0,
         presentDays: 0,
+        halfDays: 0,
         absent: 0,
         leaves: 0,
         leaveDeduction: 0,
@@ -226,6 +228,7 @@ export default function SalaryStructure() {
         const daysInMonth = getDaysForMonthName(value, year);
         updatedData.totalDays = daysInMonth;
         updatedData.presentDays = daysInMonth;
+        updatedData.halfDays = 0;
         updatedData.absent = 0;
         updatedData.leaves = 0;
       }
@@ -234,7 +237,7 @@ export default function SalaryStructure() {
     }
 
     // Auto-calculate absent days and leave deduction
-    if (['totalDays', 'presentDays', 'absent', 'leaves', 'basic', 'salaryDate', 'salaryMonth'].includes(name)) {
+    if (['totalDays', 'presentDays', 'halfDays', 'absent', 'leaves', 'basic', 'salaryDate', 'salaryMonth'].includes(name)) {
       const tDays = Number(updatedData.totalDays) || 0;
       const baseSal = Number(updatedData.basic) || 0;
       
@@ -243,23 +246,27 @@ export default function SalaryStructure() {
           // User manually entered absent or leaves. Deduct from present days.
           const absVal = Number(updatedData.absent) || 0;
           const levVal = Number(updatedData.leaves) || 0;
-          updatedData.presentDays = Math.max(0, tDays - absVal - levVal);
+          const halfVal = Number(updatedData.halfDays) || 0;
+          updatedData.presentDays = Math.max(0, tDays - absVal - levVal - halfVal);
         } else {
-          // User changed totalDays, presentDays, basic, etc. Recalculate absent days based on presentDays & leaves.
+          // User changed totalDays, presentDays, halfDays, basic, etc. Recalculate absent days based on presentDays & leaves.
           let pDays = Number(updatedData.presentDays) || 0;
-          if (pDays > tDays) {
-            pDays = tDays;
-            updatedData.presentDays = tDays;
+          let hDays = Number(updatedData.halfDays) || 0;
+          if (pDays + hDays > tDays) {
+            pDays = tDays - hDays;
+            updatedData.presentDays = Math.max(0, pDays);
           }
-          if (pDays >= 0 && pDays <= tDays) {
-            const nonPresent = tDays - pDays;
+          if (pDays >= 0) {
+            // A half day takes up 1 calendar day
+            const nonPresent = tDays - pDays - hDays;
             const levVal = Number(updatedData.leaves) || 0;
             updatedData.absent = Math.max(0, nonPresent - levVal);
           }
         }
         
-        // Deduction ONLY applies to Absent Days (Leaves do not cause salary deduction)
+        // Deduction ONLY applies to Absent Days (No deduction for Half Days)
         const absentDays = Number(updatedData.absent) || 0;
+        const halfDays = Number(updatedData.halfDays) || 0;
         const perDaySalary = baseSal / tDays;
         updatedData.leaveDeduction = Math.round(perDaySalary * absentDays);
       }
@@ -317,7 +324,7 @@ export default function SalaryStructure() {
             }
           }
           
-          const presentEquiv = p + h + (hd * 0.5);
+          const presentEquiv = p + h; // Count only full days for present
           
           setFormData(prev => {
             const baseSal = Number(prev.basic) || 0;
@@ -333,6 +340,7 @@ export default function SalaryStructure() {
               ...prev,
               totalDays: tDays,
               presentDays: presentEquiv,
+              halfDays: hd,
               absent: a,
               leaves: l,
               leaveDeduction: deduction
@@ -348,6 +356,7 @@ export default function SalaryStructure() {
               ...prev,
               totalDays: tDays,
               presentDays: tDays,
+              halfDays: 0,
               absent: 0,
               leaves: 0,
               leaveDeduction: 0
@@ -382,6 +391,7 @@ export default function SalaryStructure() {
         esic_applicable: formData.esicApplicable,
         total_days: Number(formData.totalDays) || 0,
         present_days: Number(formData.presentDays) || 0,
+        half_days: Number(formData.halfDays) || 0,
         absent: Number(formData.absent) || 0,
         leaves: Number(formData.leaves) || 0,
         leave_deduction: Number(formData.leaveDeduction) || 0,
@@ -528,6 +538,10 @@ export default function SalaryStructure() {
             <div className="form-group">
               <label>Present Days</label>
               <input type="number" name="presentDays" value={formData.presentDays === 0 && formData.presentDays !== '' ? '' : formData.presentDays} onChange={handleChange} disabled={!selectedEmp} />
+            </div>
+            <div className="form-group">
+              <label>Half Days</label>
+              <input type="number" name="halfDays" value={formData.halfDays === 0 && formData.halfDays !== '' ? '' : formData.halfDays} onChange={handleChange} disabled={!selectedEmp} />
             </div>
             <div className="form-group">
               <label>Absent Days</label>

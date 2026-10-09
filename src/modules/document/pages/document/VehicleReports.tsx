@@ -217,7 +217,7 @@ const VehicleReports = () => {
                   <th className="px-3 py-3 whitespace-nowrap">premium date</th>
                   <th className="px-3 py-3 whitespace-nowrap">model number</th>
                   <th className="px-3 py-3">Anual</th>
-                  <th className="px-3 py-3 whitespace-nowrap">purchase date</th>
+                  <th className="px-3 py-3 whitespace-nowrap">Registration Date</th>
                   <th className="px-3 py-3 whitespace-nowrap">premium amount</th>
                   <th className="px-3 py-3 text-center">Action</th>
                 </tr>

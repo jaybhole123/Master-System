@@ -57,6 +57,7 @@ export default function Attendance() {
 
   
   const [activeTab, setActiveTab] = useState('Register');
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -948,7 +949,7 @@ Instructions:
             ATTENDANCE REGISTER
           </div>
           
-          <div style={{ display: 'flex', alignItems: 'center', gap: '24px', padding: '16px 24px', backgroundColor: 'var(--bg-card)', borderBottom: '1px solid var(--border-color)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '24px', padding: '16px 24px', backgroundColor: 'var(--bg-card)', borderBottom: '1px solid var(--border-color)', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.9rem' }}>Month</span>
               <input 
@@ -958,6 +959,17 @@ Instructions:
                 style={{ padding: '6px 12px', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-primary)', fontWeight: 'bold', backgroundColor: 'var(--bg-main)' }} 
               />
             </div>
+            
+            <div style={{ flex: 1, minWidth: '200px', display: 'flex', alignItems: 'center' }}>
+              <input 
+                type="text" 
+                placeholder="🔍 Search Employee..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{ width: '100%', maxWidth: '300px', padding: '8px 12px', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-primary)', backgroundColor: 'var(--bg-main)', fontSize: '0.9rem' }} 
+              />
+            </div>
+
             <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
               Codes: <span style={{color:'var(--success)', fontWeight:600}}>P</span>=Present &nbsp;
               <span style={{color:'var(--danger)', fontWeight:600}}>A</span>=Absent &nbsp;
@@ -990,7 +1002,7 @@ Instructions:
               </thead>
               <tbody>
                 {employees.length > 0 ? (
-                  employees.map((emp, idx) => {
+                  employees.filter(emp => (emp.name || '').toLowerCase().includes(searchQuery.toLowerCase())).map((emp, idx) => {
                     const stats = dashboardStats.find(s => s.id === emp.id);
                     return (
                       <tr key={emp.id} style={{ backgroundColor: idx % 2 === 0 ? 'var(--bg-card)' : 'rgba(0,0,0,0.02)' }}>
@@ -1094,7 +1106,7 @@ Instructions:
           {/* Mobile Cards View */}
           <div className="md:hidden space-y-4 p-4 pb-20 bg-gray-50/50">
             {employees.length > 0 ? (
-              employees.map((emp, idx) => {
+              employees.filter(emp => (emp.name || '').toLowerCase().includes(searchQuery.toLowerCase())).map((emp, idx) => {
                 const stats = dashboardStats.find(s => s.id === emp.id);
                 return (
                   <div key={emp.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col gap-3">

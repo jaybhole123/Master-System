@@ -948,3 +948,65 @@ CREATE TABLE public.secl_cmpdcil (
 );
 
 ALTER TABLE public.secl_cmpdcil DISABLE ROW LEVEL SECURITY;
+
+CREATE TABLE public.trucks (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  vno text NOT NULL UNIQUE,
+  owner_name text,
+  firm_name text,
+  company text,
+  policy text,
+  start_date date,
+  expiry_date date,
+  idv numeric DEFAULT 0,
+  premium numeric DEFAULT 0,
+  agent text,
+  chassis_no text,
+  engine_no text,
+  model_name text,
+  remarks text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT trucks_pkey PRIMARY KEY (id)
+);
+
+ALTER TABLE public.trucks DISABLE ROW LEVEL SECURITY;
+
+CREATE TABLE public.fastags (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  vno text NOT NULL UNIQUE,
+  tag_id text,
+  bank text,
+  balance numeric DEFAULT 0,
+  min_bal numeric DEFAULT 0,
+  last_date date,
+  last_amt numeric DEFAULT 0,
+  status text DEFAULT 'Active',
+  remarks text,
+  document_url text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT fastags_pkey PRIMARY KEY (id)
+);
+
+ALTER TABLE public.fastags DISABLE ROW LEVEL SECURITY;
+
+CREATE TABLE public.challans (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  challan_no text NOT NULL UNIQUE,
+  vno text,
+  challan_date date,
+  place text,
+  offence text,
+  amount numeric DEFAULT 0,
+  status text DEFAULT 'Pending',
+  paid_date date,
+  driver text,
+  remarks text,
+  document_url text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT challans_pkey PRIMARY KEY (id)
+);
+
+ALTER TABLE public.challans DISABLE ROW LEVEL SECURITY;

@@ -11,12 +11,16 @@ export default function TruckReports() {
   const [searchTerm, setSearchTerm] = useState('');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
+  const [filterVehicleNo, setFilterVehicleNo] = useState('');
+  const [filterDoNo, setFilterDoNo] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [extraFromOptions, setExtraFromOptions] = useState([]);
   const [extraToOptions, setExtraToOptions] = useState([]);
   const [extraDieselOptions, setExtraDieselOptions] = useState([]);
   const [extraAdvanceOptions, setExtraAdvanceOptions] = useState([]);
+  const [extraPartyOptions, setExtraPartyOptions] = useState([]);
+  const [extraDoPartyOptions, setExtraDoPartyOptions] = useState([]);
   const [promptModal, setPromptModal] = useState({ isOpen: false, type: null, title: '', placeholder: '' });
   const [promptValue, setPromptValue] = useState('');
   const [visibleCount, setVisibleCount] = useState(50);
@@ -26,7 +30,17 @@ export default function TruckReports() {
 
   useEffect(() => {
     fetchReports();
+    fetchTrucks();
   }, []);
+
+  const [trucksList, setTrucksList] = useState([]);
+
+  const fetchTrucks = async () => {
+    const { data } = await supabase.from('trucks').select('vno');
+    if (data) {
+      setTrucksList(data.map(d => d.vno).filter(Boolean));
+    }
+  };
 
   const fetchReports = async () => {
     const { data, error } = await supabase
@@ -67,28 +81,32 @@ export default function TruckReports() {
     date: '', vehicleNo: '', from: '', to: '', distance: '', partyName: '', doPartyName: '', diesel: '', dieselPrice: '', advance: '', doNo: '', totalTrips: '', vehicleBalance: '', perMT: '', tonnage: '', totalFreight: ''
   });
 
-  // Predefined mock distances for auto-fetch feature
-  const routeDistances = {
-    'delhi-mumbai': '1420',
-    'mumbai-delhi': '1420',
-    'jaipur-ahmedabad': '680',
-    'ahmedabad-jaipur': '680',
-    'chandigarh-pune': '1650',
-    'pune-chandigarh': '1650',
-    'delhi-jaipur': '280',
-    'jaipur-delhi': '280',
-    'mumbai-pune': '150',
-    'pune-mumbai': '150'
-  };
-
+  // Auto-fetch distance dynamically based on past data
   React.useEffect(() => {
-    if (formData.from && formData.to) {
+    if (formData.from && formData.to && reportsData.length > 0) {
+      const dynamicRouteDistances = {};
+      reportsData.forEach(r => {
+        if (r.from && r.to && r.distance) {
+          const route1 = `${r.from.toLowerCase().trim()}-${r.to.toLowerCase().trim()}`;
+          const route2 = `${r.to.toLowerCase().trim()}-${r.from.toLowerCase().trim()}`;
+          if (!dynamicRouteDistances[route1]) dynamicRouteDistances[route1] = r.distance;
+          if (!dynamicRouteDistances[route2]) dynamicRouteDistances[route2] = r.distance;
+        }
+      });
+
       const routeKey = `${formData.from.toLowerCase().trim()}-${formData.to.toLowerCase().trim()}`;
-      if (routeDistances[routeKey]) {
-        setFormData(prev => ({ ...prev, distance: `${routeDistances[routeKey]} km` }));
+      if (dynamicRouteDistances[routeKey]) {
+        const distVal = dynamicRouteDistances[routeKey];
+        const finalDist = String(distVal).toLowerCase().includes('km') ? distVal : `${distVal} km`;
+        setFormData(prev => {
+          if (prev.distance !== finalDist) {
+            return { ...prev, distance: finalDist };
+          }
+          return prev;
+        });
       }
     }
-  }, [formData.from, formData.to]);
+  }, [formData.from, formData.to, reportsData]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -222,8 +240,16 @@ export default function TruckReports() {
       }
     }
 
-    return matchesSearch && matchesDate;
+    const matchesVehicle = filterVehicleNo ? row.vehicleNo === filterVehicleNo : true;
+    const matchesDoNo = filterDoNo ? row.doNo === filterDoNo : true;
+
+    return matchesSearch && matchesDate && matchesVehicle && matchesDoNo;
   });
+
+  const formattedVehicles = trucksList.map(v => v.toUpperCase().trim());
+  const uniqueVehicles = [...new Set(formattedVehicles)].sort();
+  const vehicleOptions = uniqueVehicles.map(v => ({ label: v, value: v }));
+  const uniqueDoNumbers = [...new Set(reportsData.map(item => item.doNo).filter(Boolean))].sort();
 
   const displayedData = filteredData.slice(0, visibleCount);
 
@@ -240,7 +266,8 @@ export default function TruckReports() {
   // Dynamic calculations for cards
   const totalTripsCount = filteredData.length;
   const totalAdvanceSum = filteredData.reduce((sum, item) => sum + (Number(item.advance) || 0), 0);
-  const totalDieselSum = filteredData.reduce((sum, item) => sum + (parseInt(item.diesel) || 0), 0);
+  const totalDieselSum = filteredData.reduce((sum, item) => sum + (parseInt(String(item.diesel).replace(/[^0-9]/g, '')) || 0), 0);
+  const totalDistanceSum = filteredData.reduce((sum, item) => sum + (parseInt(String(item.distance).replace(/[^0-9]/g, '')) || 0), 0);
 
   const uniqueFromLocations = [...new Set([...reportsData.map(r => r.from), ...extraFromOptions])].filter(Boolean);
   const fromOptions = uniqueFromLocations.map(loc => ({ label: loc, value: loc }));
@@ -329,6 +356,52 @@ export default function TruckReports() {
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
           Add New Advance Value
+        </div>
+      </components.MenuList>
+    );
+  };
+
+  const uniqueParties = [...new Set([...reportsData.map(r => r.partyName), ...extraPartyOptions])].filter(Boolean);
+  const partyOptions = uniqueParties.map(p => ({ label: p, value: p }));
+
+  const PartyMenuList = (props) => {
+    return (
+      <components.MenuList {...props}>
+        {props.children}
+        <div 
+          style={{ padding: '10px 12px', borderTop: '1px solid #e5e7eb', color: 'var(--primary)', cursor: 'pointer', fontWeight: 600, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px', background: '#f8fafc' }}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setPromptModal({ isOpen: true, type: 'party', title: 'Enter new Party Name', placeholder: 'e.g. ABC Logistics' });
+            setPromptValue('');
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          Add New Party Name
+        </div>
+      </components.MenuList>
+    );
+  };
+
+  const uniqueDoParties = [...new Set([...reportsData.map(r => r.doPartyName), ...extraDoPartyOptions])].filter(Boolean);
+  const doPartyOptions = uniqueDoParties.map(p => ({ label: p, value: p }));
+
+  const DoPartyMenuList = (props) => {
+    return (
+      <components.MenuList {...props}>
+        {props.children}
+        <div 
+          style={{ padding: '10px 12px', borderTop: '1px solid #e5e7eb', color: 'var(--primary)', cursor: 'pointer', fontWeight: 600, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px', background: '#f8fafc' }}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setPromptModal({ isOpen: true, type: 'doparty', title: 'Enter new DO Party Name', placeholder: 'e.g. XYZ Transports' });
+            setPromptValue('');
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          Add New DO Party Name
         </div>
       </components.MenuList>
     );
@@ -468,6 +541,15 @@ export default function TruckReports() {
             <h2>{totalDieselSum.toLocaleString()} L</h2>
           </div>
         </div>
+        <div className="card">
+          <div className="card-icon" style={{ backgroundColor: '#f3e8ff', color: '#9333ea' }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon><line x1="9" y1="3" x2="9" y2="18"></line><line x1="15" y1="6" x2="15" y2="21"></line></svg>
+          </div>
+          <div className="card-info">
+            <h3>Total Distance</h3>
+            <h2>{totalDistanceSum.toLocaleString()} KM</h2>
+          </div>
+        </div>
       </div>
 
       {/* Filters Area */}
@@ -482,6 +564,28 @@ export default function TruckReports() {
           />
         </div>
         <div className="date-filters">
+          <div className="date-input" style={{ minWidth: '130px' }}>
+            <label>Vehicle No.</label>
+            <select 
+              value={filterVehicleNo} 
+              onChange={(e) => setFilterVehicleNo(e.target.value)}
+              style={{ width: '100%', padding: '8px', border: '1px solid #e5e7eb', borderRadius: '6px', outline: 'none', background: 'transparent' }}
+            >
+              <option value="">All Vehicles</option>
+              {uniqueVehicles.map(v => <option key={v} value={v}>{v}</option>)}
+            </select>
+          </div>
+          <div className="date-input" style={{ minWidth: '130px' }}>
+            <label>DO No.</label>
+            <select 
+              value={filterDoNo} 
+              onChange={(e) => setFilterDoNo(e.target.value)}
+              style={{ width: '100%', padding: '8px', border: '1px solid #e5e7eb', borderRadius: '6px', outline: 'none', background: 'transparent' }}
+            >
+              <option value="">All DO Numbers</option>
+              {uniqueDoNumbers.map(d => <option key={d} value={d}>{d}</option>)}
+            </select>
+          </div>
           <div className="date-input">
             <label>From Date</label>
             <input 
@@ -500,7 +604,7 @@ export default function TruckReports() {
           </div>
           <button 
             className="btn-secondary" 
-            onClick={() => { setFromDate(''); setToDate(''); }}
+            onClick={() => { setFromDate(''); setToDate(''); setFilterVehicleNo(''); setFilterDoNo(''); setSearchTerm(''); }}
           >
             Clear Filter
           </button>
@@ -597,15 +701,62 @@ export default function TruckReports() {
                 <label>Date</label>
                 <input type="date" name="date" value={formData.date} onChange={handleInputChange} required />
               </div>
-              <div className="tr-form-group">
+              <div className="tr-form-group" style={{ zIndex: 101 }}>
                 <label>Vehicle No.</label>
-                <input type="text" name="vehicleNo" value={formData.vehicleNo} onChange={handleInputChange} placeholder="e.g. UP32 AB 1234" required />
-              </div>
-              <div className="tr-form-group">
-                <label>Party Name</label>
-                <input type="text" name="partyName" value={formData.partyName} onChange={handleInputChange} placeholder="e.g. ABC Logistics" />
+                <Select
+                  isClearable
+                  options={vehicleOptions}
+                  value={formData.vehicleNo ? { label: formData.vehicleNo, value: formData.vehicleNo } : null}
+                  onChange={(newValue) => handleInputChange({ target: { name: 'vehicleNo', value: newValue ? newValue.value : '' } })}
+                  placeholder="Select Vehicle No..."
+                  styles={{
+                    control: (base) => ({
+                      ...base,
+                      padding: '2px',
+                      borderRadius: '8px',
+                      border: '1px solid #e5e7eb',
+                      boxShadow: 'none',
+                      '&:hover': {
+                        borderColor: '#d1d5db'
+                      }
+                    }),
+                    menu: (base) => ({
+                      ...base,
+                      zIndex: 9999,
+                      overflow: 'hidden'
+                    })
+                  }}
+                />
               </div>
               <div className="tr-form-group" style={{ zIndex: 100 }}>
+                <label>Party Name</label>
+                <Select
+                  isClearable
+                  options={partyOptions}
+                  value={formData.partyName ? { label: formData.partyName, value: formData.partyName } : null}
+                  onChange={(newValue) => handleInputChange({ target: { name: 'partyName', value: newValue ? newValue.value : '' } })}
+                  placeholder="Select Party Name..."
+                  components={{ MenuList: PartyMenuList }}
+                  styles={{
+                    control: (base) => ({
+                      ...base,
+                      padding: '2px',
+                      borderRadius: '8px',
+                      border: '1px solid #e5e7eb',
+                      boxShadow: 'none',
+                      '&:hover': {
+                        borderColor: '#d1d5db'
+                      }
+                    }),
+                    menu: (base) => ({
+                      ...base,
+                      zIndex: 9999,
+                      overflow: 'hidden'
+                    })
+                  }}
+                />
+              </div>
+              <div className="tr-form-group" style={{ zIndex: 99 }}>
                 <label>From</label>
                 <Select
                   isClearable
@@ -633,7 +784,7 @@ export default function TruckReports() {
                   }}
                 />
               </div>
-              <div className="tr-form-group" style={{ zIndex: 99 }}>
+              <div className="tr-form-group" style={{ zIndex: 98 }}>
                 <label>To</label>
                 <Select
                   isClearable
@@ -665,7 +816,7 @@ export default function TruckReports() {
                 <label>Distance</label>
                 <input type="text" name="distance" value={formData.distance} onChange={handleInputChange} placeholder="e.g. 1500 km" required />
               </div>
-              <div className="tr-form-group" style={{ zIndex: 98 }}>
+              <div className="tr-form-group" style={{ zIndex: 97 }}>
                 <label>Diesel Liter</label>
                 <Select
                   isClearable
@@ -693,7 +844,7 @@ export default function TruckReports() {
                   }}
                 />
               </div>
-              <div className="tr-form-group" style={{ zIndex: 97 }}>
+              <div className="tr-form-group" style={{ zIndex: 96 }}>
                 <label>Advance (₹)</label>
                 <Select
                   isClearable
@@ -729,9 +880,33 @@ export default function TruckReports() {
                 <label>DO No.</label>
                 <input type="text" name="doNo" value={formData.doNo} onChange={handleInputChange} placeholder="e.g. DO-1004" required />
               </div>
-              <div className="tr-form-group">
+              <div className="tr-form-group" style={{ zIndex: 95 }}>
                 <label>DO Party Name</label>
-                <input type="text" name="doPartyName" value={formData.doPartyName} onChange={handleInputChange} placeholder="e.g. XYZ Transports" />
+                <Select
+                  isClearable
+                  options={doPartyOptions}
+                  value={formData.doPartyName ? { label: formData.doPartyName, value: formData.doPartyName } : null}
+                  onChange={(newValue) => handleInputChange({ target: { name: 'doPartyName', value: newValue ? newValue.value : '' } })}
+                  placeholder="Select DO Party Name..."
+                  components={{ MenuList: DoPartyMenuList }}
+                  styles={{
+                    control: (base) => ({
+                      ...base,
+                      padding: '2px',
+                      borderRadius: '8px',
+                      border: '1px solid #e5e7eb',
+                      boxShadow: 'none',
+                      '&:hover': {
+                        borderColor: '#d1d5db'
+                      }
+                    }),
+                    menu: (base) => ({
+                      ...base,
+                      zIndex: 9999,
+                      overflow: 'hidden'
+                    })
+                  }}
+                />
               </div>
               <div className="tr-form-group">
                 <label>Total Trips</label>
@@ -871,6 +1046,12 @@ export default function TruckReports() {
                       } else if (promptModal.type === 'advance') {
                         setExtraAdvanceOptions(prev => [...prev, val]);
                         handleInputChange({ target: { name: 'advance', value: val } });
+                      } else if (promptModal.type === 'party') {
+                        setExtraPartyOptions(prev => [...prev, val]);
+                        handleInputChange({ target: { name: 'partyName', value: val } });
+                      } else if (promptModal.type === 'doparty') {
+                        setExtraDoPartyOptions(prev => [...prev, val]);
+                        handleInputChange({ target: { name: 'doPartyName', value: val } });
                       }
                     }
                     setPromptModal({ isOpen: false, type: null, title: '', placeholder: '' });
