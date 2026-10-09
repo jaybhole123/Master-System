@@ -42,6 +42,7 @@ export default function PurchaseTruck() {
   const [toastMsg, setToastMsg] = useState('');
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [searchParams, setSearchParams] = useSearchParams();
+  const [isUploading, setIsUploading] = useState(false);
   
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -64,7 +65,9 @@ export default function PurchaseTruck() {
         chassis: d.chassis_no,
         engine: d.engine_no,
         modelName: d.model_name,
-        extraRemarks: d.remarks
+        extraRemarks: d.remarks,
+        insuranceCopy: d.insurance_copy,
+        registrationCopy: d.registration_copy
       }));
       setTrucks(mapped);
       try {
@@ -92,6 +95,31 @@ export default function PurchaseTruck() {
     setTimeout(() => setToastMsg(''), 3000);
   };
 
+  const handleFileUpload = async (e, type) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setIsUploading(true);
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+    const filePath = `trucks/${fileName}`;
+    const { error: uploadError } = await supabase.storage.from('documents').upload(filePath, file);
+    
+    if (uploadError) {
+      alert("Error uploading file: " + uploadError.message);
+      setIsUploading(false);
+      return;
+    }
+    
+    const { data } = supabase.storage.from('documents').getPublicUrl(filePath);
+    if (type === 'insurance') {
+      setFormData(prev => ({ ...prev, insuranceCopy: data.publicUrl }));
+    } else {
+      setFormData(prev => ({ ...prev, registrationCopy: data.publicUrl }));
+    }
+    setIsUploading(false);
+    showToast("File uploaded!");
+  };
+
   const handleSave = async () => {
     if (!formData.vno) return alert("Vehicle No. is required");
     const cleaned = { ...formData };
@@ -111,7 +139,9 @@ export default function PurchaseTruck() {
       chassis_no: cleaned.chassis || null,
       engine_no: cleaned.engine || null,
       model_name: cleaned.modelName || null,
-      remarks: cleaned.extraRemarks || null
+      remarks: cleaned.extraRemarks || null,
+      insurance_copy: cleaned.insuranceCopy || null,
+      registration_copy: cleaned.registrationCopy || null
     };
 
     const { error } = await supabase.from('trucks').upsert(payload, { onConflict: 'vno' });
@@ -462,10 +492,26 @@ export default function PurchaseTruck() {
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Remarks</label>
                 <textarea className="border border-gray-300 w-full p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition resize-none" rows="1" value={formData.extraRemarks || ''} onChange={e => setFormData({...formData, extraRemarks: e.target.value})}></textarea>
               </div>
+              <div className="md:col-span-2 border-t border-gray-200 mt-2 pt-4 grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Copy of Insurance</label>
+                  <input type="file" accept="image/*,.pdf" className="border border-gray-300 w-full p-2 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm bg-white" onChange={(e) => handleFileUpload(e, 'insurance')} disabled={isUploading} />
+                  {isUploading && <span className="text-xs text-blue-500 mt-1 block animate-pulse">Uploading...</span>}
+                  {formData.insuranceCopy && <a href={formData.insuranceCopy} target="_blank" rel="noreferrer" className="text-xs text-blue-600 hover:underline mt-1 block">📄 View Uploaded Insurance</a>}
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Copy of Registration</label>
+                  <input type="file" accept="image/*,.pdf" className="border border-gray-300 w-full p-2 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm bg-white" onChange={(e) => handleFileUpload(e, 'registration')} disabled={isUploading} />
+                  {isUploading && <span className="text-xs text-blue-500 mt-1 block animate-pulse">Uploading...</span>}
+                  {formData.registrationCopy && <a href={formData.registrationCopy} target="_blank" rel="noreferrer" className="text-xs text-blue-600 hover:underline mt-1 block">📄 View Uploaded Registration</a>}
+                </div>
+              </div>
             </div>
             <div className="p-5 border-t border-gray-100 flex justify-end gap-3 bg-white rounded-b-xl">
               <button className="px-6 py-2.5 text-gray-600 font-medium hover:bg-gray-100 rounded-lg transition" onClick={() => setIsModalOpen(false)}>Cancel</button>
-              <button className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow transition" onClick={handleSave}>Save Truck</button>
+              <button className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow transition" onClick={handleSave} disabled={isUploading}>
+                {isUploading ? 'Uploading...' : 'Save Truck'}
+              </button>
             </div>
           </div>
         </div>

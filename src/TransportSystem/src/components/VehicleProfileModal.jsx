@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const inr = n => "₹" + Number(n || 0).toLocaleString("en-IN");
 const fmt = s => {
@@ -47,6 +49,61 @@ export default function VehicleProfileModal({ vno, onClose }) {
   
   const truckStatus = truck.expiry ? istat(truck.expiry) : 'UNKNOWN';
 
+  const exportToPDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text(`Vehicle Profile - ${vno}`, 14, 22);
+    
+    // Truck details
+    doc.setFontSize(12);
+    doc.text("Truck Details:", 14, 32);
+    autoTable(doc, {
+      startY: 36,
+      head: [["Field", "Value"]],
+      body: [
+        ["Owner Name", truck.ownerName || "-"],
+        ["Firm Name", truck.owner || "-"],
+        ["Insurance Co.", truck.company || "-"],
+        ["Policy No.", truck.policy || "-"],
+        ["Start Date", fmt(truck.start) || "-"],
+        ["Expiry Date", fmt(truck.expiry) || "-"],
+        ["IDV", inr(truck.idv)],
+        ["Premium", inr(truck.premium)],
+        ["Chassis No.", truck.chassis || "-"],
+        ["Engine No.", truck.engine || "-"],
+        ["Model", truck.modelName || truck.remarks || "-"],
+        ["Remarks", truck.extraRemarks || "-"],
+      ],
+      theme: 'grid'
+    });
+
+    // Fastag Details
+    let nextY = doc.lastAutoTable.finalY + 10;
+    if (fastag) {
+      doc.text("FASTag Details:", 14, nextY);
+      autoTable(doc, {
+        startY: nextY + 4,
+        head: [["Tag ID", "Bank", "Balance", "Status"]],
+        body: [[fastag.tagId, fastag.bank, inr(fastag.balance), fstat(fastag)]],
+        theme: 'grid'
+      });
+      nextY = doc.lastAutoTable.finalY + 10;
+    }
+
+    // Challans
+    if (Challans.length > 0) {
+      doc.text(`Challans (${Challans.length}) - Pending: ${inr(pendingAmount)}`, 14, nextY);
+      autoTable(doc, {
+        startY: nextY + 4,
+        head: [["Challan No", "Date", "Offence", "Amount", "Status"]],
+        body: Challans.map(c => [c.ChallanNo, fmt(c.date), c.offence, inr(c.amount), c.status || "PENDING"]),
+        theme: 'grid'
+      });
+    }
+
+    doc.save(`Profile_${vno}.pdf`);
+  };
+
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl flex flex-col max-h-[90vh]">
@@ -59,7 +116,12 @@ export default function VehicleProfileModal({ vno, onClose }) {
               </span>
             )}
           </h2>
-          <button className="text-gray-400 hover:text-gray-600 text-2xl leading-none" onClick={onClose}>&times;</button>
+          <div className="flex items-center gap-4">
+            <button className="bg-red-50 text-red-600 border border-red-200 px-3 py-1.5 rounded-md text-sm font-semibold hover:bg-red-600 hover:text-white transition flex items-center gap-2 shadow-sm" onClick={exportToPDF}>
+              📄 Download PDF
+            </button>
+            <button className="text-gray-400 hover:text-gray-600 text-2xl leading-none" onClick={onClose}>&times;</button>
+          </div>
         </div>
         
         <div className="p-6 overflow-y-auto bg-white" style={{ display: 'block' }}>
@@ -91,6 +153,14 @@ export default function VehicleProfileModal({ vno, onClose }) {
                 <div><span className="text-gray-500 block text-xs">Agent / Contact</span><strong className="text-gray-800">{truck.agent || '-'}</strong></div>
                 <div><span className="text-gray-500 block text-xs">Model Name</span><strong className="text-gray-800">{truck.modelName || truck.remarks || '-'}</strong></div>
                 <div><span className="text-gray-500 block text-xs">Remarks</span><strong className="text-gray-800">{truck.extraRemarks || '-'}</strong></div>
+                <div>
+                  <span className="text-gray-500 block text-xs mb-1">Copy of Insurance</span>
+                  {truck.insuranceCopy ? <a href={truck.insuranceCopy} target="_blank" rel="noreferrer" className="bg-blue-50 text-blue-600 border border-blue-200 px-3 py-1 rounded-md text-xs font-semibold hover:bg-blue-600 hover:text-white transition inline-block">📄 View</a> : <strong className="text-gray-800">-</strong>}
+                </div>
+                <div>
+                  <span className="text-gray-500 block text-xs mb-1">Copy of Registration</span>
+                  {truck.registrationCopy ? <a href={truck.registrationCopy} target="_blank" rel="noreferrer" className="bg-blue-50 text-blue-600 border border-blue-200 px-3 py-1 rounded-md text-xs font-semibold hover:bg-blue-600 hover:text-white transition inline-block">📄 View</a> : <strong className="text-gray-800">-</strong>}
+                </div>
               </div>
             ) : <div className="p-4 text-gray-500">Truck details missing.</div>}
           </div>
