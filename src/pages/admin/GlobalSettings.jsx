@@ -103,7 +103,7 @@ const MODULES = [
   {
     id: 'Transport Reporting',
     name: 'Transport Reporting',
-    pages: ['Truck Reports']
+    pages: ['Dashboard', 'Purchase Truck', 'Fastag', 'Challan', 'Truck Reports']
   },
   {
     id: 'Global Settings',
