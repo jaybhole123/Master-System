@@ -594,32 +594,32 @@ export default function MasterDashboard() {
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-black/15 rounded-full blur-2xl translate-y-1/2 -translate-x-1/4 pointer-events-none"></div>
           
           <div className="relative z-10 space-y-1.5 sm:space-y-2">
-            <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider sm:tracking-widest text-red-100 shadow-2xs">
-              <Sparkles className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-amber-300 shrink-0" />
+            <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-xs font-black uppercase tracking-wider sm:tracking-widest text-red-100 shadow-2xs">
+              <Sparkles className="h-3.5 w-3.5 text-amber-300 shrink-0" />
               <span>Jay Bhole Master Intelligence Hub</span>
             </div>
-            <h1 className="text-xl sm:text-3xl md:text-4xl font-black tracking-tight text-white">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-white">
               Welcome, <span className="text-white drop-shadow-xs">{username}</span>!
             </h1>
-            <p className="text-red-100/90 text-xs sm:text-sm md:text-base max-w-2xl font-medium leading-relaxed">
+            <p className="text-red-100/90 text-sm sm:text-base max-w-2xl font-medium leading-relaxed">
               Unified command center & real-time monitoring across all 12 operational enterprise modules.
             </p>
           </div>
 
           <div className="relative z-10 grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-3 w-full lg:w-auto">
-            <div className="bg-white/15 backdrop-blur-md border border-white/20 rounded-xl sm:rounded-2xl px-3 sm:px-5 py-2.5 sm:py-3 text-center shadow-lg">
-              <div className="flex items-center justify-center gap-1 text-[9px] sm:text-[10px] font-bold text-red-100 uppercase tracking-wider sm:tracking-widest mb-0.5">
-                <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <div className="bg-white/15 backdrop-blur-md border border-white/20 rounded-xl sm:rounded-2xl px-4 sm:px-5 py-3 text-center shadow-lg">
+              <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-red-100 uppercase tracking-wider mb-0.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                 Company Status
               </div>
-              <div className="text-sm sm:text-lg md:text-xl font-black text-white truncate">All Systems Go</div>
+              <div className="text-base sm:text-lg md:text-xl font-black text-white truncate">All Systems Go</div>
             </div>
 
-            <div className="bg-white/15 backdrop-blur-md border border-white/20 rounded-xl sm:rounded-2xl px-3 sm:px-5 py-2.5 sm:py-3 text-center shadow-lg">
-              <div className="text-[9px] sm:text-[10px] font-bold text-red-100 uppercase tracking-wider sm:tracking-widest mb-0.5">
+            <div className="bg-white/15 backdrop-blur-md border border-white/20 rounded-xl sm:rounded-2xl px-4 sm:px-5 py-3 text-center shadow-lg">
+              <div className="text-xs font-bold text-red-100 uppercase tracking-wider mb-0.5">
                 Active Modules
               </div>
-              <div className="text-sm sm:text-lg md:text-xl font-black text-white truncate">12 Integrated</div>
+              <div className="text-base sm:text-lg md:text-xl font-black text-white truncate">12 Integrated</div>
             </div>
           </div>
         </div>
@@ -630,109 +630,109 @@ export default function MasterDashboard() {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-2.5">
           
           {/* 1. HR Active Employees */}
-          <div className="bg-white rounded-xl p-2.5 sm:p-3 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group min-w-0">
+          <div className="bg-white rounded-xl p-3 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group min-w-0">
             <div className="flex items-center justify-between mb-1 gap-1">
-              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate" title="HR Workforce">
+              <span className="text-xs font-extrabold uppercase tracking-wider text-slate-500 truncate" title="HR Workforce">
                 Workforce
               </span>
               <div className="p-1 rounded-lg shrink-0 bg-orange-50 text-orange-600">
-                <UserRound className="h-3.5 w-3.5" />
+                <UserRound className="h-4 w-4" />
               </div>
             </div>
-            <div className="text-base sm:text-lg font-black text-slate-800 tracking-tight leading-tight group-hover:text-red-600 transition-colors truncate">
+            <div className="text-lg sm:text-xl font-black text-slate-800 tracking-tight leading-tight group-hover:text-red-600 transition-colors truncate">
               {stats.hrTotalEmployees || 0}
             </div>
-            <div className="text-[10px] text-emerald-600 mt-0.5 font-bold truncate">
+            <div className="text-xs text-emerald-600 mt-0.5 font-bold truncate">
               {stats.activeStatusCount || 0} Active Staff
             </div>
           </div>
 
           {/* 2. Active Fleet Trucks */}
-          <div className="bg-white rounded-xl p-2.5 sm:p-3 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group min-w-0">
+          <div className="bg-white rounded-xl p-3 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group min-w-0">
             <div className="flex items-center justify-between mb-1 gap-1">
-              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate" title="Active Trucks">
+              <span className="text-xs font-extrabold uppercase tracking-wider text-slate-500 truncate" title="Active Trucks">
                 Active Trucks
               </span>
               <div className="p-1 rounded-lg shrink-0 bg-blue-50 text-blue-600">
-                <Truck className="h-3.5 w-3.5" />
+                <Truck className="h-4 w-4" />
               </div>
             </div>
-            <div className="text-base sm:text-lg font-black text-blue-700 tracking-tight leading-tight group-hover:text-red-600 transition-colors truncate">
+            <div className="text-lg sm:text-xl font-black text-blue-700 tracking-tight leading-tight group-hover:text-red-600 transition-colors truncate">
               {transportStats.activeTrucks || 0}
             </div>
-            <div className="text-[10px] text-slate-400 mt-0.5 font-medium truncate">
+            <div className="text-xs text-slate-500 mt-0.5 font-semibold truncate">
               {transportStats.totalTrips || 0} Total Trips
             </div>
           </div>
 
           {/* 3. Coal Orders Valid */}
-          <div className="bg-white rounded-xl p-2.5 sm:p-3 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group min-w-0">
+          <div className="bg-white rounded-xl p-3 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group min-w-0">
             <div className="flex items-center justify-between mb-1 gap-1">
-              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate" title="Coal Orders">
+              <span className="text-xs font-extrabold uppercase tracking-wider text-slate-500 truncate" title="Coal Orders">
                 Active Coal DO
               </span>
               <div className="p-1 rounded-lg shrink-0 bg-red-50 text-red-600">
-                <Flame className="h-3.5 w-3.5" />
+                <Flame className="h-4 w-4" />
               </div>
             </div>
-            <div className="text-base sm:text-lg font-black text-red-600 tracking-tight leading-tight group-hover:text-red-700 transition-colors truncate">
+            <div className="text-lg sm:text-xl font-black text-red-600 tracking-tight leading-tight group-hover:text-red-700 transition-colors truncate">
               {coalStats.soValid || 0}
             </div>
-            <div className="text-[10px] text-slate-400 mt-0.5 font-medium truncate">
+            <div className="text-xs text-slate-500 mt-0.5 font-semibold truncate">
               {coalStats.seclQty ? `${coalStats.seclQty.toLocaleString('en-IN')} MT` : 'SECL Extracted'}
             </div>
           </div>
 
           {/* 4. Rent Collection */}
-          <div className="bg-white rounded-xl p-2.5 sm:p-3 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group min-w-0">
+          <div className="bg-white rounded-xl p-3 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group min-w-0">
             <div className="flex items-center justify-between mb-1 gap-1">
-              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate" title="Rent Status">
+              <span className="text-xs font-extrabold uppercase tracking-wider text-slate-500 truncate" title="Rent Status">
                 Rent Collected
               </span>
               <div className="p-1 rounded-lg shrink-0 bg-emerald-50 text-emerald-600">
-                <Banknote className="h-3.5 w-3.5" />
+                <Banknote className="h-4 w-4" />
               </div>
             </div>
-            <div className="text-base sm:text-lg font-black text-emerald-700 tracking-tight leading-tight group-hover:text-red-600 transition-colors truncate">
+            <div className="text-lg sm:text-xl font-black text-emerald-700 tracking-tight leading-tight group-hover:text-red-600 transition-colors truncate">
               {rentStats.done || 0} / {rentStats.total || 0}
             </div>
-            <div className="text-[10px] text-amber-600 mt-0.5 font-bold truncate">
+            <div className="text-xs text-amber-600 mt-0.5 font-bold truncate">
               {rentStats.pending || 0} Pending
             </div>
           </div>
 
           {/* 5. Tasks Completed */}
-          <div className="bg-white rounded-xl p-2.5 sm:p-3 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group min-w-0">
+          <div className="bg-white rounded-xl p-3 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group min-w-0">
             <div className="flex items-center justify-between mb-1 gap-1">
-              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate" title="Scheduler Rate">
+              <span className="text-xs font-extrabold uppercase tracking-wider text-slate-500 truncate" title="Scheduler Rate">
                 Scheduler Rate
               </span>
               <div className="p-1 rounded-lg shrink-0 bg-violet-50 text-violet-600">
-                <CalendarCheck className="h-3.5 w-3.5" />
+                <CalendarCheck className="h-4 w-4" />
               </div>
             </div>
-            <div className="text-base sm:text-lg font-black text-violet-700 tracking-tight leading-tight group-hover:text-red-600 transition-colors truncate">
+            <div className="text-lg sm:text-xl font-black text-violet-700 tracking-tight leading-tight group-hover:text-red-600 transition-colors truncate">
               {stats.dailyCompletionRate || 0}%
             </div>
-            <div className="text-[10px] text-slate-400 mt-0.5 font-medium truncate">
+            <div className="text-xs text-slate-500 mt-0.5 font-semibold truncate">
               {stats.dailyTotalTasks || 0} Total Tasks
             </div>
           </div>
 
           {/* 6. Petty Cash Credits */}
-          <div className="bg-white rounded-xl p-2.5 sm:p-3 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group min-w-0">
+          <div className="bg-white rounded-xl p-3 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group min-w-0">
             <div className="flex items-center justify-between mb-1 gap-1">
-              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate" title="Petty Cash Balance">
+              <span className="text-xs font-extrabold uppercase tracking-wider text-slate-500 truncate" title="Petty Cash Balance">
                 Petty Cash
               </span>
               <div className="p-1 rounded-lg shrink-0 bg-teal-50 text-teal-600">
-                <Wallet className="h-3.5 w-3.5" />
+                <Wallet className="h-4 w-4" />
               </div>
             </div>
-            <div className="text-base sm:text-lg font-black text-teal-700 tracking-tight leading-tight group-hover:text-red-600 transition-colors truncate">
+            <div className="text-lg sm:text-xl font-black text-teal-700 tracking-tight leading-tight group-hover:text-red-600 transition-colors truncate">
               ₹ {((stats.pettyCashTotalCredits || 0) - (stats.pettyCashTotalExpenses || 0)).toLocaleString('en-IN')}
             </div>
-            <div className="text-[10px] text-slate-400 mt-0.5 font-medium truncate">
+            <div className="text-xs text-slate-500 mt-0.5 font-semibold truncate">
               Net Available
             </div>
           </div>
@@ -753,28 +753,28 @@ export default function MasterDashboard() {
                     <Truck size={20} />
                   </div>
                   <div className="min-w-0">
-                    <h2 className="text-base font-extrabold text-slate-900 leading-tight truncate">Transport System</h2>
-                    <p className="text-[11px] text-slate-400 font-medium truncate">Fleet & Logistics Analytics</p>
+                    <h2 className="text-base sm:text-lg font-black text-slate-900 leading-tight truncate">Transport System</h2>
+                    <p className="text-xs text-slate-500 font-medium truncate">Fleet & Logistics Analytics</p>
                   </div>
                 </div>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 shrink-0">
+                <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 shrink-0">
                   {transportStats.activeTrucks} Trucks
                 </span>
               </div>
 
               {/* Transport Metrics Strip */}
               <div className="grid grid-cols-2 gap-2 mb-3">
-                <div className="bg-slate-50 p-2 rounded-xl border border-slate-100 text-center">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase">Total Trips</span>
-                  <div className="text-sm font-black text-slate-800 mt-0.5">{transportStats.totalTrips}</div>
+                <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-center">
+                  <span className="text-xs font-bold text-slate-500 uppercase">Total Trips</span>
+                  <div className="text-base font-black text-slate-800 mt-0.5">{transportStats.totalTrips}</div>
                 </div>
-                <div className="bg-slate-50 p-2 rounded-xl border border-slate-100 text-center">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase">Diesel (L)</span>
-                  <div className="text-sm font-black text-purple-700 mt-0.5">{transportStats.totalDiesel.toLocaleString()} L</div>
+                <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-center">
+                  <span className="text-xs font-bold text-slate-500 uppercase">Diesel (L)</span>
+                  <div className="text-base font-black text-purple-700 mt-0.5">{transportStats.totalDiesel.toLocaleString()} L</div>
                 </div>
-                <div className="bg-emerald-50/60 p-2 rounded-xl border border-emerald-100 text-center col-span-2">
-                  <span className="text-[10px] font-bold text-emerald-700 uppercase">Total Freight</span>
-                  <div className="text-sm font-black text-emerald-700 mt-0.5">₹ {transportStats.totalFreight.toLocaleString('en-IN')}</div>
+                <div className="bg-emerald-50/60 p-2.5 rounded-xl border border-emerald-100 text-center col-span-2">
+                  <span className="text-xs font-bold text-emerald-700 uppercase">Total Freight</span>
+                  <div className="text-base font-black text-emerald-700 mt-0.5">₹ {transportStats.totalFreight.toLocaleString('en-IN')}</div>
                 </div>
               </div>
 
@@ -800,7 +800,7 @@ export default function MasterDashboard() {
                         ))}
                       </Pie>
                       <Tooltip content={<CustomTooltip />} />
-                      <Legend iconType="circle" wrapperStyle={{ fontSize: 10, paddingTop: 4 }} />
+                      <Legend iconType="circle" wrapperStyle={{ fontSize: 11, paddingTop: 4 }} />
                     </PieChart>
                   </ResponsiveContainer>
                 )}
@@ -809,7 +809,7 @@ export default function MasterDashboard() {
 
             <Link 
               to="/transport-system/dashboard" 
-              className="flex items-center justify-center w-full py-2.5 px-4 bg-blue-50 text-blue-700 font-bold text-xs rounded-xl hover:bg-blue-600 hover:text-white transition-all shadow-2xs mt-auto group-hover:shadow-md"
+              className="flex items-center justify-center w-full py-2.5 px-4 bg-blue-50 text-blue-700 font-black text-xs sm:text-sm rounded-xl hover:bg-blue-600 hover:text-white transition-all shadow-2xs mt-auto group-hover:shadow-md"
             >
               Open Transport Module <ArrowRight size={14} className="ml-1.5" />
             </Link>
@@ -824,28 +824,28 @@ export default function MasterDashboard() {
                     <Flame size={20} />
                   </div>
                   <div className="min-w-0">
-                    <h2 className="text-base font-extrabold text-slate-900 leading-tight truncate">Coal System</h2>
-                    <p className="text-[11px] text-slate-400 font-medium truncate">Auction, DO & Extracted Coal</p>
+                    <h2 className="text-base sm:text-lg font-black text-slate-900 leading-tight truncate">Coal System</h2>
+                    <p className="text-xs text-slate-500 font-medium truncate">Auction, DO & Extracted Coal</p>
                   </div>
                 </div>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-50 text-red-700 shrink-0">
+                <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-red-50 text-red-700 shrink-0">
                   {coalStats.soValid} Active DO
                 </span>
               </div>
 
               {/* Coal Metrics Grid */}
               <div className="grid grid-cols-2 gap-2 mb-3">
-                <div className="bg-slate-50 p-2 rounded-xl border border-slate-100 text-center">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase">Valid Advices</span>
-                  <div className="text-sm font-black text-emerald-600 mt-0.5">{coalStats.paValid}</div>
+                <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-center">
+                  <span className="text-xs font-bold text-slate-500 uppercase">Valid Advices</span>
+                  <div className="text-base font-black text-emerald-600 mt-0.5">{coalStats.paValid}</div>
                 </div>
-                <div className="bg-slate-50 p-2 rounded-xl border border-slate-100 text-center">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase">Expired DO</span>
-                  <div className="text-sm font-black text-rose-600 mt-0.5">{coalStats.soExpired}</div>
+                <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-center">
+                  <span className="text-xs font-bold text-slate-500 uppercase">Expired DO</span>
+                  <div className="text-base font-black text-rose-600 mt-0.5">{coalStats.soExpired}</div>
                 </div>
-                <div className="bg-amber-50/60 p-2 rounded-xl border border-amber-100 text-center col-span-2">
-                  <span className="text-[10px] font-bold text-amber-700 uppercase">SECL Allotted Qty</span>
-                  <div className="text-sm font-black text-amber-800 mt-0.5">{coalStats.seclQty.toLocaleString('en-IN')} MT</div>
+                <div className="bg-amber-50/60 p-2.5 rounded-xl border border-amber-100 text-center col-span-2">
+                  <span className="text-xs font-bold text-amber-700 uppercase">SECL Allotted Qty</span>
+                  <div className="text-base font-black text-amber-800 mt-0.5">{coalStats.seclQty.toLocaleString('en-IN')} MT</div>
                 </div>
               </div>
 
@@ -879,7 +879,7 @@ export default function MasterDashboard() {
 
             <Link 
               to="/coal-system/dashboard" 
-              className="flex items-center justify-center w-full py-2.5 px-4 bg-red-50 text-red-700 font-bold text-xs rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-2xs mt-auto group-hover:shadow-md"
+              className="flex items-center justify-center w-full py-2.5 px-4 bg-red-50 text-red-700 font-black text-xs sm:text-sm rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-2xs mt-auto group-hover:shadow-md"
             >
               Open Coal Module <ArrowRight size={14} className="ml-1.5" />
             </Link>
@@ -894,11 +894,11 @@ export default function MasterDashboard() {
                     <CheckSquare size={20} />
                   </div>
                   <div className="min-w-0">
-                    <h2 className="text-base font-extrabold text-slate-900 leading-tight truncate">Checklist Tasks</h2>
-                    <p className="text-[11px] text-slate-400 font-medium truncate">Daily Operational Checklist</p>
+                    <h2 className="text-base sm:text-lg font-black text-slate-900 leading-tight truncate">Checklist Tasks</h2>
+                    <p className="text-xs text-slate-500 font-medium truncate">Daily Operational Checklist</p>
                   </div>
                 </div>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 shrink-0">
+                <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 shrink-0">
                   Checklist
                 </span>
               </div>
@@ -912,8 +912,8 @@ export default function MasterDashboard() {
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={stats.checklistData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                      <XAxis dataKey="name" tick={{ fontSize: 9 }} interval={0} />
-                      <YAxis tick={{ fontSize: 9 }} />
+                      <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} />
+                      <YAxis tick={{ fontSize: 10 }} />
                       <Tooltip content={<CustomTooltip />} />
                       <Bar dataKey="value" radius={[4, 4, 0, 0]}>
                         {stats.checklistData.map((entry, index) => (
@@ -928,7 +928,7 @@ export default function MasterDashboard() {
 
             <Link 
               to="/dashboard/admin" 
-              className="flex items-center justify-center w-full py-2.5 px-4 bg-blue-50 text-blue-700 font-bold text-xs rounded-xl hover:bg-blue-600 hover:text-white transition-all shadow-2xs mt-auto group-hover:shadow-md"
+              className="flex items-center justify-center w-full py-2.5 px-4 bg-blue-50 text-blue-700 font-black text-xs sm:text-sm rounded-xl hover:bg-blue-600 hover:text-white transition-all shadow-2xs mt-auto group-hover:shadow-md"
             >
               Open Module <ArrowRight size={14} className="ml-1.5" />
             </Link>
@@ -943,11 +943,11 @@ export default function MasterDashboard() {
                     <Briefcase size={20} />
                   </div>
                   <div className="min-w-0">
-                    <h2 className="text-base font-extrabold text-slate-900 leading-tight truncate">Delegation Tasks</h2>
-                    <p className="text-[11px] text-slate-400 font-medium truncate">Delegated Work Orders</p>
+                    <h2 className="text-base sm:text-lg font-black text-slate-900 leading-tight truncate">Delegation Tasks</h2>
+                    <p className="text-xs text-slate-500 font-medium truncate">Delegated Work Orders</p>
                   </div>
                 </div>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 shrink-0">
+                <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 shrink-0">
                   Delegation
                 </span>
               </div>
@@ -961,8 +961,8 @@ export default function MasterDashboard() {
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={stats.delegationData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                      <XAxis dataKey="name" tick={{ fontSize: 9 }} interval={0} />
-                      <YAxis tick={{ fontSize: 9 }} />
+                      <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} />
+                      <YAxis tick={{ fontSize: 10 }} />
                       <Tooltip content={<CustomTooltip />} />
                       <Bar dataKey="value" radius={[4, 4, 0, 0]}>
                         {stats.delegationData.map((entry, index) => (
@@ -977,7 +977,7 @@ export default function MasterDashboard() {
 
             <Link 
               to="/dashboard/admin" 
-              className="flex items-center justify-center w-full py-2.5 px-4 bg-indigo-50 text-indigo-700 font-bold text-xs rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-2xs mt-auto group-hover:shadow-md"
+              className="flex items-center justify-center w-full py-2.5 px-4 bg-indigo-50 text-indigo-700 font-black text-xs sm:text-sm rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-2xs mt-auto group-hover:shadow-md"
             >
               Open Module <ArrowRight size={14} className="ml-1.5" />
             </Link>
@@ -992,14 +992,14 @@ export default function MasterDashboard() {
                     <Banknote size={20} />
                   </div>
                   <div className="min-w-0">
-                    <h2 className="text-base font-extrabold text-slate-900 leading-tight truncate">Rent Management</h2>
-                    <p className="text-[11px] text-slate-400 font-medium truncate">Tenants & Monthly Rent</p>
+                    <h2 className="text-base sm:text-lg font-black text-slate-900 leading-tight truncate">Rent Management</h2>
+                    <p className="text-xs text-slate-500 font-medium truncate">Tenants & Monthly Rent</p>
                   </div>
                 </div>
                 <select
                   value={rentMonth}
                   onChange={(e) => setRentMonth(e.target.value)}
-                  className="text-[11px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg px-2 py-0.5 outline-none cursor-pointer shrink-0"
+                  className="text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-1 outline-none cursor-pointer shrink-0"
                 >
                   {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map(m => (
                     <option key={m} value={m}>{m}</option>
@@ -1008,24 +1008,24 @@ export default function MasterDashboard() {
               </div>
               
               <div className="grid grid-cols-2 gap-2 mb-3">
-                <div className="bg-emerald-50/50 p-2 rounded-xl border border-emerald-100 text-center col-span-2">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Tenants</span>
-                  <div className="text-lg font-black text-slate-800 mt-0.5">{rentStats.total || 0}</div>
+                <div className="bg-emerald-50/50 p-2.5 rounded-xl border border-emerald-100 text-center col-span-2">
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Tenants</span>
+                  <div className="text-xl font-black text-slate-800 mt-0.5">{rentStats.total || 0}</div>
                 </div>
-                <div className="bg-orange-50 p-2 rounded-xl border border-orange-100 text-center">
-                  <span className="text-[10px] font-bold text-orange-600">Pending</span>
+                <div className="bg-orange-50 p-2.5 rounded-xl border border-orange-100 text-center">
+                  <span className="text-xs font-bold text-orange-600">Pending</span>
                   <div className="text-base font-black text-orange-700 mt-0.5">{rentStats.pending || 0}</div>
                 </div>
-                <div className="bg-green-50 p-2 rounded-xl border border-green-100 text-center">
-                  <span className="text-[10px] font-bold text-green-600">On Time</span>
+                <div className="bg-green-50 p-2.5 rounded-xl border border-green-100 text-center">
+                  <span className="text-xs font-bold text-green-600">On Time</span>
                   <div className="text-base font-black text-green-700 mt-0.5">{rentStats.onTime || 0}</div>
                 </div>
-                <div className="bg-blue-50 p-2 rounded-xl border border-blue-100 text-center">
-                  <span className="text-[10px] font-bold text-blue-600">Received</span>
+                <div className="bg-blue-50 p-2.5 rounded-xl border border-blue-100 text-center">
+                  <span className="text-xs font-bold text-blue-600">Received</span>
                   <div className="text-base font-black text-blue-700 mt-0.5">{rentStats.done || 0}</div>
                 </div>
-                <div className="bg-red-50 p-2 rounded-xl border border-red-100 text-center">
-                  <span className="text-[10px] font-bold text-red-600">Delay</span>
+                <div className="bg-red-50 p-2.5 rounded-xl border border-red-100 text-center">
+                  <span className="text-xs font-bold text-red-600">Delay</span>
                   <div className="text-base font-black text-red-700 mt-0.5">{rentStats.delay || 0}</div>
                 </div>
               </div>
@@ -1033,7 +1033,7 @@ export default function MasterDashboard() {
 
             <Link 
               to="/dashboard/rent-tracker/dashboard" 
-              className="flex items-center justify-center w-full py-2.5 px-4 bg-emerald-50 text-emerald-700 font-bold text-xs rounded-xl hover:bg-emerald-600 hover:text-white transition-all shadow-2xs mt-auto group-hover:shadow-md"
+              className="flex items-center justify-center w-full py-2.5 px-4 bg-emerald-50 text-emerald-700 font-black text-xs sm:text-sm rounded-xl hover:bg-emerald-600 hover:text-white transition-all shadow-2xs mt-auto group-hover:shadow-md"
             >
               Open Rent Dashboard <ArrowRight size={14} className="ml-1.5" />
             </Link>
@@ -1048,31 +1048,31 @@ export default function MasterDashboard() {
                     <UserRound size={20} />
                   </div>
                   <div className="min-w-0">
-                    <h2 className="text-base font-extrabold text-slate-900 leading-tight truncate">HR System</h2>
-                    <p className="text-[11px] text-slate-400 font-medium truncate">Staff, Attendance & Payroll</p>
+                    <h2 className="text-base sm:text-lg font-black text-slate-900 leading-tight truncate">HR System</h2>
+                    <p className="text-xs text-slate-500 font-medium truncate">Staff, Attendance & Payroll</p>
                   </div>
                 </div>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-50 text-orange-700 shrink-0">
+                <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-orange-50 text-orange-700 shrink-0">
                   {stats.hrTotalEmployees} Staff
                 </span>
               </div>
               
               <div className="grid grid-cols-2 gap-2 mb-3">
-                <div className="rounded-xl border border-orange-100 bg-orange-50/40 p-2">
-                  <span className="text-[10px] font-bold text-slate-600 block">Today Present</span>
-                  <div className="text-sm font-black text-emerald-600 mt-0.5">
+                <div className="rounded-xl border border-orange-100 bg-orange-50/40 p-2.5">
+                  <span className="text-xs font-bold text-slate-600 block">Today Present</span>
+                  <div className="text-base font-black text-emerald-600 mt-0.5">
                     {(stats.hrMetrics.attendance || []).find(i => i.name === 'Present')?.value || 0}
                   </div>
                 </div>
-                <div className="rounded-xl border border-orange-100 bg-orange-50/40 p-2">
-                  <span className="text-[10px] font-bold text-slate-600 block">Pending Leaves</span>
-                  <div className="text-sm font-black text-orange-600 mt-0.5">
+                <div className="rounded-xl border border-orange-100 bg-orange-50/40 p-2.5">
+                  <span className="text-xs font-bold text-slate-600 block">Pending Leaves</span>
+                  <div className="text-base font-black text-orange-600 mt-0.5">
                     {(stats.hrMetrics.leaves || []).find(i => i.name === 'Pending')?.value || 0}
                   </div>
                 </div>
-                <div className="rounded-xl border border-orange-100 bg-orange-50/40 p-2 col-span-2">
-                  <span className="text-[10px] font-bold text-slate-600 block">Payroll Status</span>
-                  <div className="text-xs font-black text-purple-700 mt-0.5">
+                <div className="rounded-xl border border-orange-100 bg-orange-50/40 p-2.5 col-span-2">
+                  <span className="text-xs font-bold text-slate-600 block">Payroll Status</span>
+                  <div className="text-sm font-black text-purple-700 mt-0.5">
                     {(stats.hrMetrics.payroll || []).find(i => i.name === 'Processed')?.value > 0 ? 'Processing Active' : 'Monthly Ready'}
                   </div>
                 </div>
@@ -1081,7 +1081,7 @@ export default function MasterDashboard() {
 
             <Link 
               to="/hr/dashboard" 
-              className="flex items-center justify-center w-full py-2.5 px-4 bg-orange-50 text-orange-700 font-bold text-xs rounded-xl hover:bg-orange-600 hover:text-white transition-all shadow-2xs mt-auto group-hover:shadow-md"
+              className="flex items-center justify-center w-full py-2.5 px-4 bg-orange-50 text-orange-700 font-black text-xs sm:text-sm rounded-xl hover:bg-orange-600 hover:text-white transition-all shadow-2xs mt-auto group-hover:shadow-md"
             >
               Open Module <ArrowRight size={14} className="ml-1.5" />
             </Link>
@@ -1096,23 +1096,23 @@ export default function MasterDashboard() {
                     <Wallet size={20} />
                   </div>
                   <div className="min-w-0">
-                    <h2 className="text-base font-extrabold text-slate-900 leading-tight truncate">Petty Cash</h2>
-                    <p className="text-[11px] text-slate-400 font-medium truncate">Credits vs Expenses</p>
+                    <h2 className="text-base sm:text-lg font-black text-slate-900 leading-tight truncate">Petty Cash</h2>
+                    <p className="text-xs text-slate-500 font-medium truncate">Credits vs Expenses</p>
                   </div>
                 </div>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-50 text-teal-700 shrink-0">
+                <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-teal-50 text-teal-700 shrink-0">
                   Finance
                 </span>
               </div>
               
               <div className="grid grid-cols-2 gap-2 mb-3">
-                <div className="bg-slate-50 p-2 rounded-xl border border-slate-100 text-center">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase">Total Credits</span>
-                  <div className="text-sm font-black text-emerald-600 mt-0.5">₹{Math.round(stats.pettyCashTotalCredits / 1000)}k</div>
+                <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-center">
+                  <span className="text-xs font-bold text-slate-500 uppercase">Total Credits</span>
+                  <div className="text-base font-black text-emerald-600 mt-0.5">₹{Math.round(stats.pettyCashTotalCredits / 1000)}k</div>
                 </div>
-                <div className="bg-slate-50 p-2 rounded-xl border border-slate-100 text-center">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase">Expenses</span>
-                  <div className="text-sm font-black text-rose-600 mt-0.5">₹{Math.round(stats.pettyCashTotalExpenses / 1000)}k</div>
+                <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-center">
+                  <span className="text-xs font-bold text-slate-500 uppercase">Expenses</span>
+                  <div className="text-base font-black text-rose-600 mt-0.5">₹{Math.round(stats.pettyCashTotalExpenses / 1000)}k</div>
                 </div>
               </div>
 
@@ -1126,9 +1126,9 @@ export default function MasterDashboard() {
                     <BarChart data={stats.pettyCashData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                       <XAxis dataKey="name" hide />
-                      <YAxis tick={{ fontSize: 9 }} tickFormatter={(val) => `₹${val/1000}k`} />
+                      <YAxis tick={{ fontSize: 10 }} tickFormatter={(val) => `₹${val/1000}k`} />
                       <Tooltip content={<CustomTooltip />} />
-                      <Legend iconType="circle" wrapperStyle={{ fontSize: 10 }} />
+                      <Legend iconType="circle" wrapperStyle={{ fontSize: 11 }} />
                       <Bar dataKey="Credits" fill="#14b8a6" radius={[4, 4, 0, 0]} />
                       <Bar dataKey="Expenses" fill="#f43f5e" radius={[4, 4, 0, 0]} />
                     </BarChart>
@@ -1139,7 +1139,7 @@ export default function MasterDashboard() {
 
             <Link 
               to="/petty-cash/dashboard" 
-              className="flex items-center justify-center w-full py-2.5 px-4 bg-teal-50 text-teal-700 font-bold text-xs rounded-xl hover:bg-teal-600 hover:text-white transition-all shadow-2xs mt-auto group-hover:shadow-md"
+              className="flex items-center justify-center w-full py-2.5 px-4 bg-teal-50 text-teal-700 font-black text-xs sm:text-sm rounded-xl hover:bg-teal-600 hover:text-white transition-all shadow-2xs mt-auto group-hover:shadow-md"
             >
               Open Module <ArrowRight size={14} className="ml-1.5" />
             </Link>
@@ -1154,34 +1154,34 @@ export default function MasterDashboard() {
                     <CalendarCheck size={20} />
                   </div>
                   <div className="min-w-0">
-                    <h2 className="text-base font-extrabold text-slate-900 leading-tight truncate">Daily Scheduler</h2>
-                    <p className="text-[11px] text-slate-400 font-medium truncate">Time & Task Management</p>
+                    <h2 className="text-base sm:text-lg font-black text-slate-900 leading-tight truncate">Daily Scheduler</h2>
+                    <p className="text-xs text-slate-500 font-medium truncate">Time & Task Management</p>
                   </div>
                 </div>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-50 text-violet-700 shrink-0">
+                <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-violet-50 text-violet-700 shrink-0">
                   {stats.dailyCompletionRate}% Done
                 </span>
               </div>
               
               <div className="space-y-2 mb-3">
-                <div className="flex justify-between items-center bg-violet-50/50 p-2 rounded-xl border border-violet-100/50">
-                  <span className="text-[11px] font-bold text-slate-600">Total Tasks</span>
-                  <span className="text-xs font-black text-violet-700">{stats.dailyTotalTasks || 0}</span>
+                <div className="flex justify-between items-center bg-violet-50/50 p-2.5 rounded-xl border border-violet-100/50">
+                  <span className="text-xs font-bold text-slate-600">Total Tasks</span>
+                  <span className="text-sm font-black text-violet-700">{stats.dailyTotalTasks || 0}</span>
                 </div>
-                <div className="flex justify-between items-center bg-emerald-50/50 p-2 rounded-xl border border-emerald-100/50">
-                  <span className="text-[11px] font-bold text-slate-600">Completion Rate</span>
-                  <span className="text-xs font-black text-emerald-700">{stats.dailyCompletionRate || 0}%</span>
+                <div className="flex justify-between items-center bg-emerald-50/50 p-2.5 rounded-xl border border-emerald-100/50">
+                  <span className="text-xs font-bold text-slate-600">Completion Rate</span>
+                  <span className="text-sm font-black text-emerald-700">{stats.dailyCompletionRate || 0}%</span>
                 </div>
-                <div className="flex justify-between items-center bg-rose-50/50 p-2 rounded-xl border border-rose-100/50">
-                  <span className="text-[11px] font-bold text-slate-600">Pending Tasks</span>
-                  <span className="text-xs font-black text-rose-700">{stats.dailyTasksNotDone || 0}</span>
+                <div className="flex justify-between items-center bg-rose-50/50 p-2.5 rounded-xl border border-rose-100/50">
+                  <span className="text-xs font-bold text-slate-600">Pending Tasks</span>
+                  <span className="text-sm font-black text-rose-700">{stats.dailyTasksNotDone || 0}</span>
                 </div>
               </div>
             </div>
 
             <Link 
               to="/daily-scheduler/dashboard" 
-              className="flex items-center justify-center w-full py-2.5 px-4 bg-violet-50 text-violet-700 font-bold text-xs rounded-xl hover:bg-violet-600 hover:text-white transition-all shadow-2xs mt-auto group-hover:shadow-md"
+              className="flex items-center justify-center w-full py-2.5 px-4 bg-violet-50 text-violet-700 font-black text-xs sm:text-sm rounded-xl hover:bg-violet-600 hover:text-white transition-all shadow-2xs mt-auto group-hover:shadow-md"
             >
               Open Module <ArrowRight size={14} className="ml-1.5" />
             </Link>
@@ -1196,38 +1196,38 @@ export default function MasterDashboard() {
                     <FileText size={20} />
                   </div>
                   <div className="min-w-0">
-                    <h2 className="text-base font-extrabold text-slate-900 leading-tight truncate">Document & Substruction</h2>
-                    <p className="text-[11px] text-slate-400 font-medium truncate">Legal, Insurance & Loans</p>
+                    <h2 className="text-base sm:text-lg font-black text-slate-900 leading-tight truncate">Document & Substruction</h2>
+                    <p className="text-xs text-slate-500 font-medium truncate">Legal, Insurance & Loans</p>
                   </div>
                 </div>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-50 text-cyan-700 shrink-0">
+                <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-cyan-50 text-cyan-700 shrink-0">
                   Docs Hub
                 </span>
               </div>
               
               <div className="grid grid-cols-2 gap-2 mb-3">
-                <div className="bg-cyan-50/50 p-2 rounded-xl border border-cyan-100/50 text-center">
-                  <span className="text-[10px] font-bold text-slate-500 block">Total Insurance</span>
-                  <span className="text-xs font-black text-cyan-700 mt-0.5">{stats.docStatsLoading ? "..." : stats.docTotal || 0}</span>
+                <div className="bg-cyan-50/50 p-2.5 rounded-xl border border-cyan-100/50 text-center">
+                  <span className="text-xs font-bold text-slate-500 block">Total Insurance</span>
+                  <span className="text-sm font-black text-cyan-700 mt-0.5">{stats.docStatsLoading ? "..." : stats.docTotal || 0}</span>
                 </div>
-                <div className="bg-cyan-50/50 p-2 rounded-xl border border-cyan-100/50 text-center">
-                  <span className="text-[10px] font-bold text-slate-500 block">Reminders</span>
-                  <span className="text-xs font-black text-cyan-700 mt-0.5">{stats.docStatsLoading ? "..." : stats.reminderCount || 0}</span>
+                <div className="bg-cyan-50/50 p-2.5 rounded-xl border border-cyan-100/50 text-center">
+                  <span className="text-xs font-bold text-slate-500 block">Reminders</span>
+                  <span className="text-sm font-black text-cyan-700 mt-0.5">{stats.docStatsLoading ? "..." : stats.reminderCount || 0}</span>
                 </div>
-                <div className="bg-cyan-50/50 p-2 rounded-xl border border-cyan-100/50 text-center">
-                  <span className="text-[10px] font-bold text-slate-500 block">Car Insurance</span>
-                  <span className="text-xs font-black text-cyan-700 mt-0.5">{stats.docStatsLoading ? "..." : stats.carTotal || 0}</span>
+                <div className="bg-cyan-50/50 p-2.5 rounded-xl border border-cyan-100/50 text-center">
+                  <span className="text-xs font-bold text-slate-500 block">Car Insurance</span>
+                  <span className="text-sm font-black text-cyan-700 mt-0.5">{stats.docStatsLoading ? "..." : stats.carTotal || 0}</span>
                 </div>
-                <div className="bg-cyan-50/50 p-2 rounded-xl border border-cyan-100/50 text-center">
-                  <span className="text-[10px] font-bold text-slate-500 block">Total Loans</span>
-                  <span className="text-xs font-black text-cyan-700 mt-0.5">{stats.docStatsLoading ? "..." : stats.loanTotal || 0}</span>
+                <div className="bg-cyan-50/50 p-2.5 rounded-xl border border-cyan-100/50 text-center">
+                  <span className="text-xs font-bold text-slate-500 block">Total Loans</span>
+                  <span className="text-sm font-black text-cyan-700 mt-0.5">{stats.docStatsLoading ? "..." : stats.loanTotal || 0}</span>
                 </div>
               </div>
             </div>
 
             <Link 
               to="/doc-dashboard" 
-              className="flex items-center justify-center w-full py-2.5 px-4 bg-cyan-50 text-cyan-700 font-bold text-xs rounded-xl hover:bg-cyan-600 hover:text-white transition-all shadow-2xs mt-auto group-hover:shadow-md"
+              className="flex items-center justify-center w-full py-2.5 px-4 bg-cyan-50 text-cyan-700 font-black text-xs sm:text-sm rounded-xl hover:bg-cyan-600 hover:text-white transition-all shadow-2xs mt-auto group-hover:shadow-md"
             >
               Open Module <ArrowRight size={14} className="ml-1.5" />
             </Link>
@@ -1242,11 +1242,11 @@ export default function MasterDashboard() {
                     <HelpCircle size={20} />
                   </div>
                   <div className="min-w-0">
-                    <h2 className="text-base font-extrabold text-slate-900 leading-tight truncate">Help Slip</h2>
-                    <p className="text-[11px] text-slate-400 font-medium truncate">Internal Support Desk</p>
+                    <h2 className="text-base sm:text-lg font-black text-slate-900 leading-tight truncate">Help Slip</h2>
+                    <p className="text-xs text-slate-500 font-medium truncate">Internal Support Desk</p>
                   </div>
                 </div>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 shrink-0">
+                <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 shrink-0">
                   {stats.helpSlipTotal} Requests
                 </span>
               </div>
@@ -1263,7 +1263,7 @@ export default function MasterDashboard() {
                         ))}
                       </Pie>
                       <Tooltip content={<CustomTooltip />} />
-                      <Legend iconType="circle" wrapperStyle={{ fontSize: 10 }} />
+                      <Legend iconType="circle" wrapperStyle={{ fontSize: 11 }} />
                     </PieChart>
                   </ResponsiveContainer>
                 )}
@@ -1272,7 +1272,7 @@ export default function MasterDashboard() {
 
             <Link 
               to="/dashboard/help-slip" 
-              className="flex items-center justify-center w-full py-2.5 px-4 bg-rose-50 text-rose-700 font-bold text-xs rounded-xl hover:bg-rose-600 hover:text-white transition-all shadow-2xs mt-auto group-hover:shadow-md"
+              className="flex items-center justify-center w-full py-2.5 px-4 bg-rose-50 text-rose-700 font-black text-xs sm:text-sm rounded-xl hover:bg-rose-600 hover:text-white transition-all shadow-2xs mt-auto group-hover:shadow-md"
             >
               Open Module <ArrowRight size={14} className="ml-1.5" />
             </Link>
@@ -1287,47 +1287,47 @@ export default function MasterDashboard() {
                     <FileCheck size={20} />
                   </div>
                   <div className="min-w-0">
-                    <h2 className="text-base font-extrabold text-slate-900 leading-tight truncate">Letter System</h2>
-                    <p className="text-[11px] text-slate-400 font-medium truncate">Offer Letters & Work Orders</p>
+                    <h2 className="text-base sm:text-lg font-black text-slate-900 leading-tight truncate">Letter System</h2>
+                    <p className="text-xs text-slate-500 font-medium truncate">Offer Letters & Work Orders</p>
                   </div>
                 </div>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-50 text-red-700 shrink-0">
+                <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-red-50 text-red-700 shrink-0">
                   Letters
                 </span>
               </div>
 
               <div className="grid grid-cols-2 gap-2 mb-3">
                 <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-center">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase">Issuing Firms</span>
-                  <div className="text-sm font-black text-slate-800 mt-0.5">4 Entities</div>
+                  <span className="text-xs font-bold text-slate-500 uppercase">Issuing Firms</span>
+                  <div className="text-base font-black text-slate-800 mt-0.5">4 Entities</div>
                 </div>
                 <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-center">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase">PDF Engine</span>
-                  <div className="text-sm font-black text-emerald-600 mt-0.5">Instant A4</div>
+                  <span className="text-xs font-bold text-slate-500 uppercase">PDF Engine</span>
+                  <div className="text-base font-black text-emerald-600 mt-0.5">Instant A4</div>
                 </div>
               </div>
 
-              <div className="space-y-1.5 mb-3 text-xs">
+              <div className="space-y-1.5 mb-3 text-xs sm:text-sm">
                 <Link 
                   to="/letter/offer-letter"
-                  className="flex items-center justify-between p-2 rounded-xl bg-slate-50 hover:bg-red-50 hover:text-red-700 text-slate-700 font-semibold transition-colors border border-slate-100"
+                  className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 hover:bg-red-50 hover:text-red-700 text-slate-700 font-semibold transition-colors border border-slate-100"
                 >
                   <span>Coal Offer Letter</span>
-                  <ChevronRight size={14} className="text-slate-400" />
+                  <ChevronRight size={15} className="text-slate-400" />
                 </Link>
                 <Link 
                   to="/letter/work-order"
-                  className="flex items-center justify-between p-2 rounded-xl bg-slate-50 hover:bg-red-50 hover:text-red-700 text-slate-700 font-semibold transition-colors border border-slate-100"
+                  className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 hover:bg-red-50 hover:text-red-700 text-slate-700 font-semibold transition-colors border border-slate-100"
                 >
                   <span>Work Order Form</span>
-                  <ChevronRight size={14} className="text-slate-400" />
+                  <ChevronRight size={15} className="text-slate-400" />
                 </Link>
               </div>
             </div>
 
             <Link 
               to="/letter/offer-letter" 
-              className="flex items-center justify-center w-full py-2.5 px-4 bg-slate-100 text-slate-700 font-bold text-xs rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-2xs mt-auto group-hover:shadow-md"
+              className="flex items-center justify-center w-full py-2.5 px-4 bg-slate-100 text-slate-700 font-black text-xs sm:text-sm rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-2xs mt-auto group-hover:shadow-md"
             >
               Open Letter Module <ArrowRight size={14} className="ml-1.5" />
             </Link>
@@ -1342,38 +1342,38 @@ export default function MasterDashboard() {
                     <Settings2 size={20} />
                   </div>
                   <div className="min-w-0">
-                    <h2 className="text-base font-extrabold text-slate-900 leading-tight truncate">Global Settings</h2>
-                    <p className="text-[11px] text-slate-400 font-medium truncate">System Configuration</p>
+                    <h2 className="text-base sm:text-lg font-black text-slate-900 leading-tight truncate">Global Settings</h2>
+                    <p className="text-xs text-slate-500 font-medium truncate">System Configuration</p>
                   </div>
                 </div>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 shrink-0">
+                <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 shrink-0">
                   Admin
                 </span>
               </div>
               
               <div className="grid grid-cols-2 gap-2 mb-3">
-                <div className="bg-slate-50 p-2 rounded-xl border border-slate-100 text-center">
-                  <span className="text-[10px] font-bold text-slate-400 block">Total Users</span>
-                  <span className="text-xs font-black text-slate-800 mt-0.5">{stats.loading ? "..." : stats.uniqueNames || 0}</span>
+                <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-center">
+                  <span className="text-xs font-bold text-slate-500 block">Total Users</span>
+                  <span className="text-sm font-black text-slate-800 mt-0.5">{stats.loading ? "..." : stats.uniqueNames || 0}</span>
                 </div>
-                <div className="bg-slate-50 p-2 rounded-xl border border-slate-100 text-center">
-                  <span className="text-[10px] font-bold text-slate-400 block">Total Roles</span>
-                  <span className="text-xs font-black text-slate-800 mt-0.5">{stats.loading ? "..." : stats.uniqueRoles || 0}</span>
+                <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-center">
+                  <span className="text-xs font-bold text-slate-500 block">Total Roles</span>
+                  <span className="text-sm font-black text-slate-800 mt-0.5">{stats.loading ? "..." : stats.uniqueRoles || 0}</span>
                 </div>
-                <div className="bg-slate-50 p-2 rounded-xl border border-slate-100 text-center">
-                  <span className="text-[10px] font-bold text-slate-400 block">Departments</span>
-                  <span className="text-xs font-black text-slate-800 mt-0.5">{stats.loading ? "..." : stats.uniqueDepts || 0}</span>
+                <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-center">
+                  <span className="text-xs font-bold text-slate-500 block">Departments</span>
+                  <span className="text-sm font-black text-slate-800 mt-0.5">{stats.loading ? "..." : stats.uniqueDepts || 0}</span>
                 </div>
-                <div className="bg-slate-50 p-2 rounded-xl border border-slate-100 text-center">
-                  <span className="text-[10px] font-bold text-slate-400 block">Active Status</span>
-                  <span className="text-xs font-black text-emerald-600 mt-0.5">{stats.loading ? "..." : stats.activeStatusCount || 0}</span>
+                <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-center">
+                  <span className="text-xs font-bold text-slate-500 block">Active Status</span>
+                  <span className="text-sm font-black text-emerald-600 mt-0.5">{stats.loading ? "..." : stats.activeStatusCount || 0}</span>
                 </div>
               </div>
             </div>
 
             <Link 
               to="/dashboard/global-settings" 
-              className="flex items-center justify-center w-full py-2.5 px-4 bg-slate-100 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-700 hover:text-white transition-all shadow-2xs mt-auto group-hover:shadow-md"
+              className="flex items-center justify-center w-full py-2.5 px-4 bg-slate-100 text-slate-700 font-black text-xs sm:text-sm rounded-xl hover:bg-slate-700 hover:text-white transition-all shadow-2xs mt-auto group-hover:shadow-md"
             >
               Open Module <ArrowRight size={14} className="ml-1.5" />
             </Link>

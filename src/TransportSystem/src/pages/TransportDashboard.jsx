@@ -659,43 +659,43 @@ export default function TransportDashboard() {
         </div>
 
         {/* ═══════════ DESKTOP TABLE VIEW (Visible on md and up) ═══════════ */}
-        <div className="hidden md:block overflow-auto max-h-[420px] rounded-xl border border-slate-200/70">
+        <div className="hidden md:block overflow-auto max-h-[460px] rounded-xl border border-slate-200/70">
           <table className="w-full text-left border-collapse relative">
             <thead className="sticky top-0 bg-slate-50 z-10 shadow-2xs">
-              <tr className="border-b border-slate-200 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-                <th className="py-3 px-3.5 text-center w-12">#</th>
-                <th className="py-3 px-3.5 min-w-[120px]">Date</th>
-                <th className="py-3 px-3.5 min-w-[140px]">Vehicle No.</th>
-                <th className="py-3 px-3.5 text-center">Total Trips</th>
-                <th className="py-3 px-3.5">DO No.</th>
-                <th className="py-3 px-3.5 text-right">Freight (₹)</th>
-                <th className="py-3 px-3.5 text-right">Diesel (L)</th>
-                <th className="py-3 px-3.5 text-right">Vehicle Bal. (₹)</th>
+              <tr className="border-b border-slate-200 text-xs font-black text-slate-500 uppercase tracking-wider">
+                <th className="py-3.5 px-3.5 text-center w-12 whitespace-nowrap">#</th>
+                <th className="py-3.5 px-3.5 min-w-[120px] whitespace-nowrap">Date</th>
+                <th className="py-3.5 px-3.5 min-w-[140px] whitespace-nowrap">Vehicle No.</th>
+                <th className="py-3.5 px-3.5 text-center whitespace-nowrap">Total Trips</th>
+                <th className="py-3.5 px-3.5 whitespace-nowrap">DO No.</th>
+                <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Freight (₹)</th>
+                <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Diesel (L)</th>
+                <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Vehicle Bal. (₹)</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 text-xs">
+            <tbody className="divide-y divide-slate-100 text-sm text-slate-700 bg-white">
               {searchedReports.map((truck, idx) => (
                 <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
-                  <td className="py-2.5 px-3.5 text-center text-slate-400 font-mono font-medium">{idx + 1}</td>
-                  <td className="py-2.5 px-3.5 text-slate-600 font-medium">{formatDateDisplay(truck.date)}</td>
-                  <td className="py-2.5 px-3.5">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 text-slate-800 font-bold font-mono text-[11px] border border-slate-200/80">
+                  <td className="py-3 px-3.5 text-center text-slate-400 font-mono font-bold">{idx + 1}</td>
+                  <td className="py-3 px-3.5 text-slate-700 font-semibold whitespace-nowrap">{formatDateDisplay(truck.date)}</td>
+                  <td className="py-3 px-3.5 whitespace-nowrap">
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 font-black font-mono text-xs border border-slate-200/90 shadow-2xs">
                       {truck.name ? (truck.name.toUpperCase().includes('CG') ? truck.name : `CG-10-CG ${truck.name}`) : '-'}
                     </span>
                   </td>
-                  <td className="py-2.5 px-3.5 text-center">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-bold font-mono text-[11px] border border-blue-200/60">
+                  <td className="py-3 px-3.5 text-center whitespace-nowrap">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 font-black font-mono text-xs border border-blue-200/70">
                       {truck.trips}
                     </span>
                   </td>
-                  <td className="py-2.5 px-3.5 text-slate-600 font-mono">{truck.do_no || '-'}</td>
-                  <td className="py-2.5 px-3.5 text-right font-bold text-emerald-600 font-mono">
+                  <td className="py-3 px-3.5 text-slate-700 font-mono font-semibold whitespace-nowrap">{truck.do_no || '-'}</td>
+                  <td className="py-3 px-3.5 text-right font-black text-emerald-700 font-mono whitespace-nowrap">
                     ₹ {(truck.freight || 0).toLocaleString()}
                   </td>
-                  <td className="py-2.5 px-3.5 text-right font-bold text-purple-600 font-mono">
+                  <td className="py-3 px-3.5 text-right font-black text-purple-700 font-mono whitespace-nowrap">
                     {(truck.diesel || 0).toLocaleString()} L
                   </td>
-                  <td className="py-2.5 px-3.5 text-right font-bold text-rose-600 font-mono">
+                  <td className="py-3 px-3.5 text-right font-black text-rose-600 font-mono whitespace-nowrap">
                     ₹ {(truck.balance || 0).toLocaleString()}
                   </td>
                 </tr>
@@ -718,8 +718,8 @@ export default function TransportDashboard() {
               {/* Header: S.No + Vehicle No + Total Trips */}
               <div className="flex items-center justify-between gap-2 pb-2 border-b border-slate-200/70">
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-[11px] font-bold text-slate-400 font-mono shrink-0">#{idx + 1}</span>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-white text-slate-800 font-bold font-mono text-xs border border-slate-200 shadow-2xs truncate">
+                  <span className="text-xs font-bold text-slate-400 font-mono shrink-0">#{idx + 1}</span>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-white text-slate-800 font-black font-mono text-xs border border-slate-200 shadow-2xs truncate">
                     <Truck className="h-3 w-3 mr-1 text-slate-500 shrink-0" />
                     <span className="truncate">
                       {truck.name ? (truck.name.toUpperCase().includes('CG') ? truck.name : `CG-10-CG ${truck.name}`) : '-'}
@@ -735,23 +735,23 @@ export default function TransportDashboard() {
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div className="bg-white p-2 rounded-lg border border-slate-100 shadow-2xs">
                   <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Date</div>
-                  <div className="font-semibold text-slate-700 mt-0.5 truncate">{formatDateDisplay(truck.date)}</div>
+                  <div className="text-sm font-bold text-slate-800 mt-0.5 truncate">{formatDateDisplay(truck.date)}</div>
                 </div>
                 <div className="bg-white p-2 rounded-lg border border-slate-100 shadow-2xs">
                   <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">DO No.</div>
-                  <div className="font-mono font-semibold text-slate-700 mt-0.5 truncate" title={truck.do_no}>
+                  <div className="text-sm font-mono font-bold text-slate-800 mt-0.5 truncate" title={truck.do_no}>
                     {truck.do_no || '-'}
                   </div>
                 </div>
                 <div className="bg-emerald-50/50 p-2 rounded-lg border border-emerald-100/70">
                   <div className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Freight</div>
-                  <div className="font-mono font-black text-emerald-700 mt-0.5 truncate">
+                  <div className="text-sm font-mono font-black text-emerald-700 mt-0.5 truncate">
                     ₹ {(truck.freight || 0).toLocaleString()}
                   </div>
                 </div>
                 <div className="bg-purple-50/50 p-2 rounded-lg border border-purple-100/70">
                   <div className="text-[10px] font-bold text-purple-700 uppercase tracking-wider">Diesel</div>
-                  <div className="font-mono font-black text-purple-700 mt-0.5 truncate">
+                  <div className="text-sm font-mono font-black text-purple-700 mt-0.5 truncate">
                     {(truck.diesel || 0).toLocaleString()} L
                   </div>
                 </div>
@@ -759,8 +759,8 @@ export default function TransportDashboard() {
 
               {/* Footer: Balance */}
               <div className="flex items-center justify-between pt-2 border-t border-slate-200/70 text-xs">
-                <span className="text-slate-500 font-medium">Vehicle Balance:</span>
-                <span className="font-mono font-black text-rose-600 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-100">
+                <span className="text-slate-500 font-semibold">Vehicle Balance:</span>
+                <span className="text-sm font-mono font-black text-rose-600 bg-rose-50 px-2.5 py-0.5 rounded-md border border-rose-200/60">
                   ₹ {(truck.balance || 0).toLocaleString()}
                 </span>
               </div>

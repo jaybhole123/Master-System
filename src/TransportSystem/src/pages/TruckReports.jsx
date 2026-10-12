@@ -1,10 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import supabase from '../../../SupabaseClient';
 import toast, { Toaster } from 'react-hot-toast';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import Select, { components } from 'react-select';
+import { 
+  Truck, Banknote, Fuel, Route, Search, Plus, Download, FileSpreadsheet, 
+  Calendar, RotateCcw, Edit2, Trash2, X, ArrowRight, Shield, Sparkles, Filter,
+  Layers, MapPin, Gauge, IndianRupee, Hash, Check
+} from 'lucide-react';
 import './TruckReports.css';
 
 export default function TruckReports() {
@@ -27,13 +32,12 @@ export default function TruckReports() {
   
   const [reportsData, setReportsData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [trucksList, setTrucksList] = useState([]);
 
   useEffect(() => {
     fetchReports();
     fetchTrucks();
   }, []);
-
-  const [trucksList, setTrucksList] = useState([]);
 
   const fetchTrucks = async () => {
     const { data } = await supabase.from('trucks').select('vno');
@@ -51,7 +55,6 @@ export default function TruckReports() {
     if (error) {
       console.error('Error fetching data:', error);
     } else if (data) {
-      // Map data to match frontend naming
       const formattedData = data.map((item, index) => ({
         id: item.id,
         sNo: index + 1,
@@ -82,7 +85,7 @@ export default function TruckReports() {
   });
 
   // Auto-fetch distance dynamically based on past data
-  React.useEffect(() => {
+  useEffect(() => {
     if (formData.from && formData.to && reportsData.length > 0) {
       const dynamicRouteDistances = {};
       reportsData.forEach(r => {
@@ -163,8 +166,6 @@ export default function TruckReports() {
     };
 
     if (editingId) {
-      // Update logic (assuming we store supabase 'id' in editingId or we find it)
-      // For now, if editingId is sNo, we need the actual supabase id. Let's update state mapping above
       const reportToEdit = reportsData.find(r => r.sNo === editingId);
       if (reportToEdit && reportToEdit.id) {
         const { error } = await supabase
@@ -192,7 +193,6 @@ export default function TruckReports() {
       }
     }
     
-    // Refresh data from server
     await fetchReports();
     setFormData({ date: '', vehicleNo: '', from: '', to: '', distance: '', partyName: '', doPartyName: '', diesel: '', dieselPrice: '', advance: '', doNo: '', totalTrips: '', vehicleBalance: '', perMT: '', tonnage: '', totalFreight: '' });
     setIsModalOpen(false);
@@ -206,7 +206,7 @@ export default function TruckReports() {
   };
 
   const handleDeleteReport = async (sNoToDelete) => {
-    if(window.confirm("Are you sure you want to delete this report?")) {
+    if(window.confirm("Are you sure you want to delete this trip report?")) {
       const reportToDelete = reportsData.find(r => r.sNo === sNoToDelete);
       if (reportToDelete && reportToDelete.id) {
         const { error } = await supabase
@@ -216,37 +216,41 @@ export default function TruckReports() {
           
         if (error) {
           console.error("Error deleting:", error);
+          toast.error("Failed to delete report");
         } else {
+          toast.success("Report deleted successfully");
           await fetchReports();
         }
       }
     }
   };
 
-  const filteredData = reportsData.filter(row => {
-    const q = searchTerm.toLowerCase();
-    const matchesSearch = !q || Object.values(row).some(val => 
-      String(val).toLowerCase().includes(q)
-    );
-    
-    let matchesDate = true;
-    if (fromDate || toDate) {
-      const rowDate = new Date(row.date);
-      if (fromDate) {
-        const from = new Date(fromDate);
-        if (rowDate < from) matchesDate = false;
+  const filteredData = useMemo(() => {
+    return reportsData.filter(row => {
+      const q = searchTerm.toLowerCase().trim();
+      const matchesSearch = !q || Object.values(row).some(val => 
+        String(val).toLowerCase().includes(q)
+      );
+      
+      let matchesDate = true;
+      if (fromDate || toDate) {
+        const rowDate = new Date(row.date);
+        if (fromDate) {
+          const from = new Date(fromDate);
+          if (rowDate < from) matchesDate = false;
+        }
+        if (toDate) {
+          const to = new Date(toDate);
+          if (rowDate > to) matchesDate = false;
+        }
       }
-      if (toDate) {
-        const to = new Date(toDate);
-        if (rowDate > to) matchesDate = false;
-      }
-    }
 
-    const matchesVehicle = filterVehicleNo ? row.vehicleNo === filterVehicleNo : true;
-    const matchesDoNo = filterDoNo ? row.doNo === filterDoNo : true;
+      const matchesVehicle = filterVehicleNo ? row.vehicleNo === filterVehicleNo : true;
+      const matchesDoNo = filterDoNo ? row.doNo === filterDoNo : true;
 
-    return matchesSearch && matchesDate && matchesVehicle && matchesDoNo;
-  });
+      return matchesSearch && matchesDate && matchesVehicle && matchesDoNo;
+    });
+  }, [reportsData, searchTerm, fromDate, toDate, filterVehicleNo, filterDoNo]);
 
   const formattedVehicles = trucksList.map(v => v.toUpperCase().trim());
   const uniqueVehicles = [...new Set(formattedVehicles)].sort();
@@ -257,7 +261,6 @@ export default function TruckReports() {
 
   const handleTableScroll = (e) => {
     const { scrollTop, scrollHeight, clientHeight } = e.target;
-    // Load more when user scrolls near the bottom (within 50px)
     if (scrollHeight - scrollTop <= clientHeight + 50) {
       if (visibleCount < filteredData.length) {
         setVisibleCount(prev => prev + 50);
@@ -265,7 +268,7 @@ export default function TruckReports() {
     }
   };
 
-  // Dynamic calculations for cards
+  // KPI Calculations
   const totalTripsCount = filteredData.length;
   const totalAdvanceSum = filteredData.reduce((sum, item) => sum + (Number(item.advance) || 0), 0);
   const totalDieselSum = filteredData.reduce((sum, item) => sum + (parseInt(String(item.diesel).replace(/[^0-9]/g, '')) || 0), 0);
@@ -279,7 +282,7 @@ export default function TruckReports() {
       <components.MenuList {...props}>
         {props.children}
         <div 
-          style={{ padding: '10px 12px', borderTop: '1px solid #e5e7eb', color: 'var(--primary)', cursor: 'pointer', fontWeight: 600, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px', background: '#f8fafc' }}
+          className="p-2.5 border-t border-slate-100 text-red-600 font-bold text-xs flex items-center gap-2 bg-slate-50 hover:bg-red-50 cursor-pointer transition-colors"
           onMouseDown={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -287,7 +290,7 @@ export default function TruckReports() {
             setPromptValue('');
           }}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <Plus size={14} />
           Add New Origin City
         </div>
       </components.MenuList>
@@ -302,7 +305,7 @@ export default function TruckReports() {
       <components.MenuList {...props}>
         {props.children}
         <div 
-          style={{ padding: '10px 12px', borderTop: '1px solid #e5e7eb', color: 'var(--primary)', cursor: 'pointer', fontWeight: 600, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px', background: '#f8fafc' }}
+          className="p-2.5 border-t border-slate-100 text-red-600 font-bold text-xs flex items-center gap-2 bg-slate-50 hover:bg-red-50 cursor-pointer transition-colors"
           onMouseDown={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -310,7 +313,7 @@ export default function TruckReports() {
             setPromptValue('');
           }}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <Plus size={14} />
           Add New Destination City
         </div>
       </components.MenuList>
@@ -325,7 +328,7 @@ export default function TruckReports() {
       <components.MenuList {...props}>
         {props.children}
         <div 
-          style={{ padding: '10px 12px', borderTop: '1px solid #e5e7eb', color: 'var(--primary)', cursor: 'pointer', fontWeight: 600, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px', background: '#f8fafc' }}
+          className="p-2.5 border-t border-slate-100 text-red-600 font-bold text-xs flex items-center gap-2 bg-slate-50 hover:bg-red-50 cursor-pointer transition-colors"
           onMouseDown={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -333,7 +336,7 @@ export default function TruckReports() {
             setPromptValue('');
           }}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <Plus size={14} />
           Add New Diesel Value
         </div>
       </components.MenuList>
@@ -348,7 +351,7 @@ export default function TruckReports() {
       <components.MenuList {...props}>
         {props.children}
         <div 
-          style={{ padding: '10px 12px', borderTop: '1px solid #e5e7eb', color: 'var(--primary)', cursor: 'pointer', fontWeight: 600, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px', background: '#f8fafc' }}
+          className="p-2.5 border-t border-slate-100 text-red-600 font-bold text-xs flex items-center gap-2 bg-slate-50 hover:bg-red-50 cursor-pointer transition-colors"
           onMouseDown={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -356,7 +359,7 @@ export default function TruckReports() {
             setPromptValue('');
           }}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <Plus size={14} />
           Add New Advance Value
         </div>
       </components.MenuList>
@@ -371,7 +374,7 @@ export default function TruckReports() {
       <components.MenuList {...props}>
         {props.children}
         <div 
-          style={{ padding: '10px 12px', borderTop: '1px solid #e5e7eb', color: 'var(--primary)', cursor: 'pointer', fontWeight: 600, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px', background: '#f8fafc' }}
+          className="p-2.5 border-t border-slate-100 text-red-600 font-bold text-xs flex items-center gap-2 bg-slate-50 hover:bg-red-50 cursor-pointer transition-colors"
           onMouseDown={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -379,7 +382,7 @@ export default function TruckReports() {
             setPromptValue('');
           }}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <Plus size={14} />
           Add New Party Name
         </div>
       </components.MenuList>
@@ -394,7 +397,7 @@ export default function TruckReports() {
       <components.MenuList {...props}>
         {props.children}
         <div 
-          style={{ padding: '10px 12px', borderTop: '1px solid #e5e7eb', color: 'var(--primary)', cursor: 'pointer', fontWeight: 600, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px', background: '#f8fafc' }}
+          className="p-2.5 border-t border-slate-100 text-red-600 font-bold text-xs flex items-center gap-2 bg-slate-50 hover:bg-red-50 cursor-pointer transition-colors"
           onMouseDown={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -402,7 +405,7 @@ export default function TruckReports() {
             setPromptValue('');
           }}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <Plus size={14} />
           Add New DO Party Name
         </div>
       </components.MenuList>
@@ -411,17 +414,15 @@ export default function TruckReports() {
 
   // Export functions
   const exportToPDF = () => {
-    if (filteredData.length === 0) return alert("No data to export!");
+    if (filteredData.length === 0) return toast.error("No data to export!");
     const doc = new jsPDF({ orientation: 'landscape' });
     
-    // Add Title
     doc.setFontSize(18);
-    doc.setTextColor(40, 40, 40);
+    doc.setTextColor(30, 41, 59);
     doc.text("Truck Reports Analytics", 14, 20);
     
-    // Add Date
     doc.setFontSize(10);
-    doc.setTextColor(100, 100, 100);
+    doc.setTextColor(100, 116, 139);
     const currentDate = new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
     doc.text(`Generated on: ${currentDate}`, 14, 28);
 
@@ -444,589 +445,962 @@ export default function TruckReports() {
         valign: 'middle'
       },
       headStyles: {
-        fillColor: [59, 130, 246], // Blue accent
+        fillColor: [220, 38, 38], // Red accent matching system
         textColor: 255,
         fontStyle: 'bold'
       },
       alternateRowStyles: {
-        fillColor: [245, 247, 250]
-      },
-      columnStyles: {
-        2: { cellWidth: 25 }, // Vehicle No
-        3: { cellWidth: 20 }, // From
-        4: { cellWidth: 20 }, // To
-        8: { cellWidth: 22 }, // DO No
+        fillColor: [248, 250, 252]
       }
     });
 
     doc.save(`Truck_Reports_${currentDate.replace(/ /g, '_')}.pdf`);
+    toast.success("PDF exported successfully!");
   };
 
   const exportToExcel = () => {
-    if (filteredData.length === 0) return alert("No data to export!");
+    if (filteredData.length === 0) return toast.error("No data to export!");
     const worksheet = XLSX.utils.json_to_sheet(filteredData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Reports");
     XLSX.writeFile(workbook, "Truck_Reports.xlsx");
+    toast.success("Excel exported successfully!");
   };
 
   if (loading) {
     return (
-      <div className="p-6 bg-gray-50 min-h-screen animate-pulse">
-        <div className="h-8 bg-gray-200 rounded-md w-1/4 mb-2"></div>
-        <div className="h-4 bg-gray-200 rounded-md w-1/3 mb-8"></div>
-        
-        <div className="flex gap-4 mb-8">
-          <div className="h-24 bg-gray-200 rounded-xl flex-1"></div>
-          <div className="h-24 bg-gray-200 rounded-xl flex-1"></div>
-          <div className="h-24 bg-gray-200 rounded-xl flex-1"></div>
+      <div className="p-6 bg-slate-50 min-h-screen animate-pulse space-y-6">
+        <div className="h-10 bg-slate-200 rounded-2xl w-1/4"></div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="h-28 bg-slate-200 rounded-2xl"></div>
+          <div className="h-28 bg-slate-200 rounded-2xl"></div>
+          <div className="h-28 bg-slate-200 rounded-2xl"></div>
+          <div className="h-28 bg-slate-200 rounded-2xl"></div>
         </div>
-        
-        <div className="h-16 bg-gray-200 rounded-xl w-full mb-4"></div>
-        <div className="h-96 bg-gray-200 rounded-xl w-full"></div>
+        <div className="h-16 bg-slate-200 rounded-2xl"></div>
+        <div className="h-96 bg-slate-200 rounded-2xl"></div>
       </div>
     );
   }
 
   return (
-    <div className="truck-reports-container-wrapper">
-      <div className="truck-reports-container bg-white text-gray-900 rounded-lg p-6 shadow-sm">
-        <Toaster position="top-right" />
-      {/* Header and Add Button */}
-      <div className="reports-header-row">
-        <div>
-          <h1 className="page-title">Reports Analytics</h1>
-          <p className="page-subtitle">Overview of your transportation operations</p>
-        </div>
-        <div className="header-actions">
-          <button className="btn-export pdf-btn" onClick={exportToPDF}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-            PDF
-          </button>
-          <button className="btn-export excel-btn" onClick={exportToExcel}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
-            Excel
-          </button>
-          <button className="btn-primary" onClick={() => setIsModalOpen(true)}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-            Add New
-          </button>
-        </div>
-      </div>
+    <div className="w-full max-w-[1550px] mx-auto p-3 sm:p-5 lg:p-6 space-y-5 sm:space-y-6 animate-in fade-in duration-300">
+      <Toaster position="top-right" />
+      
+      {/* ═══════════════════════════════════════════════════════════
+          EXECUTIVE BRAND HEADER - FLEET & LOGISTICS
+      ═══════════════════════════════════════════════════════════ */}
+      <div className="bg-gradient-to-r from-red-600 via-rose-700 to-red-800 rounded-2xl sm:rounded-3xl p-5 sm:p-7 text-white shadow-xl relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-5 border border-red-500/30">
+        <div className="absolute top-0 right-0 w-72 h-72 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
+        <div className="absolute bottom-0 left-0 w-60 h-60 bg-black/15 rounded-full blur-2xl translate-y-1/2 -translate-x-1/4 pointer-events-none"></div>
 
-      {/* Summary Cards */}
-      <div className="analytics-cards">
-        <div className="card">
-          <div className="card-icon blue">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+        <div className="relative z-10 space-y-1.5">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-[11px] font-extrabold uppercase tracking-widest text-red-100 shadow-2xs">
+            <Sparkles className="h-3.5 w-3.5 text-amber-300 shrink-0" />
+            <span>Jay Bhole Fleet & Logistics • Reports Analytics</span>
           </div>
-          <div className="card-info">
-            <h3>Total Trips</h3>
-            <h2>{totalTripsCount}</h2>
-          </div>
+          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white flex items-center gap-2.5">
+            <Truck className="h-7 w-7 text-white/90 shrink-0" />
+            Truck Trip Reports & Logistics Hub
+          </h1>
+          <p className="text-red-100/90 text-xs sm:text-sm max-w-2xl font-medium leading-relaxed">
+            Real-time fleet trip monitoring, diesel metrics, route distances & financial freight settlements.
+          </p>
         </div>
-        <div className="card">
-          <div className="card-icon orange">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-          </div>
-          <div className="card-info">
-            <h3>Total Advance</h3>
-            <h2>₹ {totalAdvanceSum.toLocaleString()}</h2>
-          </div>
-        </div>
-        <div className="card">
-          <div className="card-icon green">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg>
-          </div>
-          <div className="card-info">
-            <h3>Total Diesel Liter</h3>
-            <h2>{totalDieselSum.toLocaleString()} L</h2>
-          </div>
-        </div>
-        <div className="card">
-          <div className="card-icon" style={{ backgroundColor: '#f3e8ff', color: '#9333ea' }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon><line x1="9" y1="3" x2="9" y2="18"></line><line x1="15" y1="6" x2="15" y2="21"></line></svg>
-          </div>
-          <div className="card-info">
-            <h3>Total Distance</h3>
-            <h2>{totalDistanceSum.toLocaleString()} KM</h2>
-          </div>
-        </div>
-      </div>
 
-      {/* Filters Area */}
-      <div className="filters-container">
-        <div className="search-box">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-          <input 
-            type="text" 
-            placeholder="Search anything (Vehicle, DO No, Party, Location...)"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <div className="date-filters">
-          <div className="date-input" style={{ minWidth: '130px' }}>
-            <label>Vehicle No.</label>
-            <select 
-              value={filterVehicleNo} 
-              onChange={(e) => setFilterVehicleNo(e.target.value)}
-              style={{ width: '100%', padding: '8px', border: '1px solid #e5e7eb', borderRadius: '6px', outline: 'none', background: 'transparent' }}
-            >
-              <option value="">All Vehicles</option>
-              {uniqueVehicles.map(v => <option key={v} value={v}>{v}</option>)}
-            </select>
-          </div>
-          <div className="date-input" style={{ minWidth: '130px' }}>
-            <label>DO No.</label>
-            <select 
-              value={filterDoNo} 
-              onChange={(e) => setFilterDoNo(e.target.value)}
-              style={{ width: '100%', padding: '8px', border: '1px solid #e5e7eb', borderRadius: '6px', outline: 'none', background: 'transparent' }}
-            >
-              <option value="">All DO Numbers</option>
-              {uniqueDoNumbers.map(d => <option key={d} value={d}>{d}</option>)}
-            </select>
-          </div>
-          <div className="date-input">
-            <label>From Date</label>
-            <input 
-              type="date" 
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-            />
-          </div>
-          <div className="date-input">
-            <label>To Date</label>
-            <input 
-              type="date" 
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-            />
-          </div>
+        {/* Action Buttons: PDF, Excel, Add New */}
+        <div className="relative z-10 flex items-center gap-2 sm:gap-2.5 flex-wrap">
           <button 
-            className="btn-secondary" 
-            onClick={() => { setFromDate(''); setToDate(''); setFilterVehicleNo(''); setFilterDoNo(''); setSearchTerm(''); }}
+            onClick={exportToPDF}
+            className="bg-white/15 hover:bg-white/25 text-white backdrop-blur-md border border-white/20 px-3.5 py-2 rounded-xl font-bold text-xs sm:text-sm shadow-sm transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
+            title="Export PDF"
           >
-            Clear Filter
+            <Download size={15} /> 
+            <span>PDF</span>
+          </button>
+          
+          <button 
+            onClick={exportToExcel}
+            className="bg-emerald-600/90 hover:bg-emerald-600 text-white backdrop-blur-md border border-emerald-400/30 px-3.5 py-2 rounded-xl font-bold text-xs sm:text-sm shadow-sm transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
+            title="Export Excel"
+          >
+            <FileSpreadsheet size={15} /> 
+            <span>Excel</span>
+          </button>
+
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="bg-white hover:bg-red-50 text-red-700 px-4 py-2 rounded-xl font-black text-xs sm:text-sm shadow-md hover:shadow-lg transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
+          >
+            <Plus size={16} /> 
+            <span>Add New Trip</span>
           </button>
         </div>
       </div>
 
-      {/* Table Area */}
-      <div className="table-wrapper" onScroll={handleTableScroll}>
-        <table className="truck-reports-table">
-          <thead>
-            <tr>
-              <th>S.No</th>
-              <th>Date</th>
-              <th>Vehicle No.</th>
-              <th>Party Name</th>
-              <th>From</th>
-              <th>To</th>
-              <th>Distance</th>
-              <th>Diesel Liter</th>
-              <th>Diesel Price</th>
-              <th>Advance</th>
-              <th>DO No.</th>
-              <th>DO Party Name</th>
-              <th>Tonnage</th>
-              <th>Total Freight</th>
-              <th>Total Trips</th>
-              <th>Per MT</th>
-              <th>Vehicle Bal.</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {displayedData.length > 0 ? displayedData.map((row, index) => (
-              <tr key={index}>
-                <td data-label="S.No">{row.sNo}</td>
-                <td data-label="Date">{row.date}</td>
-                <td data-label="Vehicle No.">
-                  <span className="vehicle-badge">
-                    {row.vehicleNo?.toUpperCase().includes('CG') ? row.vehicleNo : `CG-10-CG ${row.vehicleNo}`}
-                  </span>
-                </td>
-                <td data-label="Party Name">{row.partyName}</td>
-                <td data-label="From">{row.from}</td>
-                <td data-label="To">{row.to}</td>
-                <td data-label="Distance">{row.distance}</td>
-                <td data-label="Diesel Liter">{row.diesel}</td>
-                <td data-label="Diesel Price">₹{row.dieselPrice}</td>
-                <td data-label="Advance"><span className="advance-text">₹{row.advance}</span></td>
-                <td data-label="DO No.">{row.doNo}</td>
-                <td data-label="DO Party Name">{row.doPartyName}</td>
-                <td data-label="Tonnage">{row.tonnage}</td>
-                <td data-label="Total Freight">₹{row.totalFreight}</td>
-                <td data-label="Total Trips">{row.totalTrips}</td>
-                <td data-label="Per MT">₹{row.perMT}</td>
-                <td data-label="Vehicle Bal.">₹{row.vehicleBalance}</td>
-                <td data-label="Action">
-                  <div className="action-buttons">
-                    <button className="action-btn edit-btn" onClick={() => handleEditReport(row)}>Edit</button>
-                    <button className="action-btn delete-btn" onClick={() => handleDeleteReport(row.sNo)}>Delete</button>
-                  </div>
-                </td>
-              </tr>
-            )) : (
-              <tr>
-                <td colSpan="9" style={{textAlign: 'center', padding: '20px'}}>No reports found for "{searchTerm}"</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+      {/* ═══════════════════════════════════════════════════════════
+          EXECUTIVE 4 KPI SUMMARY METRICS CARDS
+      ═══════════════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         
-        {visibleCount < filteredData.length && (
-          <div style={{ textAlign: 'center', padding: '1rem', borderTop: '1px solid #e5e7eb' }}>
-            <button 
-              className="btn-secondary" 
-              onClick={() => setVisibleCount(prev => prev + 50)}
-              style={{ width: 'auto', padding: '8px 24px', borderRadius: '20px' }}
-            >
-              Load More Data...
-            </button>
+        {/* Card 1: Total Trips */}
+        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex items-center justify-between group">
+          <div>
+            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
+              Total Dispatched Trips
+            </span>
+            <div className="text-xl sm:text-2xl font-black text-slate-800 tracking-tight group-hover:text-red-600 transition-colors">
+              {totalTripsCount}
+            </div>
+            <span className="text-[10px] text-blue-600 font-bold flex items-center gap-1 mt-0.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
+              Live Fleet Dispatches
+            </span>
           </div>
-        )}
+          <div className="h-11 w-11 sm:h-12 sm:w-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 shadow-2xs group-hover:bg-blue-600 group-hover:text-white transition-colors">
+            <Truck size={22} />
+          </div>
+        </div>
+
+        {/* Card 2: Total Advance */}
+        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex items-center justify-between group">
+          <div>
+            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
+              Total Advance Disbursed
+            </span>
+            <div className="text-xl sm:text-2xl font-black text-amber-600 tracking-tight">
+              ₹ {totalAdvanceSum.toLocaleString('en-IN')}
+            </div>
+            <span className="text-[10px] text-amber-700 font-medium">Driver Advance Payments</span>
+          </div>
+          <div className="h-11 w-11 sm:h-12 sm:w-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 shadow-2xs group-hover:bg-amber-600 group-hover:text-white transition-colors">
+            <IndianRupee size={22} />
+          </div>
+        </div>
+
+        {/* Card 3: Total Diesel */}
+        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex items-center justify-between group">
+          <div>
+            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
+              Total Diesel Issued
+            </span>
+            <div className="text-xl sm:text-2xl font-black text-purple-700 tracking-tight">
+              {totalDieselSum.toLocaleString('en-IN')} L
+            </div>
+            <span className="text-[10px] text-purple-600 font-medium">Fuel Consumption Metric</span>
+          </div>
+          <div className="h-11 w-11 sm:h-12 sm:w-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 shadow-2xs group-hover:bg-purple-600 group-hover:text-white transition-colors">
+            <Fuel size={22} />
+          </div>
+        </div>
+
+        {/* Card 4: Total Distance */}
+        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex items-center justify-between group">
+          <div>
+            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
+              Cumulative Distance
+            </span>
+            <div className="text-xl sm:text-2xl font-black text-emerald-600 tracking-tight">
+              {totalDistanceSum.toLocaleString('en-IN')} KM
+            </div>
+            <span className="text-[10px] text-emerald-600 font-medium">Total Highway Distance</span>
+          </div>
+          <div className="h-11 w-11 sm:h-12 sm:w-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 shadow-2xs group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+            <Route size={22} />
+          </div>
+        </div>
+
       </div>
 
-      {/* Add New Report Modal */}
-      {isModalOpen && (
-        <div className="tr-modal-overlay">
-          <div className="tr-modal-content">
-            <div className="tr-modal-header">
-              <h2>{editingId ? 'Edit Truck Report' : 'Add New Truck Report'}</h2>
-              <button className="tr-close-btn" onClick={() => { setIsModalOpen(false); setEditingId(null); setFormData({ date: '', vehicleNo: '', from: '', to: '', distance: '', partyName: '', doPartyName: '', diesel: '', dieselPrice: '', advance: '', doNo: '', totalTrips: '', vehicleBalance: '', perMT: '', tonnage: '', totalFreight: '' }); }}>&times;</button>
+      {/* ═══════════════════════════════════════════════════════════
+          ADVANCED FILTER CONTROLLER BAR
+      ═══════════════════════════════════════════════════════════ */}
+      <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-slate-200/90 shadow-2xs space-y-3.5">
+        
+        <div className="flex flex-col lg:flex-row gap-3.5 items-stretch lg:items-center justify-between">
+          
+          {/* Search Box */}
+          <div className="relative flex-1 max-w-lg">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 h-4 w-4" />
+            <input 
+              type="text" 
+              placeholder="Search by Vehicle, DO No, Party, Origin, Destination..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-9 py-2.5 bg-slate-50 border border-slate-200/90 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-medium placeholder:text-slate-400 shadow-2xs"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-full"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
+          {/* Filters Row */}
+          <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap">
+            
+            {/* Vehicle Filter */}
+            <div className="min-w-[130px] flex-1 sm:flex-initial">
+              <select 
+                value={filterVehicleNo} 
+                onChange={(e) => setFilterVehicleNo(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200/90 rounded-xl text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 cursor-pointer"
+              >
+                <option value="">All Vehicles</option>
+                {uniqueVehicles.map(v => <option key={v} value={v}>{v}</option>)}
+              </select>
             </div>
-            <form onSubmit={handleAddReport} className="tr-modal-form">
-              <div className="tr-form-group">
-                <label>Date</label>
-                <input type="date" name="date" value={formData.date} onChange={handleInputChange} required />
+
+            {/* DO Number Filter */}
+            <div className="min-w-[130px] flex-1 sm:flex-initial">
+              <select 
+                value={filterDoNo} 
+                onChange={(e) => setFilterDoNo(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200/90 rounded-xl text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 cursor-pointer"
+              >
+                <option value="">All DO Numbers</option>
+                {uniqueDoNumbers.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
+            </div>
+
+            {/* From Date */}
+            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/90 rounded-xl px-2.5 py-1.5">
+              <Calendar size={13} className="text-slate-400 shrink-0" />
+              <input 
+                type="date" 
+                value={fromDate}
+                onChange={(e) => setFromDate(e.target.value)}
+                className="bg-transparent text-xs text-slate-700 font-medium outline-none cursor-pointer"
+                title="From Date"
+              />
+            </div>
+
+            {/* To Date */}
+            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/90 rounded-xl px-2.5 py-1.5">
+              <Calendar size={13} className="text-slate-400 shrink-0" />
+              <input 
+                type="date" 
+                value={toDate}
+                onChange={(e) => setToDate(e.target.value)}
+                className="bg-transparent text-xs text-slate-700 font-medium outline-none cursor-pointer"
+                title="To Date"
+              />
+            </div>
+
+            {/* Clear Filter Button */}
+            {(searchTerm || fromDate || toDate || filterVehicleNo || filterDoNo) && (
+              <button 
+                onClick={() => { setFromDate(''); setToDate(''); setFilterVehicleNo(''); setFilterDoNo(''); setSearchTerm(''); }}
+                className="px-3 py-2 bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 rounded-xl text-xs font-black transition-all flex items-center gap-1 cursor-pointer"
+                title="Reset all filters"
+              >
+                <RotateCcw size={13} />
+                <span>Reset</span>
+              </button>
+            )}
+
+          </div>
+
+        </div>
+
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════
+          DATA TABLE CONTAINER (DESKTOP)
+      ═══════════════════════════════════════════════════════════ */}
+      <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-2xs overflow-hidden">
+        
+        {/* ═══════════ DESKTOP TABLE VIEW (Hidden on mobile < md) ═══════════ */}
+        <div 
+          className="hidden md:block overflow-x-auto overflow-y-auto max-h-[65vh] custom-sidebar-scroll"
+          onScroll={handleTableScroll}
+        >
+          <table className="w-full text-left border-collapse min-w-[1200px]">
+            <thead className="sticky top-0 z-20 bg-slate-50/95 backdrop-blur-md border-b border-slate-200">
+              <tr className="text-xs font-black text-slate-500 uppercase tracking-wider">
+                <th className="py-3.5 px-3.5 text-center whitespace-nowrap">S.No</th>
+                <th className="py-3.5 px-3.5 whitespace-nowrap">Date</th>
+                <th className="py-3.5 px-3.5 whitespace-nowrap">Vehicle No.</th>
+                <th className="py-3.5 px-3.5 whitespace-nowrap">Party Name</th>
+                <th className="py-3.5 px-3.5 whitespace-nowrap">Route (From ➔ To)</th>
+                <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Dist.</th>
+                <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Diesel</th>
+                <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Price</th>
+                <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Advance</th>
+                <th className="py-3.5 px-3.5 whitespace-nowrap">DO No.</th>
+                <th className="py-3.5 px-3.5 whitespace-nowrap">DO Party</th>
+                <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Tonnage</th>
+                <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Freight</th>
+                <th className="py-3.5 px-3.5 text-center whitespace-nowrap">Trips</th>
+                <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Per MT</th>
+                <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Vehicle Bal.</th>
+                <th className="py-3.5 px-4 text-center whitespace-nowrap">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 bg-white text-sm text-slate-700">
+              {displayedData.length > 0 ? (
+                displayedData.map((row, index) => (
+                  <tr 
+                    key={row.id || index} 
+                    className="hover:bg-slate-50/80 transition-colors group"
+                  >
+                    <td className="py-3.5 px-3.5 text-center font-bold text-slate-400">
+                      {row.sNo}
+                    </td>
+                    <td className="py-3.5 px-3.5 font-semibold text-slate-700 whitespace-nowrap">
+                      {row.date}
+                    </td>
+                    <td className="py-3.5 px-3.5 whitespace-nowrap">
+                      <span className="inline-block px-3 py-1 bg-blue-50 text-blue-700 border border-blue-200/90 rounded-lg font-black font-mono tracking-wider text-xs shadow-2xs">
+                        {row.vehicleNo?.toUpperCase().includes('CG') ? row.vehicleNo : `CG-10-CG ${row.vehicleNo}`}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-3.5 font-bold text-slate-800 whitespace-nowrap">
+                      {row.partyName || '—'}
+                    </td>
+                    <td className="py-3.5 px-3.5 whitespace-nowrap font-medium">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 text-xs font-bold">
+                        <span>{row.from}</span>
+                        <ArrowRight size={12} className="text-red-500 shrink-0" />
+                        <span>{row.to}</span>
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-3.5 text-right font-bold text-slate-700 whitespace-nowrap">
+                      {row.distance || '—'}
+                    </td>
+                    <td className="py-3.5 px-3.5 text-right font-black text-purple-700 whitespace-nowrap">
+                      {row.diesel ? `${row.diesel} L` : '—'}
+                    </td>
+                    <td className="py-3.5 px-3.5 text-right font-semibold text-slate-500 whitespace-nowrap">
+                      ₹{row.dieselPrice || 0}
+                    </td>
+                    <td className="py-3.5 px-3.5 text-right font-black text-amber-600 whitespace-nowrap">
+                      ₹{row.advance ? Number(row.advance).toLocaleString('en-IN') : 0}
+                    </td>
+                    <td className="py-3.5 px-3.5 whitespace-nowrap font-mono font-bold text-slate-700">
+                      {row.doNo ? (
+                        <span className="bg-slate-100 border border-slate-200/70 px-2.5 py-0.5 rounded text-xs">
+                          {row.doNo}
+                        </span>
+                      ) : '—'}
+                    </td>
+                    <td className="py-3.5 px-3.5 whitespace-nowrap font-medium text-slate-600">
+                      {row.doPartyName || '—'}
+                    </td>
+                    <td className="py-3.5 px-3.5 text-right font-bold text-slate-800 whitespace-nowrap">
+                      {row.tonnage ? `${row.tonnage} MT` : '—'}
+                    </td>
+                    <td className="py-3.5 px-3.5 text-right font-black text-emerald-700 whitespace-nowrap">
+                      ₹{row.totalFreight ? Number(row.totalFreight).toLocaleString('en-IN') : 0}
+                    </td>
+                    <td className="py-3.5 px-3.5 text-center font-bold text-slate-800 whitespace-nowrap">
+                      {row.totalTrips || 1}
+                    </td>
+                    <td className="py-3.5 px-3.5 text-right font-semibold text-slate-600 whitespace-nowrap">
+                      ₹{row.perMT || 0}
+                    </td>
+                    <td className="py-3.5 px-3.5 text-right font-black whitespace-nowrap">
+                      <span className={Number(row.vehicleBalance) >= 0 ? "text-emerald-600" : "text-rose-600"}>
+                        ₹{row.vehicleBalance ? Number(row.vehicleBalance).toLocaleString('en-IN') : 0}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                      <div className="inline-flex items-center gap-1.5">
+                        <button 
+                          onClick={() => handleEditReport(row)}
+                          className="p-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white transition-colors cursor-pointer"
+                          title="Edit trip report"
+                        >
+                          <Edit2 size={14} />
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteReport(row.sNo)}
+                          className="p-1.5 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-600 hover:text-white transition-colors cursor-pointer"
+                          title="Delete trip report"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={17} className="py-12 text-center text-slate-400">
+                    <Truck className="h-8 w-8 mx-auto text-slate-300 mb-2" />
+                    <p className="font-bold text-slate-700 text-sm">No trip reports found matching your filters</p>
+                    <p className="text-xs text-slate-400 mt-1">Try resetting search or date filters above.</p>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* ═══════════ MOBILE CARDS VIEW (Visible on mobile screens < md) ═══════════ */}
+        <div 
+          className="block md:hidden p-3 sm:p-4 space-y-3 bg-slate-50/70 max-h-[72vh] overflow-y-auto custom-sidebar-scroll"
+          onScroll={handleTableScroll}
+        >
+          {displayedData.length > 0 ? (
+            displayedData.map((row, index) => (
+              <div 
+                key={row.id || index}
+                className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs hover:shadow-md transition-all space-y-3"
+              >
+                {/* Header: S.No + Vehicle Badge + Action Buttons */}
+                <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-slate-100">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-xs font-mono font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md shrink-0">
+                      #{row.sNo}
+                    </span>
+                    <span className="inline-flex items-center px-2.5 py-1 bg-blue-50 text-blue-700 border border-blue-200/90 rounded-lg font-black font-mono tracking-wider text-xs shadow-2xs truncate">
+                      {row.vehicleNo?.toUpperCase().includes('CG') ? row.vehicleNo : `CG-10-CG ${row.vehicleNo}`}
+                    </span>
+                  </div>
+
+                  {/* Actions: Edit & Delete */}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button 
+                      onClick={() => handleEditReport(row)}
+                      className="p-2 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white transition-colors cursor-pointer"
+                      title="Edit trip report"
+                    >
+                      <Edit2 size={14} />
+                    </button>
+                    <button 
+                      onClick={() => handleDeleteReport(row.sNo)}
+                      className="p-2 rounded-xl bg-rose-50 text-rose-700 hover:bg-rose-600 hover:text-white transition-colors cursor-pointer"
+                      title="Delete trip report"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Date & Route Container */}
+                <div className="bg-slate-50/90 rounded-xl p-3 border border-slate-200/80 space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-1.5 font-semibold text-slate-600">
+                      <Calendar size={13} className="text-slate-400 shrink-0" />
+                      <span>{row.date}</span>
+                    </div>
+                    {row.distance && (
+                      <span className="font-bold text-slate-700 bg-white px-2 py-0.5 rounded-md border border-slate-200/70 text-[11px]">
+                        {row.distance} KM
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Route From -> To */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-800 font-bold text-xs shadow-2xs">
+                      {row.from || 'Origin'}
+                    </span>
+                    <ArrowRight size={13} className="text-red-500 shrink-0" />
+                    <span className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-800 font-bold text-xs shadow-2xs">
+                      {row.to || 'Destination'}
+                    </span>
+                  </div>
+
+                  {/* Parties Info */}
+                  {(row.partyName || row.doPartyName) && (
+                    <div className="pt-1.5 border-t border-slate-200/60 flex items-center justify-between gap-2 text-xs">
+                      {row.partyName && (
+                        <div className="truncate">
+                          <span className="text-slate-400 text-[11px] font-medium">Party: </span>
+                          <span className="font-bold text-slate-700">{row.partyName}</span>
+                        </div>
+                      )}
+                      {row.doPartyName && (
+                        <div className="truncate text-right">
+                          <span className="text-slate-400 text-[11px] font-medium">DO Party: </span>
+                          <span className="font-bold text-slate-700">{row.doPartyName}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* 2x3 Grid of Metrics */}
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  {/* DO No. */}
+                  <div className="bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-2xs">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">DO Number</span>
+                    <span className="font-mono font-bold text-slate-800 text-sm mt-0.5 block truncate">
+                      {row.doNo ? `#${row.doNo}` : '—'}
+                    </span>
+                  </div>
+
+                  {/* Tonnage & Trips */}
+                  <div className="bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-2xs">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Tonnage / Trips</span>
+                    <span className="font-bold text-slate-800 text-sm mt-0.5 block truncate">
+                      {row.tonnage ? `${row.tonnage} MT` : '—'} <span className="text-xs text-slate-500">({row.totalTrips || 1} Trip)</span>
+                    </span>
+                  </div>
+
+                  {/* Diesel */}
+                  <div className="bg-purple-50/50 p-2.5 rounded-xl border border-purple-100/80 shadow-2xs">
+                    <span className="text-[10px] font-bold text-purple-700 uppercase tracking-wider block">Diesel Issued</span>
+                    <span className="font-mono font-black text-purple-700 text-sm mt-0.5 block truncate">
+                      {row.diesel ? `${row.diesel} L` : '—'}
+                    </span>
+                  </div>
+
+                  {/* Advance */}
+                  <div className="bg-amber-50/50 p-2.5 rounded-xl border border-amber-100/80 shadow-2xs">
+                    <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider block">Advance Disbursed</span>
+                    <span className="font-mono font-black text-amber-600 text-sm mt-0.5 block truncate">
+                      ₹ {row.advance ? Number(row.advance).toLocaleString('en-IN') : 0}
+                    </span>
+                  </div>
+
+                  {/* Freight */}
+                  <div className="bg-emerald-50/50 p-2.5 rounded-xl border border-emerald-100/80 shadow-2xs">
+                    <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">Total Freight</span>
+                    <span className="font-mono font-black text-emerald-700 text-sm mt-0.5 block truncate">
+                      ₹ {row.totalFreight ? Number(row.totalFreight).toLocaleString('en-IN') : 0}
+                    </span>
+                  </div>
+
+                  {/* Per MT Rate */}
+                  <div className="bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-2xs">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Rate Per MT</span>
+                    <span className="font-mono font-bold text-slate-700 text-sm mt-0.5 block truncate">
+                      ₹ {row.perMT || 0}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Footer: Vehicle Balance */}
+                <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+                  <span className="text-slate-500 font-semibold">Vehicle Balance:</span>
+                  <span className={`font-mono font-black px-2.5 py-1 rounded-lg border text-sm ${
+                    Number(row.vehicleBalance) >= 0 
+                      ? "text-emerald-700 bg-emerald-50 border-emerald-200/80" 
+                      : "text-rose-700 bg-rose-50 border-rose-200/80"
+                  }`}>
+                    ₹ {row.vehicleBalance ? Number(row.vehicleBalance).toLocaleString('en-IN') : 0}
+                  </span>
+                </div>
               </div>
-              <div className="tr-form-group" style={{ zIndex: 101 }}>
-                <label>Vehicle No.</label>
-                <Select
-                  isClearable
-                  options={vehicleOptions}
-                  value={formData.vehicleNo ? { label: formData.vehicleNo, value: formData.vehicleNo } : null}
-                  onChange={(newValue) => handleInputChange({ target: { name: 'vehicleNo', value: newValue ? newValue.value : '' } })}
-                  placeholder="Select Vehicle No..."
-                  styles={{
-                    control: (base) => ({
-                      ...base,
-                      padding: '2px',
-                      borderRadius: '8px',
-                      border: '1px solid #e5e7eb',
-                      boxShadow: 'none',
-                      '&:hover': {
-                        borderColor: '#d1d5db'
-                      }
-                    }),
-                    menu: (base) => ({
-                      ...base,
-                      zIndex: 9999,
-                      overflow: 'hidden'
-                    })
-                  }}
-                />
+            ))
+          ) : (
+            <div className="py-12 text-center text-slate-400 bg-white rounded-2xl border border-slate-200/80">
+              <Truck className="h-8 w-8 mx-auto text-slate-300 mb-2" />
+              <p className="font-bold text-slate-700 text-sm">No trip reports found matching your filters</p>
+              <p className="text-xs text-slate-400 mt-1">Try resetting search or date filters above.</p>
+            </div>
+          )}
+        </div>
+
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════
+          ADD / EDIT TRIP MODAL
+      ═══════════════════════════════════════════════════════════ */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden border border-slate-100">
+            
+            {/* Modal Header */}
+            <div className="p-5 sm:p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/70">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-red-600 to-rose-700 text-white flex items-center justify-center shrink-0 shadow-sm">
+                  <Truck size={20} />
+                </div>
+                <div>
+                  <h2 className="text-lg font-black text-slate-800 leading-tight">
+                    {editingId ? 'Update Trip Report' : 'Record New Truck Trip'}
+                  </h2>
+                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
+                    Transportation & Logistics Operations Entry
+                  </p>
+                </div>
               </div>
-              <div className="tr-form-group" style={{ zIndex: 100 }}>
-                <label>Party Name</label>
-                <Select
-                  isClearable
-                  options={partyOptions}
-                  value={formData.partyName ? { label: formData.partyName, value: formData.partyName } : null}
-                  onChange={(newValue) => handleInputChange({ target: { name: 'partyName', value: newValue ? newValue.value : '' } })}
-                  placeholder="Select Party Name..."
-                  components={{ MenuList: PartyMenuList }}
-                  styles={{
-                    control: (base) => ({
-                      ...base,
-                      padding: '2px',
-                      borderRadius: '8px',
-                      border: '1px solid #e5e7eb',
-                      boxShadow: 'none',
-                      '&:hover': {
-                        borderColor: '#d1d5db'
-                      }
-                    }),
-                    menu: (base) => ({
-                      ...base,
-                      zIndex: 9999,
-                      overflow: 'hidden'
-                    })
-                  }}
-                />
+
+              <button 
+                onClick={() => { setIsModalOpen(false); setEditingId(null); }}
+                className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-xl transition-colors cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Modal Form */}
+            <form onSubmit={handleAddReport} className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4 custom-sidebar-scroll bg-slate-50/30">
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                
+                {/* Date */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-600 uppercase">Trip Date *</label>
+                  <input 
+                    type="date" 
+                    name="date" 
+                    value={formData.date} 
+                    onChange={handleInputChange} 
+                    required 
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all shadow-2xs"
+                  />
+                </div>
+
+                {/* Vehicle No */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-600 uppercase">Vehicle No. *</label>
+                  <Select
+                    isClearable
+                    options={vehicleOptions}
+                    value={formData.vehicleNo ? { label: formData.vehicleNo, value: formData.vehicleNo } : null}
+                    onChange={(newValue) => handleInputChange({ target: { name: 'vehicleNo', value: newValue ? newValue.value : '' } })}
+                    placeholder="Select Vehicle..."
+                    styles={{
+                      control: (base) => ({
+                        ...base,
+                        padding: '2px',
+                        borderRadius: '12px',
+                        border: '1px solid #e2e8f0',
+                        boxShadow: 'none',
+                        fontSize: '14px',
+                        '&:hover': { borderColor: '#cbd5e1' }
+                      }),
+                      menu: (base) => ({ ...base, zIndex: 9999 })
+                    }}
+                  />
+                </div>
+
+                {/* Origin City */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-600 uppercase">From (Origin) *</label>
+                  <Select
+                    isClearable
+                    options={fromOptions}
+                    value={formData.from ? { label: formData.from, value: formData.from } : null}
+                    onChange={(newValue) => handleInputChange({ target: { name: 'from', value: newValue ? newValue.value : '' } })}
+                    placeholder="Select Origin..."
+                    components={{ MenuList: CustomMenuList }}
+                    styles={{
+                      control: (base) => ({
+                        ...base,
+                        padding: '2px',
+                        borderRadius: '12px',
+                        border: '1px solid #e2e8f0',
+                        fontSize: '14px',
+                        '&:hover': { borderColor: '#cbd5e1' }
+                      }),
+                      menu: (base) => ({ ...base, zIndex: 9999 })
+                    }}
+                  />
+                </div>
+
+                {/* Destination City */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-600 uppercase">To (Destination) *</label>
+                  <Select
+                    isClearable
+                    options={toOptions}
+                    value={formData.to ? { label: formData.to, value: formData.to } : null}
+                    onChange={(newValue) => handleInputChange({ target: { name: 'to', value: newValue ? newValue.value : '' } })}
+                    placeholder="Select Destination..."
+                    components={{ MenuList: ToMenuList }}
+                    styles={{
+                      control: (base) => ({
+                        ...base,
+                        padding: '2px',
+                        borderRadius: '12px',
+                        border: '1px solid #e2e8f0',
+                        fontSize: '14px',
+                        '&:hover': { borderColor: '#cbd5e1' }
+                      }),
+                      menu: (base) => ({ ...base, zIndex: 9999 })
+                    }}
+                  />
+                </div>
+
+                {/* Distance */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-600 uppercase">Distance (KM) *</label>
+                  <input 
+                    type="text" 
+                    name="distance" 
+                    value={formData.distance} 
+                    onChange={handleInputChange} 
+                    placeholder="e.g. 58 km" 
+                    required 
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all shadow-2xs"
+                  />
+                </div>
+
+                {/* Party Name */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-600 uppercase">Party Name</label>
+                  <Select
+                    isClearable
+                    options={partyOptions}
+                    value={formData.partyName ? { label: formData.partyName, value: formData.partyName } : null}
+                    onChange={(newValue) => handleInputChange({ target: { name: 'partyName', value: newValue ? newValue.value : '' } })}
+                    placeholder="Select Party..."
+                    components={{ MenuList: PartyMenuList }}
+                    styles={{
+                      control: (base) => ({
+                        ...base,
+                        padding: '2px',
+                        borderRadius: '12px',
+                        border: '1px solid #e2e8f0',
+                        fontSize: '14px',
+                        '&:hover': { borderColor: '#cbd5e1' }
+                      }),
+                      menu: (base) => ({ ...base, zIndex: 9999 })
+                    }}
+                  />
+                </div>
+
+                {/* Diesel Liter */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-600 uppercase">Diesel (L)</label>
+                  <Select
+                    isClearable
+                    options={dieselOptions}
+                    value={formData.diesel ? { label: formData.diesel, value: formData.diesel } : null}
+                    onChange={(newValue) => handleInputChange({ target: { name: 'diesel', value: newValue ? newValue.value : '' } })}
+                    placeholder="Select or enter liters..."
+                    components={{ MenuList: DieselMenuList }}
+                    styles={{
+                      control: (base) => ({
+                        ...base,
+                        padding: '2px',
+                        borderRadius: '12px',
+                        border: '1px solid #e2e8f0',
+                        fontSize: '14px',
+                        '&:hover': { borderColor: '#cbd5e1' }
+                      }),
+                      menu: (base) => ({ ...base, zIndex: 9999 })
+                    }}
+                  />
+                </div>
+
+                {/* Diesel Price */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-600 uppercase">Diesel Price (₹/L)</label>
+                  <input 
+                    type="number" 
+                    name="dieselPrice" 
+                    value={formData.dieselPrice} 
+                    onChange={handleInputChange} 
+                    placeholder="e.g. 96" 
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all shadow-2xs"
+                  />
+                </div>
+
+                {/* Advance */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-600 uppercase">Advance (₹)</label>
+                  <Select
+                    isClearable
+                    options={advanceOptions}
+                    value={formData.advance ? { label: formData.advance, value: formData.advance } : null}
+                    onChange={(newValue) => handleInputChange({ target: { name: 'advance', value: newValue ? newValue.value : '' } })}
+                    placeholder="Select advance..."
+                    components={{ MenuList: AdvanceMenuList }}
+                    styles={{
+                      control: (base) => ({
+                        ...base,
+                        padding: '2px',
+                        borderRadius: '12px',
+                        border: '1px solid #e2e8f0',
+                        fontSize: '14px',
+                        '&:hover': { borderColor: '#cbd5e1' }
+                      }),
+                      menu: (base) => ({ ...base, zIndex: 9999 })
+                    }}
+                  />
+                </div>
+
+                {/* DO No */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-600 uppercase">DO Number *</label>
+                  <input 
+                    type="text" 
+                    name="doNo" 
+                    value={formData.doNo} 
+                    onChange={handleInputChange} 
+                    placeholder="e.g. DO-1004" 
+                    required 
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all shadow-2xs"
+                  />
+                </div>
+
+                {/* DO Party Name */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-600 uppercase">DO Party Name</label>
+                  <Select
+                    isClearable
+                    options={doPartyOptions}
+                    value={formData.doPartyName ? { label: formData.doPartyName, value: formData.doPartyName } : null}
+                    onChange={(newValue) => handleInputChange({ target: { name: 'doPartyName', value: newValue ? newValue.value : '' } })}
+                    placeholder="Select DO Party..."
+                    components={{ MenuList: DoPartyMenuList }}
+                    styles={{
+                      control: (base) => ({
+                        ...base,
+                        padding: '2px',
+                        borderRadius: '12px',
+                        border: '1px solid #e2e8f0',
+                        fontSize: '14px',
+                        '&:hover': { borderColor: '#cbd5e1' }
+                      }),
+                      menu: (base) => ({ ...base, zIndex: 9999 })
+                    }}
+                  />
+                </div>
+
+                {/* Total Trips */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-600 uppercase">Total Trips *</label>
+                  <input 
+                    type="number" 
+                    name="totalTrips" 
+                    value={formData.totalTrips} 
+                    onChange={handleInputChange} 
+                    placeholder="e.g. 1" 
+                    required 
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all shadow-2xs"
+                  />
+                </div>
+
+                {/* Per MT */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-600 uppercase">Rate Per MT (₹) *</label>
+                  <input 
+                    type="number" 
+                    name="perMT" 
+                    value={formData.perMT} 
+                    onChange={handleInputChange} 
+                    placeholder="e.g. 1200" 
+                    required 
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all shadow-2xs"
+                  />
+                </div>
+
+                {/* Tonnage */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-600 uppercase">Tonnage (MT) *</label>
+                  <input 
+                    type="number" 
+                    name="tonnage" 
+                    value={formData.tonnage} 
+                    onChange={handleInputChange} 
+                    placeholder="e.g. 35" 
+                    required 
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all shadow-2xs"
+                  />
+                </div>
+
+                {/* Total Freight (Calculated) */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-emerald-700 uppercase">Total Freight (Calculated)</label>
+                  <input 
+                    type="number" 
+                    name="totalFreight" 
+                    value={formData.totalFreight} 
+                    onChange={handleInputChange} 
+                    placeholder="Auto calculated" 
+                    readOnly
+                    className="w-full px-3.5 py-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-sm font-black text-emerald-800 outline-none shadow-2xs"
+                  />
+                </div>
+
+                {/* Vehicle Balance (Calculated) */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-blue-700 uppercase">Vehicle Balance (Calculated)</label>
+                  <input 
+                    type="number" 
+                    name="vehicleBalance" 
+                    value={formData.vehicleBalance} 
+                    onChange={handleInputChange} 
+                    placeholder="Auto calculated" 
+                    readOnly
+                    className="w-full px-3.5 py-2.5 bg-blue-50 border border-blue-200 rounded-xl text-sm font-black text-blue-800 outline-none shadow-2xs"
+                  />
+                </div>
+
               </div>
-              <div className="tr-form-group" style={{ zIndex: 99 }}>
-                <label>From</label>
-                <Select
-                  isClearable
-                  options={fromOptions}
-                  value={formData.from ? { label: formData.from, value: formData.from } : null}
-                  onChange={(newValue) => handleInputChange({ target: { name: 'from', value: newValue ? newValue.value : '' } })}
-                  placeholder="Select Origin City..."
-                  components={{ MenuList: CustomMenuList }}
-                  styles={{
-                    control: (base) => ({
-                      ...base,
-                      padding: '2px',
-                      borderRadius: '8px',
-                      border: '1px solid #e5e7eb',
-                      boxShadow: 'none',
-                      '&:hover': {
-                        borderColor: '#d1d5db'
-                      }
-                    }),
-                    menu: (base) => ({
-                      ...base,
-                      zIndex: 9999,
-                      overflow: 'hidden'
-                    })
-                  }}
-                />
+
+              {/* Modal Footer */}
+              <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-2.5">
+                <button 
+                  type="button" 
+                  onClick={() => { setIsModalOpen(false); setEditingId(null); }}
+                  className="px-5 py-2.5 text-xs sm:text-sm font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-200/50 rounded-xl transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="px-7 py-2.5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-black rounded-xl shadow-md shadow-red-500/20 hover:shadow-lg transition-all text-xs sm:text-sm cursor-pointer"
+                >
+                  {editingId ? 'Update Trip Report' : 'Save Trip Report'}
+                </button>
               </div>
-              <div className="tr-form-group" style={{ zIndex: 98 }}>
-                <label>To</label>
-                <Select
-                  isClearable
-                  options={toOptions}
-                  value={formData.to ? { label: formData.to, value: formData.to } : null}
-                  onChange={(newValue) => handleInputChange({ target: { name: 'to', value: newValue ? newValue.value : '' } })}
-                  placeholder="Select Destination City..."
-                  components={{ MenuList: ToMenuList }}
-                  styles={{
-                    control: (base) => ({
-                      ...base,
-                      padding: '2px',
-                      borderRadius: '8px',
-                      border: '1px solid #e5e7eb',
-                      boxShadow: 'none',
-                      '&:hover': {
-                        borderColor: '#d1d5db'
-                      }
-                    }),
-                    menu: (base) => ({
-                      ...base,
-                      zIndex: 9999,
-                      overflow: 'hidden'
-                    })
-                  }}
-                />
-              </div>
-              <div className="tr-form-group">
-                <label>Distance</label>
-                <input type="text" name="distance" value={formData.distance} onChange={handleInputChange} placeholder="e.g. 1500 km" required />
-              </div>
-              <div className="tr-form-group" style={{ zIndex: 97 }}>
-                <label>Diesel Liter</label>
-                <Select
-                  isClearable
-                  options={dieselOptions}
-                  value={formData.diesel ? { label: formData.diesel, value: formData.diesel } : null}
-                  onChange={(newValue) => handleInputChange({ target: { name: 'diesel', value: newValue ? newValue.value : '' } })}
-                  placeholder="Select or type..."
-                  components={{ MenuList: DieselMenuList }}
-                  styles={{
-                    control: (base) => ({
-                      ...base,
-                      padding: '2px',
-                      borderRadius: '8px',
-                      border: '1px solid #e5e7eb',
-                      boxShadow: 'none',
-                      '&:hover': {
-                        borderColor: '#d1d5db'
-                      }
-                    }),
-                    menu: (base) => ({
-                      ...base,
-                      zIndex: 9999,
-                      overflow: 'hidden'
-                    })
-                  }}
-                />
-              </div>
-              <div className="tr-form-group" style={{ zIndex: 96 }}>
-                <label>Advance (₹)</label>
-                <Select
-                  isClearable
-                  options={advanceOptions}
-                  value={formData.advance ? { label: formData.advance, value: formData.advance } : null}
-                  onChange={(newValue) => handleInputChange({ target: { name: 'advance', value: newValue ? newValue.value : '' } })}
-                  placeholder="Select or type..."
-                  components={{ MenuList: AdvanceMenuList }}
-                  styles={{
-                    control: (base) => ({
-                      ...base,
-                      padding: '2px',
-                      borderRadius: '8px',
-                      border: '1px solid #e5e7eb',
-                      boxShadow: 'none',
-                      '&:hover': {
-                        borderColor: '#d1d5db'
-                      }
-                    }),
-                    menu: (base) => ({
-                      ...base,
-                      zIndex: 9999,
-                      overflow: 'hidden'
-                    })
-                  }}
-                />
-              </div>
-              <div className="tr-form-group">
-                <label>Diesel Price (₹)</label>
-                <input type="number" name="dieselPrice" value={formData.dieselPrice} onChange={handleInputChange} placeholder="e.g. 101" />
-              </div>
-              <div className="tr-form-group">
-                <label>DO No.</label>
-                <input type="text" name="doNo" value={formData.doNo} onChange={handleInputChange} placeholder="e.g. DO-1004" required />
-              </div>
-              <div className="tr-form-group" style={{ zIndex: 95 }}>
-                <label>DO Party Name</label>
-                <Select
-                  isClearable
-                  options={doPartyOptions}
-                  value={formData.doPartyName ? { label: formData.doPartyName, value: formData.doPartyName } : null}
-                  onChange={(newValue) => handleInputChange({ target: { name: 'doPartyName', value: newValue ? newValue.value : '' } })}
-                  placeholder="Select DO Party Name..."
-                  components={{ MenuList: DoPartyMenuList }}
-                  styles={{
-                    control: (base) => ({
-                      ...base,
-                      padding: '2px',
-                      borderRadius: '8px',
-                      border: '1px solid #e5e7eb',
-                      boxShadow: 'none',
-                      '&:hover': {
-                        borderColor: '#d1d5db'
-                      }
-                    }),
-                    menu: (base) => ({
-                      ...base,
-                      zIndex: 9999,
-                      overflow: 'hidden'
-                    })
-                  }}
-                />
-              </div>
-              <div className="tr-form-group">
-                <label>Total Trips</label>
-                <input type="number" name="totalTrips" value={formData.totalTrips} onChange={handleInputChange} placeholder="e.g. 5" required />
-              </div>
-              <div className="tr-form-group">
-                <label>Vehicle Balance (₹)</label>
-                <input type="number" name="vehicleBalance" value={formData.vehicleBalance} onChange={handleInputChange} placeholder="e.g. 15000" required />
-              </div>
-              <div className="tr-form-group">
-                <label>Per MT (₹)</label>
-                <input type="number" name="perMT" value={formData.perMT} onChange={handleInputChange} placeholder="e.g. 1200" required />
-              </div>
-              <div className="tr-form-group">
-                <label>Tonnage (MT)</label>
-                <input type="number" name="tonnage" value={formData.tonnage} onChange={handleInputChange} placeholder="e.g. 40" required />
-              </div>
-              <div className="tr-form-group">
-                <label>Total Freight (₹)</label>
-                <input type="number" name="totalFreight" value={formData.totalFreight} onChange={handleInputChange} placeholder="e.g. 48000" required />
-              </div>
-              <div className="tr-form-actions">
-                <button type="button" className="btn-secondary" onClick={() => { setIsModalOpen(false); setEditingId(null); setFormData({ date: '', vehicleNo: '', from: '', to: '', distance: '', partyName: '', doPartyName: '', diesel: '', dieselPrice: '', advance: '', doNo: '', totalTrips: '', vehicleBalance: '', perMT: '', tonnage: '', totalFreight: '' }); }}>Cancel</button>
-                <button type="submit" className="btn-primary">{editingId ? 'Update Report' : 'Save Report'}</button>
-              </div>
+
             </form>
+
           </div>
         </div>
       )}
 
-      {/* Custom Prompt Modal */}
+      {/* ═══════════════════════════════════════════════════════════
+          CUSTOM PROMPT MODAL (ADD NEW ORIGIN/DESTINATION/PARTY)
+      ═══════════════════════════════════════════════════════════ */}
       {promptModal.isOpen && (
-        <div className="tr-modal-overlay" style={{ zIndex: 10001, backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ 
-            background: '#ffffff', 
-            borderRadius: '16px', 
-            width: '90%', 
-            maxWidth: '420px', 
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-            overflow: 'hidden',
-            animation: 'modalSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
-          }}>
-            <div style={{ padding: '20px 24px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fcfcfc' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                <div style={{ background: '#fee2e2', color: '#dc2626', padding: '10px', borderRadius: '12px', display: 'flex', boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.5)' }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        <div className="fixed inset-0 z-[10001] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl border border-slate-100 overflow-hidden">
+            <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/70">
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+                  <Plus size={18} />
                 </div>
                 <div>
-                  <h2 style={{ fontSize: '1.15rem', fontWeight: '700', color: '#0f172a', margin: '0 0 2px 0' }}>{promptModal.title}</h2>
-                  <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>Add a new option to the system</p>
+                  <h3 className="font-black text-slate-800 text-sm leading-tight">{promptModal.title}</h3>
+                  <p className="text-[10px] text-slate-400">Add new option to the database</p>
                 </div>
               </div>
               <button 
                 onClick={() => setPromptModal({ isOpen: false, type: null, title: '', placeholder: '' })}
-                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '6px', borderRadius: '8px', display: 'flex', transition: 'all 0.2s' }}
-                onMouseOver={(e) => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = '#0f172a'; }}
-                onMouseOut={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#94a3b8'; }}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
               >
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                <X size={18} />
               </button>
             </div>
             
-            <div style={{ padding: '24px' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>
-                New Value
-              </label>
-              <input 
-                type="text" 
-                value={promptValue} 
-                onChange={(e) => setPromptValue(e.target.value)} 
-                placeholder={promptModal.placeholder}
-                autoFocus
-                style={{ 
-                  width: '100%', 
-                  padding: '14px 16px', 
-                  borderRadius: '10px', 
-                  border: '2px solid #e2e8f0',
-                  fontSize: '0.95rem',
-                  outline: 'none',
-                  transition: 'all 0.2s ease',
-                  background: '#f8fafc',
-                  color: '#0f172a'
-                }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = '#ef4444';
-                  e.target.style.boxShadow = '0 0 0 4px rgba(239, 68, 68, 0.1)';
-                  e.target.style.background = '#ffffff';
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = '#e2e8f0';
-                  e.target.style.boxShadow = 'none';
-                  e.target.style.background = '#f8fafc';
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    document.getElementById('prompt-add-btn').click();
-                  }
-                }}
-              />
-              
-              <div style={{ marginTop: '28px', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase block mb-1">New Value</label>
+                <input 
+                  type="text" 
+                  value={promptValue} 
+                  onChange={(e) => setPromptValue(e.target.value)} 
+                  placeholder={promptModal.placeholder}
+                  autoFocus
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      document.getElementById('prompt-add-btn')?.click();
+                    }
+                  }}
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
                 <button 
                   type="button" 
                   onClick={() => setPromptModal({ isOpen: false, type: null, title: '', placeholder: '' })}
-                  style={{ 
-                    padding: '10px 20px', 
-                    borderRadius: '8px', 
-                    border: '1px solid #cbd5e1', 
-                    background: '#ffffff', 
-                    color: '#475569', 
-                    fontWeight: '600', 
-                    fontSize: '0.9rem',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseOver={(e) => e.currentTarget.style.background = '#f8fafc'}
-                  onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}
+                  className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 rounded-xl"
                 >
                   Cancel
                 </button>
@@ -1058,20 +1432,7 @@ export default function TruckReports() {
                     }
                     setPromptModal({ isOpen: false, type: null, title: '', placeholder: '' });
                   }}
-                  style={{ 
-                    padding: '10px 24px', 
-                    borderRadius: '8px', 
-                    border: 'none', 
-                    background: '#ef4444', 
-                    color: '#ffffff', 
-                    fontWeight: '600', 
-                    fontSize: '0.9rem',
-                    cursor: 'pointer',
-                    boxShadow: '0 4px 6px -1px rgba(239, 68, 68, 0.2)',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseOver={(e) => { e.currentTarget.style.background = '#dc2626'; }}
-                  onMouseOut={(e) => { e.currentTarget.style.background = '#ef4444'; }}
+                  className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black shadow-sm transition-all"
                 >
                   Save Option
                 </button>
@@ -1080,7 +1441,7 @@ export default function TruckReports() {
           </div>
         </div>
       )}
-    </div>
+
     </div>
   );
 }

@@ -1,5 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Settings2, Users, Layout, Search, Plus, Edit2, Trash2, Shield, Settings, ChevronRight, X, Save, LayoutDashboard, Download, FileSpreadsheet } from 'lucide-react';
+import { 
+  Settings2, Users, Layout, Search, Plus, Edit2, Trash2, Shield, Settings, 
+  ChevronRight, X, Save, LayoutDashboard, Download, FileSpreadsheet,
+  ShieldCheck, UserCheck, Building2, CheckCircle2, Lock, Mail, Phone,
+  User, Check, Sparkles, Filter, RefreshCw, KeyRound, ExternalLink, SlidersHorizontal
+} from 'lucide-react';
 import AdminLayout from '../../components/layout/AdminLayout';
 import supabase from '../../SupabaseClient';
 import { useMagicToast } from '../../context/MagicToastContext';
@@ -8,17 +13,25 @@ import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 
 const getDesignationStyle = (desg) => {
-  if (!desg) return { color: '#64748b' };
+  if (!desg) return { backgroundColor: '#f1f5f9', color: '#64748b', borderColor: '#e2e8f0' };
   const d = desg.toUpperCase().trim();
   switch (d) {
-    case 'HELPING HANDS': return { backgroundColor: '#dbeafe', color: '#1d4ed8', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' };
-    case 'JAI BHOLE ENTERPRISE': return { backgroundColor: '#fef3c7', color: '#b45309', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' };
-    case 'ASAK COAL PVT.LTD.': return { backgroundColor: '#d1fae5', color: '#047857', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' };
-    case 'JAI BHOLE LOGISTICS': return { backgroundColor: '#ede9fe', color: '#6d28d9', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' };
-    case 'BOTIVATE': return { backgroundColor: '#ffe4e6', color: '#be123c', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' };
-    case 'JAI BHOLE TRADERS': return { backgroundColor: '#ffedd5', color: '#c2410c', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' };
-    case 'ASAK COAL LOGISTICS': return { backgroundColor: '#ccfbf1', color: '#0f766e', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' };
-    default: return { backgroundColor: '#f3f4f6', color: '#4b5563', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' };
+    case 'HELPING HANDS': 
+      return { backgroundColor: '#eff6ff', color: '#1d4ed8', borderColor: '#bfdbfe' };
+    case 'JAI BHOLE ENTERPRISE': 
+      return { backgroundColor: '#fffbeb', color: '#b45309', borderColor: '#fde68a' };
+    case 'ASAK COAL PVT.LTD.': 
+      return { backgroundColor: '#ecfdf5', color: '#047857', borderColor: '#a7f3d0' };
+    case 'JAI BHOLE LOGISTICS': 
+      return { backgroundColor: '#f5f3ff', color: '#6d28d9', borderColor: '#ddd6fe' };
+    case 'BOTIVATE': 
+      return { backgroundColor: '#fff1f2', color: '#be123c', borderColor: '#fecdd3' };
+    case 'JAI BHOLE TRADERS': 
+      return { backgroundColor: '#fff7ed', color: '#c2410c', borderColor: '#fed7aa' };
+    case 'ASAK COAL LOGISTICS': 
+      return { backgroundColor: '#f0fdfa', color: '#0f766e', borderColor: '#99f6e4' };
+    default: 
+      return { backgroundColor: '#f8fafc', color: '#475569', borderColor: '#e2e8f0' };
   }
 };
 
@@ -117,6 +130,7 @@ export default function GlobalSettings() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [modalTab, setModalTab] = useState('profile');
@@ -164,6 +178,15 @@ export default function GlobalSettings() {
     }
     setLoading(false);
   };
+
+  const userStats = useMemo(() => {
+    const total = users.length;
+    const active = users.filter(u => u.status === 'active').length;
+    const superadmins = users.filter(u => u.role?.toLowerCase() === 'superadmin').length;
+    const admins = users.filter(u => u.role?.toLowerCase() === 'admin').length;
+    const regularUsers = users.filter(u => u.role?.toLowerCase() === 'user').length;
+    return { total, active, superadmins, admins, regularUsers };
+  }, [users]);
 
   const handleOpenModal = (user = null) => {
     if (user) {
@@ -241,17 +264,17 @@ export default function GlobalSettings() {
         fetchUsers();
       }
     } else {
-      // Loop to automatically advance the broken PostgreSQL sequence
+      // Loop to automatically advance the sequence if needed
       let finalError = null;
       let success = false;
       
-      for (let i = 0; i < 50; i++) { // Try up to 50 times to bypass duplicate IDs
+      for (let i = 0; i < 50; i++) {
         const { error } = await supabase.from('users').insert([payload]);
         if (!error) {
           success = true;
           break;
         }
-        if (error.code !== '23505') { // If it's not a duplicate key error, stop trying
+        if (error.code !== '23505') {
           finalError = error;
           break;
         }
@@ -328,7 +351,6 @@ export default function GlobalSettings() {
       
       setFormData(prev => {
           let currentPages = [...(prev.page_access || [])];
-          // Remove old ones for this module first
           currentPages = currentPages.filter(p => !p.startsWith(`${moduleId}::`));
           return {
               ...prev,
@@ -350,21 +372,29 @@ export default function GlobalSettings() {
   };
 
   const filteredUsers = useMemo(() => {
-    const query = searchTerm.toLowerCase();
-    return users.filter((u) =>
-      u.user_name?.toLowerCase().includes(query) ||
-      u.employee_id?.toLowerCase().includes(query)
-    );
-  }, [users, searchTerm]);
+    const query = searchTerm.toLowerCase().trim();
+    return users.filter((u) => {
+      const matchesQuery = 
+        !query ||
+        u.user_name?.toLowerCase().includes(query) ||
+        u.employee_id?.toLowerCase().includes(query) ||
+        u.email_id?.toLowerCase().includes(query) ||
+        u.department?.toLowerCase().includes(query) ||
+        (u.designation || u.Designation)?.toLowerCase().includes(query);
+      
+      const matchesRole = 
+        roleFilter === 'all' || 
+        u.role?.toLowerCase() === roleFilter.toLowerCase();
+      
+      return matchesQuery && matchesRole;
+    });
+  }, [users, searchTerm, roleFilter]);
 
   const handleDownloadPDF = () => {
     const doc = new jsPDF();
-    
-    // Add title
     doc.setFontSize(16);
-    doc.text('User Accounts Report', 14, 15);
+    doc.text('User Accounts & Permissions Report', 14, 15);
     
-    // Prepare table data
     const tableColumn = ["Name", "Email", "Role", "Designation", "Department", "Status"];
     const tableRows = [];
     
@@ -393,14 +423,15 @@ export default function GlobalSettings() {
   };
 
   const handleDownloadExcel = () => {
-    const tableColumn = ["Name", "Email", "Role", "Designation", "Department", "Status"];
+    const tableColumn = ["Name", "Email", "Role", "Designation", "Department", "Status", "Modules Count"];
     const tableRows = filteredUsers.map(user => ({
       Name: user.user_name || '-',
       Email: user.email_id || '-',
       Role: user.role || '-',
       Designation: user.designation || user.Designation || '-',
       Department: user.department || '-',
-      Status: user.status || '-'
+      Status: user.status || '-',
+      "Modules Count": user.moduleCount || 0
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(tableRows);
@@ -413,474 +444,1013 @@ export default function GlobalSettings() {
 
   return (
     <AdminLayout>
-      <div className="max-w-7xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="max-w-[1550px] mx-auto space-y-5 sm:space-y-6 animate-in fade-in duration-300">
         
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-black text-slate-800 flex items-center gap-3">
-                <Settings2 className="text-red-600 h-8 w-8" />
-                Global Settings
-              </h1>
-              <p className="text-slate-500 font-medium ml-11">Master System Permissions & Modules Controller</p>
+        {/* ═══════════════════════════════════════════════════════════
+            TOP EXECUTIVE BRAND HEADER - RED THEME
+        ═══════════════════════════════════════════════════════════ */}
+        <div className="bg-gradient-to-r from-red-600 via-rose-700 to-red-800 rounded-2xl sm:rounded-3xl p-5 sm:p-7 text-white shadow-xl relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-5 border border-red-500/30">
+          {/* Subtle Ambient Backdrops */}
+          <div className="absolute top-0 right-0 w-72 h-72 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
+          <div className="absolute bottom-0 left-0 w-60 h-60 bg-black/15 rounded-full blur-2xl translate-y-1/2 -translate-x-1/4 pointer-events-none"></div>
+
+          <div className="relative z-10 space-y-1.5">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-[11px] font-extrabold uppercase tracking-widest text-red-100 shadow-2xs">
+              <Sparkles className="h-3.5 w-3.5 text-amber-300 shrink-0" />
+              <span>Jay Bhole Master System • Security Hub</span>
             </div>
-            
-            <div className="flex bg-white rounded-xl shadow-sm border border-slate-100 p-1">
-                <button
-                    onClick={() => setActiveTab('users')}
-                    className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg font-bold text-sm transition-all ${activeTab === 'users' ? 'bg-red-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'}`}
-                >
-                    <Users size={16} /> User Accounts
-                </button>
-                <button
-                    onClick={() => setActiveTab('modules')}
-                    className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg font-bold text-sm transition-all ${activeTab === 'modules' ? 'bg-red-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'}`}
-                >
-                    <LayoutDashboard size={16} /> Active Modules
-                </button>
-            </div>
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white flex items-center gap-2.5">
+              <Settings2 className="h-7 w-7 text-white/90 shrink-0" />
+              Global Settings & Permissions
+            </h1>
+            <p className="text-red-100/90 text-xs sm:text-sm max-w-2xl font-medium leading-relaxed">
+              Master System Permissions, Role Access Control & Module-Level Security Controller.
+            </p>
+          </div>
+
+          {/* Tab Switcher Pills */}
+          <div className="relative z-10 flex items-center bg-black/20 backdrop-blur-md p-1.5 rounded-2xl border border-white/15 self-start md:self-auto shrink-0 shadow-lg">
+            <button
+              onClick={() => setActiveTab('users')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 cursor-pointer ${
+                activeTab === 'users' 
+                  ? 'bg-white text-red-700 shadow-md scale-100' 
+                  : 'text-white/80 hover:text-white hover:bg-white/10'
+              }`}
+            >
+              <Users size={16} /> 
+              <span>User Accounts</span>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                activeTab === 'users' ? 'bg-red-100 text-red-700' : 'bg-white/20 text-white'
+              }`}>
+                {users.length}
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveTab('modules')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 cursor-pointer ${
+                activeTab === 'modules' 
+                  ? 'bg-white text-red-700 shadow-md scale-100' 
+                  : 'text-white/80 hover:text-white hover:bg-white/10'
+              }`}
+            >
+              <LayoutDashboard size={16} /> 
+              <span>Active Modules</span>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                activeTab === 'modules' ? 'bg-red-100 text-red-700' : 'bg-white/20 text-white'
+              }`}>
+                {MODULES.length}
+              </span>
+            </button>
+          </div>
         </div>
 
-        {activeTab === 'users' && (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row gap-4 items-center justify-between bg-slate-50/50">
-                    <div className="relative w-full sm:w-96">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 h-5 w-5" />
-                        <input
-                            type="text"
-                            placeholder="Search users by name or ID..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
-                        />
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <button 
-                            onClick={handleDownloadExcel}
-                            className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-1.5 rounded-lg font-bold shadow-md hover:shadow-lg transition-all flex items-center gap-1.5 active:scale-95 text-sm"
-                        >
-                            <FileSpreadsheet size={16} /> Export Excel
-                        </button>
-                        <button 
-                            onClick={handleDownloadPDF}
-                            className="bg-slate-800 hover:bg-slate-900 text-white px-4 py-1.5 rounded-lg font-bold shadow-md hover:shadow-lg transition-all flex items-center gap-1.5 active:scale-95 text-sm"
-                        >
-                            <Download size={16} /> Export PDF
-                        </button>
-                        <button 
-                            onClick={() => handleOpenModal()}
-                            className="bg-red-600 hover:bg-red-700 text-white px-4 py-1.5 rounded-lg font-bold shadow-md hover:shadow-lg transition-all flex items-center gap-1.5 active:scale-95 text-sm"
-                        >
-                            <Plus size={16} /> Create New User
-                        </button>
-                    </div>
-                </div>
-
-                <div className="overflow-x-hidden md:overflow-x-auto overflow-y-auto max-h-[calc(100vh-280px)] px-4 md:px-0">
-                    <table className="w-full relative">
-                        <thead className="sticky top-0 z-10 bg-slate-50 shadow-sm hidden md:table-header-group">
-                            <tr className="text-left text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">
-                                {/* <th className="p-4">Employee ID</th> */}
-                                <th className="p-4">Name</th>
-                                <th className="p-4">Role / Designation</th>
-                                <th className="p-4">Department</th>
-                                <th className="p-4">Access Modules</th>
-                                <th className="p-4">Status</th>
-                                <th className="p-4">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 block md:table-row-group">
-                            {loading ? (
-                                <tr className="block md:table-row"><td colSpan={7} className="p-8 text-center text-slate-500 block md:table-cell">Loading...</td></tr>
-                            ) : filteredUsers.length === 0 ? (
-                                <tr className="block md:table-row"><td colSpan={7} className="p-8 text-center text-slate-500 block md:table-cell">No users found.</td></tr>
-                            ) : (
-                                filteredUsers.map(user => (
-                                    <tr key={user.id} className="hover:bg-slate-50/50 transition-colors block md:table-row border border-slate-200 md:border-none rounded-2xl md:rounded-none mb-4 md:mb-0 bg-white shadow-sm md:shadow-none">
-                                        {/* <td className="p-4 font-mono text-sm text-slate-600 block md:table-cell">{user.employee_id || '-'}</td> */}
-                                        <td className="p-4 block md:table-cell border-b border-slate-50 md:border-none">
-                                            <div className="flex items-center gap-3">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => user.profile_image && setPreviewImage(normalizeProfileImage(user.profile_image))}
-                                                    className="h-10 w-10 md:h-8 md:w-8 rounded-full bg-red-100 text-red-700 flex items-center justify-center font-bold text-sm shrink-0 overflow-hidden border border-transparent hover:border-red-200 transition-all focus:outline-none"
-                                                    aria-label={`View profile for ${user.user_name}`}
-                                                >
-                                                    {user.profile_image ? (
-                                                        <img src={normalizeProfileImage(user.profile_image)} alt={user.user_name} className="w-full h-full object-cover cursor-pointer" />
-                                                    ) : (
-                                                        user.user_name?.charAt(0).toUpperCase()
-                                                    )}
-                                                </button>
-                                                <div>
-                                                    <p className="font-bold text-slate-800 text-base md:text-sm">{user.user_name}</p>
-                                                    <p className="text-xs text-slate-500">{user.email_id || '-'}</p>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="p-4 block md:table-cell border-b border-slate-50 md:border-none flex justify-between items-center md:table-cell">
-                                            <span className="text-xs font-bold text-slate-400 md:hidden">ROLE & DESIGNATION</span>
-                                            <div className="flex flex-col items-end md:items-start gap-1">
-                                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${user.role?.toLowerCase() === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-700'}`}>
-                                                    {user.role}
-                                                </span>
-                                                <span style={getDesignationStyle(user.designation || user.Designation)}>{user.designation || user.Designation || '-'}</span>
-                                            </div>
-                                        </td>
-                                        <td className="p-4 text-sm text-slate-600 block md:table-cell border-b border-slate-50 md:border-none flex justify-between items-center md:table-cell">
-                                            <span className="text-xs font-bold text-slate-400 md:hidden">DEPARTMENT</span>
-                                            <span className="font-medium text-slate-700">{user.department || '-'}</span>
-                                        </td>
-                                        <td className="p-4 block md:table-cell border-b border-slate-50 md:border-none flex justify-between items-center md:table-cell">
-                                            <span className="text-xs font-bold text-slate-400 md:hidden">ACCESS MODULES</span>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-sm font-bold text-slate-700">
-                                                    {user.moduleCount || user.systemAccessList?.length || 0} Modules
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td className="p-4 block md:table-cell border-b border-slate-50 md:border-none flex justify-between items-center md:table-cell">
-                                            <span className="text-xs font-bold text-slate-400 md:hidden">STATUS</span>
-                                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${user.status === 'active' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-slate-100 text-slate-600 border border-slate-200'}`}>
-                                                <div className={`w-1.5 h-1.5 rounded-full ${user.status === 'active' ? 'bg-green-500' : 'bg-slate-400'}`}></div>
-                                                {user.status?.toUpperCase()}
-                                            </span>
-                                        </td>
-                                        <td className="p-4 block md:table-cell">
-                                            <button 
-                                                onClick={() => handleOpenModal(user)}
-                                                className="w-full md:w-auto p-2 text-slate-600 hover:text-red-600 bg-slate-50 md:bg-transparent hover:bg-red-50 rounded-lg transition-colors flex items-center justify-center gap-2 font-bold text-sm"
-                                            >
-                                                <Settings size={18} />
-                                                <span className="md:hidden">Manage User Settings</span>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+        {/* ═══════════════════════════════════════════════════════════
+            TOP 4 EXECUTIVE METRICS STRIP
+        ═══════════════════════════════════════════════════════════ */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          
+          <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs hover:shadow-md transition-all flex items-center justify-between group">
+            <div>
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
+                Total Users
+              </span>
+              <div className="text-xl sm:text-2xl font-black text-slate-800 tracking-tight group-hover:text-red-600 transition-colors">
+                {userStats.total}
+              </div>
+              <span className="text-[10px] text-slate-400 font-medium">All Platform Accounts</span>
             </div>
+            <div className="h-11 w-11 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center shrink-0 shadow-2xs group-hover:bg-orange-600 group-hover:text-white transition-colors">
+              <Users size={20} />
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs hover:shadow-md transition-all flex items-center justify-between group">
+            <div>
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
+                Active Staff
+              </span>
+              <div className="text-xl sm:text-2xl font-black text-emerald-600 tracking-tight">
+                {userStats.active}
+              </div>
+              <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                Operational Accounts
+              </span>
+            </div>
+            <div className="h-11 w-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 shadow-2xs group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+              <UserCheck size={20} />
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs hover:shadow-md transition-all flex items-center justify-between group">
+            <div>
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
+                Privileged Admins
+              </span>
+              <div className="text-xl sm:text-2xl font-black text-purple-700 tracking-tight">
+                {userStats.superadmins + userStats.admins}
+              </div>
+              <span className="text-[10px] text-purple-600 font-medium">
+                {userStats.superadmins} Super, {userStats.admins} Admin
+              </span>
+            </div>
+            <div className="h-11 w-11 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 shadow-2xs group-hover:bg-purple-600 group-hover:text-white transition-colors">
+              <ShieldCheck size={20} />
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs hover:shadow-md transition-all flex items-center justify-between group">
+            <div>
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
+                System Modules
+              </span>
+              <div className="text-xl sm:text-2xl font-black text-blue-600 tracking-tight">
+                {MODULES.length}
+              </div>
+              <span className="text-[10px] text-blue-500 font-medium">Integrated Systems</span>
+            </div>
+            <div className="h-11 w-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 shadow-2xs group-hover:bg-blue-600 group-hover:text-white transition-colors">
+              <LayoutDashboard size={20} />
+            </div>
+          </div>
+
+        </div>
+
+        {/* ═══════════════════════════════════════════════════════════
+            TAB 1: USER ACCOUNTS DATA TABLE & CONTROLLER
+        ═══════════════════════════════════════════════════════════ */}
+        {activeTab === 'users' && (
+          <div className="bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-slate-200/90 overflow-hidden">
+            
+            {/* Action Bar & Search Filter */}
+            <div className="p-4 sm:p-5 border-b border-slate-100 bg-slate-50/60 flex flex-col lg:flex-row gap-3.5 items-stretch lg:items-center justify-between">
+              
+              {/* Search + Live Count */}
+              <div className="flex items-center gap-2 flex-1 max-w-xl">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 h-4 w-4" />
+                  <input
+                    type="text"
+                    placeholder="Search by name, employee ID, email, department..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-9 py-2 sm:py-2.5 bg-white border border-slate-200/90 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-medium placeholder:text-slate-400 shadow-2xs"
+                  />
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-full"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+                
+                {/* Role Filter Pills */}
+                <div className="hidden sm:flex items-center bg-white p-1 rounded-xl border border-slate-200 shadow-2xs shrink-0 text-xs font-bold text-slate-600">
+                  {['all', 'superadmin', 'admin', 'user'].map((r) => (
+                    <button
+                      key={r}
+                      onClick={() => setRoleFilter(r)}
+                      className={`px-2.5 py-1 rounded-lg uppercase text-[10px] tracking-wider transition-all cursor-pointer ${
+                        roleFilter === r
+                          ? 'bg-red-600 text-white shadow-xs font-black'
+                          : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+                      }`}
+                    >
+                      {r === 'all' ? 'All Roles' : r}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Action Buttons: Export + Create User */}
+              <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap justify-end">
+                <button 
+                  onClick={handleDownloadExcel}
+                  className="bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white border border-emerald-200/80 px-3.5 py-2 rounded-xl font-bold shadow-2xs hover:shadow-sm transition-all flex items-center gap-1.5 active:scale-95 text-xs sm:text-sm cursor-pointer"
+                  title="Export to Excel"
+                >
+                  <FileSpreadsheet size={15} /> 
+                  <span className="hidden xs:inline">Export</span> Excel
+                </button>
+
+                <button 
+                  onClick={handleDownloadPDF}
+                  className="bg-slate-50 hover:bg-slate-800 text-slate-700 hover:text-white border border-slate-200/90 px-3.5 py-2 rounded-xl font-bold shadow-2xs hover:shadow-sm transition-all flex items-center gap-1.5 active:scale-95 text-xs sm:text-sm cursor-pointer"
+                  title="Export to PDF"
+                >
+                  <Download size={15} /> 
+                  <span className="hidden xs:inline">Export</span> PDF
+                </button>
+
+                <button 
+                  onClick={() => handleOpenModal()}
+                  className="bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white px-4 py-2 rounded-xl font-black shadow-md shadow-red-500/20 hover:shadow-lg transition-all flex items-center gap-1.5 active:scale-95 text-xs sm:text-sm cursor-pointer ml-auto sm:ml-0"
+                >
+                  <Plus size={16} /> 
+                  <span>Create New User</span>
+                </button>
+              </div>
+
+            </div>
+
+            {/* Desktop Table View (>= 768px) */}
+            <div className="hidden md:block overflow-x-auto overflow-y-auto max-h-[calc(100vh-320px)] custom-sidebar-scroll">
+              <table className="w-full text-left border-collapse">
+                <thead className="sticky top-0 z-20 bg-slate-50/95 backdrop-blur-md border-b border-slate-200">
+                  <tr className="text-[11px] font-black text-slate-500 uppercase tracking-wider">
+                    <th className="py-3.5 px-4">User / Account</th>
+                    <th className="py-3.5 px-4">Role & Firm</th>
+                    <th className="py-3.5 px-4">Department</th>
+                    <th className="py-3.5 px-4">Module Access</th>
+                    <th className="py-3.5 px-4">Status</th>
+                    <th className="py-3.5 px-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 bg-white">
+                  {loading ? (
+                    <tr>
+                      <td colSpan={6} className="py-12 text-center text-slate-400 font-medium">
+                        <RefreshCw className="h-6 w-6 animate-spin mx-auto text-red-500 mb-2" />
+                        Loading platform users...
+                      </td>
+                    </tr>
+                  ) : filteredUsers.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-12 text-center text-slate-400">
+                        <Users className="h-8 w-8 mx-auto text-slate-300 mb-2" />
+                        <p className="font-bold text-slate-600">No users match your filter criteria.</p>
+                        <p className="text-xs text-slate-400 mt-1">Try clearing the search query or role filter.</p>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredUsers.map((user) => {
+                      const designationStyle = getDesignationStyle(user.designation || user.Designation);
+                      const isSuper = user.role?.toLowerCase() === 'superadmin';
+                      const isAdmin = user.role?.toLowerCase() === 'admin';
+                      const moduleCount = user.moduleCount || user.systemAccessList?.length || 0;
+                      const progressPct = Math.min(100, Math.round((moduleCount / MODULES.length) * 100));
+
+                      return (
+                        <tr 
+                          key={user.id} 
+                          className="hover:bg-slate-50/80 transition-colors group"
+                        >
+                          {/* 1. User & Avatar */}
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center gap-3">
+                              <button
+                                type="button"
+                                onClick={() => user.profile_image && setPreviewImage(normalizeProfileImage(user.profile_image))}
+                                className="h-10 w-10 rounded-full bg-gradient-to-br from-red-500 to-rose-600 text-white flex items-center justify-center font-bold text-sm shrink-0 overflow-hidden shadow-xs ring-2 ring-white hover:ring-red-200 transition-all cursor-pointer"
+                                title={user.profile_image ? "Click to view photo" : user.user_name}
+                              >
+                                {user.profile_image ? (
+                                  <img 
+                                    src={normalizeProfileImage(user.profile_image)} 
+                                    alt={user.user_name} 
+                                    className="w-full h-full object-cover" 
+                                  />
+                                ) : (
+                                  user.user_name ? user.user_name.charAt(0).toUpperCase() : 'U'
+                                )}
+                              </button>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <p className="font-black text-slate-800 text-sm truncate leading-tight group-hover:text-red-600 transition-colors">
+                                    {user.user_name}
+                                  </p>
+                                  {user.employee_id && (
+                                    <span className="text-[10px] font-mono text-slate-400 bg-slate-100 px-1.5 py-0.2 rounded-md">
+                                      {user.employee_id}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-slate-400 truncate mt-0.5 flex items-center gap-1">
+                                  <Mail size={11} className="shrink-0 text-slate-300" />
+                                  <span>{user.email_id || 'No email attached'}</span>
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* 2. Role & Firm / Designation */}
+                          <td className="py-3.5 px-4">
+                            <div className="flex flex-col items-start gap-1">
+                              {isSuper ? (
+                                <span className="bg-gradient-to-r from-red-600 to-rose-600 text-white text-[10px] font-black uppercase px-2 py-0.5 rounded-md shadow-2xs tracking-wider">
+                                  SUPERADMIN
+                                </span>
+                              ) : isAdmin ? (
+                                <span className="bg-purple-100 text-purple-700 border border-purple-200 text-[10px] font-black uppercase px-2 py-0.5 rounded-md tracking-wider">
+                                  ADMIN
+                                </span>
+                              ) : (
+                                <span className="bg-slate-100 text-slate-700 border border-slate-200 text-[10px] font-bold uppercase px-2 py-0.5 rounded-md tracking-wider">
+                                  {user.role?.toUpperCase() || 'USER'}
+                                </span>
+                              )}
+                              
+                              {(user.designation || user.Designation) && (
+                                <span 
+                                  className="text-[11px] font-bold px-2 py-0.5 rounded-md border tracking-tight"
+                                  style={{ 
+                                    backgroundColor: designationStyle.backgroundColor, 
+                                    color: designationStyle.color, 
+                                    borderColor: designationStyle.borderColor 
+                                  }}
+                                >
+                                  {user.designation || user.Designation}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+
+                          {/* 3. Department */}
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700">
+                              <Building2 size={13} className="text-slate-400 shrink-0" />
+                              <span>{user.department || '—'}</span>
+                            </div>
+                          </td>
+
+                          {/* 4. Module Access Meter */}
+                          <td className="py-3.5 px-4">
+                            <div className="space-y-1 max-w-[140px]">
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="font-extrabold text-slate-800">
+                                  {moduleCount} <span className="font-medium text-slate-400">/ {MODULES.length}</span>
+                                </span>
+                                <span className="text-[10px] font-bold text-slate-400">
+                                  {progressPct}%
+                                </span>
+                              </div>
+                              <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                                <div 
+                                  className="h-full rounded-full bg-gradient-to-r from-red-500 to-rose-600 transition-all duration-300"
+                                  style={{ width: `${progressPct}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* 5. Status */}
+                          <td className="py-3.5 px-4">
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
+                              user.status === 'active' 
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80' 
+                                : 'bg-slate-100 text-slate-600 border border-slate-200'
+                            }`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${
+                                user.status === 'active' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'
+                              }`}></span>
+                              {user.status?.toUpperCase() || 'ACTIVE'}
+                            </span>
+                          </td>
+
+                          {/* 6. Actions */}
+                          <td className="py-3.5 px-4 text-right">
+                            <button 
+                              onClick={() => handleOpenModal(user)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-slate-600 hover:text-red-700 bg-slate-50 hover:bg-red-50 border border-slate-200/80 hover:border-red-200 font-bold text-xs transition-all shadow-2xs active:scale-95 cursor-pointer"
+                              title="Edit user profile & permissions"
+                            >
+                              <Settings size={14} className="group-hover:rotate-45 transition-transform" />
+                              <span>Configure</span>
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Responsive Cards View (< 768px) */}
+            <div className="md:hidden p-3.5 space-y-3 bg-slate-50/50">
+              {loading ? (
+                <div className="py-12 text-center text-slate-400 font-medium bg-white rounded-2xl border border-slate-200">
+                  <RefreshCw className="h-6 w-6 animate-spin mx-auto text-red-500 mb-2" />
+                  Loading platform users...
+                </div>
+              ) : filteredUsers.length === 0 ? (
+                <div className="py-10 text-center text-slate-400 bg-white rounded-2xl border border-slate-200 p-4">
+                  <Users className="h-8 w-8 mx-auto text-slate-300 mb-2" />
+                  <p className="font-bold text-slate-600 text-sm">No users match your search.</p>
+                </div>
+              ) : (
+                filteredUsers.map((user) => {
+                  const designationStyle = getDesignationStyle(user.designation || user.Designation);
+                  const isSuper = user.role?.toLowerCase() === 'superadmin';
+                  const isAdmin = user.role?.toLowerCase() === 'admin';
+                  const moduleCount = user.moduleCount || user.systemAccessList?.length || 0;
+
+                  return (
+                    <div 
+                      key={user.id} 
+                      className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs space-y-3"
+                    >
+                      {/* Top Row: User Avatar + Name + Status */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <button
+                            type="button"
+                            onClick={() => user.profile_image && setPreviewImage(normalizeProfileImage(user.profile_image))}
+                            className="h-11 w-11 rounded-full bg-gradient-to-br from-red-500 to-rose-600 text-white flex items-center justify-center font-bold text-sm shrink-0 overflow-hidden shadow-xs ring-2 ring-white"
+                          >
+                            {user.profile_image ? (
+                              <img 
+                                src={normalizeProfileImage(user.profile_image)} 
+                                alt={user.user_name} 
+                                className="w-full h-full object-cover" 
+                              />
+                            ) : (
+                              user.user_name ? user.user_name.charAt(0).toUpperCase() : 'U'
+                            )}
+                          </button>
+                          <div className="min-w-0">
+                            <h3 className="font-black text-slate-900 text-sm truncate">{user.user_name}</h3>
+                            <p className="text-xs text-slate-400 truncate">{user.email_id || '-'}</p>
+                            {user.employee_id && (
+                              <span className="text-[9px] font-mono text-slate-400 bg-slate-100 px-1.5 py-0.2 rounded mt-0.5 inline-block">
+                                {user.employee_id}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
+                          user.status === 'active' 
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                            : 'bg-slate-100 text-slate-600 border border-slate-200'
+                        }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${
+                            user.status === 'active' ? 'bg-emerald-500' : 'bg-slate-400'
+                          }`}></span>
+                          {user.status?.toUpperCase() || 'ACTIVE'}
+                        </span>
+                      </div>
+
+                      {/* Middle Row: Role, Firm, Department, Modules */}
+                      <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-slate-100">
+                        <div className="bg-slate-50 p-2 rounded-xl">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase block mb-0.5">Role / Firm</span>
+                          <div className="flex flex-col gap-0.5">
+                            <span className="font-black text-slate-800 text-[11px] uppercase">
+                              {user.role || 'USER'}
+                            </span>
+                            {(user.designation || user.Designation) && (
+                              <span className="text-[10px] font-semibold truncate text-slate-500">
+                                {user.designation || user.Designation}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="bg-slate-50 p-2 rounded-xl">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase block mb-0.5">Department & Access</span>
+                          <p className="font-bold text-slate-700 text-[11px] truncate">{user.department || '—'}</p>
+                          <p className="text-[10px] text-red-600 font-bold mt-0.5">
+                            {moduleCount} / {MODULES.length} Modules
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Bottom Button */}
+                      <button
+                        onClick={() => handleOpenModal(user)}
+                        className="w-full py-2 bg-slate-100 hover:bg-red-50 hover:text-red-700 text-slate-700 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer border border-slate-200"
+                      >
+                        <Settings size={14} />
+                        <span>Manage Permissions & Profile</span>
+                      </button>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Table Footer Summary Bar */}
+            <div className="p-3.5 sm:p-4 border-t border-slate-100 bg-white flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500 font-medium">
+              <div>
+                Showing <span className="font-black text-slate-800">{filteredUsers.length}</span> of <span className="font-black text-slate-800">{users.length}</span> user accounts
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
+                <span>Active Database Connection</span>
+              </div>
+            </div>
+
+          </div>
         )}
 
+        {/* ═══════════════════════════════════════════════════════════
+            TAB 2: ACTIVE ENTERPRISE MODULES DIRECTORY
+        ═══════════════════════════════════════════════════════════ */}
         {activeTab === 'modules' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {MODULES.map(module => (
-                    <div key={module.id} className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all">
-                            <LayoutDashboard size={80} />
-                        </div>
-                        <div className="relative z-10">
-                            <div className="h-12 w-12 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mb-6">
-                                <LayoutDashboard size={24} />
-                            </div>
-                            <h3 className="text-xl font-black text-slate-800 mb-2">{module.name}</h3>
-                            <div className="flex items-center gap-2 mb-6">
-                                <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 px-2 py-1 rounded-md text-[11px] font-bold tracking-wider uppercase">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
-                                    Active System
-                                </span>
-                                <span className="text-slate-400 text-sm font-medium">•</span>
-                                <span className="text-slate-500 text-sm font-semibold">{module.pages.length} Pages</span>
-                            </div>
-                            
-                            <div className="space-y-2">
-                                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">Available Pages</div>
-                                <div className="flex flex-wrap gap-2">
-                                    {module.pages.map(page => (
-                                        <span key={page} className="px-3 py-1.5 bg-slate-50 border border-slate-100 text-slate-600 rounded-lg text-xs font-semibold">
-                                            {page}
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+            {MODULES.map((module) => {
+              const usersWithAccess = users.filter(u => u.systemAccessList?.includes(module.id)).length;
+
+              return (
+                <div 
+                  key={module.id} 
+                  className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 p-5 sm:p-6 shadow-2xs hover:shadow-lg hover:-translate-y-0.5 transition-all relative overflow-hidden group flex flex-col justify-between"
+                >
+                  <div className="absolute top-0 right-0 p-5 opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all pointer-events-none">
+                    <LayoutDashboard size={90} />
+                  </div>
+
+                  <div className="relative z-10 space-y-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="h-12 w-12 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs group-hover:bg-red-600 group-hover:text-white transition-colors">
+                        <LayoutDashboard size={22} />
+                      </div>
+                      <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200/70 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        Active System
+                      </span>
                     </div>
-                ))}
-            </div>
+
+                    <div>
+                      <h3 className="text-lg font-black text-slate-800 group-hover:text-red-600 transition-colors">
+                        {module.name}
+                      </h3>
+                      <div className="flex items-center gap-2 text-xs text-slate-500 font-semibold mt-1">
+                        <span>{module.pages.length} Pages Configured</span>
+                        <span>•</span>
+                        <span className="text-red-600">{usersWithAccess} Users Authorized</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+                        Sub-pages in this module
+                      </div>
+                      <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto custom-sidebar-scroll pr-1">
+                        {module.pages.map((page) => (
+                          <span 
+                            key={page} 
+                            className="px-2.5 py-1 bg-slate-50 border border-slate-100 text-slate-600 rounded-lg text-xs font-semibold hover:bg-slate-100 transition-colors"
+                          >
+                            {page}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400 font-medium">
+                    <span>Enterprise Security</span>
+                    <span className="text-emerald-600 font-bold">100% Operational</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         )}
 
       </div>
 
-      {/* User Edit Modal */}
+      {/* ═══════════════════════════════════════════════════════════
+          FULL RESOLUTION PROFILE IMAGE PREVIEW MODAL
+      ═══════════════════════════════════════════════════════════ */}
       {previewImage && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4">
-          <div className="relative max-w-2xl w-full">
+        <div 
+          className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4 animate-in fade-in duration-200"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div className="relative max-w-xl w-full" onClick={(e) => e.stopPropagation()}>
             <button
               type="button"
               onClick={() => setPreviewImage(null)}
-              className="absolute -top-3 -right-3 z-10 bg-white text-slate-700 rounded-full p-2 shadow-lg hover:bg-slate-100 transition-colors"
+              className="absolute -top-3 -right-3 z-10 bg-white text-slate-700 rounded-full p-2 shadow-xl hover:bg-red-50 hover:text-red-600 transition-colors cursor-pointer"
               aria-label="Close profile preview"
             >
               <X size={18} />
             </button>
-            <img src={previewImage} alt="Profile preview" className="w-full max-h-[80vh] object-contain rounded-2xl bg-white shadow-2xl" />
+            <img 
+              src={previewImage} 
+              alt="Profile preview" 
+              className="w-full max-h-[80vh] object-contain rounded-3xl bg-white shadow-2xl p-2" 
+            />
           </div>
         </div>
       )}
 
+      {/* ═══════════════════════════════════════════════════════════
+          CREATE & EDIT USER PERMISSION CONTROLLER MODAL
+      ═══════════════════════════════════════════════════════════ */}
       {showModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-                
-                {/* Modal Header */}
-                <div className="p-6 border-b border-slate-100 flex justify-between items-start bg-slate-50/50">
-                    <div>
-                        <h2 className="text-xl font-black text-slate-800">
-                            {editingUser ? `Edit User: ${editingUser.user_name}` : 'Create User Account'}
-                        </h2>
-                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Configuring General Profile & Systems Authorization</p>
-                    </div>
-                    <button onClick={handleCloseModal} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
-                        <X size={20} />
-                    </button>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden border border-slate-100">
+            
+            {/* Modal Header */}
+            <div className="p-5 sm:p-6 border-b border-slate-100 flex justify-between items-start bg-slate-50/70">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-red-600 to-rose-700 text-white flex items-center justify-center shrink-0 shadow-sm">
+                  <ShieldCheck size={22} />
                 </div>
-
-                {/* Modal Tabs */}
-                <div className="flex border-b border-slate-200 px-6 bg-white">
-                    <button
-                        onClick={() => setModalTab('profile')}
-                        className={`px-6 py-4 text-sm font-bold border-b-2 transition-all ${modalTab === 'profile' ? 'border-red-600 text-red-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-                    >
-                        1. GENERAL PROFILE
-                    </button>
-                    <button
-                        onClick={() => setModalTab('permissions')}
-                        className={`px-6 py-4 text-sm font-bold border-b-2 transition-all ${modalTab === 'permissions' ? 'border-red-600 text-red-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-                    >
-                        2. SYSTEM & PAGE PERMISSIONS
-                    </button>
+                <div>
+                  <h2 className="text-lg sm:text-xl font-black text-slate-800 leading-tight">
+                    {editingUser ? `Configure User: ${editingUser.user_name}` : 'Create New Platform User'}
+                  </h2>
+                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
+                    Profile Information & System Authorization Controller
+                  </p>
                 </div>
+              </div>
 
-                {/* Modal Content */}
-                <div className="flex-1 overflow-y-auto p-6 bg-slate-50/30">
-                    
-                    {modalTab === 'profile' && (
-                        <div className="space-y-6">
-                            {/* Profile Image Upload */}
-                            <div className="flex items-center gap-6 pb-6 border-b border-slate-100">
-                                <div className="relative">
-                                    <div className="w-20 h-20 rounded-full bg-slate-100 border-2 border-white shadow-md flex items-center justify-center overflow-hidden">
-                                        {formData.profile_image ? (
-                                            <img
-                                                src={normalizeProfileImage(formData.profile_image)}
-                                                alt="Profile"
-                                                className="w-full h-full object-cover cursor-pointer"
-                                                onClick={() => setPreviewImage(normalizeProfileImage(formData.profile_image))}
-                                            />
-                                        ) : (
-                                            <span className="text-2xl font-black text-slate-300">
-                                                {formData.user_name ? formData.user_name.charAt(0).toUpperCase() : '?'}
-                                            </span>
-                                        )}
-                                    </div>
-                                    <label className="absolute bottom-0 right-0 p-1.5 bg-red-600 rounded-full text-white shadow-md cursor-pointer hover:bg-red-700 transition-colors">
-                                        <Edit2 size={12} />
-                                        <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-                                    </label>
-                                </div>
-                                <div>
-                                    <h4 className="text-sm font-bold text-slate-800">Profile Picture</h4>
-                                    <p className="text-xs text-slate-500 mt-1">Upload a photo to help identify this user.</p>
-                                    {formData.profile_image && (
-                                        <button 
-                                            onClick={() => setFormData({...formData, profile_image: ''})} 
-                                            className="text-xs text-red-600 hover:text-red-800 font-bold mt-2 inline-block"
-                                        >
-                                            Remove Photo
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-slate-500 uppercase">Username *</label>
-                                <input
-                                    type="text"
-                                    value={formData.user_name}
-                                    onChange={(e) => setFormData({...formData, user_name: e.target.value})}
-                                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all"
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-slate-500 uppercase">Password *</label>
-                                <input
-                                    type="password"
-                                    value={formData.password}
-                                    onChange={(e) => setFormData({...formData, password: e.target.value})}
-                                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all"
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-slate-500 uppercase">Employee ID</label>
-                                <input
-                                    type="text"
-                                    value={formData.employee_id}
-                                    onChange={(e) => setFormData({...formData, employee_id: e.target.value})}
-                                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all"
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-slate-500 uppercase">Email Address</label>
-                                <input
-                                    type="email"
-                                    value={formData.email_id}
-                                    onChange={(e) => setFormData({...formData, email_id: e.target.value})}
-                                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all"
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-slate-500 uppercase">Phone Number</label>
-                                <input
-                                    type="text"
-                                    value={formData.number}
-                                    onChange={(e) => setFormData({...formData, number: e.target.value})}
-                                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all"
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-slate-500 uppercase">System Role</label>
-                                <select
-                                    value={formData.role}
-                                    onChange={(e) => setFormData({...formData, role: e.target.value})}
-                                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all"
-                                >
-                                    <option value="user">User (Doer)</option>
-                                    <option value="admin">Admin</option>
-                                    <option value="superadmin">superadmin</option>
-                                </select>
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-slate-500 uppercase">Account Status</label>
-                                <select
-                                    value={formData.status}
-                                    onChange={(e) => setFormData({...formData, status: e.target.value})}
-                                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all"
-                                >
-                                    <option value="active">Active</option>
-                                    <option value="inactive">Inactive</option>
-                                </select>
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-slate-500 uppercase">Department</label>
-                                <input
-                                    type="text"
-                                    value={formData.department}
-                                    onChange={(e) => setFormData({...formData, department: e.target.value})}
-                                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all"
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-slate-500 uppercase">Designation</label>
-                                <input
-                                    type="text"
-                                    value={formData.designation}
-                                    onChange={(e) => setFormData({...formData, designation: e.target.value})}
-                                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all"
-                                />
-                            </div>
-                        </div>
-                        </div>
-                    )}
-
-                    {modalTab === 'permissions' && (
-                        <div className="space-y-8">
-                            
-                            {/* System Module Access */}
-                            <div>
-                                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">System Module Access</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {MODULES.map(mod => {
-                                        const isSelected = formData.system_access?.includes(mod.id);
-                                        return (
-                                            <div 
-                                                key={mod.id}
-                                                onClick={() => toggleModuleAccess(mod.id)}
-                                                className={`flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all ${isSelected ? 'border-red-600 bg-red-50/50' : 'border-slate-100 bg-white hover:border-slate-200'}`}
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <div className={`h-10 w-10 rounded-lg flex items-center justify-center shrink-0 ${isSelected ? 'bg-red-100 text-red-600' : 'bg-slate-100 text-slate-400'}`}>
-                                                        <Shield size={20} />
-                                                    </div>
-                                                    <span className={`font-bold ${isSelected ? 'text-red-900' : 'text-slate-600'}`}>{mod.name}</span>
-                                                </div>
-                                                <div className={`h-6 w-6 rounded-full border-2 flex items-center justify-center ${isSelected ? 'border-red-600 bg-red-600' : 'border-slate-200'}`}>
-                                                    {isSelected && <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-
-                            {/* Page Navigation Access */}
-                            <div>
-                                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Page & Navigation Access</h3>
-                                <div className="flex gap-2 overflow-x-auto pb-2">
-                                    {MODULES.filter(m => formData.system_access?.includes(m.id)).map(mod => (
-                                        <button
-                                            key={mod.id}
-                                            onClick={() => setSelectedModule(mod.id)}
-                                            className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-all ${selectedModule === mod.id ? 'bg-slate-800 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}
-                                        >
-                                            {mod.name}
-                                        </button>
-                                    ))}
-                                    {(formData.system_access?.length === 0 || !formData.system_access) && (
-                                        <p className="text-sm text-slate-400 italic py-2">Select a module above to configure page access.</p>
-                                    )}
-                                </div>
-
-                                {formData.system_access?.includes(selectedModule) && (
-                                    <div className="mt-4 bg-white border border-slate-200 rounded-xl overflow-hidden">
-                                        <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-slate-50">
-                                            <span className="text-xs font-bold text-slate-500 uppercase">Pages Available in {selectedModule}</span>
-                                            <div className="flex items-center gap-3 text-sm font-bold">
-                                                <button onClick={() => handleCheckAllPages(selectedModule)} className="text-red-600 hover:text-red-700">Check All</button>
-                                                <span className="text-slate-300">|</span>
-                                                <button onClick={() => handleClearAllPages(selectedModule)} className="text-slate-500 hover:text-slate-700">Clear All</button>
-                                            </div>
-                                        </div>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 max-h-[300px] overflow-y-auto">
-                                            {MODULES.find(m => m.id === selectedModule)?.pages.map(page => {
-                                                const pageKey = `${selectedModule}::${page}`;
-                                                const isSelected = formData.page_access?.includes(pageKey);
-                                                return (
-                                                    <div 
-                                                        key={page}
-                                                        onClick={() => togglePageAccess(selectedModule, page)}
-                                                        className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all ${isSelected ? 'border-red-200 bg-red-50/30' : 'border-slate-100 hover:border-slate-200'}`}
-                                                    >
-                                                        <div className="flex flex-col">
-                                                            <span className={`font-bold text-sm ${isSelected ? 'text-red-900' : 'text-slate-600'}`}>{page}</span>
-                                                        </div>
-                                                        <div className={`h-5 w-5 rounded border flex items-center justify-center ${isSelected ? 'border-red-600 bg-red-600' : 'border-slate-300'}`}>
-                                                            {isSelected && <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-
-                        </div>
-                    )}
-                </div>
-
-                {/* Modal Footer */}
-                <div className="p-6 border-t border-slate-100 flex items-center justify-between bg-slate-50">
-                    <button onClick={handleCloseModal} className="px-6 py-2.5 text-sm font-bold text-slate-500 hover:text-slate-700 transition-colors">
-                        Cancel
-                    </button>
-                    <button onClick={handleSaveUser} className="px-8 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-sm shadow-red-200 transition-all">
-                        SAVE CHANGES
-                    </button>
-                </div>
+              <button 
+                onClick={handleCloseModal} 
+                className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-xl transition-colors cursor-pointer"
+              >
+                <X size={20} />
+              </button>
             </div>
+
+            {/* Modal Tab Switcher */}
+            <div className="flex border-b border-slate-200 px-6 bg-white gap-2">
+              <button
+                onClick={() => setModalTab('profile')}
+                className={`py-3.5 px-4 text-xs sm:text-sm font-black border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
+                  modalTab === 'profile' 
+                    ? 'border-red-600 text-red-600' 
+                    : 'border-transparent text-slate-400 hover:text-slate-700'
+                }`}
+              >
+                <User size={15} />
+                <span>1. General Profile</span>
+              </button>
+              <button
+                onClick={() => setModalTab('permissions')}
+                className={`py-3.5 px-4 text-xs sm:text-sm font-black border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
+                  modalTab === 'permissions' 
+                    ? 'border-red-600 text-red-600' 
+                    : 'border-transparent text-slate-400 hover:text-slate-700'
+                }`}
+              >
+                <KeyRound size={15} />
+                <span>2. Systems & Pages Access</span>
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-red-100 text-red-700 font-black">
+                  {formData.system_access?.length || 0}
+                </span>
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="flex-1 overflow-y-auto p-5 sm:p-7 bg-slate-50/40 custom-sidebar-scroll">
+              
+              {/* Tab 1: Profile Information */}
+              {modalTab === 'profile' && (
+                <div className="space-y-6">
+                  
+                  {/* Photo Upload Area */}
+                  <div className="flex items-center gap-5 p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs">
+                    <div className="relative shrink-0">
+                      <div className="w-20 h-20 rounded-full bg-slate-100 border-2 border-white shadow-md flex items-center justify-center overflow-hidden">
+                        {formData.profile_image ? (
+                          <img
+                            src={normalizeProfileImage(formData.profile_image)}
+                            alt="Profile"
+                            className="w-full h-full object-cover cursor-pointer"
+                            onClick={() => setPreviewImage(normalizeProfileImage(formData.profile_image))}
+                          />
+                        ) : (
+                          <span className="text-2xl font-black text-slate-300">
+                            {formData.user_name ? formData.user_name.charAt(0).toUpperCase() : '?'}
+                          </span>
+                        )}
+                      </div>
+                      <label className="absolute bottom-0 right-0 p-1.5 bg-red-600 hover:bg-red-700 rounded-full text-white shadow-md cursor-pointer transition-colors">
+                        <Edit2 size={12} />
+                        <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                      </label>
+                    </div>
+
+                    <div className="space-y-1">
+                      <h4 className="text-sm font-black text-slate-800">Profile Picture</h4>
+                      <p className="text-xs text-slate-500">Upload a professional image for this user account.</p>
+                      {formData.profile_image && (
+                        <button 
+                          onClick={() => setFormData({...formData, profile_image: ''})} 
+                          className="text-xs text-red-600 hover:text-red-800 font-bold inline-block cursor-pointer"
+                        >
+                          Remove Photo
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Input Fields Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+                    
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5">
+                        <User size={13} className="text-slate-400" /> Username *
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. John Doe"
+                        value={formData.user_name}
+                        onChange={(e) => setFormData({...formData, user_name: e.target.value})}
+                        className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all shadow-2xs"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5">
+                        <Lock size={13} className="text-slate-400" /> Password *
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Login password"
+                        value={formData.password}
+                        onChange={(e) => setFormData({...formData, password: e.target.value})}
+                        className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-mono font-medium focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all shadow-2xs"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5">
+                        <KeyRound size={13} className="text-slate-400" /> Employee ID
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. EMP-1002"
+                        value={formData.employee_id}
+                        onChange={(e) => setFormData({...formData, employee_id: e.target.value})}
+                        className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all shadow-2xs"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5">
+                        <Mail size={13} className="text-slate-400" /> Email Address
+                      </label>
+                      <input
+                        type="email"
+                        placeholder="name@jaibhole.in"
+                        value={formData.email_id}
+                        onChange={(e) => setFormData({...formData, email_id: e.target.value})}
+                        className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all shadow-2xs"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5">
+                        <Phone size={13} className="text-slate-400" /> Phone Number
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. +91 9876543210"
+                        value={formData.number}
+                        onChange={(e) => setFormData({...formData, number: e.target.value})}
+                        className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all shadow-2xs"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5">
+                        <Shield size={13} className="text-slate-400" /> System Role
+                      </label>
+                      <select
+                        value={formData.role}
+                        onChange={(e) => setFormData({...formData, role: e.target.value})}
+                        className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all shadow-2xs cursor-pointer"
+                      >
+                        <option value="user">User (Standard Access)</option>
+                        <option value="admin">Admin (Manager)</option>
+                        <option value="superadmin">Superadmin (Master Controller)</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5">
+                        <CheckCircle2 size={13} className="text-slate-400" /> Account Status
+                      </label>
+                      <select
+                        value={formData.status}
+                        onChange={(e) => setFormData({...formData, status: e.target.value})}
+                        className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all shadow-2xs cursor-pointer"
+                      >
+                        <option value="active">Active (Access Allowed)</option>
+                        <option value="inactive">Inactive (Account Locked)</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5">
+                        <Building2 size={13} className="text-slate-400" /> Department
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Accounts, HR, Logistics"
+                        value={formData.department}
+                        onChange={(e) => setFormData({...formData, department: e.target.value})}
+                        className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all shadow-2xs"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5 md:col-span-2">
+                      <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5">
+                        <Building2 size={13} className="text-slate-400" /> Firm / Designation
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. JAI BHOLE TRADERS, Senior Accountant"
+                        value={formData.designation}
+                        onChange={(e) => setFormData({...formData, designation: e.target.value})}
+                        className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all shadow-2xs"
+                      />
+                    </div>
+
+                  </div>
+                </div>
+              )}
+
+              {/* Tab 2: System & Page Permissions */}
+              {modalTab === 'permissions' && (
+                <div className="space-y-7">
+                  
+                  {/* System Module Access Grid */}
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">
+                          1. System Module Authorization
+                        </h3>
+                        <p className="text-xs text-slate-500">
+                          Select the enterprise modules this user can view on their navigation sidebar.
+                        </p>
+                      </div>
+                      <span className="text-xs font-black text-red-600 bg-red-50 px-2.5 py-1 rounded-lg">
+                        {formData.system_access?.length || 0} Modules Selected
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {MODULES.map((mod) => {
+                        const isSelected = formData.system_access?.includes(mod.id);
+                        return (
+                          <div 
+                            key={mod.id}
+                            onClick={() => toggleModuleAccess(mod.id)}
+                            className={`flex items-center justify-between p-3.5 rounded-2xl border-2 cursor-pointer transition-all ${
+                              isSelected 
+                                ? 'border-red-600 bg-red-50/50 shadow-2xs' 
+                                : 'border-slate-200 bg-white hover:border-slate-300'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className={`h-9 w-9 rounded-xl flex items-center justify-center shrink-0 ${
+                                isSelected ? 'bg-red-600 text-white' : 'bg-slate-100 text-slate-400'
+                              }`}>
+                                <Shield size={18} />
+                              </div>
+                              <div className="min-w-0">
+                                <span className={`font-bold text-xs sm:text-sm block truncate ${
+                                  isSelected ? 'text-red-950 font-black' : 'text-slate-700'
+                                }`}>
+                                  {mod.name}
+                                </span>
+                                <span className="text-[10px] text-slate-400 font-medium">
+                                  {mod.pages.length} Pages Available
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className={`h-6 w-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
+                              isSelected ? 'border-red-600 bg-red-600 text-white' : 'border-slate-300'
+                            }`}>
+                              {isSelected && <Check size={14} strokeWidth={3} />}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Sub-Page Granular Permissions */}
+                  <div className="pt-4 border-t border-slate-200">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">
+                          2. Granular Page Permissions
+                        </h3>
+                        <p className="text-xs text-slate-500">
+                          Select specific pages inside authorized modules.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Module Filter Tabs */}
+                    <div className="flex gap-2 overflow-x-auto pb-2 custom-sidebar-scroll">
+                      {MODULES.filter(m => formData.system_access?.includes(m.id)).map((mod) => (
+                        <button
+                          key={mod.id}
+                          type="button"
+                          onClick={() => setSelectedModule(mod.id)}
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                            selectedModule === mod.id 
+                              ? 'bg-slate-900 text-white shadow-xs' 
+                              : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                          }`}
+                        >
+                          {mod.name}
+                        </button>
+                      ))}
+
+                      {(!formData.system_access || formData.system_access.length === 0) && (
+                        <p className="text-xs text-slate-400 italic py-2">
+                          Please authorize at least one module above to configure page-level permissions.
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Pages Checkbox Grid for Selected Module */}
+                    {formData.system_access?.includes(selectedModule) && (
+                      <div className="mt-3 bg-white border border-slate-200/90 rounded-2xl overflow-hidden shadow-2xs">
+                        <div className="flex items-center justify-between p-3.5 border-b border-slate-100 bg-slate-50/80">
+                          <span className="text-xs font-black text-slate-700 uppercase tracking-wide">
+                            {selectedModule} Pages
+                          </span>
+                          <div className="flex items-center gap-2 text-xs font-black">
+                            <button 
+                              type="button"
+                              onClick={() => handleCheckAllPages(selectedModule)} 
+                              className="text-red-600 hover:text-red-800 hover:underline cursor-pointer"
+                            >
+                              Check All
+                            </button>
+                            <span className="text-slate-300">|</span>
+                            <button 
+                              type="button"
+                              onClick={() => handleClearAllPages(selectedModule)} 
+                              className="text-slate-500 hover:text-slate-800 hover:underline cursor-pointer"
+                            >
+                              Clear All
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 p-3.5 max-h-64 overflow-y-auto custom-sidebar-scroll">
+                          {MODULES.find(m => m.id === selectedModule)?.pages.map((page) => {
+                            const pageKey = `${selectedModule}::${page}`;
+                            const isSelected = formData.page_access?.includes(pageKey);
+                            return (
+                              <div 
+                                key={page}
+                                onClick={() => togglePageAccess(selectedModule, page)}
+                                className={`flex items-center justify-between p-2.5 rounded-xl border cursor-pointer transition-all ${
+                                  isSelected 
+                                    ? 'border-red-300 bg-red-50/50 text-red-950 font-bold' 
+                                    : 'border-slate-200 hover:border-slate-300 bg-white text-slate-700'
+                                }`}
+                              >
+                                <span className="text-xs truncate pr-1">{page}</span>
+                                <div className={`h-4.5 w-4.5 rounded border flex items-center justify-center shrink-0 ${
+                                  isSelected ? 'border-red-600 bg-red-600 text-white' : 'border-slate-300'
+                                }`}>
+                                  {isSelected && <Check size={11} strokeWidth={3} />}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                  </div>
+
+                </div>
+              )}
+
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 sm:p-5 border-t border-slate-100 flex items-center justify-between bg-slate-50/80">
+              <button 
+                type="button"
+                onClick={handleCloseModal} 
+                className="px-5 py-2.5 text-xs sm:text-sm font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-200/50 rounded-xl transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button 
+                type="button"
+                onClick={handleSaveUser} 
+                className="px-7 py-2.5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-black rounded-xl shadow-md shadow-red-500/20 hover:shadow-lg transition-all flex items-center gap-2 text-xs sm:text-sm active:scale-95 cursor-pointer"
+              >
+                <Save size={16} />
+                <span>Save User Settings</span>
+              </button>
+            </div>
+
+          </div>
         </div>
       )}
 
