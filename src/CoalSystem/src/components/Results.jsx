@@ -168,7 +168,7 @@ export default function Results({ data, fileName, onReset, onAddFiles, onExportJ
             <h3 style={{ fontSize: 16, marginBottom: 12, color: "var(--text)" }}>
               File {index + 1} Extracted Data
             </h3>
-            <div className="grid">
+            <div className="results-cards-grid">
               <InfoCard
                 title="Receiver Details"
                 fields={[

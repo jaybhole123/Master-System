@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@400..800&display=swap');
 @import "tailwindcss";
-@source "./";
+/* Tailwind CSS v4 */
 
 @keyframes toast-slide-in {
     0% {
@@ -100,5 +100,20 @@
 }
 .animate-marquee-seamless:hover {
   animation-play-state: paused;
+}
+
+/* Sleek custom scrollbar for sidebar */
+.custom-sidebar-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-sidebar-scroll::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 9999px;
+}
+.custom-sidebar-scroll:hover::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
 }
 

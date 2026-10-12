@@ -1,6 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import AdminLayout from '../../components/layout/AdminLayout';
-import { Search, Plus, Building2, X, Edit, Trash2, FileText, FileSpreadsheet, Clock, CheckCircle2, Check, AlertCircle } from 'lucide-react';
+import { 
+  Search, Plus, Building2, X, Edit, Trash2, FileText, FileSpreadsheet, 
+  Clock, CheckCircle2, Check, AlertCircle, TrendingUp, Users, Shield, 
+  ArrowRight, LayoutDashboard, Phone, ExternalLink, Calendar as CalendarIcon, 
+  Sparkles, Wallet, Banknote 
+} from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
@@ -554,45 +560,68 @@ const RentMaster = () => {
     }
   };
 
+  const totalProperties = mockData.length;
+  const totalMonthlyYield = mockData.reduce((sum, item) => sum + (Number(item.monthlyRent) || 0), 0);
+  const totalSecurityDeposit = mockData.reduce((sum, item) => sum + (Number(item.securityDeposit) || 0), 0);
+  const avgRent = totalProperties > 0 ? Math.round(totalMonthlyYield / totalProperties) : 0;
+  const docsCount = mockData.filter(item => item.document && item.document.length > 0).length;
+
   return (
     <AdminLayout>
-      <div className="space-y-6 pt-8">
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="w-full px-3 sm:px-6 py-2 space-y-7 animate-in fade-in duration-300">
+        
+        {/* ═══════════ HEADER & CONTROLS ═══════════ */}
+        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 pb-2 border-b border-slate-200/80">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-800 flex items-center gap-2">
-              <Building2 className="h-5 w-5 sm:h-6 sm:w-6 text-red-600" />
-              Rent Master
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50 border border-red-200/80 text-[11px] font-bold text-red-600 mb-2 uppercase tracking-wider shadow-2xs">
+              <Building2 className="h-3.5 w-3.5 text-red-500" />
+              <span>Asset & Tenancy Repository</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+              Rent Master Directory
             </h1>
-            <p className="text-xs sm:text-sm text-slate-500 mt-1">Manage master details of all properties and tenants</p>
+            <p className="text-xs sm:text-sm text-slate-500 mt-1 flex items-center gap-2">
+              <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              Manage property profiles, tenant contracts, custody documents, and payment settings
+            </p>
           </div>
           
-          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 w-full md:w-auto">
-            <div className="relative w-full sm:w-auto">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
               <input 
                 type="text"
-                placeholder="Search..."
+                placeholder="Search properties, tenants, owners..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 w-full sm:w-64 transition-all"
+                className="pl-9 pr-4 py-2 border border-slate-200/90 rounded-xl text-xs bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 w-full transition-all shadow-2xs"
               />
             </div>
-            
+
+            <Link
+              to="/dashboard/rent-tracker/dashboard"
+              className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all shadow-2xs"
+            >
+              <LayoutDashboard className="h-3.5 w-3.5 text-slate-600" />
+              <span>Analytics</span>
+            </Link>
+
             <button 
               onClick={handleDownloadPDF}
-              className="w-full sm:w-auto justify-center flex items-center gap-2 px-3 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors text-sm font-medium shrink-0"
+              className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all shadow-2xs"
               title="Download PDF"
             >
-              <FileText className="h-4 w-4 text-red-500" />
-              <span className="hidden sm:inline">PDF</span>
+              <FileText className="h-3.5 w-3.5 text-red-500" />
+              <span>PDF</span>
             </button>
+
             <button 
               onClick={handleDownloadExcel}
-              className="w-full sm:w-auto justify-center flex items-center gap-2 px-3 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors text-sm font-medium shrink-0"
+              className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all shadow-2xs"
               title="Download Excel"
             >
-              <FileSpreadsheet className="h-4 w-4 text-green-600" />
-              <span className="hidden sm:inline">Excel</span>
+              <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
+              <span>Excel</span>
             </button>
 
             <button 
@@ -604,12 +633,102 @@ const RentMaster = () => {
                 });
                 setIsModalOpen(true);
               }}
-              className="w-full sm:w-auto justify-center flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium shadow-sm shadow-red-600/20 shrink-0"
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs shrink-0"
             >
               <Plus className="h-4 w-4" />
-              Add Record
+              <span>Add Record</span>
             </button>
           </div>
+        </div>
+
+        {/* ═══════════ TOP 5 KPI METRICS - SINGLE LINE ═══════════ */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: '10px' }}>
+          
+          <div className="bg-white rounded-xl p-2.5 sm:py-2.5 sm:px-3 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group min-w-0">
+            <div className="flex items-center justify-between mb-1.5 gap-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 truncate" title="Total Units">
+                Total Properties
+              </span>
+              <div className="p-1 rounded-lg shrink-0 bg-blue-50 text-blue-600">
+                <Building2 className="h-3.5 w-3.5" />
+              </div>
+            </div>
+            <div className="text-base sm:text-lg font-black text-blue-700 tracking-tight leading-tight group-hover:text-red-600 transition-colors truncate">
+              {totalProperties} Units
+            </div>
+            <div className="text-[10px] text-emerald-600 mt-0.5 font-bold truncate">
+              100% Occupied
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl p-2.5 sm:py-2.5 sm:px-3 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group min-w-0">
+            <div className="flex items-center justify-between mb-1.5 gap-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 truncate" title="Monthly Yield">
+                Monthly Portfolio
+              </span>
+              <div className="p-1 rounded-lg shrink-0 bg-emerald-50 text-emerald-600">
+                <TrendingUp className="h-3.5 w-3.5" />
+              </div>
+            </div>
+            <div className="text-base sm:text-lg font-black text-emerald-700 tracking-tight leading-tight group-hover:text-red-600 transition-colors truncate">
+              ₹ {totalMonthlyYield.toLocaleString('en-IN')}
+            </div>
+            <div className="text-[10px] text-slate-400 mt-0.5 font-medium truncate">
+              Projected Yield / Month
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl p-2.5 sm:py-2.5 sm:px-3 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group min-w-0">
+            <div className="flex items-center justify-between mb-1.5 gap-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 truncate" title="Security Deposit">
+                Security Deposit
+              </span>
+              <div className="p-1 rounded-lg shrink-0 bg-rose-50 text-rose-600">
+                <Shield className="h-3.5 w-3.5" />
+              </div>
+            </div>
+            <div className="text-base sm:text-lg font-black text-rose-600 tracking-tight leading-tight group-hover:text-red-600 transition-colors truncate">
+              ₹ {totalSecurityDeposit.toLocaleString('en-IN')}
+            </div>
+            <div className="text-[10px] text-slate-400 mt-0.5 font-medium truncate">
+              Held in Custody
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl p-2.5 sm:py-2.5 sm:px-3 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group min-w-0">
+            <div className="flex items-center justify-between mb-1.5 gap-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 truncate" title="Average Rent">
+                Average Rent / Unit
+              </span>
+              <div className="p-1 rounded-lg shrink-0 bg-purple-50 text-purple-600">
+                <Banknote className="h-3.5 w-3.5" />
+              </div>
+            </div>
+            <div className="text-base sm:text-lg font-black text-purple-700 tracking-tight leading-tight group-hover:text-red-600 transition-colors truncate">
+              ₹ {avgRent.toLocaleString('en-IN')}
+            </div>
+            <div className="text-[10px] text-slate-400 mt-0.5 font-medium truncate">
+              Per Property Average
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl p-2.5 sm:py-2.5 sm:px-3 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group min-w-0">
+            <div className="flex items-center justify-between mb-1.5 gap-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 truncate" title="Documents Attached">
+                Documents Attached
+              </span>
+              <div className="p-1 rounded-lg shrink-0 bg-teal-50 text-teal-600">
+                <FileText className="h-3.5 w-3.5" />
+              </div>
+            </div>
+            <div className="text-base sm:text-lg font-black text-teal-700 tracking-tight leading-tight group-hover:text-red-600 transition-colors truncate">
+              {docsCount} Records
+            </div>
+            <div className="text-[10px] text-teal-600 mt-0.5 font-bold truncate">
+              Lease Files Attached
+            </div>
+          </div>
+
         </div>
 
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden hidden md:block">
@@ -645,48 +764,110 @@ const RentMaster = () => {
                   </tr>
                 ) : (
                   filteredData.map((record, index) => (
-                  <tr key={record.id} className="hover:bg-slate-50/50 transition-colors cursor-pointer" onClick={(e) => {
-                    if (e.target.closest('button') || e.target.closest('.action-cell')) return;
+                  <tr key={record.id} className="hover:bg-slate-50/80 transition-colors cursor-pointer group" onClick={(e) => {
+                    if (e.target.closest('button') || e.target.closest('a') || e.target.closest('.action-cell')) return;
                     openHistoryModal(record);
                   }}>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-700">{index + 1}</td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-slate-900">{record.propertyName}</td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-700">{record.tenantName}</td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-700">{record.tenantContact}</td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-700">{record.ownerName}</td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-slate-900">₹{record.monthlyRent}</td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-700">₹{record.securityDeposit}</td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-700">{formatDate(record.agreementStart)}</td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-700">{formatDate(record.agreementEnd)}</td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-700">
-                      {record.rentDueDateStart && record.rentDueDateEnd ? `${record.rentDueDateStart} to ${record.rentDueDateEnd} of each month` : '-'}
+                    <td className="px-4 py-4 whitespace-nowrap text-xs font-bold text-slate-400">{index + 1}</td>
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <div className="text-sm font-extrabold text-slate-900 group-hover:text-red-600 transition-colors flex items-center gap-1.5">
+                        <Building2 className="h-3.5 w-3.5 text-red-500 shrink-0" />
+                        <span>{record.propertyName}</span>
+                      </div>
                     </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-700">{record.paymentMode}</td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-700">{record.bankDetails || '-'}</td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-700">{record.electricity}</td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-700">{record.maintenance}</td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-700">{record.remarks}</td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm font-bold text-slate-800">{record.tenantName}</td>
+                    <td className="px-4 py-4 whitespace-nowrap text-xs text-slate-600">
+                      {record.tenantContact ? (
+                        <a 
+                          href={`https://wa.me/91${record.tenantContact.replace(/[^0-9]/g, '')}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold transition-colors"
+                          title="Click to WhatsApp"
+                        >
+                          <Phone className="h-3 w-3" />
+                          <span>{record.tenantContact}</span>
+                        </a>
+                      ) : '-'}
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap text-xs font-medium text-slate-600">
+                      <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-semibold">{record.ownerName || '-'}</span>
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm font-black text-slate-900">
+                      ₹{Number(record.monthlyRent || 0).toLocaleString('en-IN')}
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap text-xs font-bold text-slate-600">
+                      ₹{Number(record.securityDeposit || 0).toLocaleString('en-IN')}
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap text-xs text-slate-600 font-medium">{formatDate(record.agreementStart)}</td>
+                    <td className="px-4 py-4 whitespace-nowrap text-xs text-slate-600 font-medium">{formatDate(record.agreementEnd)}</td>
+                    <td className="px-4 py-4 whitespace-nowrap text-xs text-slate-700 font-semibold">
+                      {record.rentDueDateStart && record.rentDueDateEnd ? `${record.rentDueDateStart} to ${record.rentDueDateEnd} of month` : '-'}
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        record.paymentMode?.toLowerCase() === 'cash' ? 'bg-amber-50 text-amber-700 border border-amber-200/60' : 'bg-blue-50 text-blue-700 border border-blue-200/60'
+                      }`}>
+                        {record.paymentMode || 'Cash'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap text-xs text-slate-600 max-w-[150px] truncate" title={record.bankDetails || ''}>
+                      {record.bankDetails || '-'}
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                        record.electricity?.toLowerCase() === 'include' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        {record.electricity || 'Exclude'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                        record.maintenance?.toLowerCase() === 'include' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        {record.maintenance || 'Exclude'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap text-xs text-slate-500 max-w-[120px] truncate" title={record.remarks || ''}>
+                      {record.remarks || '-'}
+                    </td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm action-cell">
                       {record.document && record.document.length > 0 ? (
-                        <div className="flex flex-col gap-1.5">
+                        <div className="flex flex-col gap-1">
                           {record.document.map((docUrl, idx) => (
-                            <a key={idx} href={docUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors font-medium text-[11px] w-max">
-                              <FileText className="h-3.5 w-3.5" />
+                            <a 
+                              key={idx} 
+                              href={docUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              onClick={(e) => e.stopPropagation()}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors font-bold text-[10px] w-max shadow-2xs"
+                            >
+                              <FileText className="h-3 w-3" />
                               View Doc {record.document.length > 1 ? idx + 1 : ''}
                             </a>
                           ))}
                         </div>
                       ) : (
-                        <span className="text-slate-400">-</span>
+                        <span className="text-slate-400 text-xs">-</span>
                       )}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium action-cell">
-                      <div className="flex items-center justify-end gap-2">
-                        <button onClick={() => handleUpdate(record.id)} title="Update" className="p-1.5 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors">
-                          <Edit className="h-4 w-4" />
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); handleUpdate(record.id); }} 
+                          title="Update Profile" 
+                          className="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors shadow-2xs"
+                        >
+                          <Edit className="h-3.5 w-3.5" />
                         </button>
-                        <button onClick={() => handleDelete(record.id)} title="Delete" className="p-1.5 bg-red-50 text-red-600 rounded hover:bg-red-100 transition-colors">
-                          <Trash2 className="h-4 w-4" />
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); handleDelete(record.id); }} 
+                          title="Delete Record" 
+                          className="p-1.5 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-100 transition-colors shadow-2xs"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       </div>
                     </td>

@@ -304,11 +304,6 @@ export default function AddCase() {
           balance: newBalance
         };
 
-        // Save to Supabase ledger if available
-        try {
-          await supabase.from('ledger').insert([ledgerEntry]);
-        } catch(e) {}
-
         await fetchCredits();
         toast.success(`Credit of ${formatCurrency(formData.amount)} added successfully!`);
       }

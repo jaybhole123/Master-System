@@ -841,16 +841,35 @@ export const sendRentPaymentReminder = async (reminderDetails) => {
 export const sendRentPaymentConfirmation = async (paymentDetails) => {
     try {
         const { phone, name, propertyAndMonth, amount } = paymentDetails;
-        if (!phone) return false;
+        if (!phone) {
+            console.warn('sendRentPaymentConfirmation: No phone number provided');
+            return false;
+        }
 
         // Template: rent_payment_confirmation
         // Variables: {{1}} name, {{2}} amount, {{3}} propertyAndMonth
-        return await sendWhatsAppTemplate(
+        const sent = await sendWhatsAppTemplate(
             phone,
             'rent_payment_confirmation',
             [name, amount, propertyAndMonth],
             'en'
         );
+
+        if (!sent) {
+            console.log('Template send failed, attempting direct WhatsApp message fallback...');
+            const customMessage = `🏠 *RENT PAYMENT RECEIVED* ✅\n\n` +
+                `Dear *${name}*,\n\n` +
+                `Your rent payment has been successfully received! 🙏\n\n` +
+                `📋 *Details:*\n` +
+                `• Amount: *${amount}*\n` +
+                `• Property & Month: *${propertyAndMonth}*\n` +
+                `• Status: Confirmed ✅\n\n` +
+                `Thank you so much for paying your rent on time! ✨\n\n` +
+                `Regards,\n*Jay Bhole Group* 🏢`;
+            return await sendWhatsAppMessage(phone, customMessage);
+        }
+
+        return true;
     } catch (error) {
         console.error('Error sending rent payment confirmation:', error);
         return false;

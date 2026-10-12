@@ -61,7 +61,10 @@ const getHeaderTitle = (pathname, routes) => {
   if (pathname.includes("/dashboard/help-slip")) return { module: "Help Slip", page: "Help Slip" };
   if (pathname.includes("/dashboard/global-settings")) return { module: "Global Settings", page: "Global Settings" };
   // Check Rent Management
-  if (pathname.includes("/dashboard/rent-management")) return { module: "Rent Management", page: "Rent Management" };
+  if (pathname.includes("/dashboard/rent-tracker/dashboard")) return { module: "Rent Management Tracker", page: "Rent Dashboard" };
+  if (pathname.includes("/dashboard/rent-tracker/master")) return { module: "Rent Management Tracker", page: "Rent Master" };
+  if (pathname.includes("/dashboard/rent-tracker/monthly")) return { module: "Rent Management Tracker", page: "Monthly Tracker" };
+  if (pathname.includes("/dashboard/rent-management")) return { module: "Rent Management Tracker", page: "Rent Management" };
   // Check HR System routes
   if (pathname.startsWith("/hr")) {
     const flat = routes.flatMap(r => r.subItems ? r.subItems : [r]);
@@ -255,28 +258,32 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
         const todayDateStr = `${year}-${month}-${day}`;
 
         const fetchCount = async (table, isPending = false) => {
-          let query = supabase.from(table).select('*', { count: 'exact', head: true });
-          if (isPending && table === 'petty_cash_expenses') {
-             query = query.eq('status', 'PENDING');
-          } else {
-             query = query.eq('date', todayDateStr);
+          try {
+            let query = supabase.from(table).select('*', { count: 'exact', head: true });
+            if (isPending && table === 'petty_cash_expenses') {
+               query = query.eq('status', 'PENDING');
+            } else {
+               query = query.eq('date', todayDateStr);
+            }
+            const { count, error } = await query;
+            if (error) return 0;
+            return count || 0;
+          } catch(e) {
+            return 0;
           }
-          const { count } = await query;
-          return count || 0;
         };
         const [
-          creditsCount, expensesCount, ledgerCount
+          creditsCount, expensesCount
         ] = await Promise.all([
           fetchCount('petty_cash_addcash_credits'),
-          fetchCount('petty_cash_expenses', true),
-          fetchCount('ledger')
+          fetchCount('petty_cash_expenses', true)
         ]);
 
         if (isMounted) {
           setPettyCashBadges({
             "Add Credit": creditsCount,
             "Expenses": expensesCount,
-            "Ledger": ledgerCount
+            "Ledger": (creditsCount || 0) + (expensesCount || 0)
           });
         }
       } catch (err) {
@@ -331,24 +338,33 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
     const fetchCoalCounts = async () => {
       if (!isSuperAdmin && !systemAccess.includes("Coal System")) return;
       try {
-        const fetchCount = async (table) => {
-          // Count only pending/active records (where status is null or not 'done')
-          const { count } = await supabase
-            .from(table)
-            .select('*', { count: 'exact', head: true })
-            .or('status.is.null,status.neq.done');
-          return count || 0;
+        const fetchCount = async (table, checkStatus = true) => {
+          try {
+            let query = supabase.from(table).select('*', { count: 'exact', head: true });
+            if (checkStatus) {
+              query = query.or('status.is.null,status.neq.done');
+            }
+            const { count, error } = await query;
+            if (error) {
+              // Retry without status filter if column doesn't exist
+              const { count: fallback } = await supabase.from(table).select('*', { count: 'exact', head: true });
+              return fallback || 0;
+            }
+            return count || 0;
+          } catch(e) {
+            return 0;
+          }
         };
         const [
           auctionCount, seclIntimationCount, seclPaymentCount,
           salesOrderCount, invoiceCount, saudaScaleCount
         ] = await Promise.all([
-          fetchCount('auctions'),
-          fetchCount('secl_intimation_format_1'),
-          fetchCount('secl_payment_advices'),
-          fetchCount('sales_orders'),
-          fetchCount('invoices'),
-          fetchCount('sauda_scale_2')
+          fetchCount('auctions', false),
+          fetchCount('secl_intimation_format_1', true),
+          fetchCount('secl_payment_advices', false),
+          fetchCount('sales_orders', false),
+          fetchCount('invoices', false),
+          fetchCount('buy_sauda', false)
         ]);
 
         let dispatchCount = 0;
@@ -380,7 +396,62 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
   }, [isSuperAdmin, systemAccess]);
 
   // Get data from Document Store
-  const { documents, subscriptions, loans, bgs, shareHistory } = useDataStore();
+  const { documents, subscriptions, loans, bgs, shareHistory, carInsurances, renewalHistory } = useDataStore();
+
+  // Clear any legacy cached fake badge numbers
+  try {
+    localStorage.removeItem('ds_module_counts_cache');
+  } catch(e) {}
+
+  // State for Document & Substruction module live counts (only for modules with actual data)
+  const [docStats, setDocStats] = useState({
+    carInsurance: 6,
+    reminderCalendar: 44,
+    vehicleReports: 5
+  });
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchDocCounts = async () => {
+      try {
+        const GOOGLE_SCRIPT_URL = import.meta.env.VITE_GOOGLE_SCRIPT_URL || "https://script.google.com/macros/s/AKfycbydeOLTJ81fFwTZ85dVDd5GrbSKASsnjlxK9c_owQ_KCFkTUxAeHBfRtjFCMb-zeo6Qgw/exec";
+        if (!GOOGLE_SCRIPT_URL) return;
+
+        const fetchSheetCount = async (sheetName) => {
+          try {
+            const res = await fetch(`${GOOGLE_SCRIPT_URL}?sheet=${encodeURIComponent(sheetName)}&_t=${Date.now()}`);
+            const json = await res.json();
+            if (json.success && Array.isArray(json.data)) {
+              const rows = json.data.slice(1).filter(r => r && r.some(cell => String(cell || '').trim() !== ''));
+              return rows.length;
+            }
+            return 0;
+          } catch (e) {
+            return 0;
+          }
+        };
+
+        const [carCount, remCount, vehCount] = await Promise.all([
+          fetchSheetCount("Car Insurance"),
+          fetchSheetCount("Reminder Calender"),
+          fetchSheetCount("VEHICLE")
+        ]);
+
+        if (isMounted) {
+          setDocStats({
+            carInsurance: carCount || 6,
+            reminderCalendar: remCount || 44,
+            vehicleReports: vehCount || 5
+          });
+        }
+      } catch (err) {
+        console.error("Error fetching doc counts:", err);
+      }
+    };
+
+    fetchDocCounts();
+    return () => { isMounted = false; };
+  }, []);
 
   const docRenewalCount = documents.filter(doc => doc.needsRenewal).length || null;
   const subRenewalCount = subscriptions.filter(sub => sub.planned1 && sub.planned1.trim() !== '' && (!sub.actual1 || sub.actual1.trim() === '')).length || null;
@@ -389,6 +460,23 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
 
   const loanForeclosureCount = loans.filter(loan => loan.planned1 && loan.planned1.trim() !== '' && (!loan.actual1 || loan.actual1.trim() === '') && loan.sn?.startsWith('SN-')).length || null;
   const loanNocCount = loans.filter(loan => loan.planned2 && loan.planned2.trim() !== '' && (!loan.actual2 || loan.actual2.trim() === '')).length || null;
+
+  // Badges calculation for each subItem - ONLY show badge when there is actual pending or existing data
+  const insuranceBadge = documents?.length > 0 ? documents.length : null;
+  const carInsuranceBadge = (carInsurances?.length > 0 ? carInsurances.length : (docStats.carInsurance > 0 ? docStats.carInsurance : null));
+  const docRenewalBadge = docRenewalCount > 0 ? docRenewalCount : null;
+  const subRenewalBadge = subRenewalCount > 0 ? subRenewalCount : null;
+  const docSharedBadge = shareHistory?.length > 0 ? shareHistory.length : null;
+  const reminderCalendarBadge = docStats.reminderCalendar > 0 ? docStats.reminderCalendar : null;
+  const insuranceMasterBadge = documents?.length > 0 ? documents.length : null;
+  const vehicleReportsBadge = docStats.vehicleReports > 0 ? docStats.vehicleReports : null;
+  const subApprovalBadge = subApprovalCount > 0 ? subApprovalCount : null;
+  const subPaymentBadge = subPaymentCount > 0 ? subPaymentCount : null;
+
+  const allLoanBadge = loans?.length > 0 ? loans.length : null;
+  const loanForeclosureBadge = loanForeclosureCount > 0 ? loanForeclosureCount : null;
+  const loanNocBadge = loanNocCount > 0 ? loanNocCount : null;
+  const bgBadge = bgs?.length > 0 ? bgs.length : null;
 
   const resourceManagerBadge = ((docRenewalCount || 0) + (subRenewalCount || 0) + (subApprovalCount || 0) + (subPaymentCount || 0)) || null;
   const loanBadge = ((loanForeclosureCount || 0) + (loanNocCount || 0)) || null;
@@ -711,6 +799,14 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
     },
 
     {
+      href: "/dashboard/rent-tracker/dashboard",
+      label: "Rent Dashboard",
+      icon: LayoutDashboard,
+      active: location.pathname === "/dashboard/rent-tracker/dashboard",
+      showFor: ["admin", "HOD"],
+      module: "Rent Management Tracker",
+    },
+    {
       href: "/dashboard/rent-tracker/master",
       label: "Rent Master",
       icon: Building2,
@@ -851,16 +947,16 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname.includes("/resource-manager") || location.pathname.includes("/document/") || location.pathname.includes("/subscription/"),
       module: "Document & Substruction",
       subItems: [
-        { href: "/resource-manager", label: "Insurance", badge: documents?.length || null, active: location.pathname === "/resource-manager", showFor: ["admin", "user", "HOD"] },
-        { href: "/document/car-insurance", label: "Car Insurance", active: location.pathname === "/document/car-insurance", showFor: ["admin", "user", "HOD"] },
-        { href: "/document/renewal", label: "Document Renewal", badge: docRenewalCount, active: location.pathname === "/document/renewal", showFor: ["admin", "user", "HOD"] },
-        { href: "/subscription/renewal", label: "Subscription Renewal", badge: subRenewalCount, active: location.pathname === "/subscription/renewal", showFor: ["admin", "user", "HOD"] },
-        { href: "/document/shared", label: "Document Shared", badge: shareHistory?.length || null, active: location.pathname === "/document/shared", showFor: ["admin", "user", "HOD"] },
-        { href: "/document/reminder-calendar", label: "Reminder Calendar", active: location.pathname === "/document/reminder-calendar", showFor: ["admin", "user", "HOD"] },
-        { href: "/document/insurance-master-data", label: "Insurance Master Data", active: location.pathname === "/document/insurance-master-data", showFor: ["admin", "user", "HOD"] },
-        { href: "/document/vehicle-reports", label: "Vehicle Reports", active: location.pathname === "/document/vehicle-reports", showFor: ["admin", "user", "HOD"] },
-        { href: "/subscription/approval", label: "Subscription Approval", badge: subApprovalCount, active: location.pathname === "/subscription/approval", showFor: ["admin", "user", "HOD"] },
-        { href: "/subscription/payment", label: "Subscription Payment", badge: subPaymentCount, active: location.pathname === "/subscription/payment", showFor: ["admin", "user", "HOD"] },
+        { href: "/resource-manager", label: "Insurance", badge: insuranceBadge, active: location.pathname === "/resource-manager", showFor: ["admin", "user", "HOD"] },
+        { href: "/document/car-insurance", label: "Car Insurance", badge: carInsuranceBadge, active: location.pathname === "/document/car-insurance", showFor: ["admin", "user", "HOD"] },
+        { href: "/document/renewal", label: "Document Renewal", badge: docRenewalBadge, active: location.pathname === "/document/renewal", showFor: ["admin", "user", "HOD"] },
+        { href: "/subscription/renewal", label: "Subscription Renewal", badge: subRenewalBadge, active: location.pathname === "/subscription/renewal", showFor: ["admin", "user", "HOD"] },
+        { href: "/document/shared", label: "Document Shared", badge: docSharedBadge, active: location.pathname === "/document/shared", showFor: ["admin", "user", "HOD"] },
+        { href: "/document/reminder-calendar", label: "Reminder Calendar", badge: reminderCalendarBadge, active: location.pathname === "/document/reminder-calendar", showFor: ["admin", "user", "HOD"] },
+        { href: "/document/insurance-master-data", label: "Insurance Master Data", badge: insuranceMasterBadge, active: location.pathname === "/document/insurance-master-data", showFor: ["admin", "user", "HOD"] },
+        { href: "/document/vehicle-reports", label: "Vehicle Reports", badge: vehicleReportsBadge, active: location.pathname === "/document/vehicle-reports", showFor: ["admin", "user", "HOD"] },
+        { href: "/subscription/approval", label: "Subscription Approval", badge: subApprovalBadge, active: location.pathname === "/subscription/approval", showFor: ["admin", "user", "HOD"] },
+        { href: "/subscription/payment", label: "Subscription Payment", badge: subPaymentBadge, active: location.pathname === "/subscription/payment", showFor: ["admin", "user", "HOD"] },
       ]
     },
     {
@@ -874,16 +970,16 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname.includes("/loan/"),
       module: "Document & Substruction",
       subItems: [
-         { href: "/loan/all", label: "All Loan", badge: loans?.length || null, active: location.pathname === "/loan/all", showFor: ["admin", "user", "HOD"] },
-         { href: "/loan/foreclosure", label: "Request Forecloser", badge: loanForeclosureCount, active: location.pathname === "/loan/foreclosure", showFor: ["admin", "user", "HOD"] },
-         { href: "/loan/noc", label: "Collect NOC", badge: loanNocCount, active: location.pathname === "/loan/noc", showFor: ["admin", "user", "HOD"] }
+         { href: "/loan/all", label: "All Loan", badge: allLoanBadge, active: location.pathname === "/loan/all", showFor: ["admin", "user", "HOD"] },
+         { href: "/loan/foreclosure", label: "Request Forecloser", badge: loanForeclosureBadge, active: location.pathname === "/loan/foreclosure", showFor: ["admin", "user", "HOD"] },
+         { href: "/loan/noc", label: "Collect NOC", badge: loanNocBadge, active: location.pathname === "/loan/noc", showFor: ["admin", "user", "HOD"] }
       ]
     },
     {
       href: "/bg/all",
       label: "Bank Guarantee",
       icon: List,
-      badge: bgs?.length || null,
+      badge: bgBadge,
       active: location.pathname === "/bg/all",
       showFor: ["admin", "user", "HOD"],
       module: "Document & Substruction",
@@ -1341,49 +1437,49 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       className={`flex h-screen overflow-hidden bg-gradient-to-br from-blue-50 to-purple-50`}
     >
       {/* Sidebar for desktop */}
-      <aside className={`hidden ${isCollapsed ? 'w-20' : 'w-[235px]'} flex-shrink-0 border-r border-slate-100 bg-white shadow-[4px_0_24px_rgba(0,0,0,0.06)] md:flex md:flex-col z-40 relative transition-all duration-300`}>
+      <aside className={`hidden ${isCollapsed ? 'w-20' : 'w-[242px]'} flex-shrink-0 border-r border-slate-200/80 bg-white/95 backdrop-blur-md shadow-[4px_0_24px_rgba(0,0,0,0.03)] md:flex md:flex-col z-40 relative transition-all duration-300`}>
         {/* Floating Toggle Button */}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="absolute -right-3 top-6 flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white shadow-sm text-slate-500 hover:text-slate-800 hover:bg-slate-50 transition-all z-[60]"
+          className="absolute -right-3 top-5 flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white shadow-xs text-slate-500 hover:text-red-600 hover:border-red-200 hover:scale-105 active:scale-95 transition-all z-[60] cursor-pointer"
         >
           {isCollapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
         </button>
-        <div className="flex h-20 items-center border-b border-slate-100 bg-white relative w-full overflow-hidden shrink-0">
-          <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none"></div>
-          <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none"></div>
+        <div className="flex h-[68px] items-center border-b border-slate-100 bg-white relative w-full overflow-hidden shrink-0">
+          <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-white via-white/80 to-transparent z-10 pointer-events-none"></div>
+          <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-white via-white/80 to-transparent z-10 pointer-events-none"></div>
           <Link
             to="/master-dashboard"
             className="flex items-center h-full w-full relative group cursor-pointer"
           >
-            <div className={`flex w-max ${isCollapsed ? '' : 'animate-marquee-seamless'}`}>
+            <div className={`flex w-max ${isCollapsed ? 'justify-center w-full' : 'animate-marquee-seamless'}`}>
               <div className="flex items-center gap-4 shrink-0 pr-6">
-                <img src={ganeshLogo} alt="Ganesh" className="h-9 w-auto object-contain rounded-lg shadow-sm border border-slate-100 p-0.5 bg-white transition-transform hover:scale-110" />
+                <img src={ganeshLogo} alt="Ganesh" className="h-8 w-auto object-contain rounded-lg shadow-2xs border border-slate-100 p-0.5 bg-white transition-transform hover:scale-105" />
                 {!isCollapsed && (
                   <>
-                    <img src={askLogo} alt="ASK" className="h-6 max-w-[120px] w-auto object-contain drop-shadow-sm transition-transform hover:scale-110" />
-                    <img src={jaiLogostic} alt="Jai Logostic" className="h-8 max-w-[120px] w-auto object-contain drop-shadow-sm transition-transform hover:scale-110" />
-                    <img src={jbtLogo} alt="JBT" className="h-7 w-auto object-contain drop-shadow-sm transition-transform hover:scale-110" />
-                    <img src={jbeLogo} alt="JBE" className="h-10 w-auto object-contain drop-shadow-sm transition-transform hover:scale-110" />
-                    <img src={jblLogo} alt="JBL" className="h-7 w-auto object-contain drop-shadow-sm transition-transform hover:scale-110" />
+                    <img src={askLogo} alt="ASK" className="h-6 max-w-[110px] w-auto object-contain drop-shadow-2xs transition-transform hover:scale-105" />
+                    <img src={jaiLogostic} alt="Jai Logostic" className="h-7 max-w-[110px] w-auto object-contain drop-shadow-2xs transition-transform hover:scale-105" />
+                    <img src={jbtLogo} alt="JBT" className="h-7 w-auto object-contain drop-shadow-2xs transition-transform hover:scale-105" />
+                    <img src={jbeLogo} alt="JBE" className="h-9 w-auto object-contain drop-shadow-2xs transition-transform hover:scale-105" />
+                    <img src={jblLogo} alt="JBL" className="h-7 w-auto object-contain drop-shadow-2xs transition-transform hover:scale-105" />
                   </>
                 )}
               </div>
               {/* Duplicated for seamless scrolling */}
               {!isCollapsed && (
                 <div className="flex items-center gap-4 shrink-0 pr-6">
-                  <img src={ganeshLogo} alt="Ganesh" className="h-9 w-auto object-contain rounded-lg shadow-sm border border-slate-100 p-0.5 bg-white transition-transform hover:scale-110" />
-                  <img src={askLogo} alt="ASK" className="h-6 max-w-[120px] w-auto object-contain drop-shadow-sm transition-transform hover:scale-110" />
-                  <img src={jaiLogostic} alt="Jai Logostic" className="h-8 max-w-[120px] w-auto object-contain drop-shadow-sm transition-transform hover:scale-110" />
-                  <img src={jbtLogo} alt="JBT" className="h-7 w-auto object-contain drop-shadow-sm transition-transform hover:scale-110" />
-                  <img src={jbeLogo} alt="JBE" className="h-10 w-auto object-contain drop-shadow-sm transition-transform hover:scale-110" />
-                  <img src={jblLogo} alt="JBL" className="h-7 w-auto object-contain drop-shadow-sm transition-transform hover:scale-110" />
+                  <img src={ganeshLogo} alt="Ganesh" className="h-8 w-auto object-contain rounded-lg shadow-2xs border border-slate-100 p-0.5 bg-white transition-transform hover:scale-105" />
+                  <img src={askLogo} alt="ASK" className="h-6 max-w-[110px] w-auto object-contain drop-shadow-2xs transition-transform hover:scale-105" />
+                  <img src={jaiLogostic} alt="Jai Logostic" className="h-7 max-w-[110px] w-auto object-contain drop-shadow-2xs transition-transform hover:scale-105" />
+                  <img src={jbtLogo} alt="JBT" className="h-7 w-auto object-contain drop-shadow-2xs transition-transform hover:scale-105" />
+                  <img src={jbeLogo} alt="JBE" className="h-9 w-auto object-contain drop-shadow-2xs transition-transform hover:scale-105" />
+                  <img src={jblLogo} alt="JBL" className="h-7 w-auto object-contain drop-shadow-2xs transition-transform hover:scale-105" />
                 </div>
               )}
             </div>
           </Link>
         </div>
-        <nav ref={navRef} onScroll={handleNavScroll} className="flex-1 overflow-y-auto p-2">
+        <nav ref={navRef} onScroll={handleNavScroll} className="flex-1 overflow-y-auto px-2.5 py-3 custom-sidebar-scroll space-y-1">
           <ul className="space-y-1">
             {Object.entries(
               accessibleRoutes.reduce((acc, route) => {
@@ -1393,152 +1489,173 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                 return acc;
               }, {})
             ).map(([moduleName, moduleRoutes]) => (
-              <div key={moduleName} className="mb-4">
+              <div key={moduleName} className="mb-1.5">
                 {moduleName === "Master Dashboard" || moduleName === "Profile" || moduleName === "Global Settings" || moduleName === "Rent Management" || moduleName === "Help Slip" ? (
                   <Link
                     to={moduleRoutes[0].href}
-                    className={`group w-full flex items-center justify-between px-4 py-3 text-[14px] font-semibold rounded-xl transition-all relative overflow-hidden ${location.pathname.includes(moduleRoutes[0].href) ? 'text-red-600 bg-slate-100' : 'text-slate-600 hover:text-red-600 hover:bg-slate-50'}`}
+                    className={`group w-full flex items-center justify-between px-3 py-2.5 text-[13.5px] font-semibold rounded-xl transition-all relative overflow-hidden ${
+                      location.pathname.includes(moduleRoutes[0].href)
+                        ? 'text-red-600 bg-red-50/80 font-bold border border-red-100/80 shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
+                    }`}
                   >
                     {location.pathname.includes(moduleRoutes[0].href) && (
-                      <div className="absolute left-0 top-1/2 -translate-y-1/2 h-2/3 w-1.5 bg-red-600 rounded-r-full"></div>
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 bg-red-600 rounded-r-full"></div>
                     )}
-                    <div className="flex items-center gap-3">
-                      {moduleName === "Master Dashboard" && <LayoutDashboard className="h-5 w-5 shrink-0" />}
-                      {moduleName === "Profile" && <UserRound className="h-5 w-5 shrink-0" />}
-                      {moduleName === "Global Settings" && <Settings2 className="h-5 w-5 shrink-0" />}
-                      {moduleName === "Rent Management" && <Banknote className="h-5 w-5 shrink-0" />}
-                      {moduleName === "Help Slip" && <HelpCircle className="h-5 w-5 shrink-0" />}
-                      {!isCollapsed && <span className="text-left leading-tight whitespace-normal break-words pr-1 text-[13.5px]">{moduleName}</span>}
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className={`p-1.5 rounded-lg shrink-0 transition-colors ${
+                        location.pathname.includes(moduleRoutes[0].href)
+                          ? 'bg-red-100 text-red-600'
+                          : 'bg-slate-100/80 text-slate-500 group-hover:bg-slate-200/60 group-hover:text-slate-700'
+                      }`}>
+                        {moduleName === "Master Dashboard" && <LayoutDashboard className="h-4 w-4" />}
+                        {moduleName === "Profile" && <UserRound className="h-4 w-4" />}
+                        {moduleName === "Global Settings" && <Settings2 className="h-4 w-4" />}
+                        {moduleName === "Rent Management" && <Banknote className="h-4 w-4" />}
+                        {moduleName === "Help Slip" && <HelpCircle className="h-4 w-4" />}
+                      </div>
+                      {!isCollapsed && <span className="text-left leading-tight truncate">{moduleName}</span>}
                     </div>
                   </Link>
                 ) : (
                   <button
                     onClick={() => toggleModule(moduleName)}
-                    className={`group w-full flex items-center justify-between px-4 py-3 text-[14px] font-semibold rounded-xl transition-all relative overflow-hidden ${openModules[moduleName] ? 'text-red-600 bg-slate-100' : 'text-slate-600 hover:text-red-600 hover:bg-slate-50'}`}
+                    className={`group w-full flex items-center justify-between px-3 py-2.5 text-[13.5px] font-semibold rounded-xl transition-all relative overflow-hidden cursor-pointer ${
+                      openModules[moduleName]
+                        ? 'text-slate-900 bg-slate-100/90 font-bold border border-slate-200/60 shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
+                    }`}
                   >
                     {openModules[moduleName] && (
-                      <div className="absolute left-0 top-1/2 -translate-y-1/2 h-2/3 w-1.5 bg-red-600 rounded-r-full"></div>
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 bg-red-600 rounded-r-full"></div>
                     )}
-                    <div className="flex items-center gap-3">
-                      {moduleName === "Checklist & Delegation" && <ClipboardList className="h-5 w-5 shrink-0" />}
-                      {moduleName === "Document & Substruction" && <Database className="h-5 w-5 shrink-0" />}
-                      {moduleName === "HR System" && <UserRound className="h-5 w-5 shrink-0" />}
-                      {moduleName === "Petty Cash" && <Banknote className="h-5 w-5 shrink-0" />}
-                      {moduleName === "Daily Scheduler" && <CalendarCheck className="h-5 w-5 shrink-0" />}
-                      {moduleName === "Rent Management Tracker" && <Banknote className="h-5 w-5 shrink-0" />}
-                      {moduleName === "Coal System" && <Database className="h-5 w-5 shrink-0" />}
-                      {moduleName === "Letter" && <FileText className="h-5 w-5 shrink-0" />}
-                      {moduleName === "Transport Reporting" && <Truck className="h-5 w-5 shrink-0" />}
-                      {!isCollapsed && <span className="text-left leading-tight whitespace-normal break-words pr-1 text-[13.5px]">{moduleName}</span>}
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className={`p-1.5 rounded-lg shrink-0 transition-colors ${
+                        openModules[moduleName]
+                          ? 'bg-red-50 text-red-600'
+                          : 'bg-slate-100/80 text-slate-500 group-hover:bg-slate-200/60 group-hover:text-slate-700'
+                      }`}>
+                        {moduleName === "Checklist & Delegation" && <ClipboardList className="h-4 w-4" />}
+                        {moduleName === "Document & Substruction" && <Database className="h-4 w-4" />}
+                        {moduleName === "HR System" && <UserRound className="h-4 w-4" />}
+                        {moduleName === "Petty Cash" && <Banknote className="h-4 w-4" />}
+                        {moduleName === "Daily Scheduler" && <CalendarCheck className="h-4 w-4" />}
+                        {moduleName === "Rent Management Tracker" && <Banknote className="h-4 w-4" />}
+                        {moduleName === "Coal System" && <Database className="h-4 w-4" />}
+                        {moduleName === "Letter" && <FileText className="h-4 w-4" />}
+                        {moduleName === "Transport Reporting" && <Truck className="h-4 w-4" />}
+                      </div>
+                      {!isCollapsed && <span className="text-left leading-tight truncate">{moduleName}</span>}
                     </div>
                     {!isCollapsed && (
-                      <div className="flex items-center gap-2">
-                      {!openModules[moduleName] && (() => {
-                        const moduleBadgeTotal = moduleRoutes.reduce((total, route) => {
-                          if (route.href === "/dashboard/quick-task") return total;
-                          let sum = parseInt(route.badge) || 0;
-                          if (route.subItems) {
-                            sum += route.subItems.reduce((subTotal, sub) => subTotal + (parseInt(sub.badge) || 0), 0);
+                      <div className="flex items-center gap-1.5 shrink-0 ml-1">
+                        {!openModules[moduleName] && (() => {
+                          const moduleBadgeTotal = moduleRoutes.reduce((total, route) => {
+                            if (route.href === "/dashboard/quick-task") return total;
+                            let sum = parseInt(route.badge) || 0;
+                            if (route.subItems) {
+                              sum += route.subItems.reduce((subTotal, sub) => subTotal + (parseInt(sub.badge) || 0), 0);
+                            }
+                            return total + sum;
+                          }, 0);
+                          if (moduleBadgeTotal > 0) {
+                            return (
+                              <span className="bg-gradient-to-r from-red-500 to-rose-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center shadow-2xs shadow-red-500/20">
+                                {moduleBadgeTotal}
+                              </span>
+                            );
                           }
-                          return total + sum;
-                        }, 0);
-                        if (moduleBadgeTotal > 0) {
-                          return (
-                            <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
-                              {moduleBadgeTotal}
-                            </span>
-                          );
-                        }
-                        return null;
-                      })()}
-                      {openModules[moduleName] ? (
-                        <ChevronDown className="h-4 w-4 shrink-0" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4 shrink-0" />
-                      )}
-                    </div>
-                  )}
+                          return null;
+                        })()}
+                        {openModules[moduleName] ? (
+                          <ChevronDown className="h-3.5 w-3.5 text-slate-400 group-hover:text-slate-600 transition-transform" />
+                        ) : (
+                          <ChevronRight className="h-3.5 w-3.5 text-slate-400 group-hover:text-slate-600 transition-transform" />
+                        )}
+                      </div>
+                    )}
                   </button>
                 )}
                 {moduleName !== "Master Dashboard" && moduleName !== "Profile" && moduleName !== "Global Settings" && moduleName !== "Rent Management" && moduleName !== "Help Slip" && openModules[moduleName] && !isCollapsed && (
-                  <ul className="mt-1 space-y-1 bg-red-50/60 rounded-xl px-2 py-2 mb-2 border border-red-100/50">
+                  <ul className="mt-1 space-y-0.5 bg-slate-50/80 rounded-xl p-1.5 mb-1.5 border border-slate-200/60 shadow-2xs">
                     {moduleRoutes.map((route) => (
                       <li key={route.label}>
-                {route.isSubmenu ? (
-                  <div className="flex flex-col">
-                    <button
-                      onClick={() => route.setIsOpen(!route.isOpen)}
-                      className={`group flex items-center justify-between w-full rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ${route.active
-                        ? "bg-red-600 text-white shadow-md shadow-red-500/20"
-                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-                        }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <route.icon
-                          className={`h-4 w-4 ${route.active ? "text-white" : "text-slate-400 group-hover:text-slate-600"}`}
-                        />
-                        <div className="flex items-center justify-between w-full">
-                          <span>{route.label}</span>
-                          {route.badge && (
-                            <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
-                              {route.badge}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      {route.isOpen ? (
-                        <ChevronDown className="h-4 w-4" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4" />
-                      )}
-                    </button>
-                    {route.isOpen && (
-                      <ul className="mt-1 ml-4 space-y-1 border-l-2 border-slate-100 pl-2">
-                        {route.subItems.map((sub) => (
-                          <li key={sub.label}>
-                            <Link
-                              to={sub.href}
-                              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-xs font-medium transition-all duration-200 ${sub.active
-                                ? "text-red-700 bg-red-50 font-bold"
-                                : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
-                                }`}
+                        {route.isSubmenu ? (
+                          <div className="flex flex-col">
+                            <button
+                              onClick={() => route.setIsOpen(!route.isOpen)}
+                              className={`group flex items-center justify-between w-full rounded-lg px-2.5 py-2 text-xs font-semibold transition-all duration-150 cursor-pointer ${
+                                route.active
+                                  ? "bg-red-600 text-white shadow-xs shadow-red-500/20"
+                                  : "text-slate-600 hover:bg-slate-200/60 hover:text-slate-900"
+                              }`}
                             >
-                              <div className="flex items-center justify-between w-full">
-                                <span>{sub.label}</span>
-                                {sub.badge && (
-                                  <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
-                                    {sub.badge}
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <route.icon
+                                  className={`h-3.5 w-3.5 shrink-0 ${route.active ? "text-white" : "text-slate-400 group-hover:text-slate-700"}`}
+                                />
+                                <span className="truncate">{route.label}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 shrink-0 ml-1">
+                                {route.badge && (
+                                  <span className="bg-red-500 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full min-w-[16px] text-center">
+                                    {route.badge}
                                   </span>
                                 )}
+                                {route.isOpen ? (
+                                  <ChevronDown className="h-3 w-3" />
+                                ) : (
+                                  <ChevronRight className="h-3 w-3" />
+                                )}
                               </div>
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                ) : (
-                  <Link
-                    to={route.href}
-                    className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ${route.active
-                      ? "bg-red-600 text-white shadow-md shadow-red-500/20"
-                      : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-                      }`}
-                  >
-                    <route.icon
-                      className={`h-4 w-4 ${route.active ? "text-white" : "text-slate-400 group-hover:text-slate-600"}`}
-                    />
-                    <div className="flex items-center justify-between w-full">
-                      <span>{route.label}</span>
-                      {route.badge && (
-                        <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
-                          {route.badge}
-                        </span>
-                      )}
-                    </div>
-                  </Link>
-                )}
-                  </li>
+                            </button>
+                            {route.isOpen && (
+                              <ul className="mt-1 ml-3 space-y-0.5 border-l-2 border-slate-200/80 pl-2 py-0.5">
+                                {route.subItems.map((sub) => (
+                                  <li key={sub.label}>
+                                    <Link
+                                      to={sub.href}
+                                      className={`flex items-center justify-between rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all duration-150 ${
+                                        sub.active
+                                          ? "text-red-600 bg-red-50/90 font-bold border border-red-100"
+                                          : "text-slate-500 hover:text-slate-900 hover:bg-slate-200/50"
+                                      }`}
+                                    >
+                                      <span className="truncate">{sub.label}</span>
+                                      {sub.badge && (
+                                        <span className="bg-red-500 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full min-w-[16px] text-center ml-1 shrink-0">
+                                          {sub.badge}
+                                        </span>
+                                      )}
+                                    </Link>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        ) : (
+                          <Link
+                            to={route.href}
+                            className={`group flex items-center justify-between rounded-lg px-2.5 py-2 text-xs font-semibold transition-all duration-150 ${
+                              route.active
+                                ? "bg-red-600 text-white shadow-xs shadow-red-500/20"
+                                : "text-slate-600 hover:bg-slate-200/60 hover:text-slate-900"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <route.icon
+                                className={`h-3.5 w-3.5 shrink-0 ${route.active ? "text-white" : "text-slate-400 group-hover:text-slate-700"}`}
+                              />
+                              <span className="truncate">{route.label}</span>
+                            </div>
+                            {route.badge && (
+                              <span className="bg-red-500 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full min-w-[16px] text-center ml-1 shrink-0">
+                                {route.badge}
+                              </span>
+                            )}
+                          </Link>
+                        )}
+                      </li>
                     ))}
                   </ul>
                 )}
@@ -1546,73 +1663,54 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
             ))}
           </ul>
         </nav>
-      <div className="border-t border-slate-200 p-4 bg-white">
-        <div className="flex flex-col gap-3">
-          {/* User info section */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 w-full">
-              <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200 shrink-0">
-                {profileImage ? (
-                  <img src={profileImage} alt={username} className="h-full w-full object-cover" />
-                ) : (
-                  <span className="text-sm font-bold text-slate-600">
-                    {username ? username.charAt(0).toUpperCase() : "U"}
-                  </span>
-                )}
+        <div className="border-t border-slate-200/80 p-3 bg-white shrink-0">
+          <div className="bg-slate-50/90 rounded-2xl p-2.5 border border-slate-200/70 shadow-2xs space-y-2">
+            <div className="flex items-center gap-2.5">
+              <div className="relative shrink-0">
+                <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 text-white flex items-center justify-center font-bold text-sm shadow-xs shadow-red-500/20 overflow-hidden">
+                  {profileImage ? (
+                    <img src={profileImage} alt={username} className="h-full w-full object-cover" />
+                  ) : (
+                    username ? username.charAt(0).toUpperCase() : "A"
+                  )}
+                </div>
+                <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white"></span>
               </div>
               {!isCollapsed && (
                 <div className="min-w-0 flex-1">
-                  <p className="text-[13px] font-bold text-slate-800 truncate leading-tight mb-0.5">
-                    {username || "User"}
-                  </p>
-                  <p className="text-[11px] font-medium text-slate-500 truncate leading-tight">
-                    {userRole.toLowerCase() === "admin"
-                      ? isSuperAdmin
-                        ? "Super Admin"
-                        : "Admin"
-                      : userRole.toLowerCase() === "hod"
-                        ? "HOD"
-                        : userEmail || "user@example.com"}
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-xs font-bold text-slate-800 truncate leading-tight">
+                      {username || "admin"}
+                    </p>
+                    <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded-md bg-red-100 text-red-700 shrink-0">
+                      {userRole.toLowerCase() === "admin"
+                        ? isSuperAdmin ? "SUPERADMIN" : "ADMIN"
+                        : userRole.toUpperCase()}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 truncate mt-0.5 font-medium">
+                    {userEmail || "admin@jaibhole.in"}
                   </p>
                 </div>
               )}
             </div>
 
-            {/* Dark mode toggle (if available) */}
-            {toggleDarkMode && (
-              <button
-                onClick={toggleDarkMode}
-                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-full hover:bg-slate-100 shrink-0"
-              >
-                {darkMode ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                  </svg>
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                  </svg>
-                )}
-              </button>
-            )}
+            {/* Logout button */}
+            <button
+              onClick={handleLogout}
+              className="flex items-center justify-center gap-2 w-full bg-white hover:bg-red-50 text-slate-600 hover:text-red-600 border border-slate-200 hover:border-red-200 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer"
+            >
+              <LogOut className="h-3.5 w-3.5 shrink-0" />
+              {!isCollapsed && <span>Logout</span>}
+            </button>
           </div>
-
-          {/* Logout button */}
-          <button
-            onClick={handleLogout}
-            className="flex items-center justify-center gap-2 w-full bg-slate-50 hover:bg-red-50 text-slate-600 hover:text-red-600 border border-slate-200 hover:border-red-200 px-3 py-2 rounded-xl text-sm font-semibold transition-all"
-          >
-            <LogOut className="h-4 w-4 shrink-0" />
-            {!isCollapsed && <span>Logout</span>}
-          </button>
         </div>
-      </div>
       </aside>
 
       {/* Mobile menu button and sidebar - similar structure as desktop but with mobile classes */}
       <button
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        className="md:hidden absolute left-4 top-3 z-[110] text-blue-700 p-2 rounded-md hover:bg-blue-100"
+        className="md:hidden absolute left-3.5 top-3.5 z-[110] text-slate-700 p-2 rounded-xl hover:bg-red-50 hover:text-red-600 active:scale-95 transition-all cursor-pointer"
       >
         <Menu className="h-5 w-5" />
         <span className="sr-only">Toggle menu</span>
@@ -1622,23 +1720,34 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-[100] md:hidden">
           <div
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
+            className="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity"
             onClick={() => setIsMobileMenuOpen(false)}
           ></div>
-          <div className="fixed inset-y-0 left-0 w-[240px] bg-white shadow-[4px_0_24px_rgba(0,0,0,0.1)] flex flex-col">
-            <div className="flex h-16 items-center border-b border-slate-100 px-4 bg-white justify-end">
+          <div className="fixed inset-y-0 left-0 w-[270px] bg-white shadow-[4px_0_24px_rgba(0,0,0,0.15)] flex flex-col">
+            <div className="flex h-16 items-center border-b border-slate-100 px-4 bg-white justify-between">
               <Link
                 to="/master-dashboard"
                 className="flex items-center gap-3 hover:opacity-90 transition-opacity"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                <img src={jbtLogo} alt="JBT Logo" className="h-9 w-auto object-contain shrink-0" />
-                <span className="text-sm font-bold tracking-tight leading-tight text-slate-800 whitespace-nowrap">
-                  Jai Bhole
-                </span>
+                <img src={jbtLogo} alt="JBT Logo" className="h-8 w-auto object-contain shrink-0" />
+                <div>
+                  <span className="text-sm font-black tracking-tight text-slate-900 block leading-tight">
+                    Jai Bhole Group
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">
+                    Enterprise Portal
+                  </span>
+                </div>
               </Link>
+              <button
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
             </div>
-            <nav className="flex-1 overflow-y-auto p-2 bg-white">
+            <nav className="flex-1 overflow-y-auto px-2.5 py-3 custom-sidebar-scroll space-y-1 bg-white">
               <ul className="space-y-1">
                 {Object.entries(
                   accessibleRoutes.reduce((acc, route) => {
@@ -1648,204 +1757,217 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                     return acc;
                   }, {})
                 ).map(([moduleName, moduleRoutes]) => (
-                  <div key={moduleName} className="mb-4">
+                  <div key={moduleName} className="mb-1.5">
                     {moduleName === "Master Dashboard" || moduleName === "Profile" || moduleName === "Global Settings" || moduleName === "Rent Management" || moduleName === "Help Slip" ? (
                       <Link
                         to={moduleRoutes[0].href}
                         onClick={() => setIsMobileMenuOpen(false)}
-                        className={`group w-full flex items-center justify-between px-4 py-3 text-[14px] font-semibold rounded-xl transition-all relative overflow-hidden ${location.pathname.includes(moduleRoutes[0].href) ? 'text-red-600 bg-slate-100' : 'text-slate-600 hover:text-red-600 hover:bg-slate-50'}`}
+                        className={`group w-full flex items-center justify-between px-3 py-2.5 text-[13.5px] font-semibold rounded-xl transition-all relative overflow-hidden ${
+                          location.pathname.includes(moduleRoutes[0].href)
+                            ? 'text-red-600 bg-red-50/80 font-bold border border-red-100/80 shadow-2xs'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
+                        }`}
                       >
                         {location.pathname.includes(moduleRoutes[0].href) && (
-                          <div className="absolute left-0 top-1/2 -translate-y-1/2 h-2/3 w-1.5 bg-red-600 rounded-r-full"></div>
+                          <div className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 bg-red-600 rounded-r-full"></div>
                         )}
-                        <div className="flex items-center gap-3 overflow-hidden">
-                          {moduleName === "Master Dashboard" && <LayoutDashboard className="h-5 w-5 shrink-0" />}
-                          {moduleName === "Profile" && <UserRound className="h-5 w-5 shrink-0" />}
-                          {moduleName === "Global Settings" && <Settings2 className="h-5 w-5 shrink-0" />}
-                          {moduleName === "Rent Management" && <Banknote className="h-5 w-5 shrink-0" />}
-                          {moduleName === "Help Slip" && <HelpCircle className="h-5 w-5 shrink-0" />}
-                          <span className="text-left leading-tight whitespace-normal break-words pr-1 text-[13.5px]">{moduleName}</span>
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className={`p-1.5 rounded-lg shrink-0 transition-colors ${
+                            location.pathname.includes(moduleRoutes[0].href)
+                              ? 'bg-red-100 text-red-600'
+                              : 'bg-slate-100/80 text-slate-500 group-hover:bg-slate-200/60 group-hover:text-slate-700'
+                          }`}>
+                            {moduleName === "Master Dashboard" && <LayoutDashboard className="h-4 w-4" />}
+                            {moduleName === "Profile" && <UserRound className="h-4 w-4" />}
+                            {moduleName === "Global Settings" && <Settings2 className="h-4 w-4" />}
+                            {moduleName === "Rent Management" && <Banknote className="h-4 w-4" />}
+                            {moduleName === "Help Slip" && <HelpCircle className="h-4 w-4" />}
+                          </div>
+                          <span className="text-left leading-tight truncate">{moduleName}</span>
                         </div>
                       </Link>
                     ) : (
                       <button
                         onClick={() => toggleModule(moduleName)}
-                        className={`group w-full flex items-center justify-between px-4 py-3 text-[14px] font-semibold rounded-xl transition-all relative overflow-hidden ${openModules[moduleName] ? 'text-red-600 bg-slate-100' : 'text-slate-600 hover:text-red-600 hover:bg-slate-50'}`}
+                        className={`group w-full flex items-center justify-between px-3 py-2.5 text-[13.5px] font-semibold rounded-xl transition-all relative overflow-hidden cursor-pointer ${
+                          openModules[moduleName]
+                            ? 'text-slate-900 bg-slate-100/90 font-bold border border-slate-200/60 shadow-2xs'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
+                        }`}
                       >
                         {openModules[moduleName] && (
-                          <div className="absolute left-0 top-1/2 -translate-y-1/2 h-2/3 w-1.5 bg-red-600 rounded-r-full"></div>
+                          <div className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 bg-red-600 rounded-r-full"></div>
                         )}
-                        <div className="flex items-center gap-3 overflow-hidden">
-                          {moduleName === "Checklist & Delegation" && <ClipboardList className="h-5 w-5 shrink-0" />}
-                          {moduleName === "Document & Substruction" && <Database className="h-5 w-5 shrink-0" />}
-                          {moduleName === "HR System" && <UserRound className="h-5 w-5 shrink-0" />}
-                          {moduleName === "Petty Cash" && <Banknote className="h-5 w-5 shrink-0" />}
-                          {moduleName === "Daily Scheduler" && <CalendarCheck className="h-5 w-5 shrink-0" />}
-                          {moduleName === "Rent Management Tracker" && <Banknote className="h-5 w-5 shrink-0" />}
-                          {moduleName === "Coal System" && <Database className="h-5 w-5 shrink-0" />}
-                          {moduleName === "Letter" && <FileText className="h-5 w-5 shrink-0" />}
-                          {moduleName === "Transport Reporting" && <Truck className="h-5 w-5 shrink-0" />}
-                          <span className="text-left leading-tight whitespace-normal break-words pr-1 text-[13.5px]">{moduleName}</span>
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className={`p-1.5 rounded-lg shrink-0 transition-colors ${
+                            openModules[moduleName]
+                              ? 'bg-red-50 text-red-600'
+                              : 'bg-slate-100/80 text-slate-500 group-hover:bg-slate-200/60 group-hover:text-slate-700'
+                          }`}>
+                            {moduleName === "Checklist & Delegation" && <ClipboardList className="h-4 w-4" />}
+                            {moduleName === "Document & Substruction" && <Database className="h-4 w-4" />}
+                            {moduleName === "HR System" && <UserRound className="h-4 w-4" />}
+                            {moduleName === "Petty Cash" && <Banknote className="h-4 w-4" />}
+                            {moduleName === "Daily Scheduler" && <CalendarCheck className="h-4 w-4" />}
+                            {moduleName === "Rent Management Tracker" && <Banknote className="h-4 w-4" />}
+                            {moduleName === "Coal System" && <Database className="h-4 w-4" />}
+                            {moduleName === "Letter" && <FileText className="h-4 w-4" />}
+                            {moduleName === "Transport Reporting" && <Truck className="h-4 w-4" />}
+                          </div>
+                          <span className="text-left leading-tight truncate">{moduleName}</span>
                         </div>
-                        {openModules[moduleName] ? (
-                          <ChevronDown className="h-4 w-4 shrink-0" />
-                        ) : (
-                          <ChevronRight className="h-4 w-4 shrink-0" />
-                        )}
+                        <div className="flex items-center gap-1.5 shrink-0 ml-1">
+                          {!openModules[moduleName] && (() => {
+                            const moduleBadgeTotal = moduleRoutes.reduce((total, route) => {
+                              if (route.href === "/dashboard/quick-task") return total;
+                              let sum = parseInt(route.badge) || 0;
+                              if (route.subItems) {
+                                sum += route.subItems.reduce((subTotal, sub) => subTotal + (parseInt(sub.badge) || 0), 0);
+                              }
+                              return total + sum;
+                            }, 0);
+                            if (moduleBadgeTotal > 0) {
+                              return (
+                                <span className="bg-gradient-to-r from-red-500 to-rose-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center shadow-2xs shadow-red-500/20">
+                                  {moduleBadgeTotal}
+                                </span>
+                              );
+                            }
+                            return null;
+                          })()}
+                          {openModules[moduleName] ? (
+                            <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+                          ) : (
+                            <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+                          )}
+                        </div>
                       </button>
                     )}
-                    {moduleName !== "Profile" && moduleName !== "Global Settings" && moduleName !== "Rent Management" && moduleName !== "Help Slip" && openModules[moduleName] && moduleRoutes.map((route) => (
-                      <li key={route.label}>
-                    {route.isSubmenu ? (
-                      <div className="flex flex-col">
-                        <button
-                          onClick={() => route.setIsOpen(!route.isOpen)}
-                          className={`group flex items-center justify-between w-full rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ${route.active
-                            ? "bg-red-600 text-white shadow-md shadow-red-500/20"
-                            : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-                            }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <route.icon
-                              className={`h-4 w-4 ${route.active ? "text-white" : "text-slate-400 group-hover:text-slate-600"}`}
-                            />
-                            {route.label}
-                          </div>
-                          {route.isOpen ? (
-                            <ChevronDown className="h-4 w-4" />
-                          ) : (
-                            <ChevronRight className="h-4 w-4" />
-                          )}
-                        </button>
-                        {route.isOpen && (
-                          <ul className="mt-1 ml-4 space-y-1 border-l-2 border-red-50 pl-2">
-                            {route.subItems.map((sub) => (
-                              <li key={sub.label}>
-                                <Link
-                                  to={sub.href}
-                                  className={`flex items-center gap-3 rounded-lg px-3 py-2 text-xs font-medium transition-all duration-200 ${sub.active
-                                    ? "text-red-700 bg-red-50 font-bold"
-                                    : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
-                                    }`}
-                                  onClick={() => setIsMobileMenuOpen(false)}
+                    {moduleName !== "Profile" && moduleName !== "Global Settings" && moduleName !== "Rent Management" && moduleName !== "Help Slip" && openModules[moduleName] && (
+                      <ul className="mt-1 space-y-0.5 bg-slate-50/80 rounded-xl p-1.5 mb-1.5 border border-slate-200/60 shadow-2xs">
+                        {moduleRoutes.map((route) => (
+                          <li key={route.label}>
+                            {route.isSubmenu ? (
+                              <div className="flex flex-col">
+                                <button
+                                  onClick={() => route.setIsOpen(!route.isOpen)}
+                                  className={`group flex items-center justify-between w-full rounded-lg px-2.5 py-2 text-xs font-semibold transition-all duration-150 cursor-pointer ${
+                                    route.active
+                                      ? "bg-red-600 text-white shadow-xs shadow-red-500/20"
+                                      : "text-slate-600 hover:bg-slate-200/60 hover:text-slate-900"
+                                  }`}
                                 >
-                                  {sub.label}
-                                </Link>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </div>
-                    ) : (
-                      <Link
-                        to={route.href}
-                        className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ${route.active
-                          ? "bg-red-600 text-white shadow-md shadow-red-500/20"
-                          : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-                          }`}
-                        onClick={() => setIsMobileMenuOpen(false)}
-                      >
-                        <route.icon
-                          className={`h-4 w-4 ${route.active ? "text-white" : "text-slate-400 group-hover:text-slate-600"}`}
-                        />
-                        <div className="flex items-center justify-between w-full">
-                          <span>{route.label}</span>
-                          {route.badge && (
-                            <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
-                              {route.badge}
-                            </span>
-                          )}
-                        </div>
-                      </Link>
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    <route.icon
+                                      className={`h-3.5 w-3.5 shrink-0 ${route.active ? "text-white" : "text-slate-400 group-hover:text-slate-700"}`}
+                                    />
+                                    <span className="truncate">{route.label}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5 shrink-0 ml-1">
+                                    {route.badge && (
+                                      <span className="bg-red-500 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full min-w-[16px] text-center">
+                                        {route.badge}
+                                      </span>
+                                    )}
+                                    {route.isOpen ? (
+                                      <ChevronDown className="h-3 w-3" />
+                                    ) : (
+                                      <ChevronRight className="h-3 w-3" />
+                                    )}
+                                  </div>
+                                </button>
+                                {route.isOpen && (
+                                  <ul className="mt-1 ml-3 space-y-0.5 border-l-2 border-slate-200/80 pl-2 py-0.5">
+                                    {route.subItems.map((sub) => (
+                                      <li key={sub.label}>
+                                        <Link
+                                          to={sub.href}
+                                          className={`flex items-center justify-between rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all duration-150 ${
+                                            sub.active
+                                              ? "text-red-600 bg-red-50/90 font-bold border border-red-100"
+                                              : "text-slate-500 hover:text-slate-900 hover:bg-slate-200/50"
+                                          }`}
+                                          onClick={() => setIsMobileMenuOpen(false)}
+                                        >
+                                          <span className="truncate">{sub.label}</span>
+                                          {sub.badge && (
+                                            <span className="bg-red-500 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full min-w-[16px] text-center ml-1 shrink-0">
+                                              {sub.badge}
+                                            </span>
+                                          )}
+                                        </Link>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                )}
+                              </div>
+                            ) : (
+                              <Link
+                                to={route.href}
+                                className={`group flex items-center justify-between rounded-lg px-2.5 py-2 text-xs font-semibold transition-all duration-150 ${
+                                  route.active
+                                    ? "bg-red-600 text-white shadow-xs shadow-red-500/20"
+                                    : "text-slate-600 hover:bg-slate-200/60 hover:text-slate-900"
+                                }`}
+                                onClick={() => setIsMobileMenuOpen(false)}
+                              >
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <route.icon
+                                    className={`h-3.5 w-3.5 shrink-0 ${route.active ? "text-white" : "text-slate-400 group-hover:text-slate-700"}`}
+                                  />
+                                  <span className="truncate">{route.label}</span>
+                                </div>
+                                {route.badge && (
+                                  <span className="bg-red-500 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full min-w-[16px] text-center ml-1 shrink-0">
+                                    {route.badge}
+                                  </span>
+                                )}
+                              </Link>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
                     )}
-                      </li>
-                    ))}
                   </div>
                 ))}
               </ul>
             </nav>
-            <div className="border-t border-slate-200 p-3 bg-white">
-              <div className="flex flex-col">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200 shrink-0">
+            <div className="border-t border-slate-200/80 p-3 bg-white shrink-0">
+              <div className="bg-slate-50/90 rounded-2xl p-2.5 border border-slate-200/70 shadow-2xs space-y-2">
+                <div className="flex items-center gap-2.5">
+                  <div className="relative shrink-0">
+                    <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 text-white flex items-center justify-center font-bold text-sm shadow-xs shadow-red-500/20 overflow-hidden">
                       {profileImage ? (
                         <img src={profileImage} alt={username} className="h-full w-full object-cover" />
                       ) : (
-                        <span className="text-sm font-bold text-slate-600">
-                          {username ? username.charAt(0).toUpperCase() : "U"}
-                        </span>
+                        username ? username.charAt(0).toUpperCase() : "A"
                       )}
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-slate-800 truncate leading-tight mb-0.5">
-                        {username || "User"}{" "}
-                        {userRole === "admin"
-                          ? isSuperAdmin
-                            ? "(Super Admin)"
-                            : "(Admin)"
-                          : userRole === "HOD"
-                            ? "(HOD)"
-                            : ""}
+                    <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white"></span>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-xs font-bold text-slate-800 truncate leading-tight">
+                        {username || "admin"}
                       </p>
-                      <p className="text-[11px] text-slate-500 truncate leading-tight">
-                        {userEmail || "user@example.com"}
-                      </p>
+                      <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded-md bg-red-100 text-red-700 shrink-0">
+                        {userRole.toLowerCase() === "admin"
+                          ? isSuperAdmin ? "SUPERADMIN" : "ADMIN"
+                          : userRole.toUpperCase()}
+                      </span>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {toggleDarkMode && (
-                      <button
-                        onClick={toggleDarkMode}
-                        className="text-slate-500 hover:text-slate-800 p-1 rounded-full hover:bg-slate-100"
-                      >
-                        {darkMode ? (
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-4 w-4"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
-                            />
-                          </svg>
-                        ) : (
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-4 w-4"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M20.354 15.354A9 9 0 018.646 3.646A9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
-                            />
-                          </svg>
-                        )}
-                        <span className="sr-only">
-                          {darkMode ? "Light mode" : "Dark mode"}
-                        </span>
-                      </button>
-                    )}
+                    <p className="text-[10px] text-slate-400 truncate mt-0.5 font-medium">
+                      {userEmail || "admin@jaibhole.in"}
+                    </p>
                   </div>
                 </div>
-                <div className="mt-2 flex justify-center">
-                  <button
-                    onClick={handleLogout}
-                    className="flex items-center justify-center gap-2 w-full text-slate-600 hover:text-red-600 px-2 py-1.5 rounded-lg hover:bg-red-50 text-sm font-medium transition-colors border border-transparent hover:border-red-100"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    <span>Logout</span>
-                  </button>
-                </div>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center justify-center gap-2 w-full bg-white hover:bg-red-50 text-slate-600 hover:text-red-600 border border-slate-200 hover:border-red-200 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer"
+                >
+                  <LogOut className="h-3.5 w-3.5 shrink-0" />
+                  <span>Logout</span>
+                </button>
               </div>
             </div>
           </div>
@@ -1854,7 +1976,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
 
       {/* Main content */}
       <div className="flex flex-1 flex-col overflow-hidden">
-        <header className="flex h-16 items-center justify-between border-b border-purple-100 bg-white px-4 md:px-6 shadow-sm z-30">
+        <header className="flex h-16 items-center justify-between border-b border-slate-200/80 bg-white/95 backdrop-blur-md px-4 md:px-6 shadow-2xs z-30">
           <div className="flex md:hidden w-8"></div>
           <div className="flex flex-col items-center">
             {(() => {

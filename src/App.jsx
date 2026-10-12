@@ -93,6 +93,7 @@ import InsuranceManagement from "./pages/admin/InsuranceManagement"
 import RentManagement from "./pages/admin/RentManagement"
 import RentMaster from "./pages/admin/RentMaster"
 import MonthlyTracker from "./pages/admin/MonthlyTracker"
+import RentDashboard from "./pages/admin/RentDashboard"
 
 // --- Layout & Components ---
 import AdminLayout from "./components/layout/AdminLayout"
@@ -275,6 +276,14 @@ function App() {
                     />
 
                     {/* --- Rent Management Tracker --- */}
+                    <Route
+                        path="/dashboard/rent-tracker/dashboard"
+                        element={
+                            <ProtectedRoute allowedRoles={["admin", "HOD"]}>
+                                <RentDashboard />
+                            </ProtectedRoute>
+                        }
+                    />
                     <Route
                         path="/dashboard/rent-tracker/master"
                         element={
