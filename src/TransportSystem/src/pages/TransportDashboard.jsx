@@ -136,7 +136,7 @@ export default function TransportDashboard() {
   const totalFreight = filteredReports.reduce((sum, item) => sum + (Number(item.total_freight) || 0), 0);
   const totalAdvance = filteredReports.reduce((sum, item) => sum + (Number(item.advance) || 0), 0);
   const totalBalance = filteredReports.reduce((sum, item) => sum + (Number(item.vehicle_balance) || 0), 0);
-  const totalDieselLiter = filteredReports.reduce((sum, item) => sum + (Number(item.diesel) || 0), 0);
+  const totalDieselLiter = filteredReports.reduce((sum, item) => sum + (Number(item.diesel) || parseFloat(String(item.diesel || '').replace(/[^0-9.]/g, '')) || 0), 0);
   const totalDistance = filteredReports.reduce((sum, item) => sum + (Number(item.distance) || 0), 0);
 
   // Pie Chart Data: Financial Distribution
@@ -148,12 +148,14 @@ export default function TransportDashboard() {
   // Bar Chart Data & Truck-wise Trips Mapping
   const truckWiseCount = filteredReports.reduce((acc, curr) => {
     const truck = curr.vehicle_no || 'Unknown';
+    const dieselVal = Number(curr.diesel) || parseFloat(String(curr.diesel || '').replace(/[^0-9.]/g, '')) || 0;
     if (!acc[truck]) {
       acc[truck] = { 
         name: truck, 
         trips: 0, 
         freight: 0,
         balance: 0,
+        diesel: 0,
         date: curr.date,
         party_name: curr.party_name,
         do_no: curr.do_no,
@@ -170,6 +172,7 @@ export default function TransportDashboard() {
     acc[truck].trips += 1;
     acc[truck].freight += (Number(curr.total_freight) || 0);
     acc[truck].balance += (Number(curr.vehicle_balance) || 0);
+    acc[truck].diesel += dieselVal;
     return acc;
   }, {});
 
@@ -206,9 +209,10 @@ export default function TransportDashboard() {
 
     const exportTruckWiseCount = exportData.reduce((acc, curr) => {
       const truck = curr.vehicle_no || 'Unknown';
+      const dieselVal = Number(curr.diesel) || parseFloat(String(curr.diesel || '').replace(/[^0-9.]/g, '')) || 0;
       if (!acc[truck]) {
         acc[truck] = { 
-          name: truck, trips: 0, freight: 0, balance: 0,
+          name: truck, trips: 0, freight: 0, balance: 0, diesel: 0,
           date: curr.date, party_name: curr.party_name, do_no: curr.do_no, do_party_name: curr.do_party_name
         };
       } else if (curr.date && acc[truck].date) {
@@ -220,6 +224,7 @@ export default function TransportDashboard() {
       acc[truck].trips += 1;
       acc[truck].freight += (Number(curr.total_freight) || 0);
       acc[truck].balance += (Number(curr.vehicle_balance) || 0);
+      acc[truck].diesel += dieselVal;
       return acc;
     }, {});
 
@@ -234,6 +239,7 @@ export default function TransportDashboard() {
         "Total Trips": truck.trips,
         "DO No.": truck.do_no || '-',
         "Freight (₹)": truck.freight || 0,
+        "Total Diesel (L)": truck.diesel || 0,
         "Vehicle Bal. (₹)": truck.balance || 0
       }));
       
@@ -245,7 +251,7 @@ export default function TransportDashboard() {
       const doc = new jsPDF('landscape');
       doc.text(`Trip Details Report ${exportStart ? `(${formatDateDisplay(exportStart)} to ${formatDateDisplay(exportEnd)})` : ''}`, 14, 15);
       
-      const tableColumn = ["S.No.", "Date", "Vehicle No.", "Total Trips", "DO No.", "Freight", "Vehicle Bal."];
+      const tableColumn = ["S.No.", "Date", "Vehicle No.", "Total Trips", "DO No.", "Freight", "Total Diesel (L)", "Vehicle Bal."];
       const tableRows = [];
 
       exportTruckWiseData.forEach((truck, idx) => {
@@ -256,6 +262,7 @@ export default function TransportDashboard() {
           truck.trips,
           truck.do_no || '-',
           `Rs ${(truck.freight || 0).toLocaleString()}`,
+          `${(truck.diesel || 0).toLocaleString()} L`,
           `Rs ${(truck.balance || 0).toLocaleString()}`
         ]);
       });
@@ -435,6 +442,7 @@ export default function TransportDashboard() {
                 <th className="py-3 px-4">Total Trips</th>
                 <th className="py-3 px-4">DO No.</th>
                 <th className="py-3 px-4">Freight (₹)</th>
+                <th className="py-3 px-4">Total Diesel (L)</th>
                 <th className="py-3 px-4">Vehicle Bal. (₹)</th>
               </tr>
             </thead>
@@ -449,12 +457,13 @@ export default function TransportDashboard() {
                   <td className="py-3 px-4 text-blue-600 font-medium">{truck.trips}</td>
                   <td className="py-3 px-4 text-gray-600">{truck.do_no || '-'}</td>
                   <td className="py-3 px-4 text-green-600 font-medium">₹ {(truck.freight || 0).toLocaleString()}</td>
+                  <td className="py-3 px-4 text-purple-600 font-medium">{(truck.diesel || 0).toLocaleString()} L</td>
                   <td className="py-3 px-4 text-red-500 font-medium">₹ {(truck.balance || 0).toLocaleString()}</td>
                 </tr>
               ))}
               {searchedReports.length === 0 && (
                 <tr>
-                  <td colSpan="7" className="py-8 text-center text-gray-500">No data available for analysis</td>
+                  <td colSpan="8" className="py-8 text-center text-gray-500">No data available for analysis</td>
                 </tr>
               )}
             </tbody>
