@@ -250,45 +250,45 @@ export default function Dashboard({ onNavigate }) {
   );
 
   return (
-    <div className="w-full px-3 sm:px-5 lg:px-6 py-2 space-y-6 sm:space-y-8 animate-in fade-in duration-300">
+    <div className="w-full px-2.5 sm:px-5 lg:px-6 py-2 space-y-5 sm:space-y-8 animate-in fade-in duration-300">
       
       {/* ═══════════ HEADER ═══════════ */}
-      <div className="flex flex-col gap-4 pb-2 border-b border-slate-200/80">
+      <div className="flex flex-col gap-3 sm:gap-4 pb-2 border-b border-slate-200/80">
         {/* Title Row */}
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           <div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50 border border-red-200/80 text-[11px] font-bold text-red-600 mb-2 uppercase tracking-wider shadow-2xs">
-              <Flame className="h-3.5 w-3.5 text-red-500" />
+            <div className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-red-50 border border-red-200/80 text-xs font-bold text-red-600 mb-1.5 sm:mb-2 uppercase tracking-wider shadow-2xs">
+              <Flame className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-500 shrink-0" />
               <span>Coal Intelligence &amp; Operations</span>
             </div>
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-slate-900 tracking-tight">
+            <h1 className="text-xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight">
               Dashboard Overview
             </h1>
-            <p className="text-xs sm:text-sm text-slate-500 mt-1 flex items-center gap-2">
-              <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <p className="text-xs sm:text-base text-slate-500 mt-1 sm:mt-1.5 flex items-center gap-1.5 sm:gap-2">
+              <span className="inline-block w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
               Real-time analytics across all Coal System modules
             </p>
           </div>
 
           {/* Top Metric Capsules */}
-          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-            <div className="flex items-center gap-2 sm:gap-3 bg-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl border border-slate-200/80 shadow-xs flex-1 sm:flex-none min-w-0">
-              <div className="p-1.5 sm:p-2 bg-red-50 text-red-600 rounded-xl shrink-0">
-                <Database className="h-4 w-4" />
+          <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-2 sm:gap-3.5 bg-white px-2.5 sm:px-4.5 py-2 sm:py-3 rounded-2xl border border-slate-200/80 shadow-xs min-w-0">
+              <div className="p-1.5 sm:p-2.5 bg-red-50 text-red-600 rounded-xl shrink-0">
+                <Database className="h-4 w-4 sm:h-5 sm:w-5" />
               </div>
               <div className="min-w-0">
-                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Records</div>
-                <div className="text-base font-extrabold text-slate-900 leading-tight">{stats.totalDocs}</div>
+                <div className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">Total Records</div>
+                <div className="text-base sm:text-xl font-black text-slate-900 leading-tight">{stats.totalDocs}</div>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 sm:gap-3 bg-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl border border-slate-200/80 shadow-xs flex-1 sm:flex-none min-w-0">
-              <div className="p-1.5 sm:p-2 bg-emerald-50 text-emerald-600 rounded-xl shrink-0">
-                <TrendingUp className="h-4 w-4" />
+            <div className="flex items-center gap-2 sm:gap-3.5 bg-white px-2.5 sm:px-4.5 py-2 sm:py-3 rounded-2xl border border-slate-200/80 shadow-xs min-w-0">
+              <div className="p-1.5 sm:p-2.5 bg-emerald-50 text-emerald-600 rounded-xl shrink-0">
+                <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />
               </div>
               <div className="min-w-0">
-                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Valuation</div>
-                <div className="text-base font-extrabold text-emerald-600 leading-tight">{fmtCurrency(stats.totalValue)}</div>
+                <div className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">Total Valuation</div>
+                <div className="text-base sm:text-xl font-black text-emerald-600 leading-tight">{fmtCurrency(stats.totalValue)}</div>
               </div>
             </div>
           </div>
@@ -300,14 +300,14 @@ export default function Dashboard({ onNavigate }) {
         <SectionTitle title="SECL Intimation" icon={FileText} onNavigate={() => onNavigate("secl-intimation")} />
         
         {/* Top KPI Cards */}
-        <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-3">
+        <div className="grid grid-cols-3 gap-1.5 sm:gap-3.5 mb-3">
           <MiniCard label="Total Allotted" value={`${fmtNum(stats.seclTotalQty)} MT`} icon={Boxes} colorScheme="blue" />
           <MiniCard label="Total Pending" value={stats.seclTotalPending} badge="Pending" colorScheme="amber" />
           <MiniCard label="Total Done" value={stats.seclTotalDone} badge="Done" colorScheme="emerald" />
         </div>
 
         {/* Sub-breakdown: M-junction, MSTC, CMPDCIL */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3.5">
           <SubSection 
             title="M-Junction" 
             color="blue"
@@ -347,7 +347,7 @@ export default function Dashboard({ onNavigate }) {
       {/* ═══════════ SECTION 2: SALES ORDER (DO) ═══════════ */}
       <section>
         <SectionTitle title="Sales Order (DO)" icon={FileSpreadsheet} onNavigate={() => onNavigate("sales-order")} />
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-2.5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
           <MiniCard label="Total DOs" value={stats.soCount} icon={FileText} colorScheme="blue" />
           <MiniCard label="Active DOs" value={stats.soValid} badge="Valid" colorScheme="emerald" />
           <MiniCard label="Expired DOs" value={stats.soExpired} badge="Expired" colorScheme="red" />
@@ -359,7 +359,7 @@ export default function Dashboard({ onNavigate }) {
       {/* ═══════════ SECTION 3: SECL PAYMENT ADVICE ═══════════ */}
       <section>
         <SectionTitle title="SECL Payment Advice" icon={Wallet} onNavigate={() => onNavigate("secl-payment-advice")} />
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
           <MiniCard label="Total Advices" value={stats.paCount} icon={FileText} colorScheme="blue" />
           <MiniCard label="Active" value={stats.paValid} badge="Valid" colorScheme="emerald" />
           <MiniCard label="Expired" value={stats.paExpired} badge="Expired" colorScheme="red" />
@@ -371,27 +371,27 @@ export default function Dashboard({ onNavigate }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
         
         {/* INVOICE */}
-        <section className="space-y-3">
+        <section className="space-y-2.5 sm:space-y-3">
           <SectionTitle title="Invoice" icon={Receipt} onNavigate={() => onNavigate("invoice")} />
-          <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
             <MiniCard label="Total Invoices" value={stats.invCount} icon={Receipt} colorScheme="blue" />
             <MiniCard label="Total Amount" value={fmtCurrency(stats.invTotal)} icon={TrendingUp} colorScheme="emerald" />
           </div>
         </section>
 
         {/* AUCTION */}
-        <section className="space-y-3">
+        <section className="space-y-2.5 sm:space-y-3">
           <SectionTitle title="Auction / Deal" icon={Gavel} onNavigate={() => onNavigate("auction")} />
-          <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
             <MiniCard label="Total Auctions" value={stats.aucCount} icon={Gavel} colorScheme="purple" />
             <MiniCard label="Qty Offered" value={`${fmtNum(stats.aucTotalQty)} MT`} icon={Boxes} colorScheme="amber" />
           </div>
         </section>
 
         {/* DISPATCH */}
-        <section className="space-y-3 sm:col-span-2 lg:col-span-1">
+        <section className="space-y-2.5 sm:space-y-3 sm:col-span-2 lg:col-span-1">
           <SectionTitle title="Dispatch Tracking" icon={Truck} onNavigate={() => onNavigate("dispatch")} />
-          <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
+          <div className="grid grid-cols-3 gap-1.5 sm:gap-3">
             <MiniCard label="Dispatches" value={stats.dispCount} icon={Truck} colorScheme="blue" />
             <MiniCard label="Total Qty" value={`${fmtNum(stats.dispQty)} MT`} colorScheme="emerald" />
             <MiniCard label="Freight" value={fmtCurrency(stats.dispFreight)} colorScheme="amber" />
@@ -406,15 +406,15 @@ export default function Dashboard({ onNavigate }) {
         {/* Document Distribution Pie Chart */}
         <div className="lg:col-span-2 bg-white rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200/80 shadow-xs">
           <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg">
-                <PieChartIcon className="h-4 w-4" />
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                <PieChartIcon className="h-4.5 w-4.5" />
               </div>
-              <h3 className="text-sm font-extrabold uppercase tracking-wide text-slate-800">
+              <h3 className="text-sm sm:text-base font-extrabold uppercase tracking-wide text-slate-800">
                 Document Distribution
               </h3>
             </div>
-            <span className="text-xs font-semibold text-slate-400">
+            <span className="text-xs sm:text-sm font-semibold text-slate-500">
               Total {stats.totalDocs} Records
             </span>
           </div>
@@ -438,11 +438,11 @@ export default function Dashboard({ onNavigate }) {
                     borderRadius: "12px", 
                     border: "1px solid #e2e8f0", 
                     boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)", 
-                    fontSize: "12px",
+                    fontSize: "13px",
                     fontWeight: "600"
                   }} 
                 />
-                <Legend iconType="circle" wrapperStyle={{ fontSize: 11, paddingTop: 14 }} />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: 12, paddingTop: 14 }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -451,15 +451,15 @@ export default function Dashboard({ onNavigate }) {
         {/* Quick Links Navigation */}
         <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200/80 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-red-50 text-red-600 rounded-lg">
-                <Layers className="h-4 w-4" />
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 bg-red-50 text-red-600 rounded-lg">
+                <Layers className="h-4.5 w-4.5" />
               </div>
-              <h3 className="text-sm font-extrabold uppercase tracking-wide text-slate-800">
+              <h3 className="text-sm sm:text-base font-extrabold uppercase tracking-wide text-slate-800">
                 Quick Navigation
               </h3>
             </div>
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
               Shortcuts
             </span>
           </div>
@@ -483,15 +483,15 @@ export default function Dashboard({ onNavigate }) {
         {/* Monthly Trend */}
         <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200/80 shadow-xs">
           <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg">
-                <BarChart3 className="h-4 w-4" />
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                <BarChart3 className="h-4.5 w-4.5" />
               </div>
-              <h3 className="text-sm font-extrabold uppercase tracking-wide text-slate-800">
+              <h3 className="text-sm sm:text-base font-extrabold uppercase tracking-wide text-slate-800">
                 Monthly Trend
               </h3>
             </div>
-            <span className="text-xs text-slate-400 font-medium">Last 6 Months</span>
+            <span className="text-xs sm:text-sm text-slate-500 font-medium">Last 6 Months</span>
           </div>
 
           <div className="h-52 sm:h-64 w-full">
@@ -504,15 +504,15 @@ export default function Dashboard({ onNavigate }) {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#64748b" }} axisLine={{ stroke: '#e2e8f0' }} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: "#64748b" }} allowDecimals={false} axisLine={false} tickLine={false} width={30} />
+                <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#64748b" }} axisLine={{ stroke: '#e2e8f0' }} tickLine={false} />
+                <YAxis tick={{ fontSize: 12, fill: "#64748b" }} allowDecimals={false} axisLine={false} tickLine={false} width={32} />
                 <RechartsTooltip 
                   contentStyle={{ 
                     backgroundColor: "#ffffff", 
                     borderRadius: "12px", 
                     border: "1px solid #e2e8f0", 
                     boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)", 
-                    fontSize: "12px" 
+                    fontSize: "13px" 
                   }} 
                 />
                 <Area type="monotone" dataKey="documents" stroke="#2563eb" fill="url(#gradDocs)" strokeWidth={2.5} />
@@ -524,30 +524,30 @@ export default function Dashboard({ onNavigate }) {
         {/* Weekly Activity */}
         <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200/80 shadow-xs">
           <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-red-50 text-red-600 rounded-lg">
-                <Activity className="h-4 w-4" />
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 bg-red-50 text-red-600 rounded-lg">
+                <Activity className="h-4.5 w-4.5" />
               </div>
-              <h3 className="text-sm font-extrabold uppercase tracking-wide text-slate-800">
+              <h3 className="text-sm sm:text-base font-extrabold uppercase tracking-wide text-slate-800">
                 Weekly Activity
               </h3>
             </div>
-            <span className="text-xs text-slate-400 font-medium">Last 7 Days</span>
+            <span className="text-xs sm:text-sm text-slate-500 font-medium">Last 7 Days</span>
           </div>
 
           <div className="h-52 sm:h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={stats.activityData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#64748b" }} axisLine={{ stroke: '#e2e8f0' }} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: "#64748b" }} allowDecimals={false} axisLine={false} tickLine={false} width={30} />
+                <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#64748b" }} axisLine={{ stroke: '#e2e8f0' }} tickLine={false} />
+                <YAxis tick={{ fontSize: 12, fill: "#64748b" }} allowDecimals={false} axisLine={false} tickLine={false} width={32} />
                 <RechartsTooltip 
                   contentStyle={{ 
                     backgroundColor: "#ffffff", 
                     borderRadius: "12px", 
                     border: "1px solid #e2e8f0", 
                     boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)", 
-                    fontSize: "12px" 
+                    fontSize: "13px" 
                   }} 
                 />
                 <Bar dataKey="processed" fill="#dc2626" radius={[6, 6, 0, 0]} barSize={26} />
@@ -568,19 +568,19 @@ export default function Dashboard({ onNavigate }) {
 
 function SectionTitle({ title, icon: Icon, onNavigate }) {
   return (
-    <div className="flex items-center justify-between mb-3 mt-0">
-      <div className="flex items-center gap-2 sm:gap-2.5">
-        <div className="p-1.5 sm:p-2 rounded-xl bg-red-50 text-red-600 border border-red-200/70 shadow-2xs">
-          <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+    <div className="flex items-center justify-between mb-2.5 sm:mb-3 mt-0 gap-2">
+      <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+        <div className="p-1.5 sm:p-2 rounded-xl bg-red-50 text-red-600 border border-red-200/70 shadow-2xs shrink-0">
+          <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
         </div>
-        <h3 className="text-xs sm:text-sm font-extrabold text-slate-900 tracking-wide uppercase">
+        <h3 className="text-xs sm:text-base font-extrabold text-slate-900 tracking-wide uppercase break-words">
           {title}
         </h3>
       </div>
       {onNavigate && (
         <button
           onClick={onNavigate}
-          className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-semibold text-slate-600 bg-white hover:bg-slate-50 border border-slate-200/80 hover:border-red-200 hover:text-red-600 transition-all shadow-2xs group cursor-pointer"
+          className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl text-xs sm:text-sm font-bold text-slate-600 bg-white hover:bg-slate-50 border border-slate-200/80 hover:border-red-200 hover:text-red-600 transition-all shadow-2xs group cursor-pointer shrink-0"
         >
           <span>View All</span>
           <ArrowRight className="h-3 w-3 sm:h-3.5 sm:w-3.5 group-hover:translate-x-0.5 transition-transform" />
@@ -602,28 +602,28 @@ function MiniCard({ label, value, colorScheme = "blue", badge, icon: Icon, subte
   const current = schemeMap[colorScheme] || schemeMap.blue;
 
   return (
-    <div className="bg-white rounded-xl p-2.5 sm:p-3 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group min-w-0">
-      <div className="flex items-center justify-between mb-1.5 gap-1">
-        <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-500 truncate leading-tight" title={label}>
+    <div className="bg-white rounded-xl p-2 sm:p-3.5 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group min-w-0">
+      <div className="flex items-start justify-between gap-1 mb-1.5 min-w-0">
+        <span className="text-[10px] min-[400px]:text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 leading-tight break-words flex-1 min-w-0" title={label}>
           {label}
         </span>
         {badge ? (
-          <span className={`text-[8px] sm:text-[9px] font-bold px-1 sm:px-1.5 py-0.5 rounded-full border shrink-0 ${current.badgeBg}`}>
+          <span className={`text-[8px] min-[400px]:text-[9px] sm:text-[10px] font-bold px-1 sm:px-1.5 py-0.5 rounded-full border shrink-0 whitespace-nowrap ml-1 ${current.badgeBg}`}>
             {badge}
           </span>
         ) : Icon ? (
-          <div className={`p-1 rounded-lg shrink-0 ${current.bg} ${current.text}`}>
+          <div className={`p-1 sm:p-1.5 rounded-lg shrink-0 ${current.bg} ${current.text} ml-1`}>
             <Icon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
           </div>
         ) : null}
       </div>
 
       <div>
-        <div className="text-sm sm:text-base font-black text-slate-900 tracking-tight leading-tight group-hover:text-red-600 transition-colors truncate" title={String(value)}>
+        <div className="text-xs min-[400px]:text-sm sm:text-lg lg:text-xl font-black text-slate-900 tracking-tight leading-tight group-hover:text-red-600 transition-colors break-words" title={String(value)}>
           {value}
         </div>
         {subtext && (
-          <div className="text-[10px] text-slate-400 mt-0.5 font-medium truncate">
+          <div className="text-[9px] sm:text-xs text-slate-400 mt-0.5 font-medium break-words">
             {subtext}
           </div>
         )}
@@ -645,27 +645,27 @@ function SubSection({ title, items, color = "blue" }) {
   const theme = colorStyles[color] || colorStyles.blue;
 
   return (
-    <div className={`bg-white rounded-xl p-3 sm:p-3.5 border border-slate-200/80 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between min-w-0 ${theme.border}`}>
+    <div className={`bg-white rounded-xl p-3 sm:p-4 border border-slate-200/80 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between min-w-0 ${theme.border}`}>
       <div>
         {/* Header */}
-        <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100 gap-1">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <span className={`w-2 h-2 rounded-full shrink-0 ${theme.dot}`}></span>
-            <h4 className="text-xs font-extrabold text-slate-800 tracking-wide uppercase truncate">
+        <div className="flex items-center justify-between pb-2 mb-2 sm:pb-2.5 sm:mb-2.5 border-b border-slate-100 gap-1.5">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className={`w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full shrink-0 ${theme.dot}`}></span>
+            <h4 className="text-xs sm:text-sm font-extrabold text-slate-800 tracking-wide uppercase break-words">
               {title}
             </h4>
           </div>
-          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wider shrink-0 ${theme.tagBg}`}>
+          <span className={`text-[9px] sm:text-[11px] font-bold px-1.5 sm:px-2 py-0.5 rounded border uppercase tracking-wider shrink-0 ${theme.tagBg}`}>
             Format
           </span>
         </div>
 
         {/* Regular Metric Rows */}
-        <div className="space-y-1">
+        <div className="space-y-1 sm:space-y-1.5">
           {regularItems.map((item, i) => (
-            <div key={i} className="flex items-center justify-between text-[11px] py-0.5 px-1.5 rounded hover:bg-slate-50 transition-colors">
-              <span className="text-slate-500 font-medium truncate">{item.label}</span>
-              <span className="font-bold text-slate-900 font-mono text-xs shrink-0 ml-1">
+            <div key={i} className="flex items-center justify-between text-xs sm:text-[13px] py-0.5 sm:py-1 px-1 sm:px-1.5 rounded hover:bg-slate-50 transition-colors">
+              <span className="text-slate-600 font-semibold break-words">{item.label}</span>
+              <span className="font-extrabold text-slate-900 font-mono text-xs sm:text-sm shrink-0 ml-1">
                 {item.value}
               </span>
             </div>
@@ -675,16 +675,16 @@ function SubSection({ title, items, color = "blue" }) {
 
       {/* Status Footer Pill */}
       {(pendingItem || doneItem) && (
-        <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between gap-1.5 text-[10px]">
+        <div className="mt-2.5 sm:mt-3 pt-2 sm:pt-2.5 border-t border-slate-100 flex items-center justify-between gap-1.5 sm:gap-2 text-[10px] sm:text-xs">
           {pendingItem && (
-            <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200/60 font-semibold flex-1 justify-center truncate">
-              <Clock className="h-3 w-3 text-amber-600 shrink-0" />
+            <div className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-md bg-amber-50 text-amber-700 border border-amber-200/60 font-bold flex-1 justify-center">
+              <Clock className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-amber-600 shrink-0" />
               <span>Pending: {pendingItem.value}</span>
             </div>
           )}
           {doneItem && (
-            <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/60 font-semibold flex-1 justify-center truncate">
-              <CheckCircle2 className="h-3 w-3 text-emerald-600 shrink-0" />
+            <div className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/60 font-bold flex-1 justify-center">
+              <CheckCircle2 className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-emerald-600 shrink-0" />
               <span>Done: {doneItem.value}</span>
             </div>
           )}
@@ -700,22 +700,22 @@ function QuickLink({ title, icon: Icon, count, onClick }) {
       onClick={onClick}
       className="flex items-center justify-between p-2.5 sm:p-3 rounded-xl bg-slate-50/70 hover:bg-red-50/40 border border-slate-200/70 hover:border-red-200 transition-all cursor-pointer group"
     >
-      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-        <div className="p-1.5 bg-white rounded-lg border border-slate-200/60 text-slate-600 group-hover:text-red-600 transition-colors shadow-2xs shrink-0">
+      <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+        <div className="p-1.5 sm:p-2 bg-white rounded-lg border border-slate-200/60 text-slate-600 group-hover:text-red-600 transition-colors shadow-2xs shrink-0">
           <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
         </div>
-        <span className="text-xs font-bold text-slate-700 group-hover:text-slate-900 truncate">
+        <span className="text-xs sm:text-sm font-bold text-slate-700 group-hover:text-slate-900 break-words">
           {title}
         </span>
       </div>
       
-      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+      <div className="flex items-center gap-2 shrink-0">
         {count !== "" && (
-          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-200/70 group-hover:bg-red-100 group-hover:text-red-700 text-slate-600 transition-colors">
+          <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-slate-200/70 group-hover:bg-red-100 group-hover:text-red-700 text-slate-600 transition-colors">
             {count}
           </span>
         )}
-        <ChevronRight className="h-4 w-4 text-slate-400 group-hover:text-red-600 group-hover:translate-x-0.5 transition-all" />
+        <ChevronRight className="h-4.5 w-4.5 text-slate-400 group-hover:text-red-600 group-hover:translate-x-0.5 transition-all" />
       </div>
     </div>
   );
