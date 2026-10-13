@@ -250,43 +250,46 @@ export default function Dashboard({ onNavigate }) {
   );
 
   return (
-    <div className="w-full px-3 sm:px-6 py-2 space-y-8 animate-in fade-in duration-300">
+    <div className="w-full px-3 sm:px-5 lg:px-6 py-2 space-y-6 sm:space-y-8 animate-in fade-in duration-300">
       
       {/* ═══════════ HEADER ═══════════ */}
-      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 pb-2 border-b border-slate-200/80">
-        <div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50 border border-red-200/80 text-[11px] font-bold text-red-600 mb-2 uppercase tracking-wider shadow-2xs">
-            <Flame className="h-3.5 w-3.5 text-red-500" />
-            <span>Coal Intelligence & Operations</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-            Dashboard Overview
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1 flex items-center gap-2">
-            <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            Real-time analytics across all Coal System modules
-          </p>
-        </div>
-
-        {/* Top Metric Capsules */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-3 bg-white px-4 py-2.5 rounded-2xl border border-slate-200/80 shadow-xs">
-            <div className="p-2 bg-red-50 text-red-600 rounded-xl">
-              <Database className="h-4 w-4" />
+      <div className="flex flex-col gap-4 pb-2 border-b border-slate-200/80">
+        {/* Title Row */}
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+          <div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50 border border-red-200/80 text-[11px] font-bold text-red-600 mb-2 uppercase tracking-wider shadow-2xs">
+              <Flame className="h-3.5 w-3.5 text-red-500" />
+              <span>Coal Intelligence &amp; Operations</span>
             </div>
-            <div>
-              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Records</div>
-              <div className="text-base font-extrabold text-slate-900 leading-tight">{stats.totalDocs}</div>
-            </div>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-slate-900 tracking-tight">
+              Dashboard Overview
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500 mt-1 flex items-center gap-2">
+              <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              Real-time analytics across all Coal System modules
+            </p>
           </div>
 
-          <div className="flex items-center gap-3 bg-white px-4 py-2.5 rounded-2xl border border-slate-200/80 shadow-xs">
-            <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
-              <TrendingUp className="h-4 w-4" />
+          {/* Top Metric Capsules */}
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+            <div className="flex items-center gap-2 sm:gap-3 bg-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl border border-slate-200/80 shadow-xs flex-1 sm:flex-none min-w-0">
+              <div className="p-1.5 sm:p-2 bg-red-50 text-red-600 rounded-xl shrink-0">
+                <Database className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Records</div>
+                <div className="text-base font-extrabold text-slate-900 leading-tight">{stats.totalDocs}</div>
+              </div>
             </div>
-            <div>
-              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Valuation</div>
-              <div className="text-base font-extrabold text-emerald-600 leading-tight">{fmtCurrency(stats.totalValue)}</div>
+
+            <div className="flex items-center gap-2 sm:gap-3 bg-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl border border-slate-200/80 shadow-xs flex-1 sm:flex-none min-w-0">
+              <div className="p-1.5 sm:p-2 bg-emerald-50 text-emerald-600 rounded-xl shrink-0">
+                <TrendingUp className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Valuation</div>
+                <div className="text-base font-extrabold text-emerald-600 leading-tight">{fmtCurrency(stats.totalValue)}</div>
+              </div>
             </div>
           </div>
         </div>
@@ -296,15 +299,15 @@ export default function Dashboard({ onNavigate }) {
       <section>
         <SectionTitle title="SECL Intimation" icon={FileText} onNavigate={() => onNavigate("secl-intimation")} />
         
-        {/* Top KPI Cards - Single Line */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "12px" }} className="mb-3">
+        {/* Top KPI Cards */}
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-3">
           <MiniCard label="Total Allotted" value={`${fmtNum(stats.seclTotalQty)} MT`} icon={Boxes} colorScheme="blue" />
           <MiniCard label="Total Pending" value={stats.seclTotalPending} badge="Pending" colorScheme="amber" />
           <MiniCard label="Total Done" value={stats.seclTotalDone} badge="Done" colorScheme="emerald" />
         </div>
 
-        {/* Sub-breakdown: M-junction, MSTC, CMPDCIL - Single Line */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "12px" }}>
+        {/* Sub-breakdown: M-junction, MSTC, CMPDCIL */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
           <SubSection 
             title="M-Junction" 
             color="blue"
@@ -341,10 +344,10 @@ export default function Dashboard({ onNavigate }) {
         </div>
       </section>
 
-      {/* ═══════════ SECTION 2: SALES ORDER (DO) - Single Line ═══════════ */}
+      {/* ═══════════ SECTION 2: SALES ORDER (DO) ═══════════ */}
       <section>
         <SectionTitle title="Sales Order (DO)" icon={FileSpreadsheet} onNavigate={() => onNavigate("sales-order")} />
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: "10px" }}>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-2.5">
           <MiniCard label="Total DOs" value={stats.soCount} icon={FileText} colorScheme="blue" />
           <MiniCard label="Active DOs" value={stats.soValid} badge="Valid" colorScheme="emerald" />
           <MiniCard label="Expired DOs" value={stats.soExpired} badge="Expired" colorScheme="red" />
@@ -353,10 +356,10 @@ export default function Dashboard({ onNavigate }) {
         </div>
       </section>
 
-      {/* ═══════════ SECTION 3: SECL PAYMENT ADVICE - Single Line ═══════════ */}
+      {/* ═══════════ SECTION 3: SECL PAYMENT ADVICE ═══════════ */}
       <section>
         <SectionTitle title="SECL Payment Advice" icon={Wallet} onNavigate={() => onNavigate("secl-payment-advice")} />
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "10px" }}>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5">
           <MiniCard label="Total Advices" value={stats.paCount} icon={FileText} colorScheme="blue" />
           <MiniCard label="Active" value={stats.paValid} badge="Valid" colorScheme="emerald" />
           <MiniCard label="Expired" value={stats.paExpired} badge="Expired" colorScheme="red" />
@@ -364,13 +367,13 @@ export default function Dashboard({ onNavigate }) {
         </div>
       </section>
 
-      {/* ═══════════ SECTION 4: INVOICE, AUCTION & DISPATCH ROW - Single Line ═══════════ */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "14px" }}>
+      {/* ═══════════ SECTION 4: INVOICE, AUCTION & DISPATCH ROW ═══════════ */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
         
         {/* INVOICE */}
         <section className="space-y-3">
           <SectionTitle title="Invoice" icon={Receipt} onNavigate={() => onNavigate("invoice")} />
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "8px" }}>
+          <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
             <MiniCard label="Total Invoices" value={stats.invCount} icon={Receipt} colorScheme="blue" />
             <MiniCard label="Total Amount" value={fmtCurrency(stats.invTotal)} icon={TrendingUp} colorScheme="emerald" />
           </div>
@@ -379,16 +382,16 @@ export default function Dashboard({ onNavigate }) {
         {/* AUCTION */}
         <section className="space-y-3">
           <SectionTitle title="Auction / Deal" icon={Gavel} onNavigate={() => onNavigate("auction")} />
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "8px" }}>
+          <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
             <MiniCard label="Total Auctions" value={stats.aucCount} icon={Gavel} colorScheme="purple" />
             <MiniCard label="Qty Offered" value={`${fmtNum(stats.aucTotalQty)} MT`} icon={Boxes} colorScheme="amber" />
           </div>
         </section>
 
         {/* DISPATCH */}
-        <section className="space-y-3">
+        <section className="space-y-3 sm:col-span-2 lg:col-span-1">
           <SectionTitle title="Dispatch Tracking" icon={Truck} onNavigate={() => onNavigate("dispatch")} />
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "6px" }}>
+          <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
             <MiniCard label="Dispatches" value={stats.dispCount} icon={Truck} colorScheme="blue" />
             <MiniCard label="Total Qty" value={`${fmtNum(stats.dispQty)} MT`} colorScheme="emerald" />
             <MiniCard label="Freight" value={fmtCurrency(stats.dispFreight)} colorScheme="amber" />
@@ -398,10 +401,10 @@ export default function Dashboard({ onNavigate }) {
       </div>
 
       {/* ═══════════ CHARTS & NAVIGATION ROW ═══════════ */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 pt-2">
         
         {/* Document Distribution Pie Chart */}
-        <div className="lg:col-span-2 bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/80 shadow-xs">
+        <div className="lg:col-span-2 bg-white rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200/80 shadow-xs">
           <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
             <div className="flex items-center gap-2">
               <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg">
@@ -416,13 +419,13 @@ export default function Dashboard({ onNavigate }) {
             </span>
           </div>
 
-          <div className="h-72 w-full flex justify-center items-center">
+          <div className="h-60 sm:h-72 w-full flex justify-center items-center">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie 
                   data={stats.distData} 
-                  innerRadius={65} 
-                  outerRadius={105} 
+                  innerRadius={55} 
+                  outerRadius={90} 
                   paddingAngle={3} 
                   dataKey="value" 
                   stroke="none"
@@ -439,14 +442,14 @@ export default function Dashboard({ onNavigate }) {
                     fontWeight: "600"
                   }} 
                 />
-                <Legend iconType="circle" wrapperStyle={{ fontSize: 12, paddingTop: 14 }} />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: 11, paddingTop: 14 }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         {/* Quick Links Navigation */}
-        <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/80 shadow-xs flex flex-col justify-between">
+        <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200/80 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100">
             <div className="flex items-center gap-2">
               <div className="p-1.5 bg-red-50 text-red-600 rounded-lg">
@@ -461,7 +464,7 @@ export default function Dashboard({ onNavigate }) {
             </span>
           </div>
 
-          <div className="flex flex-col gap-2 overflow-y-auto max-h-[300px] pr-1">
+          <div className="flex flex-col gap-2 overflow-y-auto max-h-[260px] sm:max-h-[300px] pr-1">
             <QuickLink title="Auction / Deal" icon={Gavel} count={stats.aucCount} onClick={() => onNavigate("auction")} />
             <QuickLink title="SECL Intimation" icon={FileText} count={stats.f1Count + stats.f2Count + stats.clCount} onClick={() => onNavigate("secl-intimation")} />
             <QuickLink title="SECL Payment Advice" icon={Wallet} count={stats.paCount} onClick={() => onNavigate("secl-payment-advice")} />
@@ -475,23 +478,23 @@ export default function Dashboard({ onNavigate }) {
       </div>
 
       {/* ═══════════ TREND & ACTIVITY ═══════════ */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2 pb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 pt-2 pb-6">
         
         {/* Monthly Trend */}
-        <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/80 shadow-xs">
+        <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200/80 shadow-xs">
           <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
             <div className="flex items-center gap-2">
               <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg">
                 <BarChart3 className="h-4 w-4" />
               </div>
               <h3 className="text-sm font-extrabold uppercase tracking-wide text-slate-800">
-                Monthly Document Trend
+                Monthly Trend
               </h3>
             </div>
             <span className="text-xs text-slate-400 font-medium">Last 6 Months</span>
           </div>
 
-          <div className="h-64 w-full">
+          <div className="h-52 sm:h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={stats.trendData}>
                 <defs>
@@ -501,8 +504,8 @@ export default function Dashboard({ onNavigate }) {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#64748b" }} axisLine={{ stroke: '#e2e8f0' }} tickLine={false} />
-                <YAxis tick={{ fontSize: 12, fill: "#64748b" }} allowDecimals={false} axisLine={false} tickLine={false} />
+                <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#64748b" }} axisLine={{ stroke: '#e2e8f0' }} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: "#64748b" }} allowDecimals={false} axisLine={false} tickLine={false} width={30} />
                 <RechartsTooltip 
                   contentStyle={{ 
                     backgroundColor: "#ffffff", 
@@ -519,7 +522,7 @@ export default function Dashboard({ onNavigate }) {
         </div>
 
         {/* Weekly Activity */}
-        <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/80 shadow-xs">
+        <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200/80 shadow-xs">
           <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
             <div className="flex items-center gap-2">
               <div className="p-1.5 bg-red-50 text-red-600 rounded-lg">
@@ -532,12 +535,12 @@ export default function Dashboard({ onNavigate }) {
             <span className="text-xs text-slate-400 font-medium">Last 7 Days</span>
           </div>
 
-          <div className="h-64 w-full">
+          <div className="h-52 sm:h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={stats.activityData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#64748b" }} axisLine={{ stroke: '#e2e8f0' }} tickLine={false} />
-                <YAxis tick={{ fontSize: 12, fill: "#64748b" }} allowDecimals={false} axisLine={false} tickLine={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#64748b" }} axisLine={{ stroke: '#e2e8f0' }} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: "#64748b" }} allowDecimals={false} axisLine={false} tickLine={false} width={30} />
                 <RechartsTooltip 
                   contentStyle={{ 
                     backgroundColor: "#ffffff", 
@@ -565,22 +568,22 @@ export default function Dashboard({ onNavigate }) {
 
 function SectionTitle({ title, icon: Icon, onNavigate }) {
   return (
-    <div className="flex items-center justify-between mb-3.5 mt-8 first:mt-0">
-      <div className="flex items-center gap-2.5">
-        <div className="p-2 rounded-xl bg-red-50 text-red-600 border border-red-200/70 shadow-2xs">
-          <Icon className="h-4 w-4" />
+    <div className="flex items-center justify-between mb-3 mt-0">
+      <div className="flex items-center gap-2 sm:gap-2.5">
+        <div className="p-1.5 sm:p-2 rounded-xl bg-red-50 text-red-600 border border-red-200/70 shadow-2xs">
+          <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
         </div>
-        <h3 className="text-sm sm:text-base font-extrabold text-slate-900 tracking-wide uppercase">
+        <h3 className="text-xs sm:text-sm font-extrabold text-slate-900 tracking-wide uppercase">
           {title}
         </h3>
       </div>
       {onNavigate && (
         <button
           onClick={onNavigate}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 bg-white hover:bg-slate-50 border border-slate-200/80 hover:border-red-200 hover:text-red-600 transition-all shadow-2xs group cursor-pointer"
+          className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-semibold text-slate-600 bg-white hover:bg-slate-50 border border-slate-200/80 hover:border-red-200 hover:text-red-600 transition-all shadow-2xs group cursor-pointer"
         >
           <span>View All</span>
-          <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
+          <ArrowRight className="h-3 w-3 sm:h-3.5 sm:w-3.5 group-hover:translate-x-0.5 transition-transform" />
         </button>
       )}
     </div>
@@ -599,24 +602,24 @@ function MiniCard({ label, value, colorScheme = "blue", badge, icon: Icon, subte
   const current = schemeMap[colorScheme] || schemeMap.blue;
 
   return (
-    <div className="bg-white rounded-xl p-2.5 sm:py-2.5 sm:px-3 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group min-w-0">
+    <div className="bg-white rounded-xl p-2.5 sm:p-3 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group min-w-0">
       <div className="flex items-center justify-between mb-1.5 gap-1">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 truncate" title={label}>
+        <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-500 truncate leading-tight" title={label}>
           {label}
         </span>
         {badge ? (
-          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${current.badgeBg}`}>
+          <span className={`text-[8px] sm:text-[9px] font-bold px-1 sm:px-1.5 py-0.5 rounded-full border shrink-0 ${current.badgeBg}`}>
             {badge}
           </span>
         ) : Icon ? (
           <div className={`p-1 rounded-lg shrink-0 ${current.bg} ${current.text}`}>
-            <Icon className="h-3.5 w-3.5" />
+            <Icon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
           </div>
         ) : null}
       </div>
 
       <div>
-        <div className="text-base sm:text-lg font-black text-slate-900 tracking-tight leading-tight group-hover:text-red-600 transition-colors truncate" title={String(value)}>
+        <div className="text-sm sm:text-base font-black text-slate-900 tracking-tight leading-tight group-hover:text-red-600 transition-colors truncate" title={String(value)}>
           {value}
         </div>
         {subtext && (
@@ -695,18 +698,18 @@ function QuickLink({ title, icon: Icon, count, onClick }) {
   return (
     <div
       onClick={onClick}
-      className="flex items-center justify-between p-3 rounded-xl bg-slate-50/70 hover:bg-red-50/40 border border-slate-200/70 hover:border-red-200 transition-all cursor-pointer group"
+      className="flex items-center justify-between p-2.5 sm:p-3 rounded-xl bg-slate-50/70 hover:bg-red-50/40 border border-slate-200/70 hover:border-red-200 transition-all cursor-pointer group"
     >
-      <div className="flex items-center gap-3">
-        <div className="p-1.5 bg-white rounded-lg border border-slate-200/60 text-slate-600 group-hover:text-red-600 transition-colors shadow-2xs">
-          <Icon className="h-4 w-4" />
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+        <div className="p-1.5 bg-white rounded-lg border border-slate-200/60 text-slate-600 group-hover:text-red-600 transition-colors shadow-2xs shrink-0">
+          <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
         </div>
-        <span className="text-xs font-bold text-slate-700 group-hover:text-slate-900">
+        <span className="text-xs font-bold text-slate-700 group-hover:text-slate-900 truncate">
           {title}
         </span>
       </div>
       
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
         {count !== "" && (
           <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-200/70 group-hover:bg-red-100 group-hover:text-red-700 text-slate-600 transition-colors">
             {count}
