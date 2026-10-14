@@ -7,7 +7,7 @@ import {
   AlertCircle, TrendingUp, TrendingDown, ShieldCheck, FileSpreadsheet, 
   FileText, Plus, Search, MessageSquare, Phone, ArrowRight, ExternalLink,
   PieChart as PieChartIcon, BarChart3, Sparkles, RefreshCw, Layers, Home,
-  AlertTriangle, Check, DollarSign, Wallet, Shield, ChevronRight, CalendarCheck
+  AlertTriangle, Check, DollarSign, Wallet, Shield, ChevronRight, CalendarCheck, GitFork
 } from 'lucide-react';
 import { 
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, 
@@ -356,6 +356,14 @@ export default function RentDashboard() {
             </div>
 
             {/* Quick Action Navigation */}
+            <Link
+              to="/dashboard/rent-tracker/system-flow"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all shadow-2xs"
+            >
+              <GitFork className="h-3.5 w-3.5 text-red-600 transform rotate-90" />
+              <span>System Flow</span>
+            </Link>
+
             <Link
               to="/dashboard/rent-tracker/master"
               className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs"

@@ -6,7 +6,7 @@ import {
   Clock, CheckCircle2, AlertCircle, AlertTriangle, FileText, FileSpreadsheet, 
   Phone, MessageSquare, LayoutDashboard, Building2, TrendingUp, ShieldCheck, 
   DollarSign, Wallet, Banknote, RefreshCw, ArrowRight, Filter, ExternalLink, 
-  Sparkles, Shield, ChevronRight
+  Sparkles, Shield, ChevronRight, GitFork
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -585,6 +585,14 @@ const MonthlyTracker = () => {
 
           {/* Quick Action Navigation */}
           <div className="flex items-center gap-2 flex-wrap">
+            <Link
+              to="/dashboard/rent-tracker/system-flow"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all shadow-2xs"
+            >
+              <GitFork className="h-3.5 w-3.5 text-red-600 transform rotate-90" />
+              <span>System Flow</span>
+            </Link>
+
             <Link
               to="/dashboard/rent-tracker/dashboard"
               className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all shadow-2xs"

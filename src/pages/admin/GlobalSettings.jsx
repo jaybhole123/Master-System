@@ -55,7 +55,7 @@ const MODULES = [
   {
     id: 'Checklist & Delegation',
     name: 'Checklist & Delegation',
-    pages: ['Dashboard', 'Notifications', 'Task Manager', 'Assign Task', 'Delegation', 'Checklist', 'Calendar', 'Holiday', 'Admin Approval', 'Settings', 'Training Video']
+    pages: ['Dashboard', 'Notifications', 'Task Manager', 'Assign Task', 'Delegation', 'Checklist', 'Calendar', 'Holiday', 'Admin Approval', 'Settings', 'Training Video', 'System Flow']
   },
   {
     id: 'Document & Substruction',
@@ -79,14 +79,14 @@ const MODULES = [
     ]
   },
   {
-    id: 'Rent Management',
-    name: 'Rent Management',
-    pages: ['Rent Management']
+    id: 'Rent Management Tracker',
+    name: 'Rent Management Tracker',
+    pages: ['System Flow', 'Rent Dashboard', 'Rent Master', 'Monthly Tracker', 'Rent Management']
   },
   {
     id: 'HR System',
     name: 'HR System',
-    pages: ['HR Dashboard', 'Employee Master', 'Salary Structure', 'Attendance', 'Leave Tracker', 'Payroll Process', 'Net Salary', 'Payslip', 'Create Indent', 'Inventory']
+    pages: ['System Flow', 'HR Dashboard', 'Employee Master', 'Salary Structure', 'Attendance', 'Leave Tracker', 'Payroll Process', 'Net Salary', 'Payslip', 'Create Indent', 'Inventory']
   },
   {
     id: 'Letter',
@@ -96,27 +96,27 @@ const MODULES = [
   {
     id: 'Petty Cash',
     name: 'Petty Cash',
-    pages: ['Petty Dashboard', 'Add Credit / Case', 'Expenses', 'Ledger', 'Summary', 'Petty Settings']
+    pages: ['System Flow', 'Petty Dashboard', 'Add Credit / Case', 'Expenses', 'Ledger', 'Summary', 'Petty Settings']
   },
   {
     id: 'Daily Scheduler',
     name: 'Daily Scheduler',
-    pages: ['Scheduler Dashboard', 'Waiting List', 'Someday Tasks', 'Reports']
+    pages: ['System Flow', 'Scheduler Dashboard', 'Waiting List', 'Someday Tasks', 'Reports']
   },
   {
     id: 'Help Slip',
     name: 'Help Slip',
-    pages: ['Help Slip', 'Submissions']
+    pages: ['System Flow', 'Help Slip', 'Submissions']
   },
   {
     id: 'Coal System',
     name: 'Coal System',
-    pages: ['Dashboard', 'Auction', 'Payment Advice', 'SECL Payment Advice', 'Sales Order', 'SECL Intimation', 'Invoice', 'Work Order', 'Dispatch', 'Transport Payment', 'Refund / Lapse', 'Sauda Sale']
+    pages: ['System Flow', 'Dashboard', 'Auction', 'Payment Advice', 'SECL Payment Advice', 'Sales Order', 'SECL Intimation', 'Invoice', 'Work Order', 'Dispatch', 'Transport Payment', 'Refund / Lapse', 'Sauda Sale']
   },
   {
     id: 'Transport Reporting',
     name: 'Transport Reporting',
-    pages: ['Dashboard', 'Purchase Truck', 'Fastag', 'Challan', 'Truck Reports']
+    pages: ['System Flow', 'Dashboard', 'Purchase Truck', 'Fastag', 'Challan', 'Truck Reports']
   },
   {
     id: 'Global Settings',

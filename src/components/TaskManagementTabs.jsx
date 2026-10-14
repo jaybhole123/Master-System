@@ -22,6 +22,7 @@ export default function TaskManagementTabs({ activeTab, setActiveTab }) {
         { id: 'ea', label: 'EA', icon: Users, color: 'text-green-600', activeColor: 'bg-green-600' },
         { id: 'assign-task', label: 'Assign Task', icon: PlusCircle, color: 'text-purple-600', activeColor: 'bg-purple-600', isRoute: true, route: '/dashboard/assign-task', adminOnly: true },
         { id: 'admin-approval', label: 'Admin Approval', icon: ShieldCheck, color: 'text-amber-600', activeColor: 'bg-amber-600', isRoute: true, route: '/dashboard/admin-approval', adminOnly: true },
+        { id: 'system-flow', label: 'System Flow', icon: Activity, color: 'text-red-600', activeColor: 'bg-red-600', isRoute: true, route: '/dashboard/system-flow' },
         { id: 'my-task', label: 'My Task', icon: CheckCircle, color: 'text-red-600', activeColor: 'bg-red-600', isRoute: true, route: '/dashboard/my-task', superAdminOnly: true },
     ]
 

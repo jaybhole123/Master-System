@@ -5,7 +5,7 @@ import {
   Search, Plus, Building2, X, Edit, Trash2, FileText, FileSpreadsheet, 
   Clock, CheckCircle2, Check, AlertCircle, TrendingUp, Users, Shield, 
   ArrowRight, LayoutDashboard, Phone, ExternalLink, Calendar as CalendarIcon, 
-  Sparkles, Wallet, Banknote 
+  Sparkles, Wallet, Banknote, GitFork
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -597,6 +597,14 @@ const RentMaster = () => {
                 className="pl-9 pr-4 py-2 border border-slate-200/90 rounded-xl text-xs bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 w-full transition-all shadow-2xs"
               />
             </div>
+
+            <Link
+              to="/dashboard/rent-tracker/system-flow"
+              className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all shadow-2xs"
+            >
+              <GitFork className="h-3.5 w-3.5 text-red-600 transform rotate-90" />
+              <span>System Flow</span>
+            </Link>
 
             <Link
               to="/dashboard/rent-tracker/dashboard"

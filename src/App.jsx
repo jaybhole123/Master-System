@@ -30,8 +30,10 @@ import MasterDashboard from "./pages/MasterDashboard"
 import ProfilePage from "./pages/ProfilePage"
 import GlobalSettings from "./pages/admin/GlobalSettings"
 import HelpSlipPage from "./HelpSlip/src/pages/HelpSlip"
+import HelpSlipSystemFlow from "./pages/admin/HelpSlipSystemFlow"
 
 // --- HR System Imports ---
+import HrSystemFlow from "./pages/admin/HrSystemFlow"
 import HrDashboard from "./Hr-sysytem/src/pages/Dashboard"
 import HrEmployeeMaster from "./Hr-sysytem/src/pages/EmployeeMaster"
 import HrSalaryStructure from "./Hr-sysytem/src/pages/SalaryStructure"
@@ -49,6 +51,7 @@ import HrEmployeeJoin from "./Hr-sysytem/src/pages/EmployeeJoin"
 import HrWorkOrder from "./Hr-sysytem/src/pages/WorkOrder"
 
 // --- Petty Cash Imports ---
+import PettyCashSystemFlow from "./pages/admin/PettyCashSystemFlow"
 import PettyDashboard from "./Petty-Cash/src/pages/AdminDashboard"
 import PettyAddCase from "./Petty-Cash/src/pages/AddCase"
 import PettyExpenses from "./Petty-Cash/src/pages/Expenses"
@@ -58,6 +61,7 @@ import PettySettings from "./Petty-Cash/src/pages/Settings"
 import { initializeStorage } from "./Petty-Cash/src/utils/storageManager"
 
 // --- Daily Scheduler Imports ---
+import DailySchedulerSystemFlow from "./pages/admin/DailySchedulerSystemFlow"
 import { SchedulerProvider } from "./Daily-Shedular/src/context/SchedulerContext"
 import DailyDashboard from "./Daily-Shedular/src/pages/Dashboard"
 import DailyWaitingList from "./Daily-Shedular/src/pages/WaitingList"
@@ -66,9 +70,11 @@ import DailyReports from "./Daily-Shedular/src/pages/Reports"
 import DailyCalendarView from "./Daily-Shedular/src/pages/CalendarView"
 
 // --- Coal System Imports ---
+import CoalSystemFlow from "./pages/admin/CoalSystemFlow"
 import CoalSystemApp from "./CoalSystem/src/App"
 
 // --- Transport System Imports ---
+import TransportSystemFlow from "./pages/admin/TransportSystemFlow"
 import TransportDashboard from "./TransportSystem/src/pages/TransportDashboard"
 import TruckReports from "./TransportSystem/src/pages/TruckReports"
 
@@ -89,11 +95,13 @@ import WorkingDayCalendarPage from "./pages/admin/WorkingDayCalendarPage" // New
 import AdminApprovalPage from "./pages/admin/AdminApprovalPage" // New
 import NotificationsPage from "./pages/admin/Notifications"
 import TrainingVideo from "./pages/admin/TrainingVideo"
+import SystemFlow from "./pages/admin/SystemFlow"
 import InsuranceManagement from "./pages/admin/InsuranceManagement"
 import RentManagement from "./pages/admin/RentManagement"
 import RentMaster from "./pages/admin/RentMaster"
 import MonthlyTracker from "./pages/admin/MonthlyTracker"
 import RentDashboard from "./pages/admin/RentDashboard"
+import RentSystemFlow from "./pages/admin/RentSystemFlow"
 
 // --- Layout & Components ---
 import AdminLayout from "./components/layout/AdminLayout"
@@ -276,6 +284,14 @@ function App() {
                     />
 
                     {/* --- Rent Management Tracker --- */}
+                    <Route
+                        path="/dashboard/rent-tracker/system-flow"
+                        element={
+                            <ProtectedRoute allowedRoles={["admin", "HOD"]}>
+                                <RentSystemFlow />
+                            </ProtectedRoute>
+                        }
+                    />
                     <Route
                         path="/dashboard/rent-tracker/dashboard"
                         element={
@@ -471,6 +487,14 @@ function App() {
                         }
                     />
                     <Route
+                        path="/dashboard/system-flow"
+                        element={
+                            <ProtectedRoute>
+                                <SystemFlow />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
                         path="/dashboard/insurance"
                         element={
                             <ProtectedRoute>
@@ -499,6 +523,18 @@ function App() {
 
                     {/* --- Help Slip --- */}
                     <Route
+                        path="/dashboard/help-slip/system-flow"
+                        element={
+                            <ProtectedRoute>
+                                <AdminLayout>
+                                    <div className="h-full overflow-y-auto w-full">
+                                        <HelpSlipSystemFlow />
+                                    </div>
+                                </AdminLayout>
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
                         path="/dashboard/help-slip"
                         element={
                             <ProtectedRoute>
@@ -512,6 +548,7 @@ function App() {
                     />
 
                     {/* --- HR System Routes --- */}
+                    <Route path="/hr/system-flow" element={<HrWrapper><HrSystemFlow /></HrWrapper>} />
                     <Route path="/hr" element={<HrWrapper><HrDashboard /></HrWrapper>} />
                     <Route path="/hr/dashboard" element={<HrWrapper><HrDashboard /></HrWrapper>} />
                     <Route path="/hr/employee-master" element={<HrWrapper><HrEmployeeMaster /></HrWrapper>} />
@@ -536,6 +573,7 @@ function App() {
                     <Route path="/letter/work-order" element={<HrWrapper><HrWorkOrder /></HrWrapper>} />
 
                     {/* --- Petty Cash System Routes --- */}
+                    <Route path="/petty-cash/system-flow" element={<PettyWrapper><PettyCashSystemFlow /></PettyWrapper>} />
                     <Route path="/petty-cash" element={<PettyWrapper><PettyDashboard /></PettyWrapper>} />
                     <Route path="/petty-cash/dashboard" element={<PettyWrapper><PettyDashboard /></PettyWrapper>} />
                     <Route path="/petty-cash/add-case" element={<PettyWrapper><PettyAddCase /></PettyWrapper>} />
@@ -545,6 +583,7 @@ function App() {
                     <Route path="/petty-cash/settings" element={<PettyWrapper><PettySettings /></PettyWrapper>} />
 
                     {/* --- Daily Scheduler System Routes --- */}
+                    <Route path="/daily-scheduler/system-flow" element={<DailySchedulerWrapper><DailySchedulerSystemFlow /></DailySchedulerWrapper>} />
                     <Route path="/daily-scheduler" element={<DailySchedulerWrapper><DailyDashboard /></DailySchedulerWrapper>} />
                     <Route path="/daily-scheduler/dashboard" element={<DailySchedulerWrapper><DailyDashboard /></DailySchedulerWrapper>} />
                     <Route path="/daily-scheduler/waiting-list" element={<DailySchedulerWrapper><DailyWaitingList /></DailySchedulerWrapper>} />
@@ -553,6 +592,7 @@ function App() {
                     <Route path="/daily-scheduler/calendar" element={<DailySchedulerFullWrapper><DailyCalendarView /></DailySchedulerFullWrapper>} />
 
                     {/* --- Coal System Routes --- */}
+                    <Route path="/coal-system/system-flow" element={<CoalSystemWrapper><CoalSystemFlow /></CoalSystemWrapper>} />
                     <Route path="/coal-system" element={<Navigate to="/coal-system/dashboard" replace />} />
                     <Route path="/coal-system/dashboard" element={<CoalSystemWrapper><CoalSystemApp page="dashboard" hideNavigation={true} /></CoalSystemWrapper>} />
                     <Route path="/coal-system/auction" element={<CoalSystemWrapper><CoalSystemApp page="auction" hideNavigation={true} /></CoalSystemWrapper>} />
@@ -567,6 +607,7 @@ function App() {
                     <Route path="/coal-system/sauda-scale" element={<CoalSystemWrapper><CoalSystemApp page="sauda-scale" hideNavigation={true} /></CoalSystemWrapper>} />
 
                     {/* --- Transport System Routes --- */}
+                    <Route path="/transport-system/system-flow" element={<TransportSystemWrapper><TransportSystemFlow /></TransportSystemWrapper>} />
                     <Route path="/transport-system" element={<Navigate to="/transport-system/dashboard" replace />} />
                     <Route path="/transport-system/dashboard" element={<TransportSystemWrapper><TransportDashboard /></TransportSystemWrapper>} />
                     <Route path="/transport-system/truck-reports" element={<TransportSystemWrapper><TruckReports /></TransportSystemWrapper>} />

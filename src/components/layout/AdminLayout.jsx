@@ -51,16 +51,19 @@ import {
   HelpCircle,
   Users,
   Building2,
-  Truck
+  Truck,
+  GitFork
 } from "lucide-react";
 
 // Helper: get module & page title from current pathname
 const getHeaderTitle = (pathname, routes) => {
   // Check Profile
   if (pathname.includes("/dashboard/profile")) return { module: "Profile", page: "My Profile" };
+  if (pathname.includes("/dashboard/help-slip/system-flow")) return { module: "Help Slip", page: "System Flow" };
   if (pathname.includes("/dashboard/help-slip")) return { module: "Help Slip", page: "Help Slip" };
   if (pathname.includes("/dashboard/global-settings")) return { module: "Global Settings", page: "Global Settings" };
   // Check Rent Management
+  if (pathname.includes("/dashboard/rent-tracker/system-flow")) return { module: "Rent Management Tracker", page: "System Flow" };
   if (pathname.includes("/dashboard/rent-tracker/dashboard")) return { module: "Rent Management Tracker", page: "Rent Dashboard" };
   if (pathname.includes("/dashboard/rent-tracker/master")) return { module: "Rent Management Tracker", page: "Rent Master" };
   if (pathname.includes("/dashboard/rent-tracker/monthly")) return { module: "Rent Management Tracker", page: "Monthly Tracker" };
@@ -790,6 +793,14 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
     },
 
     {
+      href: "/dashboard/system-flow",
+      label: "System Flow",
+      icon: GitFork,
+      active: location.pathname === "/dashboard/system-flow",
+      showFor: ["admin", "user", "HOD"],
+      module: "Checklist & Delegation",
+    },
+    {
       href: "/dashboard/admin",
       label: "Dashboard",
       icon: Database,
@@ -798,6 +809,14 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       module: "Checklist & Delegation",
     },
 
+    {
+      href: "/dashboard/rent-tracker/system-flow",
+      label: "System Flow",
+      icon: GitFork,
+      active: location.pathname === "/dashboard/rent-tracker/system-flow",
+      showFor: ["admin", "HOD"],
+      module: "Rent Management Tracker",
+    },
     {
       href: "/dashboard/rent-tracker/dashboard",
       label: "Rent Dashboard",
@@ -995,6 +1014,14 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
 
     // --- HR System Module Routes ---
     {
+      href: "/hr/system-flow",
+      label: "System Flow",
+      icon: GitFork,
+      active: location.pathname === "/hr/system-flow",
+      showFor: ["admin", "user", "HOD"],
+      module: "HR System",
+    },
+    {
       href: "/hr/dashboard",
       label: "HR Dashboard",
       icon: LayoutDashboard,
@@ -1101,6 +1128,14 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
     },
     // --- Petty Cash Module Routes ---
     {
+      href: "/petty-cash/system-flow",
+      label: "System Flow",
+      icon: GitFork,
+      active: location.pathname === "/petty-cash/system-flow",
+      showFor: ["admin", "user", "HOD"],
+      module: "Petty Cash",
+    },
+    {
       href: "/petty-cash/dashboard",
       label: "Petty Dashboard",
       icon: LayoutDashboard,
@@ -1152,15 +1187,31 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       module: "Petty Cash",
     },
     {
+      href: "/dashboard/help-slip/system-flow",
+      label: "System Flow",
+      icon: GitFork,
+      active: location.pathname === "/dashboard/help-slip/system-flow",
+      showFor: ["admin", "user", "HOD"],
+      module: "Help Slip",
+    },
+    {
       href: "/dashboard/help-slip",
       label: "Help Slip",
       icon: HelpCircle,
-      active: location.pathname.includes("/dashboard/help-slip"),
+      active: location.pathname === "/dashboard/help-slip",
       showFor: ["admin", "user", "HOD"],
       module: "Help Slip",
     },
     // Global Settings moved to after Daily Scheduler
     // --- Daily Scheduler Module Routes ---
+    {
+      href: "/daily-scheduler/system-flow",
+      label: "System Flow",
+      icon: GitFork,
+      active: location.pathname === "/daily-scheduler/system-flow",
+      showFor: ["admin", "user", "HOD"],
+      module: "Daily Scheduler",
+    },
     {
       href: "/daily-scheduler/dashboard",
       label: "Scheduler Dashboard",
@@ -1206,6 +1257,14 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
     },
     // --- Transport System Module Routes ---
     {
+      href: "/transport-system/system-flow",
+      label: "System Flow",
+      icon: GitFork,
+      active: location.pathname === "/transport-system/system-flow",
+      showFor: ["admin", "user", "HOD"],
+      module: "Transport Reporting",
+    },
+    {
       href: "/transport-system/dashboard",
       label: "Dashboard",
       icon: LayoutDashboard,
@@ -1247,6 +1306,14 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
     },
 
     // --- Coal System Module Routes ---
+    {
+      href: "/coal-system/system-flow",
+      label: "System Flow",
+      icon: GitFork,
+      active: location.pathname === "/coal-system/system-flow",
+      showFor: ["admin", "user", "HOD"],
+      module: "Coal System",
+    },
     {
       href: "/coal-system/dashboard",
       label: "Dashboard",
@@ -1490,7 +1557,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
               }, {})
             ).map(([moduleName, moduleRoutes]) => (
               <div key={moduleName} className="mb-1.5">
-                {moduleName === "Master Dashboard" || moduleName === "Profile" || moduleName === "Global Settings" || moduleName === "Rent Management" || moduleName === "Help Slip" ? (
+                {moduleName === "Master Dashboard" || moduleName === "Profile" || moduleName === "Global Settings" || moduleName === "Rent Management" ? (
                   <Link
                     to={moduleRoutes[0].href}
                     className={`group w-full flex items-center justify-between px-3 py-2.5 text-[13.5px] font-semibold rounded-xl transition-all relative overflow-hidden ${
@@ -1512,7 +1579,6 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                         {moduleName === "Profile" && <UserRound className="h-4 w-4" />}
                         {moduleName === "Global Settings" && <Settings2 className="h-4 w-4" />}
                         {moduleName === "Rent Management" && <Banknote className="h-4 w-4" />}
-                        {moduleName === "Help Slip" && <HelpCircle className="h-4 w-4" />}
                       </div>
                       {!isCollapsed && <span className="text-left leading-tight truncate">{moduleName}</span>}
                     </div>
@@ -1544,6 +1610,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                         {moduleName === "Coal System" && <Database className="h-4 w-4" />}
                         {moduleName === "Letter" && <FileText className="h-4 w-4" />}
                         {moduleName === "Transport Reporting" && <Truck className="h-4 w-4" />}
+                        {moduleName === "Help Slip" && <HelpCircle className="h-4 w-4" />}
                       </div>
                       {!isCollapsed && <span className="text-left leading-tight truncate">{moduleName}</span>}
                     </div>
@@ -1576,7 +1643,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                     )}
                   </button>
                 )}
-                {moduleName !== "Master Dashboard" && moduleName !== "Profile" && moduleName !== "Global Settings" && moduleName !== "Rent Management" && moduleName !== "Help Slip" && openModules[moduleName] && !isCollapsed && (
+                {moduleName !== "Master Dashboard" && moduleName !== "Profile" && moduleName !== "Global Settings" && moduleName !== "Rent Management" && openModules[moduleName] && !isCollapsed && (
                   <ul className="mt-1 space-y-0.5 bg-slate-50/80 rounded-xl p-1.5 mb-1.5 border border-slate-200/60 shadow-2xs">
                     {moduleRoutes.map((route) => (
                       <li key={route.label}>
@@ -1758,7 +1825,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                   }, {})
                 ).map(([moduleName, moduleRoutes]) => (
                   <div key={moduleName} className="mb-1.5">
-                    {moduleName === "Master Dashboard" || moduleName === "Profile" || moduleName === "Global Settings" || moduleName === "Rent Management" || moduleName === "Help Slip" ? (
+                    {moduleName === "Master Dashboard" || moduleName === "Profile" || moduleName === "Global Settings" || moduleName === "Rent Management" ? (
                       <Link
                         to={moduleRoutes[0].href}
                         onClick={() => setIsMobileMenuOpen(false)}
@@ -1781,7 +1848,6 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                             {moduleName === "Profile" && <UserRound className="h-4 w-4" />}
                             {moduleName === "Global Settings" && <Settings2 className="h-4 w-4" />}
                             {moduleName === "Rent Management" && <Banknote className="h-4 w-4" />}
-                            {moduleName === "Help Slip" && <HelpCircle className="h-4 w-4" />}
                           </div>
                           <span className="text-left leading-tight truncate">{moduleName}</span>
                         </div>
@@ -1813,6 +1879,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                             {moduleName === "Coal System" && <Database className="h-4 w-4" />}
                             {moduleName === "Letter" && <FileText className="h-4 w-4" />}
                             {moduleName === "Transport Reporting" && <Truck className="h-4 w-4" />}
+                            {moduleName === "Help Slip" && <HelpCircle className="h-4 w-4" />}
                           </div>
                           <span className="text-left leading-tight truncate">{moduleName}</span>
                         </div>
@@ -1843,7 +1910,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                         </div>
                       </button>
                     )}
-                    {moduleName !== "Profile" && moduleName !== "Global Settings" && moduleName !== "Rent Management" && moduleName !== "Help Slip" && openModules[moduleName] && (
+                    {moduleName !== "Profile" && moduleName !== "Global Settings" && moduleName !== "Rent Management" && openModules[moduleName] && (
                       <ul className="mt-1 space-y-0.5 bg-slate-50/80 rounded-xl p-1.5 mb-1.5 border border-slate-200/60 shadow-2xs">
                         {moduleRoutes.map((route) => (
                           <li key={route.label}>
