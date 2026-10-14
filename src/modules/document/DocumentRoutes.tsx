@@ -25,6 +25,7 @@ import LoanNOC from "./pages/loan/NOC";
 import AllBG from "./pages/bg/AllBG";
 import MasterPage from "./pages/master/MasterPage";
 import CarInsurance from "./pages/insurance/CarInsurance";
+import DocumentSystemFlow from "./pages/DocumentSystemFlow";
 
 // A wrapper to apply the layout to document pages
 const DocumentLayout = ({ children }: { children: React.ReactNode }) => {
@@ -40,6 +41,8 @@ export default function DocumentRoutes() {
     <>
       <Toaster position="top-right" />
       <Routes>
+        <Route path="system-flow" element={<DocumentLayout><DocumentSystemFlow /></DocumentLayout>} />
+        <Route path="document/system-flow" element={<DocumentLayout><DocumentSystemFlow /></DocumentLayout>} />
         <Route index element={<DocumentLayout><Dashboard /></DocumentLayout>} />
         <Route path="doc-dashboard" element={<DocumentLayout><Dashboard /></DocumentLayout>} />
         

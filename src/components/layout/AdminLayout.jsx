@@ -948,6 +948,14 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
     */
     // Document & Substruction Routes
     {
+      href: "/document/system-flow",
+      label: "System Flow",
+      icon: GitFork,
+      active: location.pathname === "/document/system-flow" || location.pathname === "/system-flow",
+      showFor: ["admin", "user", "HOD"],
+      module: "Document & Substruction",
+    },
+    {
       href: "/doc-dashboard",
       label: "Dashboard",
       icon: LayoutDashboard,

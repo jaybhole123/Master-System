@@ -20,7 +20,8 @@ import {
   CreditCard,
   Calendar,
   Database,
-  Car
+  Car,
+  GitFork
 } from "lucide-react";
 import useAuthStore from "../store/authStore";
 
@@ -127,6 +128,11 @@ interface SidebarProps {
   
     // Menu Configuration
     const allMenuItems: MenuItem[] = [
+      {
+        label: "System Flow",
+        path: "/document/system-flow",
+        icon: <GitFork size={20} />,
+      },
       {
         label: "Dashboard",
         path: "/",

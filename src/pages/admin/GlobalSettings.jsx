@@ -61,6 +61,7 @@ const MODULES = [
     id: 'Document & Substruction',
     name: 'Document & Substruction',
     pages: [
+      'System Flow',
       'Dashboard', 
       'Insurance', 
       'Document Renewal', 
