@@ -326,10 +326,42 @@ export default function SECLPaymentAdvicePage({ state, setState }) {
   const handleUpdateRow = async (index, updatedRow) => {
     let rowId = null;
 
+    let finalPdfUrl = updatedRow.pdfUrl;
+    let finalPdfName = updatedRow.pdfName;
+
+    if (updatedRow.pdfFile) {
+      try {
+        const fileExt = (updatedRow.pdfFile.name || "document.pdf").split('.').pop();
+        const filePath = `pdfs/${Date.now()}_${updatedRow.pdfFile.name}`;
+        const mimeType = updatedRow.pdfFile.type || "application/pdf";
+
+        const { error: uploadError } = await supabase.storage
+          .from('pdfs')
+          .upload(filePath, updatedRow.pdfFile, { contentType: mimeType, upsert: false });
+
+        if (!uploadError) {
+          const { data: publicUrlData } = supabase.storage
+            .from('pdfs')
+            .getPublicUrl(filePath);
+          finalPdfUrl = publicUrlData?.publicUrl || null;
+          finalPdfName = updatedRow.pdfFile.name;
+        } else {
+          console.warn("Storage upload failed:", uploadError);
+        }
+      } catch (e) {
+        console.warn("Error uploading updated file:", e);
+      }
+    }
+
     setState((s) => {
       const newData = [...s.data];
       rowId = newData[index].id;
-      newData[index] = { ...newData[index], ...updatedRow };
+      newData[index] = { 
+        ...newData[index], 
+        ...updatedRow,
+        pdfUrl: finalPdfUrl,
+        pdfName: finalPdfName
+      };
       return { ...s, data: newData };
     });
 
@@ -350,6 +382,12 @@ export default function SECLPaymentAdvicePage({ state, setState }) {
           status: updatedRow.status || 'pending',
           remark: updatedRow.remark || ""
         };
+
+        if (finalPdfUrl) {
+          updatePayload.pdf_url = finalPdfUrl;
+          updatePayload.pdf_name = finalPdfName;
+        }
+
         const { error } = await supabase.from('secl_payment_advices').update(updatePayload).eq('id', rowId);
         if (error) throw error;
         showToast("Updated in Supabase successfully!");

@@ -260,9 +260,51 @@ export default function EditModal({ isOpen, onClose, onSave, onFieldChange, titl
                   }}
                   style={{ ...styles.input, padding: "8px", background: "var(--bg)" }}
                 />
-                {formData.pdfUrl && !formData.pdfFile && (
-                  <div style={{ fontSize: "12px", color: "var(--primary)", marginTop: "4px" }}>
-                    A document/image is already attached. Upload a new one to replace it.
+                {(formData.pdfUrl || formData.pdfFile) && (
+                  <div style={{ marginTop: "10px", display: "flex", alignItems: "center", gap: "10px", padding: "8px 12px", background: "var(--panel)", borderRadius: "8px", border: "1px solid var(--line)" }}>
+                    {(() => {
+                      const fileUrl = formData.pdfFile ? URL.createObjectURL(formData.pdfFile) : formData.pdfUrl;
+                      const fileName = formData.pdfFile ? formData.pdfFile.name : (formData.pdfName || "Attached Document");
+                      const isImg = /\.(jpg|jpeg|png|webp|gif|bmp)$/i.test(fileName || fileUrl);
+                      const bg = isImg ? "#f5f3ff" : "#fff1f1";
+                      const border = isImg ? "#ddd6fe" : "#fed7d7";
+                      const accent = isImg ? "#7c3aed" : "#e11d48";
+
+                      return (
+                        <>
+                          <a
+                            href={fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "8px",
+                              padding: "6px 12px",
+                              borderRadius: "6px",
+                              background: bg,
+                              border: `1px solid ${border}`,
+                              color: accent,
+                              textDecoration: "none",
+                              fontWeight: "700",
+                              fontSize: "12px",
+                              boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+                            }}
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={accent} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                              <polyline points="14 2 14 8 20 8"></polyline>
+                              <line x1="9" y1="13" x2="15" y2="13"></line>
+                              <line x1="9" y1="17" x2="15" y2="17"></line>
+                            </svg>
+                            <span>View {isImg ? "Image" : "PDF"} ({isImg ? "IMG" : "PDF"})</span>
+                          </a>
+                          <span style={{ fontSize: "12px", color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {fileName}
+                          </span>
+                        </>
+                      );
+                    })()}
                   </div>
                 )}
               </div>

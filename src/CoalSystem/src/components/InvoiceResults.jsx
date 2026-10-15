@@ -285,8 +285,24 @@ export default function InvoiceResults({ data, fileName, onReset, onAddFiles, on
                         </td>}
                         {visibleCols.preview && <td data-label="Preview">
                           {row.pdfUrl ? (
-                            <a href={row.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", textDecoration: "none", fontWeight: 500, fontSize: "12px" }}>
-                              View PDF
+                            <a href={row.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "4px 8px", borderRadius: "8px", background: (/\.(jpg|jpeg|png|webp|gif|bmp)$/i.test(row.fileName || row.pdfUrl)) ? "#f5f3ff" : "#fff1f1", border: `1px solid ${(/\.(jpg|jpeg|png|webp|gif|bmp)$/i.test(row.fileName || row.pdfUrl)) ? "#ddd6fe" : "#fed7d7"}`, textDecoration: "none", boxShadow: (/\.(jpg|jpeg|png|webp|gif|bmp)$/i.test(row.fileName || row.pdfUrl)) ? "0 1px 2px rgba(124, 58, 237, 0.12)" : "0 1px 2px rgba(220, 38, 38, 0.08)", transition: "all 0.2s ease", cursor: "pointer" }}>
+                              {(() => {
+                                const isImg = /\.(jpg|jpeg|png|webp|gif|bmp)$/i.test(row.fileName || row.pdfUrl);
+                                const accent = isImg ? "#7c3aed" : "#e11d48";
+                                return (
+                                  <span style={{ display: "inline-flex", flexDirection: "column", alignItems: "center" }}>
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={accent} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                      <polyline points="14 2 14 8 20 8"></polyline>
+                                      <line x1="9" y1="13" x2="15" y2="13"></line>
+                                      <line x1="9" y1="17" x2="15" y2="17"></line>
+                                    </svg>
+                                    <span style={{ fontSize: "9px", fontWeight: "800", color: accent, letterSpacing: "0.5px", marginTop: "1px" }}>
+                                      {isImg ? "IMG" : "PDF"}
+                                    </span>
+                                  </span>
+                                );
+                              })()}
                             </a>
                           ) : (
                             <span style={{ color: "var(--muted)" }}>-</span>

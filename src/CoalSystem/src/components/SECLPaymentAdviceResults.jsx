@@ -633,11 +633,58 @@ export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAd
                             {visibleCols.remark && <td data-label="Remark" style={{ color: "var(--text)", fontSize: "13px" }}>
                               <HighlightText text={r.remark || "-"} highlight={searchTerm} />
                             </td>}
-                            {visibleCols.preview && <td data-label="Preview">
+                            {visibleCols.preview && <td data-label="Preview" style={{ textAlign: "center" }}>
                               {r.pdfUrl ? (
-                                <a href={r.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", textDecoration: "none", fontWeight: 500, fontSize: "12px" }}>
-                                  View PDF
-                                </a>
+                                (() => {
+                                  const isImg = /\.(jpg|jpeg|png|webp|gif|bmp)$/i.test(r.fileName || r.pdfUrl);
+                                  const bg = isImg ? "#f5f3ff" : "#fff1f1";
+                                  const border = isImg ? "#ddd6fe" : "#fed7d7";
+                                  const accent = isImg ? "#7c3aed" : "#e11d48";
+                                  const shadowRgba = isImg ? "rgba(124, 58, 237, 0.12)" : "rgba(220, 38, 38, 0.08)";
+                                  const shadowHover = isImg ? "0 3px 6px rgba(124, 58, 237, 0.2)" : "0 3px 6px rgba(220, 38, 38, 0.16)";
+
+                                  return (
+                                    <a
+                                      href={r.pdfUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      title={isImg ? "View Image" : "View PDF"}
+                                      style={{
+                                        display: "inline-flex",
+                                        flexDirection: "column",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        padding: "4px 8px",
+                                        borderRadius: "8px",
+                                        background: bg,
+                                        border: `1px solid ${border}`,
+                                        textDecoration: "none",
+                                        boxShadow: `0 1px 2px ${shadowRgba}`,
+                                        transition: "all 0.2s ease",
+                                        cursor: "pointer"
+                                      }}
+                                      onMouseOver={(e) => {
+                                        e.currentTarget.style.transform = "scale(1.08)";
+                                        e.currentTarget.style.boxShadow = shadowHover;
+                                      }}
+                                      onMouseOut={(e) => {
+                                        e.currentTarget.style.transform = "scale(1)";
+                                        e.currentTarget.style.boxShadow = `0 1px 2px ${shadowRgba}`;
+                                      }}
+                                    >
+                                      {/* Document / Image Icon */}
+                                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={accent} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                        <polyline points="14 2 14 8 20 8"></polyline>
+                                        <line x1="9" y1="13" x2="15" y2="13"></line>
+                                        <line x1="9" y1="17" x2="15" y2="17"></line>
+                                      </svg>
+                                      <span style={{ fontSize: "9px", fontWeight: "800", color: accent, letterSpacing: "0.5px", marginTop: "1px" }}>
+                                        {isImg ? "IMG" : "PDF"}
+                                      </span>
+                                    </a>
+                                  );
+                                })()
                               ) : (
                                 <span style={{ color: "var(--muted)" }}>-</span>
                               )}
@@ -770,7 +817,7 @@ export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAd
         initialData={editingIndex !== null ? allItems[editingIndex] : null}
         tableName="secl_payment_advices"
         columns={EDIT_COLS}
-        showPdfUpload={false}
+        showPdfUpload={true}
       />
     </section>
   );
