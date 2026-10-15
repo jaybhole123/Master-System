@@ -2,21 +2,35 @@ import { useRef } from "react";
 import { showToast } from "../utils/toast";
 
 /**
- * Dropzone — handles drag-and-drop + click-to-browse for PDF files.
+ * Dropzone — handles drag-and-drop + click-to-browse for files.
  *
  * Props:
- *   onFile(file)    — called when a valid file is chosen
+ *   onFiles(files)  — called when valid files are chosen
  *   loading         — bool, shows wagon animation while parsing
  *   loadingName     — string, filename currently being parsed
  *   error           — string | null, error message to show
  */
-export default function Dropzone({ onFiles, loading, loadingName, error, title = "Payment Advice PDF yahan drop karein", icon = "⛃" }) {
+export default function Dropzone({ 
+  onFiles, 
+  loading, 
+  loadingName, 
+  error, 
+  title = "Payment Advice PDF yahan drop karein", 
+  icon = "⛃",
+  accept = "application/pdf,.pdf,image/*"
+}) {
   const inputRef = useRef(null);
+
+  const isAcceptedFile = (f) => {
+    if (f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf")) return true;
+    if (f.type.startsWith("image/") || /\.(jpg|jpeg|png|webp|bmp|gif)$/i.test(f.name)) return true;
+    return false;
+  };
 
   const handleDrop = (e) => {
     e.preventDefault();
     e.currentTarget.classList.remove("drag");
-    const files = Array.from(e.dataTransfer.files || []).filter(f => f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf"));
+    const files = Array.from(e.dataTransfer.files || []).filter(isAcceptedFile);
     
     const validFiles = files.filter(f => {
       if (f.size > 10 * 1024 * 1024) {
@@ -41,7 +55,7 @@ export default function Dropzone({ onFiles, loading, loadingName, error, title =
   const handleClick = () => inputRef.current?.click();
 
   const handleChange = (e) => {
-    const files = Array.from(e.target.files || []).filter(f => f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf"));
+    const files = Array.from(e.target.files || []).filter(isAcceptedFile);
     
     const validFiles = files.filter(f => {
       if (f.size > 10 * 1024 * 1024) {
@@ -66,14 +80,14 @@ export default function Dropzone({ onFiles, loading, loadingName, error, title =
       onDragLeave={handleDragLeave}
       role="button"
       tabIndex={0}
-      aria-label="Click or drop a PDF to upload"
+      aria-label="Click or drop a file to upload"
       onKeyDown={(e) => e.key === "Enter" && handleClick()}
     >
       <input
         ref={inputRef}
         id="fileInput"
         type="file"
-        accept="application/pdf,.pdf"
+        accept={accept}
         multiple
         hidden
         onChange={handleChange}

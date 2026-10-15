@@ -864,9 +864,9 @@ const MonthlyTracker = () => {
                   <th className="py-3 px-3">Property Name</th>
                   <th className="py-3 px-3">Tenant & Contact</th>
                   <th className="py-3 px-3 text-right">Monthly Rent</th>
-                  <th className="py-3 px-3 text-center">Delay / Overdue</th>
                   <th className="py-3 px-3">Mode & Bank</th>
                   <th className="py-3 px-3 text-center">Status</th>
+                  <th className="py-3 px-3 text-center">Delay / Overdue</th>
                   <th className="py-3 px-3">Remarks</th>
                   <th className="py-3 px-3">Received Date</th>
                   <th className="py-3 px-3 text-right">Actions</th>
@@ -935,21 +935,6 @@ const MonthlyTracker = () => {
                           ₹ {Number(record.rent || 0).toLocaleString('en-IN')}
                         </td>
 
-                        {/* Delay Days */}
-                        <td className="py-3 px-3 text-center whitespace-nowrap">
-                          {delayDays > 0 ? (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-50 text-rose-600 border border-rose-200/60">
-                              {delayDays} days late
-                            </span>
-                          ) : (status === 'On Time' ? (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
-                              On Time
-                            </span>
-                          ) : (
-                            <span className="text-slate-300">-</span>
-                          ))}
-                        </td>
-
                         {/* Payment Mode & Bank */}
                         <td className="py-3 px-3 whitespace-nowrap">
                           <div className="flex flex-col gap-0.5">
@@ -984,6 +969,21 @@ const MonthlyTracker = () => {
                             }`}></span>
                             <span>{status}</span>
                           </span>
+                        </td>
+
+                        {/* Delay Days */}
+                        <td className="py-3 px-3 text-center whitespace-nowrap">
+                          {delayDays > 0 ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-50 text-rose-600 border border-rose-200/60">
+                              {delayDays} days late
+                            </span>
+                          ) : (status === 'On Time' ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+                              On Time
+                            </span>
+                          ) : (
+                            <span className="text-slate-300">-</span>
+                          ))}
                         </td>
 
                         {/* Remarks */}

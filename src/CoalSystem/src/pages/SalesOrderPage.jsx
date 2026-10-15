@@ -3,7 +3,7 @@ import { showToast } from "../utils/toast";
 import Dropzone from "../components/Dropzone";
 import SalesOrderResults from "../components/SalesOrderResults";
 import EditModal from "../components/EditModal";
-import { extractTextFromPdf, parseSalesOrder, toCSVSalesOrder, downloadBlob } from "../utils/salesOrderParser";
+import { extractTextFromFile, parseSalesOrder, toCSVSalesOrder, downloadBlob } from "../utils/salesOrderParser";
 import { supabase } from "../utils/supabase";
 
 /**
@@ -214,7 +214,7 @@ export default function SalesOrderPage({ state, setState }) {
   const handleFiles = useCallback(
     async (files) => {
       if (files.length === 0) {
-        setState((s) => ({ ...s, error: "Please upload only PDF files." }));
+        setState((s) => ({ ...s, error: "Please upload PDF or image files." }));
         return;
       }
 
@@ -225,7 +225,7 @@ export default function SalesOrderPage({ state, setState }) {
       try {
         const settledResults = await Promise.allSettled(
           files.map(async (file) => {
-            const text = await extractTextFromPdf(file);
+            const text = await extractTextFromFile(file);
             const parsed = parseSalesOrder(text);
             
             // Fallback to calculate quantity from amount and rate if missing or if it contains text (like "THREE THOUSAND")
@@ -277,7 +277,7 @@ export default function SalesOrderPage({ state, setState }) {
           setState((s) => ({
             ...s,
             loading: false,
-            error: "None of the uploaded files were valid Sales Order PDFs.",
+            error: "None of the uploaded files were valid Sales Order documents.",
           }));
           return;
         }
@@ -330,17 +330,18 @@ export default function SalesOrderPage({ state, setState }) {
       const formattedData = await Promise.all(newItemsData.map(async (d) => {
         let finalPdfUrl = d.pdfUrl;
         
-        // Upload if we have a new PDF
+        // Upload if we have a new PDF or Image
         if (finalPdfUrl && finalPdfUrl.startsWith("blob:")) {
           try {
             const response = await fetch(finalPdfUrl);
             const blob = await response.blob();
             const fileExt = (d.pdfName || "document.pdf").split('.').pop();
             const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+            const mimeType = blob.type || (/\.(png|jpe?g|webp|bmp|gif)$/i.test(d.pdfName || '') ? `image/${fileExt.replace('jpg', 'jpeg')}` : "application/pdf");
             
             const { error: uploadError } = await supabase.storage
               .from('pdfs')
-              .upload(fileName, blob, { contentType: "application/pdf", upsert: false });
+              .upload(fileName, blob, { contentType: mimeType, upsert: false });
               
             if (!uploadError) {
               const { data: publicUrlData } = supabase.storage
@@ -348,11 +349,11 @@ export default function SalesOrderPage({ state, setState }) {
                 .getPublicUrl(fileName);
               finalPdfUrl = publicUrlData.publicUrl;
             } else {
-              console.warn("PDF upload failed:", uploadError);
+              console.warn("File upload failed:", uploadError);
               finalPdfUrl = null;
             }
           } catch (e) {
-            console.warn("PDF upload error:", e);
+            console.warn("File upload error:", e);
             finalPdfUrl = null;
           }
         }
@@ -569,6 +570,38 @@ export default function SalesOrderPage({ state, setState }) {
     });
   };
 
+  const handleBulkUpdateStatus = async (indices, newStatus) => {
+    if (!indices || indices.length === 0) return;
+    
+    try {
+      const itemsToUpdate = indices.map(idx => state.data[idx]).filter(Boolean);
+      const dbIds = itemsToUpdate.map(it => it.id).filter(Boolean);
+
+      if (dbIds.length > 0) {
+        const { error: dbError } = await supabase
+          .from('sales_orders')
+          .update({ status: newStatus })
+          .in('id', dbIds);
+        if (dbError) throw dbError;
+      }
+
+      setState((s) => {
+        const newData = [...s.data];
+        indices.forEach(idx => {
+          if (newData[idx]) {
+            newData[idx] = { ...newData[idx], status: newStatus };
+          }
+        });
+        return { ...s, data: newData };
+      });
+
+      showToast(`${indices.length} records marked as ${newStatus}!`);
+    } catch (err) {
+      console.error("Bulk status update error:", err);
+      showToast("Error updating records: " + err.message);
+    }
+  };
+
   return (
     <div>
       {view === "drop" && (
@@ -578,8 +611,9 @@ export default function SalesOrderPage({ state, setState }) {
             loading={loading}
             loadingName={loadingName}
             error={error}
-            title="Upload Sales Order PDF"
+            title="Upload Sales Order PDF or Image"
             icon="📄"
+            accept="application/pdf,.pdf,image/*"
           />
           <div style={{ textAlign: "center", marginTop: 20 }}>
             <span style={{ color: "var(--muted)", marginRight: 15, fontSize: "14px" }}>Or enter data manually</span>
@@ -587,7 +621,7 @@ export default function SalesOrderPage({ state, setState }) {
           </div>
           <div className="table-card" style={{ marginTop: 40, opacity: 0.6, pointerEvents: "none" }}>
             <div className="table-header">
-              <div className="table-title">Data Preview (Upload PDF to populate)</div>
+              <div className="table-title">Data Preview (Upload PDF / Image to populate)</div>
             </div>
             <div className="table-scroll" style={{ overflowX: "auto" }}>
               <table className="stable" style={{ minWidth: 1200 }}>
@@ -633,6 +667,7 @@ export default function SalesOrderPage({ state, setState }) {
           onSave={handleSave}
           onDeleteRow={handleDeleteRow}
           onUpdateRow={handleUpdateRow}
+          onBulkUpdateStatus={handleBulkUpdateStatus}
           onAddManual={() => setIsModalOpen(true)}
           currentPage={currentPage}
           totalCount={totalCount}

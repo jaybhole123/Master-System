@@ -16,6 +16,7 @@ export default function SalesOrderResults({
   onSave, 
   onDeleteRow, 
   onUpdateRow, 
+  onBulkUpdateStatus,
   onAddManual,
   currentPage = 1,
   totalCount = 0,
@@ -24,6 +25,7 @@ export default function SalesOrderResults({
   onPageChange
 }) {
   const [editingIndex, setEditingIndex] = useState(null);
+  const [selectedIndices, setSelectedIndices] = useState([]);
   const fileInputRef = useRef(null);
   const observerRef = useRef(null);
 
@@ -153,13 +155,48 @@ export default function SalesOrderResults({
   }, [dataArray, searchTerm, selectedDate, activeTab]);
 
   const handleFileChange = (e) => {
-    const files = Array.from(e.target.files || []).filter(f => f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf"));
+    const files = Array.from(e.target.files || []).filter(f => 
+      f.type === "application/pdf" || 
+      f.name.toLowerCase().endsWith(".pdf") ||
+      f.type.startsWith("image/") ||
+      /\.(jpg|jpeg|png|webp|bmp|gif)$/i.test(f.name)
+    );
     if (files.length > 0 && onAddFiles) onAddFiles(files);
     e.target.value = "";
   };
 
+  const isEmptyCell = (val) => {
+    if (val === null || val === undefined) return true;
+    const str = String(val).trim();
+    return str === "" || str === "-" || str === "—" || str === "N/A" || str === "undefined" || str === "null";
+  };
+
   const handleEditClick = (index) => {
     setEditingIndex(index);
+  };
+
+  const handleToggleSelectAll = () => {
+    const currentIndices = filteredData.map(item => item.idx);
+    const allSelected = currentIndices.length > 0 && currentIndices.every(idx => selectedIndices.includes(idx));
+    if (allSelected) {
+      setSelectedIndices(prev => prev.filter(idx => !currentIndices.includes(idx)));
+    } else {
+      setSelectedIndices(prev => Array.from(new Set([...prev, ...currentIndices])));
+    }
+  };
+
+  const handleToggleSelectOne = (idx) => {
+    setSelectedIndices(prev => 
+      prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx]
+    );
+  };
+
+  const handleBulkDone = () => {
+    if (selectedIndices.length === 0) return;
+    if (onBulkUpdateStatus) {
+      onBulkUpdateStatus(selectedIndices, 'done');
+      setSelectedIndices([]);
+    }
   };
 
   const handleSaveEdit = (updatedData) => {
@@ -354,12 +391,12 @@ export default function SalesOrderResults({
             </svg>
             PDF
           </button>
-          <input type="file" multiple ref={fileInputRef} onChange={handleFileChange} style={{ display: "none" }} accept=".pdf" />
+          <input type="file" multiple ref={fileInputRef} onChange={handleFileChange} style={{ display: "none" }} accept=".pdf,application/pdf,image/*" />
           <button className="btn outline" onClick={onAddManual}>
             + ADD FORM
           </button>
           <button className="btn" onClick={() => fileInputRef.current?.click()}>
-            UPLOAD PDF
+            UPLOAD FILE
           </button>
         </div>
         <div className="toolbar-wrapper" style={{ display: "flex", gap: "16px", alignItems: "center", flexWrap: "wrap" }}>
@@ -516,6 +553,7 @@ export default function SalesOrderResults({
             <thead>
               <tr>
                 <th className="r">S.No</th>
+                <th>Mine</th>
                 <th>Name</th>
                 <th>Sales Order Number</th>
                 <th>Left Days</th>
@@ -527,9 +565,10 @@ export default function SalesOrderResults({
                 return (
                   <tr key={`left-days-${index}`}>
                     <td data-label="S.No" className="sno" style={{ textAlign: "center" }}>{String(index + 1).padStart(2, '0')}</td>
-                    <td data-label="Name" style={{ fontWeight: "600", color: "var(--text)" }}>{summaryRow.name}</td>
-                    <td data-label="Sales Order Number">{summaryRow.sales_order_number}</td>
-                    <td data-label="Left Days" className="blink-text" style={{ color: getDaysLeft(summaryRow.sales_order_valid_to) === "Expired" ? "#dc2626" : "inherit", fontWeight: getDaysLeft(summaryRow.sales_order_valid_to) === "Expired" ? "500" : "normal" }}>
+                    <td data-label="Mine" className={isEmptyCell(summaryRow.mine) ? "blink-empty" : ""}><HighlightText text={summaryRow.mine} highlight={searchTerm} /></td>
+                    <td data-label="Name" className={isEmptyCell(summaryRow.name) ? "blink-empty" : ""} style={{ fontWeight: "600", color: "var(--text)" }}><HighlightText text={summaryRow.name} highlight={searchTerm} /></td>
+                    <td data-label="Sales Order Number" className={isEmptyCell(summaryRow.sales_order_number) ? "blink-empty" : ""}><HighlightText text={summaryRow.sales_order_number} highlight={searchTerm} /></td>
+                    <td data-label="Left Days" className={isEmptyCell(summaryRow.sales_order_valid_to) ? "blink-empty" : "blink-text"} style={{ color: getDaysLeft(summaryRow.sales_order_valid_to) === "Expired" ? "#dc2626" : "inherit", fontWeight: getDaysLeft(summaryRow.sales_order_valid_to) === "Expired" ? "500" : "normal" }}>
                       {getDaysLeft(summaryRow.sales_order_valid_to)}
                     </td>
                     <td data-label="Days Since Expired">
@@ -581,13 +620,77 @@ export default function SalesOrderResults({
       {/* ── Summary Data Table ── */}
       {(activeTab === "pending" || activeTab === "history" || activeTab === "summary") && (
       <div className="table-card">
-        <div className="table-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-          <div className="table-title">{activeTab === "pending" ? "Pending Records" : (activeTab === "history" ? "History Records" : "Summary Data Table")}</div>
+        <div className="table-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <div className="table-title" style={{ margin: 0 }}>
+              {activeTab === "pending" ? "Pending Records" : (activeTab === "history" ? "History Records" : "Summary Data Table")}
+            </div>
+            {selectedIndices.length > 0 && (
+              <span style={{ fontSize: "12px", background: "rgba(220, 38, 38, 0.08)", color: "var(--primary)", padding: "3px 8px", borderRadius: "4px", fontWeight: "600" }}>
+                {selectedIndices.length} selected
+              </span>
+            )}
+          </div>
+
+          {/* BULK ACTION BAR */}
+          {activeTab === "pending" && selectedIndices.length > 0 && (
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <button
+                onClick={handleBulkDone}
+                style={{
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "6px 14px",
+                  fontSize: "12px",
+                  fontWeight: "600",
+                  borderRadius: "6px",
+                  background: "#16a34a",
+                  color: "#ffffff",
+                  border: "none",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.12)",
+                  transition: "background 0.15s ease"
+                }}
+                onMouseOver={(e) => { e.currentTarget.style.background = "#15803d"; }}
+                onMouseOut={(e) => { e.currentTarget.style.background = "#16a34a"; }}
+                title="Mark all selected rows as Done"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                Mark Selected as Done ({selectedIndices.length})
+              </button>
+              <button
+                onClick={() => setSelectedIndices([])}
+                style={{
+                  cursor: "pointer",
+                  padding: "6px 12px",
+                  fontSize: "12px",
+                  borderRadius: "6px",
+                  background: "transparent",
+                  color: "var(--muted)",
+                  border: "1px solid var(--line)"
+                }}
+              >
+                Clear
+              </button>
+            </div>
+          )}
         </div>
         <div className="table-scroll" style={{ overflowX: "auto" }}>
           <table className="stable">
             <thead>
               <tr>
+                {activeTab === "pending" && (
+                  <th style={{ width: "36px", textAlign: "center" }}>
+                    <input
+                      type="checkbox"
+                      checked={filteredData.length > 0 && filteredData.every(item => selectedIndices.includes(item.idx))}
+                      onChange={handleToggleSelectAll}
+                      style={{ cursor: "pointer", width: "15px", height: "15px", accentColor: "var(--primary)" }}
+                      title="Select all"
+                    />
+                  </th>
+                )}
                 {visibleCols.sno && <th style={{ width: "52px", textAlign: "center" }}>S.No</th>}
                 {visibleCols.mine && <th>Mine</th>}
                 {visibleCols.quantity && <th>Quantity</th>}
@@ -608,23 +711,34 @@ export default function SalesOrderResults({
             </thead>
             <tbody>
               {filteredData.map(({ raw: d, summary: summaryRow, idx: index }, rowNum) => {
+                const isSelected = selectedIndices.includes(index);
                 return (
-                  <tr key={index}>
+                  <tr key={index} style={{ background: isSelected ? "rgba(220, 38, 38, 0.04)" : undefined }}>
+                    {activeTab === "pending" && (
+                      <td style={{ textAlign: "center", width: "36px" }}>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => handleToggleSelectOne(index)}
+                          style={{ cursor: "pointer", width: "15px", height: "15px", accentColor: "var(--primary)" }}
+                        />
+                      </td>
+                    )}
                     {visibleCols.sno && <td data-label="S.No" style={{ textAlign: "center", color: "var(--muted)", fontFamily: "var(--font-mono, monospace)", fontSize: "12px", fontWeight: 600 }}>{String(rowNum + 1).padStart(2, "0")}</td>}
-                    {visibleCols.mine && <td data-label="Mine"><HighlightText text={summaryRow.mine} highlight={searchTerm} /></td>}
-                    {visibleCols.quantity && <td data-label="Quantity"><HighlightText text={summaryRow.quantity} highlight={searchTerm} /></td>}
-                    {visibleCols.name && <td data-label="Name" style={{ fontWeight: "600", color: "var(--text)" }}><HighlightText text={summaryRow.name} highlight={searchTerm} /></td>}
-                    {visibleCols.sales_order_number && <td data-label="Sales Order Number"><HighlightText text={summaryRow.sales_order_number} highlight={searchTerm} /></td>}
-                    {visibleCols.sales_order_valid_from && <td data-label="Sales Order Valid From"><HighlightText text={summaryRow.sales_order_valid_from} highlight={searchTerm} /></td>}
-                    {visibleCols.sales_order_valid_to && <td data-label="Sales Order Valid To"><HighlightText text={summaryRow.sales_order_valid_to} highlight={searchTerm} /></td>}
-                    {visibleCols.office_area && <td data-label="Office Area"><HighlightText text={summaryRow.office_area} highlight={searchTerm} /></td>}
-                    {visibleCols.mine2 && <td data-label="Mine 2"><HighlightText text={summaryRow.mine2} highlight={searchTerm} /></td>}
-                    {visibleCols.rate_per_te && <td data-label="Rate Per TE(INR)" className="num"><HighlightText text={summaryRow.rate_per_te} highlight={searchTerm} /></td>}
-                    {visibleCols.amount && <td data-label="Amount(INR)" className="num"><HighlightText text={summaryRow.amount} highlight={searchTerm} /></td>}
-                    {visibleCols.left_days && <td data-label="Left Days" className="blink-text" style={{ color: getDaysLeft(summaryRow.sales_order_valid_to) === "Expired" ? "#dc2626" : "inherit", fontWeight: getDaysLeft(summaryRow.sales_order_valid_to) === "Expired" ? "500" : "normal" }}>
+                    {visibleCols.mine && <td data-label="Mine" className={isEmptyCell(summaryRow.mine) ? "blink-empty" : ""}><HighlightText text={summaryRow.mine} highlight={searchTerm} /></td>}
+                    {visibleCols.quantity && <td data-label="Quantity" className={isEmptyCell(summaryRow.quantity) ? "blink-empty" : ""}><HighlightText text={summaryRow.quantity} highlight={searchTerm} /></td>}
+                    {visibleCols.name && <td data-label="Name" className={isEmptyCell(summaryRow.name) ? "blink-empty" : ""} style={{ fontWeight: "600", color: "var(--text)" }}><HighlightText text={summaryRow.name} highlight={searchTerm} /></td>}
+                    {visibleCols.sales_order_number && <td data-label="Sales Order Number" className={isEmptyCell(summaryRow.sales_order_number) ? "blink-empty" : ""}><HighlightText text={summaryRow.sales_order_number} highlight={searchTerm} /></td>}
+                    {visibleCols.sales_order_valid_from && <td data-label="Sales Order Valid From" className={isEmptyCell(summaryRow.sales_order_valid_from) ? "blink-empty" : ""}><HighlightText text={summaryRow.sales_order_valid_from} highlight={searchTerm} /></td>}
+                    {visibleCols.sales_order_valid_to && <td data-label="Sales Order Valid To" className={isEmptyCell(summaryRow.sales_order_valid_to) ? "blink-empty" : ""}><HighlightText text={summaryRow.sales_order_valid_to} highlight={searchTerm} /></td>}
+                    {visibleCols.office_area && <td data-label="Office Area" className={isEmptyCell(summaryRow.office_area) ? "blink-empty" : ""}><HighlightText text={summaryRow.office_area} highlight={searchTerm} /></td>}
+                    {visibleCols.mine2 && <td data-label="Mine 2" className={isEmptyCell(summaryRow.mine2) ? "blink-empty" : ""}><HighlightText text={summaryRow.mine2} highlight={searchTerm} /></td>}
+                    {visibleCols.rate_per_te && <td data-label="Rate Per TE(INR)" className={`num ${isEmptyCell(summaryRow.rate_per_te) ? "blink-empty" : ""}`}><HighlightText text={summaryRow.rate_per_te} highlight={searchTerm} /></td>}
+                    {visibleCols.amount && <td data-label="Amount(INR)" className={`num ${isEmptyCell(summaryRow.amount) ? "blink-empty" : ""}`}><HighlightText text={summaryRow.amount} highlight={searchTerm} /></td>}
+                    {visibleCols.left_days && <td data-label="Left Days" className={isEmptyCell(summaryRow.sales_order_valid_to) ? "blink-empty" : "blink-text"} style={{ color: getDaysLeft(summaryRow.sales_order_valid_to) === "Expired" ? "#dc2626" : "inherit", fontWeight: getDaysLeft(summaryRow.sales_order_valid_to) === "Expired" ? "500" : "normal" }}>
                       {getDaysLeft(summaryRow.sales_order_valid_to)}
                     </td>}
-                    {visibleCols.submitted_date && <td data-label="Submitted Date"><HighlightText text={summaryRow.submitted_date} highlight={searchTerm} /></td>}
+                    {visibleCols.submitted_date && <td data-label="Submitted Date" className={isEmptyCell(summaryRow.submitted_date) ? "blink-empty" : ""}><HighlightText text={summaryRow.submitted_date} highlight={searchTerm} /></td>}
                     {visibleCols.status && <td data-label="Status">
                       <span style={{
                         display: "inline-flex", alignItems: "center", gap: "4px", padding: "4px 8px", fontSize: "11px", fontWeight: "600", borderRadius: "999px",
@@ -637,7 +751,7 @@ export default function SalesOrderResults({
                     {visibleCols.preview && <td data-label="Preview">
                       {d.pdfUrl ? (
                         <a href={d.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", textDecoration: "none", fontWeight: 500, fontSize: "12px" }}>
-                          View PDF
+                          {/\.(jpg|jpeg|png|webp|gif|bmp)$/i.test(d.pdfName || d.pdfUrl) ? "View Image" : "View File"}
                         </a>
                       ) : (
                         <span style={{ color: "var(--muted)" }}>-</span>

@@ -70,6 +70,66 @@ export async function extractTextFromPdf(file) {
   return fullText;
 }
 
+/**
+ * Loads Tesseract script from CDN on demand if not present.
+ */
+function loadTesseractScript() {
+  return new Promise((resolve, reject) => {
+    if (window.Tesseract) {
+      resolve(window.Tesseract);
+      return;
+    }
+    const id = 'tesseract-js-script';
+    const existing = document.getElementById(id);
+    if (existing) {
+      existing.addEventListener('load', () => resolve(window.Tesseract));
+      existing.addEventListener('error', (err) => reject(err));
+      return;
+    }
+    const script = document.createElement('script');
+    script.id = id;
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.0/tesseract.min.js';
+    script.async = true;
+    script.onload = () => resolve(window.Tesseract);
+    script.onerror = (err) => reject(new Error('Failed to load OCR engine.'));
+    document.head.appendChild(script);
+  });
+}
+
+/**
+ * Extracts raw text from an image file (PNG, JPG, etc.) using Tesseract OCR.
+ */
+export async function extractTextFromImage(file, onProgress) {
+  const Tesseract = await loadTesseractScript();
+  const worker = await Tesseract.createWorker('eng', 1, {
+    logger: m => {
+      if (m.status === 'recognizing text' && onProgress) {
+        onProgress(Math.round(m.progress * 100));
+      }
+    }
+  });
+  
+  const ret = await worker.recognize(file);
+  await worker.terminate();
+  
+  console.log('--- Extracted Image Text ---');
+  console.log(ret.data.text);
+  console.log('--- End Image Text ---');
+
+  return ret.data.text || '';
+}
+
+/**
+ * Handles extraction whether the file is PDF or Image.
+ */
+export async function extractTextFromFile(file, onProgress) {
+  const isImage = file.type.startsWith('image/') || /\.(jpg|jpeg|png|webp|bmp|gif)$/i.test(file.name);
+  if (isImage) {
+    return await extractTextFromImage(file, onProgress);
+  }
+  return await extractTextFromPdf(file);
+}
+
 function matchOne(text, regex) {
   const m = text.match(regex);
   return m ? m[1].trim() : '';

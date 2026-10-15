@@ -248,10 +248,10 @@ export default function EditModal({ isOpen, onClose, onSave, onFieldChange, titl
 
             {showPdfUpload && (
               <div style={{ ...styles.formGroup, gridColumn: "1 / -1", marginTop: "10px" }}>
-                <label style={styles.label}>ATTACH PDF (OPTIONAL)</label>
+                <label style={styles.label}>ATTACH DOCUMENT / IMAGE (OPTIONAL)</label>
                 <input
                   type="file"
-                  accept=".pdf"
+                  accept=".pdf,application/pdf,image/*"
                   onChange={(e) => {
                     const file = e.target.files[0];
                     if (file) {
@@ -262,7 +262,7 @@ export default function EditModal({ isOpen, onClose, onSave, onFieldChange, titl
                 />
                 {formData.pdfUrl && !formData.pdfFile && (
                   <div style={{ fontSize: "12px", color: "var(--primary)", marginTop: "4px" }}>
-                    A PDF is already attached. Upload a new one to replace it.
+                    A document/image is already attached. Upload a new one to replace it.
                   </div>
                 )}
               </div>
