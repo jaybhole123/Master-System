@@ -191,67 +191,75 @@ export default function DocumentVaultApp() {
       <div className="dv-client-view-container">
         {/* Modern Client Info Card */}
         <div className="dv-client-hero-card">
-          <div className="dv-client-hero-main">
-            <div className="dv-client-hero-avatar">
-              {ini(curClient.name)}
-            </div>
-            <div className="dv-client-hero-info">
-              <div className="dv-client-title-row">
-                <h2 className="dv-client-name">{curClient.name}</h2>
-                <span className="dv-type-tag">
-                  {curClient.ctype === "Plant" ? "Plant / Unit" : curClient.ctype || "Individual"}
-                </span>
-                <span className="dv-doc-count-badge">
-                  {curDocs.length} Document{curDocs.length === 1 ? "" : "s"}
-                </span>
+          {/* Top Row: Avatar + Name/Badges + Action Buttons */}
+          <div className="dv-hero-top-row">
+            <div className="dv-hero-profile-group">
+              <div className="dv-client-hero-avatar">
+                {ini(curClient.name)}
               </div>
-              <div className="dv-client-contact-row">
-                {curClient.phone && (
-                  <span className="dv-contact-item">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                    {curClient.phone}
+              <div className="dv-client-main-heading">
+                <div className="dv-client-title-row">
+                  <h2 className="dv-client-name">{curClient.name}</h2>
+                  <span className="dv-type-tag">
+                    {curClient.ctype === "Plant" ? "Plant / Unit" : curClient.ctype || "Individual"}
                   </span>
-                )}
-                {curClient.email && (
-                  <span className="dv-contact-item">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-                    {curClient.email}
+                  <span className="dv-doc-count-badge">
+                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#16a34a", display: "inline-block" }}></span>
+                    {curDocs.length} Document{curDocs.length === 1 ? "" : "s"}
                   </span>
-                )}
-                {curClient.addr && (
-                  <span className="dv-contact-item">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-                    {curClient.addr}
-                  </span>
-                )}
-              </div>
-
-              {infoFields.length > 0 && (
-                <div className="dv-custom-tags-wrap">
-                  {infoFields.map((x) => (
-                    <span className="dv-custom-tag" key={x.k}>
-                      <span className="dv-tag-label">{x.l}:</span>
-                      <strong className="dv-tag-val">{isoShort(v[x.k])}</strong>
-                    </span>
-                  ))}
                 </div>
-              )}
+                
+                {/* Contact Items Line */}
+                <div className="dv-client-contact-row">
+                  {curClient.phone && (
+                    <span className="dv-contact-item" title="Mobile Number">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                      {curClient.phone}
+                    </span>
+                  )}
+                  {curClient.email && (
+                    <span className="dv-contact-item" title="Email Address">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                      {curClient.email}
+                    </span>
+                  )}
+                  {curClient.addr && (
+                    <span className="dv-contact-item" title="Address / Location">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                      {curClient.addr}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="dv-hero-actions">
+              <button className="dv-btn pri" onClick={openAddDoc}>
+                <span style={{ fontSize: 16, lineHeight: 1 }}>+</span> Add Document
+              </button>
+              <button className="dv-btn" onClick={openEditClient}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+                Edit Details
+              </button>
+              <button className="dv-btn dng" onClick={handleDeleteClient}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>
+                Delete
+              </button>
             </div>
           </div>
 
-          <div className="dv-hero-actions">
-            <button className="dv-btn pri" onClick={openAddDoc}>
-              <span style={{ fontSize: 16 }}>+</span> Add Document
-            </button>
-            <button className="dv-btn" onClick={openEditClient}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
-              Edit Details
-            </button>
-            <button className="dv-btn dng" onClick={handleDeleteClient}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>
-              Delete
-            </button>
-          </div>
+          {/* Bottom Row: Metadata Badges (GSTIN, PAN, Firm Type, etc.) */}
+          {infoFields.length > 0 && (
+            <div className="dv-custom-tags-wrap">
+              {infoFields.map((x) => (
+                <span className="dv-custom-tag" key={x.k}>
+                  <span className="dv-tag-label">{x.l}:</span>
+                  <strong className="dv-tag-val">{isoShort(v[x.k])}</strong>
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Filter Chips if multiple document types */}
