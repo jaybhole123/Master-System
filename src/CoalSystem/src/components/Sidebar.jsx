@@ -96,18 +96,18 @@ const NAV = [
           </svg>
         ),
       },
-      {
-        id: "transport-payment",
-        label: "Transport Payment",
-        badge: "TP",
-        icon: (
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="6" cy="18" r="3"></circle>
-            <circle cx="18" cy="6" r="3"></circle>
-            <path d="M6 15v-2a4 4 0 0 1 4-4h4a4 4 0 0 0 4-4V7"></path>
-          </svg>
-        ),
-      },
+      // {
+      //   id: "transport-payment",
+      //   label: "Transport Payment",
+      //   badge: "TP",
+      //   icon: (
+      //     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      //       <circle cx="6" cy="18" r="3"></circle>
+      //       <circle cx="18" cy="6" r="3"></circle>
+      //       <path d="M6 15v-2a4 4 0 0 1 4-4h4a4 4 0 0 0 4-4V7"></path>
+      //     </svg>
+      //   ),
+      // },
       {
         id: "refund-lapse",
         label: "Refund / Lapse",

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useDeferredValue, useMemo } from 'react';
-import { Plus, Search, Calendar, Loader, RefreshCw, Edit, Trash2, Bell, Building2, User, CheckCircle2, Filter } from 'lucide-react';
+import { Plus, Search, Calendar, Loader, RefreshCw, Edit, Trash2, Bell, Building2, User, CheckCircle2, Filter, Eye, X, Shield } from 'lucide-react';
 import useHeaderStore from '../../store/headerStore';
 import AddReminderCalendar from './AddReminderCalendar';
 import { submitToGoogleSheets } from '../../utils/googleSheetsService';
@@ -26,6 +26,7 @@ const ReminderCalendar = () => {
   const deferredSearch = useDeferredValue(searchTerm);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<ReminderItem | null>(null);
+  const [viewItem, setViewItem] = useState<ReminderItem | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const fetchRemindersFromGoogleSheets = async () => {
@@ -365,6 +366,8 @@ const ReminderCalendar = () => {
             <table className="w-full text-left border-collapse">
               <thead className="sticky top-0 z-20 bg-gray-50/90 backdrop-blur-sm shadow-sm">
                 <tr className="border-b border-gray-100 text-xs uppercase text-gray-500 font-semibold tracking-wider whitespace-nowrap">
+                  <th className="px-3 py-2.5 text-left align-top bg-gray-50 w-12">S.No</th>
+                  <th className="px-2 py-2.5 text-center align-top bg-gray-50 w-12">View</th>
                   <th className="px-3 py-2.5 text-left align-top bg-gray-50">Month</th>
                   <th className="px-3 py-2.5 text-left align-top bg-gray-50">Date</th>
                   <th className="px-3 py-2.5 text-left align-top bg-gray-50">Policy Holder</th>
@@ -376,8 +379,20 @@ const ReminderCalendar = () => {
                 </tr>
               </thead>
               <tbody className="text-sm divide-y divide-gray-100">
-                {filteredData.map((item) => (
+                {filteredData.map((item, index) => (
                   <tr key={item.id} className="hover:bg-gray-50/80 transition-colors">
+                    <td className="px-3 py-2.5 font-bold text-gray-500 text-xs align-top text-left">
+                      {index + 1}
+                    </td>
+                    <td className="px-2 py-2.5 text-center align-top">
+                      <button
+                        onClick={() => setViewItem(item)}
+                        className="p-1.5 text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors shadow-sm inline-flex items-center justify-center"
+                        title="View Reminder Details"
+                      >
+                        <Eye size={14} />
+                      </button>
+                    </td>
                     <td className="px-3 py-2.5 font-bold text-gray-800 text-xs align-top text-left">
                       <span className="px-2 py-0.5 bg-gray-100 rounded text-gray-700">{item.month}</span>
                     </td>
@@ -442,28 +457,128 @@ const ReminderCalendar = () => {
                     </div>
                   </div>
                 </div>
-                <div className="flex flex-col gap-2">
-                   <button
-                     onClick={() => {
+                 <div className="flex flex-col gap-2">
+                    <button
+                      onClick={() => setViewItem(item)}
+                      className="p-2 text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                      title="View Details"
+                    >
+                      <Eye size={16} />
+                    </button>
+                    <button
+                      onClick={() => {
                         setEditingItem(item);
                         setIsAddModalOpen(true);
-                     }}
-                     className="p-2 text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-                   >
-                     <Edit size={16} />
-                   </button>
-                   <button
-                     onClick={() => handleDelete(item)}
-                     className="p-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
-                   >
-                     <Trash2 size={16} />
-                   </button>
-                </div>
+                      }}
+                      className="p-2 text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                      title="Edit"
+                    >
+                      <Edit size={16} />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(item)}
+                      className="p-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                      title="Delete"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                 </div>
               </div>
             </div>
           ))}
         </div>
       </div>
+
+      {/* View Reminder Details Modal */}
+      {viewItem && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full flex flex-col overflow-hidden border border-gray-100">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-red-50/80 via-white to-gray-50">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-red-600 text-white rounded-xl shadow-md shadow-red-600/20">
+                  <Calendar size={20} />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-gray-900 tracking-tight">
+                    {viewItem.policyHolder || "Reminder Details"}
+                  </h3>
+                  <p className="text-xs text-gray-500 font-medium mt-0.5">Calendar Policy Reminder</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setViewItem(null)}
+                className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-all"
+                title="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto space-y-4">
+              {/* Highlights */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-red-50/60 p-3 rounded-xl border border-red-100">
+                  <span className="text-[10px] font-bold text-red-600 uppercase tracking-wider block">Reminder Status</span>
+                  <span className="text-sm font-extrabold text-red-700 mt-1 block">
+                    {viewItem.reminder || "No status"}
+                  </span>
+                </div>
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Due Date / Month</span>
+                  <span className="text-sm font-extrabold text-gray-900 mt-1 block">
+                    {viewItem.date ? `${viewItem.date} (${viewItem.month})` : viewItem.month || "-"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Policy Details Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
+                <div className="bg-gray-50/70 p-3 rounded-xl border border-gray-100">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Policy Holder</span>
+                  <b className="text-xs font-bold text-gray-900 mt-0.5 block">{viewItem.policyHolder || "-"}</b>
+                </div>
+                <div className="bg-gray-50/70 p-3 rounded-xl border border-gray-100">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Insurance Company</span>
+                  <b className="text-xs font-bold text-gray-900 mt-0.5 block">{viewItem.company || "-"}</b>
+                </div>
+                <div className="bg-gray-50/70 p-3 rounded-xl border border-gray-100">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Policy Type</span>
+                  <b className="text-xs font-bold text-gray-900 mt-0.5 block">{viewItem.policy || "-"}</b>
+                </div>
+                <div className="bg-gray-50/70 p-3 rounded-xl border border-gray-100">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Policy Number</span>
+                  <b className="text-xs font-mono font-bold text-blue-600 mt-0.5 block">{viewItem.policyNo || "-"}</b>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-3 border-t border-gray-100 bg-gray-50 flex justify-between items-center">
+              <button
+                onClick={() => {
+                  const item = viewItem;
+                  setViewItem(null);
+                  setEditingItem(item);
+                  setIsAddModalOpen(true);
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs font-bold rounded-xl transition-colors"
+              >
+                <Edit size={13} />
+                <span>Edit Reminder</span>
+              </button>
+              <button
+                onClick={() => setViewItem(null)}
+                className="px-4 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-bold rounded-xl transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <AddReminderCalendar
         isOpen={isAddModalOpen}
         onClose={() => {

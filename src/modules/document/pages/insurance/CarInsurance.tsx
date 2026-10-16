@@ -434,7 +434,8 @@ const CarInsurance = () => {
               <table className="w-full min-w-max text-left border-collapse">
                 <thead className="sticky top-0 z-20 bg-gray-50/90 backdrop-blur-sm shadow-sm">
                   <tr className="border-b border-gray-100 text-xs uppercase text-gray-500 font-semibold tracking-wider">
-                    <th className="px-3 py-2 text-left align-top bg-gray-50">S.No</th>
+                    <th className="px-3 py-2 text-left align-top bg-gray-50 w-12">S.No</th>
+                    <th className="px-2 py-2 text-center align-top bg-gray-50 w-12">View</th>
                     <th className="px-3 py-2 text-left align-top bg-gray-50">Vehicle No.</th>
                     <th className="px-3 py-2 text-left align-top bg-gray-50">Owner Name</th>
                     <th className="px-3 py-2 text-left align-top bg-gray-50">Insurance Company</th>
@@ -447,7 +448,7 @@ const CarInsurance = () => {
                     <th className="px-3 py-2 text-left align-top bg-gray-50">Premium (₹)</th>
                     <th className="px-3 py-2 text-left align-top bg-gray-50 min-w-[120px]">Agent / Contact</th>
                     <th className="px-3 py-2 text-left align-top bg-gray-50 min-w-[120px]">Remarks</th>
-                    <th className="px-3 py-2 text-center align-top bg-gray-50 sticky right-0 z-20 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.06)] min-w-[170px]">Actions</th>
+                    <th className="px-3 py-2 text-center align-top bg-gray-50 min-w-[150px]">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -455,6 +456,15 @@ const CarInsurance = () => {
                     <tr key={doc.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-3 py-3 text-sm text-gray-600 font-medium align-top text-left">
                         {doc.sn || i + 1}
+                      </td>
+                      <td className="px-2 py-3 text-sm align-top text-center">
+                        <button
+                          className="p-1.5 bg-sky-50 text-sky-600 hover:bg-sky-100 rounded-md transition-colors inline-flex items-center justify-center"
+                          title="View Policy Details"
+                          onClick={() => setViewItem(doc)}
+                        >
+                          <Eye size={15} />
+                        </button>
                       </td>
                       <td className="px-3 py-3 text-sm font-semibold text-gray-800 align-top text-left">
                         {doc.vehicleNo || "-"}
@@ -504,15 +514,8 @@ const CarInsurance = () => {
                       <td className="px-3 py-3 text-sm text-gray-500 max-w-xs truncate align-top text-left" title={doc.remarks}>
                         {doc.remarks || "-"}
                       </td>
-                      <td className="px-3 py-3 text-sm align-top text-center sticky right-0 z-10 bg-white group-hover:bg-gray-50 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.06)]">
+                      <td className="px-3 py-3 text-sm align-top text-center bg-white group-hover:bg-gray-50">
                         <div className="flex items-center justify-center gap-1.5">
-                          <button
-                            className="p-1.5 bg-sky-50 text-sky-600 hover:bg-sky-100 rounded-md transition-colors"
-                            title="View Policy Details"
-                            onClick={() => setViewItem(doc)}
-                          >
-                            <Eye size={15} />
-                          </button>
                           <button
                             className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-md text-xs font-semibold shadow-sm transition-all"
                             title="Renew Policy"
@@ -546,7 +549,7 @@ const CarInsurance = () => {
                   ))}
                   {filteredData.length === 0 && (
                     <tr>
-                      <td colSpan={14} className="px-6 py-12 text-center text-gray-500 bg-gray-50/50">
+                      <td colSpan={15} className="px-6 py-12 text-center text-gray-500 bg-gray-50/50">
                         <div className="flex flex-col items-center justify-center">
                           <FileText className="h-10 w-10 text-gray-400 mb-3" />
                           <p className="text-sm font-medium text-gray-900">No records found</p>

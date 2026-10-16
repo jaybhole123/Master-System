@@ -1389,15 +1389,16 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       module: "Coal System",
       badge: coalBadges["Invoice"] > 0 ? coalBadges["Invoice"] : null,
     },
-    {
-      href: "/coal-system/transport-payment",
-      label: "Transport Payment",
-      icon: FileText,
-      active: location.pathname === "/coal-system/transport-payment",
-      showFor: ["admin", "user", "HOD"],
-      module: "Coal System",
-      badge: coalBadges["Transport Payment"] > 0 ? coalBadges["Transport Payment"] : null,
-    },
+      // Transport Payment temporarily hidden from sidebar per user request
+      // {
+      //   href: "/coal-system/transport-payment",
+      //   label: "Transport Payment",
+      //   icon: FileText,
+      //   active: location.pathname === "/coal-system/transport-payment",
+      //   showFor: ["admin", "user", "HOD"],
+      //   module: "Coal System",
+      //   badge: coalBadges["Transport Payment"] > 0 ? coalBadges["Transport Payment"] : null,
+      // },
     {
       href: "/coal-system/refund-lapse",
       label: "Refund / Lapse",

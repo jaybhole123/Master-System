@@ -46,7 +46,10 @@ export default function DocDialog({ open, onClose, onSave, doc, clientId }) {
     const chosenFile = file || doc?.file || null;
     if (file && file.size > MAX_FILE_SIZE) { alert("File is larger than 15 MB. Choose a smaller file."); return; }
 
-    if (issue && expiry && expiry < issue) { alert("Expiry date must be after the issue date."); return; }
+    const finalIssue = typeConf.needIssue ? issue : "";
+    const finalExpiry = typeConf.needExpiry ? expiry : "";
+
+    if (finalIssue && finalExpiry && finalExpiry < finalIssue) { alert("Expiry date must be after the issue date."); return; }
 
     const cleanFields = {};
     for (const f of typeConf.f) {
@@ -59,7 +62,9 @@ export default function DocDialog({ open, onClose, onSave, doc, clientId }) {
       id: doc?.id || undefined,
       cid: doc?.cid || clientId,
       history: doc?.history || [],
-      type, num: n, issue, expiry,
+      type, num: n,
+      issue: finalIssue,
+      expiry: finalExpiry,
       note: note.trim(),
       file: chosenFile,
       fname: file ? file.name : (doc?.fname || ""),
@@ -80,16 +85,22 @@ export default function DocDialog({ open, onClose, onSave, doc, clientId }) {
       <label className="dv-label">{typeConf.n}</label>
       <input className="dv-input" value={num} onChange={(e) => setNum(typeConf.pat ? e.target.value.toUpperCase() : e.target.value)} style={typeConf.pat ? { textTransform: "uppercase" } : undefined} />
 
-      <div className="dv-two">
-        <div>
-          <label className="dv-label">Issue date</label>
-          <input className="dv-input" type="date" value={issue} onChange={(e) => setIssue(e.target.value)} />
+      {(typeConf.needIssue || typeConf.needExpiry) && (
+        <div className={typeConf.needIssue && typeConf.needExpiry ? "dv-two" : ""}>
+          {typeConf.needIssue && (
+            <div>
+              <label className="dv-label">Issue date</label>
+              <input className="dv-input" type="date" value={issue} onChange={(e) => setIssue(e.target.value)} />
+            </div>
+          )}
+          {typeConf.needExpiry && (
+            <div>
+              <label className="dv-label">Expiry date</label>
+              <input className="dv-input" type="date" value={expiry} onChange={(e) => setExpiry(e.target.value)} />
+            </div>
+          )}
         </div>
-        <div>
-          <label className="dv-label">Expiry date</label>
-          <input className="dv-input" type="date" value={expiry} onChange={(e) => setExpiry(e.target.value)} />
-        </div>
-      </div>
+      )}
 
       {typeConf.f.length > 0 && (
         <>

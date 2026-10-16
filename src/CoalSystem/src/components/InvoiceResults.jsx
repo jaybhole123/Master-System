@@ -88,6 +88,49 @@ export default function InvoiceResults({ data, fileName, onReset, onAddFiles, on
     e.target.value = "";
   };
 
+  // ── KPI Summary Statistics ──
+  const stats = useMemo(() => {
+    const list = filteredItems || [];
+    let totalQty = 0;
+    let totalAmt = 0;
+    const suppliers = new Set();
+    const buyers = new Set();
+
+    list.forEach(item => {
+      // Quantity parsing
+      if (item.totalQuantity) {
+        const qMatch = String(item.totalQuantity).match(/([0-9.,]+)/);
+        if (qMatch) {
+          const num = parseFloat(qMatch[1].replace(/,/g, ''));
+          if (!isNaN(num)) totalQty += num;
+        }
+      }
+
+      // Amount parsing
+      if (item.totalAmount) {
+        const aNum = typeof item.totalAmount === 'number' 
+          ? item.totalAmount 
+          : parseFloat(String(item.totalAmount).replace(/,/g, ''));
+        if (!isNaN(aNum)) totalAmt += aNum;
+      }
+
+      if (item.supplierName && String(item.supplierName).trim()) {
+        suppliers.add(String(item.supplierName).trim().toUpperCase());
+      }
+      if (item.buyerName && String(item.buyerName).trim()) {
+        buyers.add(String(item.buyerName).trim().toUpperCase());
+      }
+    });
+
+    return {
+      count: list.length,
+      totalQty: totalQty.toLocaleString('en-IN', { maximumFractionDigits: 2 }),
+      totalAmt: totalAmt.toLocaleString('en-IN', { maximumFractionDigits: 2 }),
+      suppliersCount: suppliers.size,
+      buyersCount: buyers.size
+    };
+  }, [filteredItems]);
+
   const handleExportExcel = () => {
     exportToExcel(allItems, INVOICE_COLS, fileName || "invoices");
   };
@@ -97,7 +140,194 @@ export default function InvoiceResults({ data, fileName, onReset, onAddFiles, on
   };
 
   return (
-    <section id="results">
+    <section id="results" style={{ marginTop: "8px" }}>
+      {/* ── KPI Summary Cards ── */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+        gap: "16px",
+        marginBottom: "24px"
+      }}>
+        {/* Card 1: Total Invoices */}
+        <div style={{
+          background: "#ffffff",
+          border: "1px solid #e2e8f0",
+          borderRadius: "14px",
+          padding: "18px 20px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          boxShadow: "0 2px 8px rgba(15, 23, 42, 0.04)",
+          position: "relative",
+          overflow: "hidden",
+          transition: "transform 0.2s ease, box-shadow 0.2s ease"
+        }}>
+          <div>
+            <div style={{ color: "#64748b", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "6px" }}>
+              Total Invoices
+            </div>
+            <div style={{ color: "#1e40af", fontSize: "28px", fontWeight: "800", lineHeight: "1.1", letterSpacing: "-0.02em" }}>
+              {stats.count}
+            </div>
+            <div style={{ color: "#94a3b8", fontSize: "11px", marginTop: "4px", fontWeight: "500" }}>
+              {selectedDate ? "Filtered Date" : "All Processed"}
+            </div>
+          </div>
+          <div style={{
+            width: "48px",
+            height: "48px",
+            borderRadius: "12px",
+            background: "linear-gradient(135deg, rgba(37, 99, 235, 0.12) 0%, rgba(37, 99, 235, 0.04) 100%)",
+            border: "1px solid rgba(37, 99, 235, 0.15)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#2563eb"
+          }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+          </div>
+        </div>
+
+        {/* Card 2: Total Quantity */}
+        <div style={{
+          background: "#ffffff",
+          border: "1px solid #e2e8f0",
+          borderRadius: "14px",
+          padding: "18px 20px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          boxShadow: "0 2px 8px rgba(15, 23, 42, 0.04)",
+          position: "relative",
+          overflow: "hidden",
+          transition: "transform 0.2s ease, box-shadow 0.2s ease"
+        }}>
+          <div>
+            <div style={{ color: "#64748b", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "6px" }}>
+              Total Quantity
+            </div>
+            <div style={{ color: "#6d28d9", fontSize: "28px", fontWeight: "800", lineHeight: "1.1", letterSpacing: "-0.02em" }}>
+              {stats.totalQty} <span style={{ fontSize: "14px", fontWeight: "700", color: "#8b5cf6" }}>MT</span>
+            </div>
+            <div style={{ color: "#94a3b8", fontSize: "11px", marginTop: "4px", fontWeight: "500" }}>
+              Dispatched Weight
+            </div>
+          </div>
+          <div style={{
+            width: "48px",
+            height: "48px",
+            borderRadius: "12px",
+            background: "linear-gradient(135deg, rgba(124, 58, 237, 0.12) 0%, rgba(124, 58, 237, 0.04) 100%)",
+            border: "1px solid rgba(124, 58, 237, 0.15)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#7c3aed"
+          }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="1" y="3" width="15" height="13"></rect>
+              <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+              <circle cx="5.5" cy="18.5" r="2.5"></circle>
+              <circle cx="18.5" cy="18.5" r="2.5"></circle>
+            </svg>
+          </div>
+        </div>
+
+        {/* Card 3: Total Amount */}
+        <div style={{
+          background: "#ffffff",
+          border: "1px solid #e2e8f0",
+          borderRadius: "14px",
+          padding: "18px 20px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          boxShadow: "0 2px 8px rgba(15, 23, 42, 0.04)",
+          position: "relative",
+          overflow: "hidden",
+          transition: "transform 0.2s ease, box-shadow 0.2s ease"
+        }}>
+          <div>
+            <div style={{ color: "#64748b", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "6px" }}>
+              Total Amount
+            </div>
+            <div style={{ color: "#15803d", fontSize: "26px", fontWeight: "800", lineHeight: "1.1", letterSpacing: "-0.02em" }}>
+              ₹{stats.totalAmt}
+            </div>
+            <div style={{ color: "#94a3b8", fontSize: "11px", marginTop: "4px", fontWeight: "500" }}>
+              Gross Invoice Value
+            </div>
+          </div>
+          <div style={{
+            width: "48px",
+            height: "48px",
+            borderRadius: "12px",
+            background: "linear-gradient(135deg, rgba(22, 163, 74, 0.12) 0%, rgba(22, 163, 74, 0.04) 100%)",
+            border: "1px solid rgba(22, 163, 74, 0.15)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#16a34a"
+          }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="1" x2="12" y2="23"></line>
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+            </svg>
+          </div>
+        </div>
+
+        {/* Card 4: Parties / Network */}
+        <div style={{
+          background: "#ffffff",
+          border: "1px solid #e2e8f0",
+          borderRadius: "14px",
+          padding: "18px 20px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          boxShadow: "0 2px 8px rgba(15, 23, 42, 0.04)",
+          position: "relative",
+          overflow: "hidden",
+          transition: "transform 0.2s ease, box-shadow 0.2s ease"
+        }}>
+          <div>
+            <div style={{ color: "#64748b", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "6px" }}>
+              Parties / Network
+            </div>
+            <div style={{ color: "#c2410c", fontSize: "26px", fontWeight: "800", lineHeight: "1.1", letterSpacing: "-0.02em" }}>
+              {stats.buyersCount} <span style={{ fontSize: "14px", fontWeight: "600", color: "#64748b" }}>Buyers</span>
+            </div>
+            <div style={{ color: "#94a3b8", fontSize: "11px", marginTop: "4px", fontWeight: "500" }}>
+              {stats.suppliersCount} Supplier{stats.suppliersCount !== 1 ? 's' : ''} Active
+            </div>
+          </div>
+          <div style={{
+            width: "48px",
+            height: "48px",
+            borderRadius: "12px",
+            background: "linear-gradient(135deg, rgba(234, 88, 12, 0.12) 0%, rgba(234, 88, 12, 0.04) 100%)",
+            border: "1px solid rgba(234, 88, 12, 0.15)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#ea580c"
+          }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+          </div>
+        </div>
+      </div>
+
       {/* ── Action bar ── */}
       <div className="results-bar" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px", paddingBottom: "16px", borderBottom: "1px solid var(--line)", marginBottom: "16px" }}>
         <div style={{ display: "none" }}>
@@ -283,29 +513,66 @@ export default function InvoiceResults({ data, fileName, onReset, onAddFiles, on
                         {visibleCols.submittedDate && <td data-label="Submitted Date">
                           {row.submittedDate ? new Date(row.submittedDate).toLocaleDateString('en-GB') : "—"}
                         </td>}
-                        {visibleCols.preview && <td data-label="Preview">
+                        {visibleCols.preview && <td data-label="Preview" style={{ textAlign: "center" }}>
                           {row.pdfUrl ? (
-                            <a href={row.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "4px 8px", borderRadius: "8px", background: (/\.(jpg|jpeg|png|webp|gif|bmp)$/i.test(row.fileName || row.pdfUrl)) ? "#f5f3ff" : "#fff1f1", border: `1px solid ${(/\.(jpg|jpeg|png|webp|gif|bmp)$/i.test(row.fileName || row.pdfUrl)) ? "#ddd6fe" : "#fed7d7"}`, textDecoration: "none", boxShadow: (/\.(jpg|jpeg|png|webp|gif|bmp)$/i.test(row.fileName || row.pdfUrl)) ? "0 1px 2px rgba(124, 58, 237, 0.12)" : "0 1px 2px rgba(220, 38, 38, 0.08)", transition: "all 0.2s ease", cursor: "pointer" }}>
-                              {(() => {
-                                const isImg = /\.(jpg|jpeg|png|webp|gif|bmp)$/i.test(row.fileName || row.pdfUrl);
-                                const accent = isImg ? "#7c3aed" : "#e11d48";
-                                return (
-                                  <span style={{ display: "inline-flex", flexDirection: "column", alignItems: "center" }}>
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={accent} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                      <polyline points="14 2 14 8 20 8"></polyline>
-                                      <line x1="9" y1="13" x2="15" y2="13"></line>
-                                      <line x1="9" y1="17" x2="15" y2="17"></line>
-                                    </svg>
-                                    <span style={{ fontSize: "9px", fontWeight: "800", color: accent, letterSpacing: "0.5px", marginTop: "1px" }}>
-                                      {isImg ? "IMG" : "PDF"}
-                                    </span>
+                            (() => {
+                              const isImg = /\.(jpg|jpeg|png|webp|gif|bmp)$/i.test(row.fileName || row.pdfUrl);
+                              const bg = isImg ? "#f5f3ff" : "#fff1f1";
+                              const border = isImg ? "#ddd6fe" : "#fed7d7";
+                              const accent = isImg ? "#7c3aed" : "#e11d48";
+                              const shadowRgba = isImg ? "rgba(124, 58, 237, 0.12)" : "rgba(220, 38, 38, 0.08)";
+                              const shadowHover = isImg ? "0 3px 6px rgba(124, 58, 237, 0.2)" : "0 3px 6px rgba(220, 38, 38, 0.16)";
+
+                              return (
+                                <a
+                                  href={row.pdfUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  title={isImg ? "View Image" : "View PDF"}
+                                  style={{
+                                    display: "inline-flex",
+                                    flexDirection: "column",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    padding: "2px 5px",
+                                    borderRadius: "6px",
+                                    background: bg,
+                                    border: `1px solid ${border}`,
+                                    textDecoration: "none",
+                                    boxShadow: `0 1px 2px ${shadowRgba}`,
+                                    transition: "all 0.15s ease",
+                                    cursor: "pointer"
+                                  }}
+                                  onMouseOver={(e) => {
+                                    e.currentTarget.style.transform = "translateY(-1px)";
+                                    e.currentTarget.style.boxShadow = shadowHover;
+                                  }}
+                                  onMouseOut={(e) => {
+                                    e.currentTarget.style.transform = "translateY(0)";
+                                    e.currentTarget.style.boxShadow = `0 1px 2px ${shadowRgba}`;
+                                  }}
+                                >
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={accent} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                    <line x1="9" y1="13" x2="15" y2="13"></line>
+                                    <line x1="9" y1="17" x2="15" y2="17"></line>
+                                  </svg>
+                                  <span style={{
+                                    fontSize: "7.5px",
+                                    fontWeight: "800",
+                                    color: accent,
+                                    letterSpacing: "0.3px",
+                                    lineHeight: 1,
+                                    marginTop: "1.5px"
+                                  }}>
+                                    {isImg ? "IMG" : "PDF"}
                                   </span>
-                                );
-                              })()}
-                            </a>
+                                </a>
+                              );
+                            })()
                           ) : (
-                            <span style={{ color: "var(--muted)" }}>-</span>
+                            <span style={{ color: "var(--muted)" }}>—</span>
                           )}
                         </td>}
                         {visibleCols.action && (

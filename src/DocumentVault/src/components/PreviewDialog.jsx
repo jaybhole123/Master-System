@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Modal from "./Modal";
 import { status, fmt, size, isoShort, spec } from "../utils/helpers";
+import { TYPES } from "../utils/constants";
 import { 
   Download, 
   X, 
@@ -46,6 +47,7 @@ export default function PreviewDialog({ open, onClose, doc }) {
 
   if (!open || !doc) return null;
   const s = status(doc);
+  const typeConf = TYPES[doc.type] || TYPES.Other;
   const fields = spec(doc.type);
   const v = doc.fields || {};
   const filledFields = fields.filter((x) => v[x.k]);
@@ -91,18 +93,22 @@ export default function PreviewDialog({ open, onClose, doc }) {
 
       {/* Document Meta Info Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-4">
-        <div className="bg-gray-50/80 p-2.5 rounded-xl border border-gray-100">
-          <span className="text-[11px] font-medium text-gray-400 block uppercase tracking-wider">Issue Date</span>
-          <b className="text-xs font-semibold text-gray-800 mt-0.5 block">
-            {doc.issue ? fmt(doc.issue) : "Not added"}
-          </b>
-        </div>
-        <div className="bg-gray-50/80 p-2.5 rounded-xl border border-gray-100">
-          <span className="text-[11px] font-medium text-gray-400 block uppercase tracking-wider">Expiry Date</span>
-          <b className="text-xs font-semibold text-gray-800 mt-0.5 block">
-            {doc.expiry ? fmt(doc.expiry) : "Not added"}
-          </b>
-        </div>
+        {(!typeConf || typeConf.needIssue || doc.issue) && (
+          <div className="bg-gray-50/80 p-2.5 rounded-xl border border-gray-100">
+            <span className="text-[11px] font-medium text-gray-400 block uppercase tracking-wider">Issue Date</span>
+            <b className="text-xs font-semibold text-gray-800 mt-0.5 block">
+              {doc.issue ? fmt(doc.issue) : "Not added"}
+            </b>
+          </div>
+        )}
+        {(!typeConf || typeConf.needExpiry || doc.expiry) && (
+          <div className="bg-gray-50/80 p-2.5 rounded-xl border border-gray-100">
+            <span className="text-[11px] font-medium text-gray-400 block uppercase tracking-wider">Expiry Date</span>
+            <b className="text-xs font-semibold text-gray-800 mt-0.5 block">
+              {doc.expiry ? fmt(doc.expiry) : "Not added"}
+            </b>
+          </div>
+        )}
         <div className="bg-gray-50/80 p-2.5 rounded-xl border border-gray-100">
           <span className="text-[11px] font-medium text-gray-400 block uppercase tracking-wider">Attached File</span>
           <b className="text-xs font-semibold text-gray-800 mt-0.5 block truncate" title={doc.fname || "No file"}>

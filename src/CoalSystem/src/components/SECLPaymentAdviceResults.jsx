@@ -654,17 +654,18 @@ export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAd
                                         flexDirection: "column",
                                         alignItems: "center",
                                         justifyContent: "center",
-                                        padding: "4px 8px",
-                                        borderRadius: "8px",
+                                        padding: "2px 5px",
+                                        borderRadius: "6px",
                                         background: bg,
                                         border: `1px solid ${border}`,
                                         textDecoration: "none",
                                         boxShadow: `0 1px 2px ${shadowRgba}`,
                                         transition: "all 0.2s ease",
-                                        cursor: "pointer"
+                                        cursor: "pointer",
+                                        minWidth: "28px"
                                       }}
                                       onMouseOver={(e) => {
-                                        e.currentTarget.style.transform = "scale(1.08)";
+                                        e.currentTarget.style.transform = "scale(1.05)";
                                         e.currentTarget.style.boxShadow = shadowHover;
                                       }}
                                       onMouseOut={(e) => {
@@ -673,13 +674,13 @@ export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAd
                                       }}
                                     >
                                       {/* Document / Image Icon */}
-                                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={accent} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={accent} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                                         <polyline points="14 2 14 8 20 8"></polyline>
                                         <line x1="9" y1="13" x2="15" y2="13"></line>
                                         <line x1="9" y1="17" x2="15" y2="17"></line>
                                       </svg>
-                                      <span style={{ fontSize: "9px", fontWeight: "800", color: accent, letterSpacing: "0.5px", marginTop: "1px" }}>
+                                      <span style={{ fontSize: "7.5px", fontWeight: "800", color: accent, letterSpacing: "0.4px", marginTop: "0.5px", lineHeight: 1 }}>
                                         {isImg ? "IMG" : "PDF"}
                                       </span>
                                     </a>

@@ -751,6 +751,10 @@ const AllDocuments = () => {
                       Share
                     </th>
 
+                    <th className="px-2 py-2 w-10 text-center bg-gray-50 whitespace-nowrap" title="View Details">
+                      View
+                    </th>
+
                     {visibleColumns.serialNo && (
                     <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-left align-top">
                       Serial No
@@ -930,6 +934,16 @@ const AllDocuments = () => {
                         </DropdownMenu.Root>
                       </td>
 
+                      <td className="px-2 py-2 text-center align-top">
+                        <button
+                          onClick={() => setViewDoc(item)}
+                          className="p-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors inline-flex items-center justify-center shadow-none hover:shadow-sm"
+                          title="View Policy Details"
+                        >
+                          <Eye size={17} />
+                        </button>
+                      </td>
+
                       <td className="px-3 py-2 font-bold text-gray-700 text-xs text-left align-top">
                         {item.sn}
                       </td>
@@ -1010,13 +1024,6 @@ const AllDocuments = () => {
                       <td className="px-3 py-2">
                         <div className="flex justify-center items-center gap-1.5">
                           <button
-                            onClick={() => setViewDoc(item)}
-                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="View Document Details"
-                          >
-                            <Eye size={16} />
-                          </button>
-                          <button
                             onClick={() => handleEdit(item.id)}
                             className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                             title="Edit"
@@ -1037,7 +1044,7 @@ const AllDocuments = () => {
                   {filteredData.length === 0 && (
                     <tr>
                       <td
-                        colSpan={21}
+                        colSpan={22}
                         className="p-12 text-center text-gray-500"
                       >
                         <div className="flex flex-col items-center gap-2">
@@ -1323,45 +1330,108 @@ const AllDocuments = () => {
 
             {/* Modal Body */}
             <div className="p-6 overflow-y-auto space-y-4">
-              {/* Key Details Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                  <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block">Policy Holder</span>
+              {/* Top Highlights Banner */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Serial No</span>
+                  <span className="text-xs font-mono font-extrabold text-gray-800 mt-1 block">{viewDoc.sn || "-"}</span>
+                </div>
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Policy No</span>
+                  <span className="text-xs font-mono font-extrabold text-gray-800 mt-1 block truncate" title={viewDoc.documentName}>
+                    {viewDoc.documentName || "-"}
+                  </span>
+                </div>
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Sum Assured</span>
+                  <span className="text-xs font-extrabold text-gray-900 mt-1 block">
+                    {viewDoc.sumAssured || "-"}
+                  </span>
+                </div>
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Premium</span>
+                  <span className="text-xs font-extrabold text-emerald-700 mt-1 block">
+                    {viewDoc.premium ? `₹${viewDoc.premium}` : "-"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Complete Policy Data Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                <div className="bg-gray-50/70 p-3 rounded-xl border border-gray-100">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Name</span>
                   <b className="text-xs font-bold text-gray-900 mt-0.5 block">{viewDoc.pName || "-"}</b>
                 </div>
-                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                  <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block">Company</span>
+
+                <div className="bg-gray-50/70 p-3 rounded-xl border border-gray-100">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Company</span>
                   <b className="text-xs font-bold text-gray-900 mt-0.5 block">{viewDoc.companyName || "-"}</b>
                 </div>
-                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                  <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block">Policy Type</span>
+
+                <div className="bg-gray-50/70 p-3 rounded-xl border border-gray-100">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">TYPE</span>
                   <b className="text-xs font-bold text-gray-900 mt-0.5 block">{viewDoc.documentType || "-"}</b>
                 </div>
-                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                  <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block">Sum Assured</span>
-                  <b className="text-xs font-bold text-gray-900 mt-0.5 block">{viewDoc.sumAssured || "-"}</b>
+
+                <div className="bg-gray-50/70 p-3 rounded-xl border border-gray-100">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Premium Paying Term</span>
+                  <b className="text-xs font-bold text-gray-900 mt-0.5 block">
+                    {viewDoc.premiumPayingTerm ? `${viewDoc.premiumPayingTerm} Years` : "-"}
+                  </b>
                 </div>
-                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                  <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block">Premium</span>
-                  <b className="text-xs font-bold text-emerald-700 mt-0.5 block">{viewDoc.premium ? `₹${viewDoc.premium}` : "-"}</b>
+
+                <div className="bg-gray-50/70 p-3 rounded-xl border border-gray-100">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Policy Term</span>
+                  <b className="text-xs font-bold text-gray-900 mt-0.5 block">
+                    {viewDoc.policyTerm ? `${viewDoc.policyTerm} Years` : "-"}
+                  </b>
                 </div>
-                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                  <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block">Auto Debited</span>
-                  <b className="text-xs font-bold text-gray-900 mt-0.5 block">{viewDoc.autoDebited || "-"}</b>
-                </div>
-                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                  <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block">First Premium Date</span>
+
+                <div className="bg-gray-50/70 p-3 rounded-xl border border-gray-100">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">First Premium Date</span>
                   <b className="text-xs font-mono text-gray-800 mt-0.5 block">{formatDate(viewDoc.firstPremiumDate)}</b>
                 </div>
-                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                  <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block">Due Date of Last Premium</span>
+
+                <div className="bg-gray-50/70 p-3 rounded-xl border border-gray-100">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Due Date of Last Premium</span>
                   <b className="text-xs font-mono text-gray-800 mt-0.5 block">{formatDate(viewDoc.dueDateOfLastPremium)}</b>
                 </div>
-                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                  <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block">Coverage Till</span>
+
+                <div className="bg-gray-50/70 p-3 rounded-xl border border-gray-100">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Coverage Till</span>
                   <b className="text-xs font-bold text-gray-900 mt-0.5 block">
                     {viewDoc.coverageTill ? (/^\d+$/.test(viewDoc.coverageTill.toString().trim()) ? `${viewDoc.coverageTill} Years` : formatDate(viewDoc.coverageTill)) : "-"}
                   </b>
+                </div>
+
+                <div className="bg-gray-50/70 p-3 rounded-xl border border-gray-100">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Renewal</span>
+                  <div className="mt-0.5">
+                    {viewDoc.needsRenewal ? (
+                      <span className="inline-flex items-center px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded text-[11px] font-bold">
+                        Yes
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-[11px] font-medium">
+                        No
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="bg-gray-50/70 p-3 rounded-xl border border-gray-100">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Renewal Date</span>
+                  <b className="text-xs font-mono text-gray-800 mt-0.5 block">{formatDate(viewDoc.renewalDate)}</b>
+                </div>
+
+                <div className="bg-gray-50/70 p-3 rounded-xl border border-gray-100">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">BANK</span>
+                  <b className="text-xs font-bold text-gray-900 mt-0.5 block">{viewDoc.concernPersonName || "-"}</b>
+                </div>
+
+                <div className="bg-gray-50/70 p-3 rounded-xl border border-gray-100">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">AUTO</span>
+                  <b className="text-xs font-bold text-gray-900 mt-0.5 block">{viewDoc.autoDebited || "-"}</b>
                 </div>
               </div>
 
@@ -1375,7 +1445,7 @@ const AllDocuments = () => {
 
               {/* Attached Document File */}
               <div className="bg-slate-50 p-4 rounded-xl border border-gray-200">
-                <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block mb-2">Attached Document</span>
+                <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block mb-2">File</span>
                 {viewDoc.file ? (
                   <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
                     <div className="flex items-center gap-2.5">
