@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useDeferredValue, useMemo } from 'react';
-import { Plus, Search, Calendar, Loader, RefreshCw, Edit, Trash2 } from 'lucide-react';
+import { Plus, Search, Calendar, Loader, RefreshCw, Edit, Trash2, Bell, Building2, User, CheckCircle2, Filter } from 'lucide-react';
 import useHeaderStore from '../../store/headerStore';
 import AddReminderCalendar from './AddReminderCalendar';
 import { submitToGoogleSheets } from '../../utils/googleSheetsService';
@@ -21,6 +21,8 @@ const ReminderCalendar = () => {
   const [reminders, setReminders] = useState<ReminderItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedMonth, setSelectedMonth] = useState<string>('All');
+  const [selectedCompany, setSelectedCompany] = useState<string>('All');
   const deferredSearch = useDeferredValue(searchTerm);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<ReminderItem | null>(null);
@@ -89,7 +91,6 @@ const ReminderCalendar = () => {
     
     try {
       setLoading(true);
-      // Optional: empty row to "delete" it from Google Sheets
       await submitToGoogleSheets({
         action: "update",
         sheetName: "Reminder Calender",
@@ -111,22 +112,66 @@ const ReminderCalendar = () => {
     fetchRemindersFromGoogleSheets();
   };
 
+  // Unique lists for filters
+  const monthsList = useMemo(() => {
+    const monthsSet = new Set<string>();
+    reminders.forEach((r) => {
+      if (r.month) monthsSet.add(r.month);
+    });
+    return Array.from(monthsSet);
+  }, [reminders]);
+
+  const companiesList = useMemo(() => {
+    const compSet = new Set<string>();
+    reminders.forEach((r) => {
+      if (r.company) compSet.add(r.company);
+    });
+    return Array.from(compSet);
+  }, [reminders]);
+
+  // KPI Metrics Calculation
+  const stats = useMemo(() => {
+    const total = reminders.length;
+    const uniquePersons = new Set(reminders.map((r) => r.policyHolder).filter(Boolean)).size;
+    const uniqueCompanies = new Set(reminders.map((r) => r.company).filter(Boolean)).size;
+
+    return {
+      total,
+      uniquePersons,
+      uniqueCompanies,
+      activeMonths: monthsList.length,
+    };
+  }, [reminders, monthsList]);
+
   const filteredData = useMemo(() => {
     return reminders.filter(item => {
       const searchLower = deferredSearch.toLowerCase();
-      return String(item.policyHolder || '').toLowerCase().includes(searchLower) ||
+      const matchesSearch = String(item.policyHolder || '').toLowerCase().includes(searchLower) ||
         String(item.company || '').toLowerCase().includes(searchLower) ||
         String(item.policyNo || '').toLowerCase().includes(searchLower) ||
-        String(item.month || '').toLowerCase().includes(searchLower);
+        String(item.month || '').toLowerCase().includes(searchLower) ||
+        String(item.reminder || '').toLowerCase().includes(searchLower);
+
+      if (!matchesSearch) return false;
+
+      if (selectedMonth !== 'All' && item.month.toLowerCase() !== selectedMonth.toLowerCase()) {
+        return false;
+      }
+
+      if (selectedCompany !== 'All' && item.company.toLowerCase() !== selectedCompany.toLowerCase()) {
+        return false;
+      }
+
+      return true;
     });
-  }, [reminders, deferredSearch]);
+  }, [reminders, deferredSearch, selectedMonth, selectedCompany]);
 
   if (loading && reminders.length === 0) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="flex flex-col items-center gap-4">
+      <div className="flex justify-center items-center py-20 bg-white rounded-2xl shadow-sm border border-gray-100">
+        <div className="flex flex-col items-center gap-3">
           <Loader className="h-8 w-8 text-red-600 animate-spin" />
-          <p className="text-gray-600">Loading reminders from Google Sheets...</p>
+          <p className="text-gray-600 text-sm font-medium">Loading reminders from Google Sheets...</p>
         </div>
       </div>
     );
@@ -134,15 +179,15 @@ const ReminderCalendar = () => {
 
   if (error && reminders.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
-          <div className="text-red-600 font-medium mb-2">Error Loading Data</div>
-          <p className="text-gray-700 mb-4">{error}</p>
+      <div className="flex flex-col items-center justify-center py-16 bg-white rounded-2xl shadow-sm border border-gray-100">
+        <div className="bg-red-50 border border-red-200 rounded-xl p-5 max-w-md text-center">
+          <div className="text-red-700 font-bold mb-1">Error Loading Data</div>
+          <p className="text-gray-600 text-xs mb-4">{error}</p>
           <button
             onClick={handleRefresh}
-            className="flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white text-xs font-bold rounded-lg hover:bg-red-700 transition-colors shadow-sm"
           >
-            <RefreshCw size={16} />
+            <RefreshCw size={14} />
             Try Again
           </button>
         </div>
@@ -153,96 +198,213 @@ const ReminderCalendar = () => {
   return (
     <>
       <div className="space-y-3">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white p-3 rounded-xl shadow-input">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800">Reminder Calendar</h1>
-            <p className="text-gray-500 text-sm mt-1">
-              Track your policy reminders from Google Sheets
-              {reminders.length > 0 && (
-                <span className="ml-2 text-xs text-green-600">
-                  ({reminders.length} records)
-                </span>
-              )}
-            </p>
+        {/* Header and Controls */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white p-3.5 rounded-2xl shadow-sm border border-gray-100">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 bg-red-50 text-red-600 rounded-xl">
+              <Calendar size={22} />
+            </div>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-800 tracking-tight">Calendar Reminders</h1>
+              <p className="text-gray-500 text-xs">
+                Policy renewal and premium alerts synced from Google Sheets
+              </p>
+            </div>
           </div>
-          <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-3">
-            <div className="relative flex-1 sm:flex-initial">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+
+          <div className="flex flex-wrap sm:flex-nowrap items-center w-full sm:w-auto gap-2">
+            {/* Search Input */}
+            <div className="relative flex-1 sm:w-56">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <input
                 type="text"
-                placeholder="Search policy holder, company..."
-                className="pl-10 pr-4 py-2.5 w-full shadow-input border-none rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent bg-gray-50"
+                placeholder="Search holder, company, policy..."
+                className="pl-9 pr-3 py-2 w-full text-xs font-medium border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 bg-gray-50/70 focus:bg-white transition-all"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
 
+            {/* Month Filter */}
+            <div className="relative">
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="px-3 py-2 text-xs font-semibold bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 text-gray-700 cursor-pointer hover:bg-gray-100 transition-all"
+              >
+                <option value="All">All Months</option>
+                {monthsList.map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Company Filter */}
+            <div className="relative hidden md:block">
+              <select
+                value={selectedCompany}
+                onChange={(e) => setSelectedCompany(e.target.value)}
+                className="px-3 py-2 text-xs font-semibold bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 text-gray-700 cursor-pointer hover:bg-gray-100 transition-all max-w-[130px] truncate"
+              >
+                <option value="All">All Companies</option>
+                {companiesList.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Refresh Button */}
             <button
               onClick={handleRefresh}
               disabled={loading}
-              className="flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2.5 rounded-lg transition-all shadow-sm hover:shadow whitespace-nowrap disabled:opacity-50"
+              className="p-2 border border-gray-200 hover:bg-gray-50 rounded-xl text-gray-600 hover:text-gray-800 transition-colors shadow-sm flex items-center justify-center disabled:opacity-50"
+              title="Refresh Data"
             >
-              <RefreshCw className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline">Refresh</span>
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin text-red-600' : ''}`} />
             </button>
 
+            {/* Add New Button */}
             <button
               onClick={() => {
                 setEditingItem(null);
                 setIsAddModalOpen(true);
               }}
-              className="flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-lg transition-all shadow-md hover:shadow-lg whitespace-nowrap"
+              className="flex items-center justify-center gap-1.5 bg-red-600 hover:bg-red-700 active:scale-[0.98] text-white px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-md shadow-red-500/20 whitespace-nowrap"
             >
-              <Plus className="h-5 w-5" />
-              <span className="hidden sm:inline">Add New</span>
-              <span className="sm:hidden">Add</span>
+              <Plus className="h-4 w-4" />
+              <span>Add Reminder</span>
             </button>
           </div>
         </div>
 
-        <div className="hidden md:flex flex-col bg-white rounded-xl shadow-input overflow-hidden">
-          <div className="overflow-auto max-h-[calc(100vh-220px)]">
+        {/* Compact System Red KPI Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
+          {/* Total Reminders Card */}
+          <div
+            onClick={() => { setSelectedMonth('All'); setSelectedCompany('All'); }}
+            className={`cursor-pointer px-3.5 py-2.5 rounded-xl transition-all border ${
+              selectedMonth === 'All' && selectedCompany === 'All'
+                ? "bg-gradient-to-r from-red-600 to-red-700 text-white shadow-md shadow-red-600/20 border-red-600 ring-2 ring-red-500/20"
+                : "bg-white hover:border-red-200 text-gray-800 border-gray-100 shadow-sm hover:shadow"
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <span className={`text-[10px] font-bold uppercase tracking-wider block ${selectedMonth === 'All' && selectedCompany === 'All' ? "text-red-100" : "text-gray-500"}`}>
+                  Total Reminders
+                </span>
+                <div className="text-xl sm:text-2xl font-extrabold tracking-tight mt-0.5 leading-none">{stats.total}</div>
+              </div>
+              <div className={`p-2 rounded-lg ${selectedMonth === 'All' && selectedCompany === 'All' ? "bg-white/20 text-white" : "bg-red-50 text-red-600"}`}>
+                <Bell size={16} />
+              </div>
+            </div>
+            <div className={`text-[10px] mt-1.5 font-medium truncate ${selectedMonth === 'All' && selectedCompany === 'All' ? "text-red-100" : "text-gray-400"}`}>
+              All active reminders
+            </div>
+          </div>
+
+          {/* Policy Holders Card */}
+          <div className="px-3.5 py-2.5 rounded-xl border bg-white border-gray-100 shadow-sm hover:border-red-100 transition-all">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider block text-gray-500">
+                  Policy Holders
+                </span>
+                <div className="text-xl sm:text-2xl font-extrabold tracking-tight mt-0.5 leading-none text-gray-800">{stats.uniquePersons}</div>
+              </div>
+              <div className="p-2 rounded-lg bg-red-50 text-red-600">
+                <User size={16} />
+              </div>
+            </div>
+            <div className="text-[10px] mt-1.5 font-medium text-gray-400 truncate">
+              Unique insured persons
+            </div>
+          </div>
+
+          {/* Companies Card */}
+          <div className="px-3.5 py-2.5 rounded-xl border bg-white border-gray-100 shadow-sm hover:border-red-100 transition-all">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider block text-gray-500">
+                  Insurance Providers
+                </span>
+                <div className="text-xl sm:text-2xl font-extrabold tracking-tight mt-0.5 leading-none text-gray-800">{stats.uniqueCompanies}</div>
+              </div>
+              <div className="p-2 rounded-lg bg-red-50 text-red-600">
+                <Building2 size={16} />
+              </div>
+            </div>
+            <div className="text-[10px] mt-1.5 font-medium text-gray-400 truncate">
+              Different insurance companies
+            </div>
+          </div>
+
+          {/* Active Months Card */}
+          <div className="px-3.5 py-2.5 rounded-xl border bg-white border-gray-100 shadow-sm hover:border-red-100 transition-all">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider block text-gray-500">
+                  Reminder Months
+                </span>
+                <div className="text-xl sm:text-2xl font-extrabold tracking-tight mt-0.5 leading-none text-gray-800">{stats.activeMonths}</div>
+              </div>
+              <div className="p-2 rounded-lg bg-red-50 text-red-600">
+                <Calendar size={16} />
+              </div>
+            </div>
+            <div className="text-[10px] mt-1.5 font-medium text-gray-400 truncate">
+              Months scheduled in year
+            </div>
+          </div>
+        </div>
+
+        {/* Desktop Table View */}
+        <div className="hidden md:flex flex-col bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden h-[calc(100vh-230px)]">
+          <div className="overflow-auto flex-1">
             <table className="w-full text-left border-collapse">
-              <thead className="sticky top-0 z-10 bg-gray-50 shadow-sm">
+              <thead className="sticky top-0 z-20 bg-gray-50/90 backdrop-blur-sm shadow-sm">
                 <tr className="border-b border-gray-100 text-xs uppercase text-gray-500 font-semibold tracking-wider whitespace-nowrap">
-                  <th className="px-3 py-2">Month</th>
-                  <th className="px-3 py-2">Date</th>
-                  <th className="px-3 py-2">Policy Holder</th>
-                  <th className="px-3 py-2">Reminder</th>
-                  <th className="px-3 py-2">Company</th>
-                  <th className="px-3 py-2">Policy</th>
-                  <th className="px-3 py-2">Policy No</th>
-                  <th className="px-3 py-2 text-right">Action</th>
+                  <th className="px-3 py-2.5 text-left align-top bg-gray-50">Month</th>
+                  <th className="px-3 py-2.5 text-left align-top bg-gray-50">Date</th>
+                  <th className="px-3 py-2.5 text-left align-top bg-gray-50">Policy Holder</th>
+                  <th className="px-3 py-2.5 text-left align-top bg-gray-50">Reminder</th>
+                  <th className="px-3 py-2.5 text-left align-top bg-gray-50">Company</th>
+                  <th className="px-3 py-2.5 text-left align-top bg-gray-50">Policy</th>
+                  <th className="px-3 py-2.5 text-left align-top bg-gray-50">Policy No</th>
+                  <th className="px-3 py-2.5 text-center align-top bg-gray-50 sticky right-0 z-20 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.06)] min-w-[100px]">Action</th>
                 </tr>
               </thead>
-              <tbody className="text-sm divide-y divide-gray-50">
+              <tbody className="text-sm divide-y divide-gray-100">
                 {filteredData.map((item) => (
                   <tr key={item.id} className="hover:bg-gray-50/80 transition-colors">
-                    <td className="px-3 py-2 font-medium text-gray-900">{item.month}</td>
-                    <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{item.date}</td>
-                    <td className="px-3 py-2 font-medium text-gray-900">{item.policyHolder}</td>
-                    <td className="px-3 py-2 text-red-600">{item.reminder}</td>
-                    <td className="px-3 py-2 text-gray-700">{item.company}</td>
-                    <td className="px-3 py-2 text-gray-700">{item.policy}</td>
-                    <td className="px-3 py-2 font-mono text-xs font-bold text-gray-600">{item.policyNo}</td>
-                    <td className="px-3 py-2 text-right">
-                      <div className="flex justify-end gap-2">
+                    <td className="px-3 py-2.5 font-bold text-gray-800 text-xs align-top text-left">
+                      <span className="px-2 py-0.5 bg-gray-100 rounded text-gray-700">{item.month}</span>
+                    </td>
+                    <td className="px-3 py-2.5 text-gray-600 whitespace-nowrap font-medium text-xs align-top text-left">{item.date}</td>
+                    <td className="px-3 py-2.5 font-semibold text-gray-900 text-xs align-top text-left">{item.policyHolder}</td>
+                    <td className="px-3 py-2.5 text-xs font-semibold text-red-600 align-top text-left">{item.reminder}</td>
+                    <td className="px-3 py-2.5 text-xs text-gray-700 align-top text-left">{item.company}</td>
+                    <td className="px-3 py-2.5 text-xs text-gray-600 align-top text-left">{item.policy}</td>
+                    <td className="px-3 py-2.5 font-mono text-xs font-bold text-blue-600 align-top text-left">{item.policyNo}</td>
+                    <td className="px-3 py-2.5 text-center align-top sticky right-0 z-10 bg-white group-hover:bg-gray-50 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.06)]">
+                      <div className="flex items-center justify-center gap-1.5">
                         <button
                           onClick={() => {
                             setEditingItem(item);
                             setIsAddModalOpen(true);
                           }}
-                          className="p-1.5 text-blue-600 bg-blue-50 rounded hover:bg-blue-100 transition-colors"
+                          className="p-1.5 text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors shadow-sm"
                           title="Edit"
                         >
-                          <Edit size={16} />
+                          <Edit size={14} />
                         </button>
                         <button
                           onClick={() => handleDelete(item)}
-                          className="p-1.5 text-red-600 bg-red-50 rounded hover:bg-red-100 transition-colors"
+                          className="p-1.5 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors shadow-sm"
                           title="Delete"
                         >
-                          <Trash2 size={16} />
+                          <Trash2 size={14} />
                         </button>
                       </div>
                     </td>
@@ -251,13 +413,15 @@ const ReminderCalendar = () => {
               </tbody>
             </table>
             {filteredData.length === 0 && !loading && (
-              <div className="p-8 text-center text-gray-500">
-                <Search className="mx-auto h-12 w-12 text-gray-300 mb-3" />
-                <p>No results found</p>
+              <div className="p-12 text-center text-gray-500">
+                <Calendar className="mx-auto h-10 w-10 text-gray-300 mb-2" />
+                <p className="text-sm font-semibold text-gray-700">No reminders found</p>
+                <p className="text-xs text-gray-400 mt-0.5">Try adjusting your search or filters</p>
               </div>
             )}
           </div>
         </div>
+
 
         {/* Mobile Cards */}
         <div className="md:hidden flex flex-col gap-4">

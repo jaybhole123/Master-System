@@ -471,109 +471,115 @@ const EditDocument: React.FC<EditDocumentProps> = ({ isOpen, onClose, documentId
 
                         </div>
 
-                        {/* 12. Due Date */}
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-600 mb-1">DUE DATE</label>
-                            <input type="date" className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
-                                value={formData.dueDate || ''} onChange={e => handleChange('dueDate', e.target.value)} />
-                        </div>
+                        {/* Policy & Payment Details */}
+                        <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-red-600 mb-3">Policy & Payment Details</h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                                {/* 12. Due Date */}
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-600 mb-1">DUE DATE</label>
+                                    <input type="date" className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
+                                        value={formData.dueDate || ''} onChange={e => handleChange('dueDate', e.target.value)} />
+                                </div>
 
-                        {/* 13. Date of Proposal */}
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-600 mb-1">DATE OF THE PROPOSAL</label>
-                            <input type="date" className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
-                                value={formData.dateOfProposal || ''} onChange={e => handleChange('dateOfProposal', e.target.value)} />
-                        </div>
+                                {/* 13. Date of Proposal */}
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-600 mb-1">DATE OF THE PROPOSAL</label>
+                                    <input type="date" className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
+                                        value={formData.dateOfProposal || ''} onChange={e => handleChange('dateOfProposal', e.target.value)} />
+                                </div>
 
-                        {/* 14. Sum Assured */}
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-600 mb-1">Sum Assured (₹)</label>
-                            <input type="number" className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
-                                value={formData.sumAssured || ''} onChange={e => handleChange('sumAssured', e.target.value)} placeholder="e.g. 1000000" />
-                        </div>
+                                {/* 14. Sum Assured */}
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Sum Assured (₹)</label>
+                                    <input type="number" className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
+                                        value={formData.sumAssured || ''} onChange={e => handleChange('sumAssured', e.target.value)} placeholder="e.g. 1000000" />
+                                </div>
 
-                        {/* 15. Premium */}
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-600 mb-1">Premium (₹ / year)</label>
-                            <input type="number" className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
-                                value={formData.premium || ''} onChange={e => handleChange('premium', e.target.value)} placeholder="e.g. 25000" />
-                        </div>
+                                {/* 15. Premium */}
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Premium (₹ / year)</label>
+                                    <input type="number" className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
+                                        value={formData.premium || ''} onChange={e => handleChange('premium', e.target.value)} placeholder="e.g. 25000" />
+                                </div>
 
-                        {/* 16. Premium Paying Term */}
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-600 mb-1">Premium Paying Term</label>
-                            <input type="text" className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
-                                value={formData.premiumPayingTerm || ''} onChange={e => handleChange('premiumPayingTerm', e.target.value)} placeholder="e.g. 20 years" />
-                        </div>
+                                {/* 16. Premium Paying Term */}
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Premium Paying Term</label>
+                                    <input type="text" className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
+                                        value={formData.premiumPayingTerm || ''} onChange={e => handleChange('premiumPayingTerm', e.target.value)} placeholder="e.g. 20 years" />
+                                </div>
 
-                        {/* 17. Policy Term */}
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-600 mb-1">Policy Term</label>
-                            <input type="text" className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
-                                value={formData.policyTerm || ''} onChange={e => handleChange('policyTerm', e.target.value)} placeholder="e.g. 25 years" />
-                        </div>
+                                {/* 17. Policy Term */}
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Policy Term</label>
+                                    <input type="text" className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
+                                        value={formData.policyTerm || ''} onChange={e => handleChange('policyTerm', e.target.value)} placeholder="e.g. 25 years" />
+                                </div>
 
-                        {/* 18. First Premium Date */}
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-600 mb-1">First Premium Date</label>
-                            <input type="date" className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
-                                value={formData.firstPremiumDate || ''} onChange={e => handleChange('firstPremiumDate', e.target.value)} />
-                        </div>
+                                {/* 18. First Premium Date */}
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-600 mb-1">First Premium Date</label>
+                                    <input type="date" className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
+                                        value={formData.firstPremiumDate || ''} onChange={e => handleChange('firstPremiumDate', e.target.value)} />
+                                </div>
 
-                        {/* 19. Due Date of Last Premium */}
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-600 mb-1">Due Date of Last Premium</label>
-                            <input type="date" className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
-                                value={formData.dueDateOfLastPremium || ''} onChange={e => handleChange('dueDateOfLastPremium', e.target.value)} />
-                        </div>
+                                {/* 19. Due Date of Last Premium */}
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Due Date of Last Premium</label>
+                                    <input type="date" className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
+                                        value={formData.dueDateOfLastPremium || ''} onChange={e => handleChange('dueDateOfLastPremium', e.target.value)} />
+                                </div>
 
-                        {/* 20. Coverage Till (years) */}
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-600 mb-1">Coverage Till (years)</label>
-                            <input type="number" className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
-                                value={formData.coverageTill || ''} onChange={e => handleChange('coverageTill', e.target.value)} placeholder="e.g. 25" />
-                        </div>
+                                {/* 20. Coverage Till (years) */}
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Coverage Till (years)</label>
+                                    <input type="number" className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
+                                        value={formData.coverageTill || ''} onChange={e => handleChange('coverageTill', e.target.value)} placeholder="e.g. 25" />
+                                </div>
 
-                        {/* 20b. Maturity Date */}
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-600 mb-1">MATURITY DATE</label>
-                            <input type="date" className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
-                                value={formData.maturityDate || ''} onChange={e => handleChange('maturityDate', e.target.value)} />
-                        </div>
+                                {/* 20b. Maturity Date */}
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-600 mb-1">MATURITY DATE</label>
+                                    <input type="date" className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
+                                        value={formData.maturityDate || ''} onChange={e => handleChange('maturityDate', e.target.value)} />
+                                </div>
 
-                        {/* 20c. Mode */}
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-600 mb-1">MODE</label>
-                            <select className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
-                                value={formData.mode || ''} onChange={e => handleChange('mode', e.target.value)}>
-                                <option value="">Select...</option>
-                                <option value="Yearly">Yearly</option>
-                                <option value="Half-Yearly">Half-Yearly</option>
-                                <option value="Quarterly">Quarterly</option>
-                                <option value="Monthly">Monthly</option>
-                                <option value="Single">Single</option>
-                            </select>
-                        </div>
+                                {/* 20c. Mode */}
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-600 mb-1">MODE</label>
+                                    <select className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
+                                        value={formData.mode || ''} onChange={e => handleChange('mode', e.target.value)}>
+                                        <option value="">Select...</option>
+                                        <option value="Yearly">Yearly</option>
+                                        <option value="Half-Yearly">Half-Yearly</option>
+                                        <option value="Quarterly">Quarterly</option>
+                                        <option value="Monthly">Monthly</option>
+                                        <option value="Single">Single</option>
+                                    </select>
+                                </div>
 
-                        {/* 21. Remarks */}
-                        <div className="md:col-span-2">
-                            <label className="block text-xs font-semibold text-gray-600 mb-1">Remarks</label>
-                            <textarea className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors resize-none"
-                                value={formData.docRemarks || ''} onChange={e => handleChange('docRemarks', e.target.value)} rows={2} placeholder="Any additional notes..." />
-                        </div>
+                                {/* 22. Auto Debited */}
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-600 mb-1">AUTO</label>
+                                    <select
+                                        className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
+                                        value={formData.autoDebited || ''}
+                                        onChange={e => handleChange('autoDebited', e.target.value)}
+                                    >
+                                        <option value="">Select...</option>
+                                        <option value="Yes">Yes</option>
+                                        <option value="No">No</option>
+                                    </select>
+                                </div>
 
-                        {/* 22. Auto Debited */}
-                        <div className="md:col-span-2">
-                            <label className="block text-xs font-semibold text-gray-600 mb-1">AUTO</label>
-                            <select
-                                className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors"
-                                value={formData.autoDebited || ''}
-                                onChange={e => handleChange('autoDebited', e.target.value)}
-                            >
-                                <option value="">Select...</option>
-                                <option value="Yes">Yes</option>
-                                <option value="No">No</option>
-                            </select>
+                                {/* 21. Remarks */}
+                                <div className="sm:col-span-2 md:col-span-3">
+                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Remarks</label>
+                                    <textarea className="w-full p-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-red-500 outline-none font-medium bg-gray-50/50 focus:bg-white transition-colors resize-none"
+                                        value={formData.docRemarks || ''} onChange={e => handleChange('docRemarks', e.target.value)} rows={2} placeholder="Any additional notes..." />
+                                </div>
+                            </div>
                         </div>
                     </form>
                 </div>

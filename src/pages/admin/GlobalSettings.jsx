@@ -120,6 +120,11 @@ const MODULES = [
     pages: ['System Flow', 'Dashboard', 'Purchase Truck', 'Fastag', 'Challan', 'Truck Reports']
   },
   {
+    id: 'Document Vault',
+    name: 'Document Vault',
+    pages: ['System Flow', 'Document valute']
+  },
+  {
     id: 'Global Settings',
     name: 'Global Settings',
     pages: ['Global Settings']

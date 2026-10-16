@@ -153,9 +153,6 @@ interface SidebarProps {
               ]
           },
           { label: "Document Shared", path: "/document/shared", icon: <Share2 size={16} /> },
-          { label: "Reminder Calendar", path: "/document/reminder-calendar", icon: <Calendar size={16} />, badgeCount: reminderCount },
-          { label: "Insurance Master Data", path: "/document/insurance-master-data", icon: <Database size={16} /> },
-          { label: "Vehicle Reports", path: "/document/vehicle-reports", icon: <Car size={16} />, badgeCount: vehicleReportCount },
           { label: "Subscription Approval", path: "/subscription/approval", icon: <CheckCircle size={16} /> },
           { label: "Subscription Payment", path: "/subscription/payment", icon: <DollarSign size={16} /> },
         ]

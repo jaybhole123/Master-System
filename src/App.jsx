@@ -82,6 +82,12 @@ import PurchaseTruck from "./TransportSystem/src/pages/PurchaseTruck"
 import FastagSystem from "./TransportSystem/src/pages/FastagSystem"
 import ChallanSystem from "./TransportSystem/src/pages/ChallanSystem"
 
+// --- Document Vault Imports ---
+import "./DocumentVault/src/index.css"
+import DocumentVaultSystemFlow from "./DocumentVault/src/pages/DocumentVaultSystemFlow"
+import DocumentVaultApp from "./DocumentVault/src/pages/DocumentVaultApp"
+import { VaultProvider } from "./DocumentVault/src/context/VaultContext"
+
 // --- Data & Delegation Imports ---
 import DataPage from "./pages/admin/DataPage"
 import AdminDataPage from "./pages/admin/admin-data-page"
@@ -201,6 +207,18 @@ const TransportSystemWrapper = ({ children }) => (
             <div className="transport-system-container flex flex-col flex-1 w-full min-h-full bg-gray-50">
                 {children}
             </div>
+        </AdminLayout>
+    </ProtectedRoute>
+);
+
+const DocumentVaultWrapper = ({ children }) => (
+    <ProtectedRoute>
+        <AdminLayout noPadding={true}>
+            <VaultProvider>
+                <div className="document-vault-container flex flex-col flex-1 w-full min-h-full">
+                    {children}
+                </div>
+            </VaultProvider>
         </AdminLayout>
     </ProtectedRoute>
 );
@@ -615,6 +633,10 @@ function App() {
                     <Route path="/transport-system/purchase-truck" element={<TransportSystemWrapper><PurchaseTruck /></TransportSystemWrapper>} />
                     <Route path="/transport-system/fastag" element={<TransportSystemWrapper><FastagSystem /></TransportSystemWrapper>} />
                     <Route path="/transport-system/Challan" element={<TransportSystemWrapper><ChallanSystem /></TransportSystemWrapper>} />
+
+                    {/* --- Document Vault System Routes --- */}
+                    <Route path="/document-vault/system-flow" element={<DocumentVaultWrapper><DocumentVaultSystemFlow /></DocumentVaultWrapper>} />
+                    <Route path="/document-vault" element={<DocumentVaultWrapper><DocumentVaultApp /></DocumentVaultWrapper>} />
 
                     {/* --- Backward Compatibility Redirects (From Snippet 1) --- */}
                     {/* These catch old URLs and forward them to the new structure */}

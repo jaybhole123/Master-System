@@ -92,6 +92,12 @@ const getHeaderTitle = (pathname, routes) => {
     const match = flat.find(r => r.href && pathname === r.href);
     return { module: "Coal System", page: match?.label || "Coal System" };
   }
+  // Check Document Vault routes
+  if (pathname.startsWith("/document-vault")) {
+    const flat = routes.flatMap(r => r.subItems ? r.subItems : [r]);
+    const match = flat.find(r => r.href && pathname === r.href);
+    return { module: "Document Vault", page: match?.label || "Document Vault" };
+  }
   // Check Document & Substruction routes
   if (
     pathname.includes("/doc-dashboard") ||
@@ -504,6 +510,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       "Document & Substruction": path.includes("/document") || path.includes("/doc-dashboard") || path.includes("/resource-manager") || path.includes("/loan") || path.includes("/subscription") || path.includes("/bg") || path === "/",
       "Rent Management Tracker": path.includes("/dashboard/rent-tracker"),
       "Coal System": path.startsWith("/coal-system"),
+      "Document Vault": path.startsWith("/document-vault"),
       "Transport Reporting": path.startsWith("/transport-system"),
       "Letter": path.startsWith("/letter")
     };
@@ -979,9 +986,6 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
         { href: "/document/renewal", label: "Document Renewal", badge: docRenewalBadge, active: location.pathname === "/document/renewal", showFor: ["admin", "user", "HOD"] },
         { href: "/subscription/renewal", label: "Subscription Renewal", badge: subRenewalBadge, active: location.pathname === "/subscription/renewal", showFor: ["admin", "user", "HOD"] },
         { href: "/document/shared", label: "Document Shared", badge: docSharedBadge, active: location.pathname === "/document/shared", showFor: ["admin", "user", "HOD"] },
-        { href: "/document/reminder-calendar", label: "Reminder Calendar", badge: reminderCalendarBadge, active: location.pathname === "/document/reminder-calendar", showFor: ["admin", "user", "HOD"] },
-        { href: "/document/insurance-master-data", label: "Insurance Master Data", badge: insuranceMasterBadge, active: location.pathname === "/document/insurance-master-data", showFor: ["admin", "user", "HOD"] },
-        { href: "/document/vehicle-reports", label: "Vehicle Reports", badge: vehicleReportsBadge, active: location.pathname === "/document/vehicle-reports", showFor: ["admin", "user", "HOD"] },
         { href: "/subscription/approval", label: "Subscription Approval", badge: subApprovalBadge, active: location.pathname === "/subscription/approval", showFor: ["admin", "user", "HOD"] },
         { href: "/subscription/payment", label: "Subscription Payment", badge: subPaymentBadge, active: location.pathname === "/subscription/payment", showFor: ["admin", "user", "HOD"] },
       ]
@@ -1412,6 +1416,24 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       module: "Coal System",
       badge: coalBadges["Sauda Sale"] > 0 ? coalBadges["Sauda Sale"] : null,
     },
+
+    // --- Document Vault Module Routes ---
+    {
+      href: "/document-vault/system-flow",
+      label: "System Flow",
+      icon: GitFork,
+      active: location.pathname === "/document-vault/system-flow",
+      showFor: ["admin", "user", "HOD"],
+      module: "Document Vault",
+    },
+    {
+      href: "/document-vault",
+      label: "Document valute",
+      icon: ShieldCheck,
+      active: location.pathname === "/document-vault",
+      showFor: ["admin", "user", "HOD"],
+      module: "Document Vault",
+    },
     {
       href: "/dashboard/global-settings",
       label: "Global Settings",
@@ -1616,6 +1638,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                         {moduleName === "Daily Scheduler" && <CalendarCheck className="h-4 w-4" />}
                         {moduleName === "Rent Management Tracker" && <Banknote className="h-4 w-4" />}
                         {moduleName === "Coal System" && <Database className="h-4 w-4" />}
+                        {moduleName === "Document Vault" && <ShieldCheck className="h-4 w-4" />}
                         {moduleName === "Letter" && <FileText className="h-4 w-4" />}
                         {moduleName === "Transport Reporting" && <Truck className="h-4 w-4" />}
                         {moduleName === "Help Slip" && <HelpCircle className="h-4 w-4" />}
@@ -1885,6 +1908,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                             {moduleName === "Daily Scheduler" && <CalendarCheck className="h-4 w-4" />}
                             {moduleName === "Rent Management Tracker" && <Banknote className="h-4 w-4" />}
                             {moduleName === "Coal System" && <Database className="h-4 w-4" />}
+                            {moduleName === "Document Vault" && <ShieldCheck className="h-4 w-4" />}
                             {moduleName === "Letter" && <FileText className="h-4 w-4" />}
                             {moduleName === "Transport Reporting" && <Truck className="h-4 w-4" />}
                             {moduleName === "Help Slip" && <HelpCircle className="h-4 w-4" />}

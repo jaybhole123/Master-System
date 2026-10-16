@@ -13,7 +13,10 @@ import {
   Share2,
   Upload,
   Columns,
-  Bell
+  Bell,
+  Eye,
+  X,
+  Shield
 } from "lucide-react";
 import { sendPremiumReminderNotification } from "../../../../services/whatsappService";
 import useDataStore from "../../store/dataStore";
@@ -207,6 +210,7 @@ const AllDocuments = () => {
 
   const [editingDocId, setEditingDocId] = useState<string | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [viewDoc, setViewDoc] = useState<DocumentItem | null>(null);
 
   // Share Modal State - Updated to include batch documents
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
@@ -727,7 +731,7 @@ const AllDocuments = () => {
 
         {/* Desktop Table View */}
         {!isLoading && !error && (
-          <div className="hidden md:flex flex-col bg-white rounded-xl shadow-input overflow-hidden h-[calc(100vh-350px)]">
+          <div className="hidden md:flex flex-col bg-white rounded-xl shadow-input overflow-hidden h-[calc(100vh-220px)]">
             <div className="overflow-auto flex-1">
               <table className="w-full min-w-max text-center border-collapse">
                 <thead className="sticky top-0 z-20 bg-gray-50 shadow-sm">
@@ -748,89 +752,89 @@ const AllDocuments = () => {
                     </th>
 
                     {visibleColumns.serialNo && (
-                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
+                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-left align-top">
                       Serial No
                     </th>
                     )}
                     {visibleColumns.name && (
-                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
+                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-left align-top">
                       Name
                     </th>
                     )}
                     {visibleColumns.policyNo && (
-                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
+                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-left align-top">
                       Policy No
                     </th>
                     )}
                     {visibleColumns.company && (
-                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
+                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-left align-top">
                       Company
                     </th>
                     )}
                     {visibleColumns.type && (
-                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
+                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-left align-top">
                       TYPE
                     </th>
                     )}
                     {visibleColumns.sumAssured && (
-                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
+                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-left align-top">
                       Sum Assured
                     </th>
                     )}
                     {visibleColumns.premium && (
-                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
+                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-left align-top">
                       Premium
                     </th>
                     )}
                     {visibleColumns.premiumPayingTerm && (
-                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
+                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-left align-top">
                       Premium Paying Term
                     </th>
                     )}
                     {visibleColumns.policyTerm && (
-                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
+                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-left align-top">
                       Policy Term
                     </th>
                     )}
                     {visibleColumns.firstPremiumDate && (
-                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
+                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-left align-top">
                       First Premium Date
                     </th>
                     )}
                     {visibleColumns.dueDateOfLastPremium && (
-                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
+                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-left align-top">
                       Due Date of Last Premium
                     </th>
                     )}
                     {visibleColumns.coverageTill && (
-                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
+                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-left align-top">
                       Coverage Till
                     </th>
                     )}
                     {visibleColumns.remarks && (
-                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
+                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-left align-top">
                       Remarks
                     </th>
                     )}
 
                     {visibleColumns.renewal && (
-                    <th className="px-3 py-2 whitespace-nowrap text-center bg-gray-50">
+                    <th className="px-3 py-2 whitespace-nowrap text-left align-top bg-gray-50">
                       Renewal
                     </th>
                     )}
                     {visibleColumns.renewalDate && (
-                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
+                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-left align-top">
                       Renewal Date
                     </th>
                     )}
 
                     {visibleColumns.bank && (
-                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
+                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-left align-top">
                       BANK
                     </th>
                     )}
                     {visibleColumns.auto && (
-                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-center">
+                    <th className="px-3 py-2 whitespace-nowrap bg-gray-50 text-left align-top">
                       AUTO
                     </th>
                     )}
@@ -926,50 +930,50 @@ const AllDocuments = () => {
                         </DropdownMenu.Root>
                       </td>
 
-                      <td className="px-3 py-2 font-bold text-gray-700 text-xs text-center">
+                      <td className="px-3 py-2 font-bold text-gray-700 text-xs text-left align-top">
                         {item.sn}
                       </td>
-                      <td className="px-3 py-2 font-medium text-gray-900 text-center">
+                      <td className="px-3 py-2 font-medium text-gray-900 text-left align-top">
                         {item.pName || "-"}
                       </td>
-                      <td className="px-3 py-2 text-gray-900">
-                        <div className="flex items-center justify-center gap-2">
+                      <td className="px-3 py-2 text-gray-900 text-left align-top">
+                        <div className="flex items-center justify-start gap-2">
                           {item.documentName}
                         </div>
                       </td>
-                      <td className="px-3 py-2 font-medium text-gray-900 text-center">
+                      <td className="px-3 py-2 font-medium text-gray-900 text-left align-top">
                         {item.companyName || "-"}
                       </td>
-                      <td className="px-3 py-2 text-gray-600 text-center">
+                      <td className="px-3 py-2 text-gray-600 text-left align-top">
                         {item.documentType}
                       </td>
-                      <td className="px-3 py-2 text-gray-700 text-center">
+                      <td className="px-3 py-2 text-gray-700 text-left align-top">
                         {item.sumAssured || "-"}
                       </td>
-                      <td className="px-3 py-2 text-gray-700 text-center">
+                      <td className="px-3 py-2 text-gray-700 text-left align-top">
                         {item.premium || "-"}
                       </td>
-                      <td className="px-3 py-2 text-gray-700 text-center">
+                      <td className="px-3 py-2 text-gray-700 text-left align-top">
                         {item.premiumPayingTerm ? `${item.premiumPayingTerm} Years` : "-"}
                       </td>
-                      <td className="px-3 py-2 text-gray-700 text-center">
+                      <td className="px-3 py-2 text-gray-700 text-left align-top">
                         {item.policyTerm ? `${item.policyTerm} Years` : "-"}
                       </td>
-                      <td className="px-3 py-2 text-gray-700 font-mono text-xs text-center">
+                      <td className="px-3 py-2 text-gray-700 font-mono text-xs text-left align-top">
                         {formatDate(item.firstPremiumDate) || "-"}
                       </td>
-                      <td className="px-3 py-2 text-gray-700 font-mono text-xs text-center">
+                      <td className="px-3 py-2 text-gray-700 font-mono text-xs text-left align-top">
                         {formatDate(item.dueDateOfLastPremium) || "-"}
                       </td>
-                      <td className="px-3 py-2 text-gray-700 text-center">
+                      <td className="px-3 py-2 text-gray-700 text-left align-top">
                         {item.coverageTill ? (/^\d+$/.test(item.coverageTill.toString().trim()) ? `${item.coverageTill} Years` : formatDate(item.coverageTill)) : "-"}
                       </td>
-                      <td className="px-3 py-2 text-gray-700 text-center max-w-[150px] truncate" title={item.docRemarks}>
+                      <td className="px-3 py-2 text-gray-700 text-left align-top max-w-[150px] truncate" title={item.docRemarks}>
                         {item.docRemarks || "-"}
                       </td>
 
                       
-                      <td className="px-3 py-2 text-center">
+                      <td className="px-3 py-2 text-left align-top">
                         {item.needsRenewal ? (
                           <span className="inline-flex items-center justify-center px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-100 rounded text-xs font-medium">
                             Yes
@@ -980,14 +984,14 @@ const AllDocuments = () => {
                           </span>
                         )}
                       </td>
-                      <td className="px-3 py-2 text-gray-500 font-mono text-xs text-center">
+                      <td className="px-3 py-2 text-gray-500 font-mono text-xs text-left align-top">
                         {formatDate(item.renewalDate)}
                       </td>
 
-                      <td className="px-3 py-2 text-gray-700 text-center">
+                      <td className="px-3 py-2 text-gray-700 text-left align-top">
                         {item.concernPersonName || "-"}
                       </td>
-                      <td className="px-3 py-2 text-gray-700 text-center">
+                      <td className="px-3 py-2 text-gray-700 text-left align-top">
                         {item.autoDebited || "-"}
                       </td>
                       <td className="px-3 py-2">
@@ -1004,7 +1008,14 @@ const AllDocuments = () => {
                         )}
                       </td>
                       <td className="px-3 py-2">
-                        <div className="flex justify-center items-center gap-2">
+                        <div className="flex justify-center items-center gap-1.5">
+                          <button
+                            onClick={() => setViewDoc(item)}
+                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            title="View Document Details"
+                          >
+                            <Eye size={16} />
+                          </button>
                           <button
                             onClick={() => handleEdit(item.id)}
                             className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
@@ -1195,8 +1206,16 @@ const AllDocuments = () => {
                       </DropdownMenu.Root>
 
                       <button
+                        onClick={() => setViewDoc(item)}
+                        className="p-1.5 text-blue-600 bg-blue-50 rounded-lg"
+                        title="View Details"
+                      >
+                        <Eye size={14} />
+                      </button>
+                      <button
                         onClick={() => handleEdit(item.id)}
                         className="p-1.5 text-red-600 bg-red-50 rounded-lg"
+                        title="Edit"
                       >
                         <Edit size={14} />
                       </button>
@@ -1270,6 +1289,128 @@ const AllDocuments = () => {
                   Delete
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* View Document Details Modal */}
+      {viewDoc && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col border border-gray-100">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50/70">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-red-50 text-red-600 rounded-xl">
+                  <Shield size={20} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-gray-900 leading-tight">
+                    {viewDoc.documentName || "Policy Details"}
+                  </h3>
+                  <p className="text-xs text-gray-500 font-mono mt-0.5">
+                    {viewDoc.sn} · {viewDoc.companyName || "N/A"}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setViewDoc(null)}
+                className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-200/60 rounded-xl transition-colors"
+                title="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto space-y-4">
+              {/* Key Details Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
+                  <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block">Policy Holder</span>
+                  <b className="text-xs font-bold text-gray-900 mt-0.5 block">{viewDoc.pName || "-"}</b>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
+                  <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block">Company</span>
+                  <b className="text-xs font-bold text-gray-900 mt-0.5 block">{viewDoc.companyName || "-"}</b>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
+                  <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block">Policy Type</span>
+                  <b className="text-xs font-bold text-gray-900 mt-0.5 block">{viewDoc.documentType || "-"}</b>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
+                  <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block">Sum Assured</span>
+                  <b className="text-xs font-bold text-gray-900 mt-0.5 block">{viewDoc.sumAssured || "-"}</b>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
+                  <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block">Premium</span>
+                  <b className="text-xs font-bold text-emerald-700 mt-0.5 block">{viewDoc.premium ? `₹${viewDoc.premium}` : "-"}</b>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
+                  <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block">Auto Debited</span>
+                  <b className="text-xs font-bold text-gray-900 mt-0.5 block">{viewDoc.autoDebited || "-"}</b>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
+                  <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block">First Premium Date</span>
+                  <b className="text-xs font-mono text-gray-800 mt-0.5 block">{formatDate(viewDoc.firstPremiumDate)}</b>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
+                  <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block">Due Date of Last Premium</span>
+                  <b className="text-xs font-mono text-gray-800 mt-0.5 block">{formatDate(viewDoc.dueDateOfLastPremium)}</b>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
+                  <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block">Coverage Till</span>
+                  <b className="text-xs font-bold text-gray-900 mt-0.5 block">
+                    {viewDoc.coverageTill ? (/^\d+$/.test(viewDoc.coverageTill.toString().trim()) ? `${viewDoc.coverageTill} Years` : formatDate(viewDoc.coverageTill)) : "-"}
+                  </b>
+                </div>
+              </div>
+
+              {/* Remarks */}
+              {viewDoc.docRemarks && (
+                <div className="bg-red-50/40 p-3.5 rounded-xl border border-red-100/60">
+                  <span className="text-[11px] font-bold text-red-700 uppercase tracking-wider block mb-1">Remarks / Notes</span>
+                  <p className="text-xs text-gray-700 leading-relaxed">{viewDoc.docRemarks}</p>
+                </div>
+              )}
+
+              {/* Attached Document File */}
+              <div className="bg-slate-50 p-4 rounded-xl border border-gray-200">
+                <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block mb-2">Attached Document</span>
+                {viewDoc.file ? (
+                  <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-2 bg-red-50 text-red-600 rounded-lg">
+                        <FileText size={18} />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-gray-800">{viewDoc.file}</p>
+                        <p className="text-[10px] text-gray-400 mt-0.5">Click download or open to view original document</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleDownload(viewDoc.fileContent)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-all"
+                    >
+                      <Download size={13} />
+                      <span>Open File</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="text-center py-4 text-gray-400 text-xs">
+                    No attachment uploaded for this document
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-3 border-t border-gray-100 bg-gray-50 flex justify-end gap-2">
+              <button
+                onClick={() => setViewDoc(null)}
+                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-bold rounded-xl transition-colors"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>
