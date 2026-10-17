@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import Modal from "./Modal";
 import { TYPES, PERSONAL, COMPANY_DOC_TYPES, COMPANY_CHECKLIST_SECTIONS, MAX_FILE_SIZE } from "../utils/constants";
 
-export default function DocDialog({ open, onClose, onSave, doc, clientId, defaultCategory = "Individual" }) {
+export default function DocDialog({ open, onClose, onSave, doc, clientId, defaultCategory = "Individual", hideCategoryToggle = false }) {
   const isFirmDefault = defaultCategory === "Firm" || defaultCategory === "Company" || defaultCategory === "Plant";
   const [docCategory, setDocCategory] = useState(isFirmDefault ? "Company" : "Personal");
   const [type, setType] = useState(isFirmDefault ? COMPANY_DOC_TYPES[0] : PERSONAL[0]);
@@ -79,35 +79,39 @@ export default function DocDialog({ open, onClose, onSave, doc, clientId, defaul
     onClose();
   };
 
+  const shouldHideToggle = hideCategoryToggle || defaultCategory === "Personal" || defaultCategory === "Individual" || isFirmDefault;
+
   return (
     <Modal open={open} onClose={onClose} className="wide">
       <h3>{doc ? "Edit document" : "Add document"}</h3>
 
-      {/* Scope / Category Toggle */}
-      <div style={{ marginBottom: 14, display: "flex", gap: 8, alignItems: "center" }}>
-        <button
-          type="button"
-          onClick={() => {
-            setDocCategory("Personal");
-            if (COMPANY_DOC_TYPES.includes(type)) setType(PERSONAL[0]);
-          }}
-          className={`dv-btn ${docCategory === "Personal" ? "pri" : ""}`}
-          style={{ padding: "6px 14px", fontSize: 13 }}
-        >
-          Personal / Individual Doc
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setDocCategory("Company");
-            if (PERSONAL.includes(type)) setType(COMPANY_DOC_TYPES[0]);
-          }}
-          className={`dv-btn ${docCategory === "Company" ? "pri" : ""}`}
-          style={{ padding: "6px 14px", fontSize: 13 }}
-        >
-          Company / Firm Checklist Doc
-        </button>
-      </div>
+      {/* Scope / Category Toggle - only show if not dedicated to a specific vault module */}
+      {!shouldHideToggle && (
+        <div style={{ marginBottom: 14, display: "flex", gap: 8, alignItems: "center" }}>
+          <button
+            type="button"
+            onClick={() => {
+              setDocCategory("Personal");
+              if (COMPANY_DOC_TYPES.includes(type)) setType(PERSONAL[0]);
+            }}
+            className={`dv-btn ${docCategory === "Personal" ? "pri" : ""}`}
+            style={{ padding: "6px 14px", fontSize: 13 }}
+          >
+            Personal / Individual Doc
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setDocCategory("Company");
+              if (PERSONAL.includes(type)) setType(COMPANY_DOC_TYPES[0]);
+            }}
+            className={`dv-btn ${docCategory === "Company" ? "pri" : ""}`}
+            style={{ padding: "6px 14px", fontSize: 13 }}
+          >
+            Company / Firm Checklist Doc
+          </button>
+        </div>
+      )}
 
       <label className="dv-label">Document type *</label>
       <select className="dv-select" value={type} onChange={(e) => handleTypeChange(e.target.value)}>
@@ -122,7 +126,7 @@ export default function DocDialog({ open, onClose, onSave, doc, clientId, defaul
         ) : (
           PERSONAL.map((t) => <option key={t} value={t}>{t}</option>)
         )}
-        {doc && !PERSONAL.includes(doc.type) && !COMPANY_DOC_TYPES.includes(doc.type) && (
+        {doc && typeof doc.type === "string" && !PERSONAL.includes(doc.type) && !COMPANY_DOC_TYPES.includes(doc.type) && (
           <option value={doc.type}>{doc.type}</option>
         )}
       </select>

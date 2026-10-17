@@ -11,7 +11,22 @@ function download(d) {
   setTimeout(() => URL.revokeObjectURL(u), 60000);
 }
 
-export default function DocRow({ doc, index, clients, showClient, onView, onEdit, onRenew, onDelete, onGoClient }) {
+function highlightText(text, query) {
+  if (!text || !query || !query.trim()) return text;
+  const q = query.trim();
+  const parts = String(text).split(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi"));
+  return parts.map((part, i) => 
+    part.toLowerCase() === q.toLowerCase() ? (
+      <mark key={i} style={{ background: "#fef08a", color: "#854d0e", padding: "1px 4px", borderRadius: 3, fontWeight: 700 }}>
+        {part}
+      </mark>
+    ) : (
+      part
+    )
+  );
+}
+
+export default function DocRow({ doc, index, clients, showClient, onView, onEdit, onRenew, onDelete, onGoClient, highlight = "" }) {
   const s = status(doc);
   const ext = (doc.fname?.split(".")?.pop() || "FILE").toUpperCase().slice(0, 4);
   const c = clients?.find((x) => x.id === doc.cid);
@@ -24,9 +39,9 @@ export default function DocRow({ doc, index, clients, showClient, onView, onEdit
         {index != null ? index + 1 : "•"}
       </div>
       <div>
-        <div className="t">{doc.type}</div>
-        {summary && <div className="s" title={summary}>{summary}</div>}
-        {doc.note && <div className="s" title={doc.note}>{doc.note}</div>}
+        <div className="t">{highlightText(doc.type, highlight)}</div>
+        {summary && <div className="s" title={summary}>{highlightText(summary, highlight)}</div>}
+        {doc.note && <div className="s" title={doc.note}>{highlightText(doc.note, highlight)}</div>}
         {doc.history && doc.history.length > 0 && (
           <div className="s">Renewed {doc.history.length} time{doc.history.length > 1 ? "s" : ""}</div>
         )}
@@ -34,13 +49,13 @@ export default function DocRow({ doc, index, clients, showClient, onView, onEdit
       <div data-l="Name">
         {c ? (
           <div className="flex items-center gap-1.5">
-            <span className="font-semibold text-gray-900 text-sm">{c.name}</span>
+            <span className="font-semibold text-gray-900 text-sm">{highlightText(c.name, highlight)}</span>
           </div>
         ) : (
           <span className="s">Unassigned</span>
         )}
       </div>
-      <div data-l="Number">{doc.num || <span className="s">Not added</span>}</div>
+      <div data-l="Number">{doc.num ? highlightText(doc.num, highlight) : <span className="s">Not added</span>}</div>
       <div data-l="Issued">{doc.issue ? fmt(doc.issue) : <span className="s">Not added</span>}</div>
       <div data-l="Status">
         <span className={`dv-pill ${s.k}`}>{s.t}</span>

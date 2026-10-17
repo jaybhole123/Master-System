@@ -61,14 +61,28 @@ export default function CompanyVaultPage() {
   const [previewDoc, setPreviewDoc] = useState(null);
   const [confirmDlg, setConfirmDlg] = useState(null);
 
-  // Toggle for Stored Documents Table (opens directly under the card on click)
+  // Toggle for Stored Documents Table
   const [showDocsTable, setShowDocsTable] = useState(false);
-
-  // Toggle for Checklist Sections View (only show when + Add/Upload Document button is clicked)
+  // Toggle for Checklist Sections View
   const [showChecklist, setShowChecklist] = useState(false);
+
+  // Per-firm expanded states for Documents Table and Checklist
+  const [openDocsMap, setOpenDocsMap] = useState({});
+  const [openChecklistMap, setOpenChecklistMap] = useState({});
+
+  const toggleDocsForFirm = (id) => {
+    setOpenDocsMap((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const toggleChecklistForFirm = (id) => {
+    setOpenChecklistMap((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
   // Active section filter (All or A, B, C, D, E)
   const [activeSection, setActiveSection] = useState("All");
+  // Global search input for firms, documents and details
+  const [globalSearch, setGlobalSearch] = useState("");
+  // Checklist item filter search query
   const [searchQuery, setSearchQuery] = useState("");
 
   // Only business / firm / company / plant entities
@@ -78,18 +92,78 @@ export default function CompanyVaultPage() {
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [clients]);
 
+  // Filtered firm list based on global search bar
+  const filteredFirmClients = useMemo(() => {
+    const k = globalSearch.trim().toLowerCase();
+    if (!k) return firmClients;
+    return firmClients.filter((c) => {
+      const fieldValues = Object.values(c.fields || {}).map((v) => (v || "").toString().toLowerCase());
+      return (
+        c.name.toLowerCase().includes(k) ||
+        (c.phone && c.phone.toLowerCase().includes(k)) ||
+        (c.email && c.email.toLowerCase().includes(k)) ||
+        fieldValues.some((v) => v.includes(k)) ||
+        docs.some((d) => d.cid === c.id && [d.num, d.type, ...Object.values(d.fields || {})].some((val) => (val || "").toString().toLowerCase().includes(k)))
+      );
+    });
+  }, [firmClients, docs, globalSearch]);
+
   // Current selected entity
   const curClient = useMemo(() => {
     if (!firmClients.length) return null;
-    const found = firmClients.find((x) => x.id === selCompany);
-    return found || firmClients[0];
-  }, [firmClients, selCompany]);
+    const found = filteredFirmClients.find((x) => x.id === selCompany) || firmClients.find((x) => x.id === selCompany);
+    return found || filteredFirmClients[0] || firmClients[0];
+  }, [firmClients, filteredFirmClients, selCompany]);
+
+  // All documents belonging to firm clients
+  const firmDocs = useMemo(() => {
+    const firmIds = new Set(firmClients.map((c) => c.id));
+    return docs.filter((d) => firmIds.has(d.cid));
+  }, [docs, firmClients]);
+
+  // Overall checklist progress across firms
+  const overallChecklistProgress = useMemo(() => {
+    if (!firmClients.length) return { total: 0, completed: 0, pct: 0 };
+    const totalPossible = firmClients.length * COMPANY_DOC_TYPES.length;
+    let completed = 0;
+    firmClients.forEach((fc) => {
+      const cDocs = docs.filter((d) => d.cid === fc.id);
+      COMPANY_DOC_TYPES.forEach((t) => {
+        if (cDocs.some((d) => d.type === t && (d.file || d.num))) completed++;
+      });
+    });
+    return {
+      total: totalPossible,
+      completed,
+      pct: totalPossible ? Math.round((completed / totalPossible) * 100) : 0
+    };
+  }, [firmClients, docs]);
 
   // Documents belonging to the current firm/company
   const curDocs = useMemo(() => {
     if (!curClient) return [];
     return docs.filter((d) => d.cid === curClient.id);
   }, [docs, curClient]);
+
+  // Display docs - if globalSearch is entered, filter and show matching documents upfront
+  const displayedDocs = useMemo(() => {
+    if (!globalSearch.trim()) return curDocs;
+    const q = globalSearch.trim().toLowerCase();
+    const matches = curDocs.filter((d) => {
+      const fieldVals = Object.values(d.fields || {}).map((v) => (v || "").toString().toLowerCase());
+      return (
+        (d.type && d.type.toLowerCase().includes(q)) ||
+        (d.num && d.num.toLowerCase().includes(q)) ||
+        (d.note && d.note.toLowerCase().includes(q)) ||
+        (d.fname && d.fname.toLowerCase().includes(q)) ||
+        fieldVals.some((val) => val.includes(q))
+      );
+    });
+    return matches.length > 0 ? matches : curDocs;
+  }, [curDocs, globalSearch]);
+
+  // Auto-expand table when search matches any documents or firm attributes
+  const isTableVisible = showDocsTable || (Boolean(globalSearch.trim()) && displayedDocs.length > 0);
 
   // Map checklist items to status for current client
   const checklistProgress = useMemo(() => {
@@ -105,6 +179,22 @@ export default function CompanyVaultPage() {
       pct: total ? Math.round((completed / total) * 100) : 0
     };
   }, [curDocs]);
+
+  // Highlight text helper with yellow mark
+  const highlightText = (text, query) => {
+    if (!text || !query || !query.trim()) return text;
+    const q = query.trim();
+    const parts = String(text).split(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi"));
+    return parts.map((part, i) => 
+      part.toLowerCase() === q.toLowerCase() ? (
+        <mark key={i} style={{ background: "#fef08a", color: "#854d0e", padding: "1px 4px", borderRadius: 3, fontWeight: 700 }}>
+          {part}
+        </mark>
+      ) : (
+        part
+      )
+    );
+  };
 
   // Filtered sections & items
   const filteredSections = useMemo(() => {
@@ -126,24 +216,25 @@ export default function CompanyVaultPage() {
     setEditClient({ ctype: "Company" }); 
     setClientDlg(true); 
   };
-  const openEditEntity = () => { 
-    setEditClient(curClient); 
+  const openEditEntity = (client) => { 
+    setEditClient(client); 
     setClientDlg(true); 
   };
-  const openAddDoc = (specificType = null) => { 
+  const openAddDoc = (clientId, specificType = null) => { 
     setEditDoc(null); 
-    setPrefilledType(specificType);
+    setPrefilledType(specificType || null);
+    dispatch({ type: "SET_SEL_COMPANY", id: clientId });
     setDocDlg(true); 
   };
   const openEditDoc = (d) => { setEditDoc(d); setDocDlg(true); };
   const openRenew = (d) => { setRenewDoc(d); setRenewDlg(true); };
   const openPreview = (d) => { setPreviewDoc(d); setPreviewDlg(true); };
 
-  const handleDeleteClient = () => {
+  const handleDeleteClient = (client) => {
     setConfirmDlg({
       title: "Delete Entity?",
-      message: `${curClient?.name} and all associated corporate checklist documents will be deleted permanently.`,
-      onConfirm: () => deleteClient(curClient.id)
+      message: `${client?.name} and all associated corporate checklist documents will be deleted permanently.`,
+      onConfirm: () => deleteClient(client.id)
     });
   };
 
@@ -185,26 +276,23 @@ export default function CompanyVaultPage() {
         </div>
 
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <a
-            href="/document-vault"
-            className="dv-btn"
+          {/* Quick Add Entity Button */}
+          <button 
+            className="dv-btn pri" 
+            onClick={openAddEntity}
             style={{
-              background: "#ffffff",
-              color: "#334155",
-              borderColor: "var(--dv-line)",
-              textDecoration: "none",
+              background: "#dc2626",
+              borderColor: "#dc2626",
+              color: "#ffffff",
               display: "inline-flex",
               alignItems: "center",
               gap: 6,
               fontWeight: 600,
               fontSize: 13,
-              padding: "8px 14px"
+              padding: "8px 16px",
+              boxShadow: "0 2px 5px rgba(220, 38, 38, 0.25)"
             }}
           >
-            <User size={15} /> Individual Vault
-          </a>
-          {/* Quick Add Entity Button */}
-          <button className="dv-btn pri" onClick={openAddEntity}>
             <Plus size={16} /> Add Firm / Company
           </button>
         </div>
@@ -229,7 +317,7 @@ export default function CompanyVaultPage() {
               <FileCheck size={20} />
             </span>
             <span>
-              <b>{curDocs.length}</b>
+              <b>{firmDocs.length}</b>
               <small>Attached Documents</small>
             </span>
           </div>
@@ -239,8 +327,8 @@ export default function CompanyVaultPage() {
               <CheckCircle2 size={20} />
             </span>
             <span>
-              <b>{checklistProgress.completed} / {checklistProgress.total}</b>
-              <small>Checklist Progress ({checklistProgress.pct}%)</small>
+              <b>{overallChecklistProgress.completed} / {overallChecklistProgress.total}</b>
+              <small>Checklist Progress ({overallChecklistProgress.pct}%)</small>
             </span>
           </div>
 
@@ -255,9 +343,26 @@ export default function CompanyVaultPage() {
           </div>
         </div>
 
-        {/* Firm / Company Selector Bar */}
+        {/* Firm / Company Selector Bar with Global Search */}
         <div className="dv-toolbar-card">
           <div className="dv-toolbar-row">
+            {/* Global Search Bar */}
+            <div className="dv-search-wrap" style={{ flex: 1.2 }}>
+              <span className="dv-search-icon">
+                <Search size={15} />
+              </span>
+              <input
+                className="dv-search-input"
+                type="search"
+                placeholder="Search firm / company by name, GSTIN, PAN, phone or doc ref..."
+                value={globalSearch}
+                onChange={(e) => setGlobalSearch(e.target.value)}
+              />
+              {globalSearch && (
+                <button className="dv-search-clear" onClick={() => setGlobalSearch("")}>×</button>
+              )}
+            </div>
+
             {/* Entity Selector Dropdown */}
             <div className="dv-select-wrap" style={{ flex: 1, minWidth: 260 }}>
               <select
@@ -265,10 +370,10 @@ export default function CompanyVaultPage() {
                 value={curClient?.id || ""}
                 onChange={(e) => dispatch({ type: "SET_SEL_COMPANY", id: e.target.value })}
               >
-                {firmClients.length === 0 ? (
-                  <option value="">No firms/companies created yet</option>
+                {filteredFirmClients.length === 0 ? (
+                  <option value="">{globalSearch ? "No firms match search" : "No firms/companies created yet"}</option>
                 ) : (
-                  firmClients.map((c) => {
+                  filteredFirmClients.map((c) => {
                     const n = docs.filter((d) => d.cid === c.id).length;
                     return (
                       <option key={c.id} value={c.id}>
@@ -282,462 +387,484 @@ export default function CompanyVaultPage() {
 
             {/* Checklist Search Filter & Chips (Only visible when Checklist is active) */}
             {showChecklist && (
-              <>
-                <div className="dv-search-wrap" style={{ flex: 1.5 }}>
-                  <span className="dv-search-icon">
-                    <Search size={15} />
-                  </span>
-                  <input
-                    className="dv-search-input"
-                    type="search"
-                    placeholder="Search checklist document items (e.g. GST, MOA, PAN, Audit, Bank)..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                  {searchQuery && (
-                    <button className="dv-search-clear" onClick={() => setSearchQuery("")}>×</button>
-                  )}
-                </div>
-
-                {/* Category Filter Chips */}
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  {["All", "A", "B", "C", "D", "E"].map((code) => (
-                    <button
-                      key={code}
-                      className={`dv-chip ${activeSection === code ? "on" : ""}`}
-                      style={activeSection === code ? { background: "var(--dv-acc)", borderColor: "var(--dv-acc)", color: "#fff" } : {}}
-                      onClick={() => setActiveSection(code)}
-                    >
-                      {code === "All" ? "All Sections" : `Section ${code}`}
-                    </button>
-                  ))}
-                </div>
-              </>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                {["All", "A", "B", "C", "D", "E"].map((code) => (
+                  <button
+                    key={code}
+                    className={`dv-chip ${activeSection === code ? "on" : ""}`}
+                    style={activeSection === code ? { background: "var(--dv-acc)", borderColor: "var(--dv-acc)", color: "#fff" } : {}}
+                    onClick={() => setActiveSection(code)}
+                  >
+                    {code === "All" ? "All Sections" : `Section ${code}`}
+                  </button>
+                ))}
+              </div>
             )}
           </div>
         </div>
 
         {/* If no firm exists, prompt to create */}
-        {!curClient ? (
+        {filteredFirmClients.length === 0 ? (
           <div className="dv-empty-pro" style={{ background: "#fff", borderRadius: 16, border: "1px solid var(--dv-line)" }}>
             <div className="dv-empty-icon-box" style={{ background: "#fef2f2", color: "var(--dv-acc)" }}>
               <Building2 size={36} />
             </div>
-            <h3>No Firms or Companies Added Yet</h3>
-            <p>Add your first company, partnership firm, proprietorship or plant entity to begin storing and managing corporate checklist documents.</p>
+            <h3>{globalSearch ? `No firms match "${globalSearch}"` : "No Firms or Companies Added Yet"}</h3>
+            <p>{globalSearch ? "Try searching by another name, GSTIN or phone." : "Add your first company, partnership firm, proprietorship or plant entity to begin storing and managing corporate checklist documents."}</p>
             <button className="dv-btn pri" onClick={openAddEntity} style={{ marginTop: 16 }}>
               + Add First Company / Firm
             </button>
           </div>
         ) : (
-          <div className="dv-client-view-container">
-            {/* Entity Hero Information Card - Modern Luxury Micro-Bar */}
-            <div 
-              className="dv-client-hero-card" 
-              style={{ 
-                background: "linear-gradient(135deg, #ffffff 0%, #fafafa 100%)",
-                border: "1px solid #e2e8f0",
-                borderLeft: "4px solid #dc2626",
-                borderRadius: 16,
-                padding: "20px 24px",
-                minHeight: 88,
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "center",
-                boxShadow: "0 2px 10px -2px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04)",
-                gap: 16
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "nowrap" }}>
-                {/* Left: Avatar + Firm Brand + Badges + Contact info in clean inline pill design */}
-                <div style={{ display: "flex", alignItems: "center", gap: 16, minWidth: 0, flex: 1 }}>
-                  {/* Distinctive Gradient Avatar */}
-                  <div 
-                    style={{ 
-                      width: 50, 
-                      height: 50, 
-                      minWidth: 50, 
-                      borderRadius: 14, 
-                      fontSize: 18, 
-                      fontWeight: 800,
-                      background: "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)", 
-                      color: "#ffffff", 
-                      display: "grid",
-                      placeItems: "center",
-                      boxShadow: "0 3px 10px rgba(220, 38, 38, 0.28)"
-                    }}
-                  >
-                    {ini(curClient.name)}
-                  </div>
+          <div className="dv-client-view-container" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {/* Render all firms one by one, firm-wise */}
+            {filteredFirmClients.map((client) => {
+              const clientDocs = docs.filter((d) => d.cid === client.id);
+              const infoFields = cinfo(client);
+              const v = client.fields || {};
 
-                  {/* Primary Details Row */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", minWidth: 0 }}>
-                    <h2 style={{ fontSize: 18, fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: "-0.01em", whiteSpace: "nowrap" }}>
-                      {curClient.name}
-                    </h2>
+              // Per-firm progress
+              let completed = 0;
+              COMPANY_DOC_TYPES.forEach((t) => {
+                if (clientDocs.some((d) => d.type === t && (d.file || d.num))) completed++;
+              });
+              const pct = COMPANY_DOC_TYPES.length ? Math.round((completed / COMPANY_DOC_TYPES.length) * 100) : 0;
 
-                    <span style={{ 
-                      background: "#fef2f2", 
-                      color: "#dc2626", 
-                      border: "1px solid #fecaca", 
-                      padding: "4px 12px", 
-                      borderRadius: 7, 
-                      fontSize: 12,
-                      fontWeight: 700,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.03em"
-                    }}>
-                      {curClient.ctype}
-                    </span>
+              // Filtered docs for this firm
+              const clientDisplayDocs = globalSearch.trim()
+                ? clientDocs.filter((d) => {
+                    const q = globalSearch.trim().toLowerCase();
+                    const fieldVals = Object.values(d.fields || {}).map((val) => (val || "").toString().toLowerCase());
+                    return (
+                      (d.type && d.type.toLowerCase().includes(q)) ||
+                      (d.num && d.num.toLowerCase().includes(q)) ||
+                      (d.note && d.note.toLowerCase().includes(q)) ||
+                      (d.fname && d.fname.toLowerCase().includes(q)) ||
+                      fieldVals.some((val) => val.includes(q))
+                    );
+                  })
+                : clientDocs;
 
-                    <span style={{ 
-                      background: "#f0fdf4", 
-                      color: "#15803d", 
-                      border: "1px solid #bbf7d0", 
-                      padding: "4px 12px", 
-                      borderRadius: 7, 
-                      fontSize: 12,
-                      fontWeight: 700,
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 6
-                    }}>
-                      <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#22c55e", display: "inline-block" }}></span>
-                      {curDocs.length} Docs
-                    </span>
+              const isDocsOpen = Boolean(openDocsMap[client.id]) || (Boolean(globalSearch.trim()) && clientDisplayDocs.length > 0);
+              const isChecklistOpen = Boolean(openChecklistMap[client.id]);
 
-                    {/* Clean Contact Indicators */}
-                    {curClient.phone && (
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, color: "#64748b", background: "#f8fafc", padding: "4px 12px", borderRadius: 7, border: "1px solid #f1f5f9" }}>
-                        <Phone size={13} style={{ color: "#94a3b8" }} /> {curClient.phone}
-                      </span>
-                    )}
-                    {curClient.email && (
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, color: "#64748b", background: "#f8fafc", padding: "4px 12px", borderRadius: 7, border: "1px solid #f1f5f9" }}>
-                        <Mail size={13} style={{ color: "#94a3b8" }} /> {curClient.email}
-                      </span>
-                    )}
-
-                    {/* Metadata tags (e.g. GSTIN, PAN) */}
-                    {infoFields.map((x) => (
-                      <span key={x.k} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#eff6ff", border: "1px solid #dbeafe", padding: "4px 12px", borderRadius: 7, fontSize: 12.5 }}>
-                        <span style={{ color: "#3b82f6", fontWeight: 700, fontSize: 11.5 }}>{x.l}:</span>
-                        <strong style={{ color: "#1e3a8a", fontFamily: "monospace", letterSpacing: "0.02em" }}>{isoShort(v[x.k])}</strong>
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Right: Modern Metric Capsule + Polished Action Buttons */}
-                <div style={{ display: "flex", alignItems: "center", gap: 14, flexShrink: 0 }}>
-                  {/* Micro Progress Capsule */}
-                  <div style={{ 
-                    display: "flex", 
-                    alignItems: "center", 
-                    gap: 12, 
-                    background: "#ffffff", 
-                    padding: "8px 14px", 
-                    borderRadius: 12, 
+              return (
+                <div 
+                  key={client.id}
+                  className="dv-client-hero-card" 
+                  style={{ 
+                    background: "linear-gradient(135deg, #ffffff 0%, #fafafa 100%)",
                     border: "1px solid #e2e8f0",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.04)"
-                  }}>
-                    <div style={{ width: 75, height: 7, background: "#f1f5f9", borderRadius: 99, overflow: "hidden" }}>
-                      <div style={{ 
-                        width: `${checklistProgress.pct}%`, 
-                        height: "100%", 
-                        background: checklistProgress.pct === 100 ? "#16a34a" : "linear-gradient(90deg, #f87171 0%, #dc2626 100%)",
-                        borderRadius: 99
-                      }} />
-                    </div>
-                    <span style={{ fontSize: 13.5, fontWeight: 800, color: checklistProgress.pct === 100 ? "#16a34a" : "#dc2626" }}>
-                      {checklistProgress.pct}%
-                    </span>
-                    <span style={{ fontSize: 12, color: "#94a3b8", fontWeight: 600 }}>
-                      ({checklistProgress.completed}/{checklistProgress.total})
-                    </span>
-                  </div>
-
-                  {/* Clean Icon Action Group */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <button 
-                      onClick={() => setShowDocsTable(!showDocsTable)}
-                      title={showDocsTable ? "Hide Attached Documents" : `View Attached Documents (${curDocs.length})`}
-                      style={{ 
-                        position: "relative", 
-                        width: 40, 
-                        height: 40, 
-                        borderRadius: 11,
-                        border: showDocsTable ? "1px solid #dc2626" : "1px solid #fecaca",
-                        background: showDocsTable ? "#b91c1c" : "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
-                        color: "#ffffff",
-                        cursor: "pointer",
-                        display: "grid",
-                        placeItems: "center",
-                        transition: "all .15s ease",
-                        boxShadow: "0 2px 5px rgba(220, 38, 38, 0.22)"
-                      }}
-                    >
-                      <Eye size={18} />
-                      {curDocs.length > 0 && (
-                        <span style={{
-                          position: "absolute",
-                          top: -5,
-                          right: -5,
-                          background: "#0f172a",
-                          color: "#fff",
-                          fontSize: 10,
+                    borderLeft: "4px solid #dc2626",
+                    borderRadius: 16,
+                    padding: "20px 24px",
+                    minHeight: 88,
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "center",
+                    boxShadow: "0 2px 10px -2px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04)",
+                    gap: 16
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "nowrap" }}>
+                    {/* Left: Avatar + Firm Brand + Badges + Contact info in clean inline pill design */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 16, minWidth: 0, flex: 1 }}>
+                      {/* Distinctive Gradient Avatar */}
+                      <div 
+                        style={{ 
+                          width: 50, 
+                          height: 50, 
+                          minWidth: 50, 
+                          borderRadius: 14, 
+                          fontSize: 18, 
                           fontWeight: 800,
-                          padding: "1px 5px",
-                          borderRadius: 99,
-                          border: "1.5px solid #fff",
-                          lineHeight: "14px"
+                          background: "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)", 
+                          color: "#ffffff", 
+                          display: "grid",
+                          placeItems: "center",
+                          boxShadow: "0 3px 10px rgba(220, 38, 38, 0.28)"
+                        }}
+                      >
+                        {ini(client.name)}
+                      </div>
+
+                      {/* Primary Details Row */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", minWidth: 0 }}>
+                        <h2 style={{ fontSize: 18, fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: "-0.01em", whiteSpace: "nowrap" }}>
+                          {highlightText(client.name, globalSearch)}
+                        </h2>
+
+                        <span style={{ 
+                          background: "#fef2f2", 
+                          color: "#dc2626", 
+                          border: "1px solid #fecaca", 
+                          padding: "4px 12px", 
+                          borderRadius: 7, 
+                          fontSize: 12,
+                          fontWeight: 700,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.03em"
                         }}>
-                          {curDocs.length}
+                          {client.ctype}
                         </span>
-                      )}
-                    </button>
 
-                    <button 
-                      onClick={() => setShowChecklist(!showChecklist)}
-                      title={showChecklist ? "Hide Checklist Items" : "Add / Upload Checklist Document"}
-                      style={{ 
-                        width: 40, 
-                        height: 40, 
-                        borderRadius: 11,
-                        border: showChecklist ? "1px solid #dc2626" : "1px solid #fecaca",
-                        background: showChecklist ? "#dc2626" : "#fef2f2",
-                        color: showChecklist ? "#ffffff" : "#dc2626",
-                        cursor: "pointer",
-                        display: "grid",
-                        placeItems: "center",
-                        transition: "all .15s ease"
-                      }}
-                    >
-                      <Plus size={20} />
-                    </button>
+                        <span style={{ 
+                          background: "#f0fdf4", 
+                          color: "#15803d", 
+                          border: "1px solid #bbf7d0", 
+                          padding: "4px 12px", 
+                          borderRadius: 7, 
+                          fontSize: 12,
+                          fontWeight: 700,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 6
+                        }}>
+                          <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#22c55e", display: "inline-block" }}></span>
+                          {clientDocs.length} Docs
+                        </span>
 
-                    <button 
-                      onClick={openEditEntity}
-                      title="Edit Entity Details"
-                      style={{ 
-                        width: 40, 
-                        height: 40, 
-                        borderRadius: 11,
+                        {/* Clean Contact Indicators */}
+                        {client.phone && (
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, color: "#64748b", background: "#f8fafc", padding: "4px 12px", borderRadius: 7, border: "1px solid #f1f5f9" }}>
+                            <Phone size={13} style={{ color: "#94a3b8" }} /> {highlightText(client.phone, globalSearch)}
+                          </span>
+                        )}
+                        {client.email && (
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, color: "#64748b", background: "#f8fafc", padding: "4px 12px", borderRadius: 7, border: "1px solid #f1f5f9" }}>
+                            <Mail size={13} style={{ color: "#94a3b8" }} /> {highlightText(client.email, globalSearch)}
+                          </span>
+                        )}
+
+                        {/* Metadata tags (e.g. GSTIN, PAN) */}
+                        {infoFields.map((x) => (
+                          <span key={x.k} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#eff6ff", border: "1px solid #dbeafe", padding: "4px 12px", borderRadius: 7, fontSize: 12.5 }}>
+                            <span style={{ color: "#3b82f6", fontWeight: 700, fontSize: 11.5 }}>{x.l}:</span>
+                            <strong style={{ color: "#1e3a8a", fontFamily: "monospace", letterSpacing: "0.02em" }}>
+                              {highlightText(isoShort(v[x.k]), globalSearch)}
+                            </strong>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Right: Modern Metric Capsule + Action Buttons */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 14, flexShrink: 0 }}>
+                      {/* Micro Progress Capsule */}
+                      <div style={{ 
+                        display: "flex", 
+                        alignItems: "center", 
+                        gap: 12, 
+                        background: "#ffffff", 
+                        padding: "8px 14px", 
+                        borderRadius: 12, 
                         border: "1px solid #e2e8f0",
-                        background: "#ffffff",
-                        color: "#475569",
-                        cursor: "pointer",
-                        display: "grid",
-                        placeItems: "center",
-                        transition: "all .15s ease"
-                      }}
-                    >
-                      <Edit2 size={16} />
-                    </button>
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.04)"
+                      }}>
+                        <div style={{ width: 75, height: 7, background: "#f1f5f9", borderRadius: 99, overflow: "hidden" }}>
+                          <div style={{ 
+                            width: `${pct}%`, 
+                            height: "100%", 
+                            background: pct === 100 ? "#16a34a" : "linear-gradient(90deg, #f87171 0%, #dc2626 100%)",
+                            borderRadius: 99
+                          }} />
+                        </div>
+                        <span style={{ fontSize: 13.5, fontWeight: 800, color: pct === 100 ? "#16a34a" : "#dc2626" }}>
+                          {pct}%
+                        </span>
+                        <span style={{ fontSize: 12, color: "#94a3b8", fontWeight: 600 }}>
+                          ({completed}/{COMPANY_DOC_TYPES.length})
+                        </span>
+                      </div>
 
-                    <button 
-                      onClick={handleDeleteClient}
-                      title="Delete Entity"
-                      style={{ 
-                        width: 40, 
-                        height: 40, 
-                        borderRadius: 11,
-                        border: "1px solid #fee2e2",
-                        background: "#ffffff",
-                        color: "#ef4444",
-                        cursor: "pointer",
-                        display: "grid",
-                        placeItems: "center",
-                        transition: "all .15s ease"
-                      }}
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </div>
-              </div>
+                      {/* Clean Icon Action Group */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <button 
+                          onClick={() => toggleDocsForFirm(client.id)}
+                          title={isDocsOpen ? "Hide Attached Documents" : `View Attached Documents (${clientDocs.length})`}
+                          style={{ 
+                            position: "relative", 
+                            width: 40, 
+                            height: 40, 
+                            borderRadius: 11,
+                            border: isDocsOpen ? "1px solid #dc2626" : "1px solid #fecaca",
+                            background: isDocsOpen ? "#b91c1c" : "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+                            color: "#ffffff",
+                            cursor: "pointer",
+                            display: "grid",
+                            placeItems: "center",
+                            transition: "all .15s ease",
+                            boxShadow: "0 2px 5px rgba(220, 38, 38, 0.22)"
+                          }}
+                        >
+                          <Eye size={18} />
+                          {clientDocs.length > 0 && (
+                            <span style={{
+                              position: "absolute",
+                              top: -5,
+                              right: -5,
+                              background: "#0f172a",
+                              color: "#fff",
+                              fontSize: 10,
+                              fontWeight: 800,
+                              padding: "1px 5px",
+                              borderRadius: 99,
+                              border: "1.5px solid #fff",
+                              lineHeight: "14px"
+                            }}>
+                              {clientDocs.length}
+                            </span>
+                          )}
+                        </button>
 
-              {/* Stored Documents Table directly under this Firm card on clicking View Documents */}
-              {showDocsTable && (
-                <div style={{ marginTop: 20, paddingTop: 18, borderTop: "1px dashed #e2e8f0" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                    <div>
-                      <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#0f172a", display: "flex", alignItems: "center", gap: 8 }}>
-                        <Layers size={16} color="#dc2626" /> All Stored Documents for <span style={{ color: "#dc2626" }}>{curClient.name}</span> ({curDocs.length})
-                      </h3>
-                      <small style={{ color: "#64748b" }}>Currently attached checklist and corporate documents for this entity</small>
+                        <button 
+                          onClick={() => toggleChecklistForFirm(client.id)}
+                          title={isChecklistOpen ? "Hide Checklist Items" : "Add / Upload Checklist Document"}
+                          style={{ 
+                            width: 40, 
+                            height: 40, 
+                            borderRadius: 11,
+                            border: isChecklistOpen ? "1px solid #dc2626" : "1px solid #fecaca",
+                            background: isChecklistOpen ? "#dc2626" : "#fef2f2",
+                            color: isChecklistOpen ? "#ffffff" : "#dc2626",
+                            cursor: "pointer",
+                            display: "grid",
+                            placeItems: "center",
+                            transition: "all .15s ease"
+                          }}
+                        >
+                          <Plus size={20} />
+                        </button>
+
+                        <button 
+                          onClick={() => openEditEntity(client)}
+                          title="Edit Entity Details"
+                          style={{ 
+                            width: 40, 
+                            height: 40, 
+                            borderRadius: 11,
+                            border: "1px solid #e2e8f0",
+                            background: "#ffffff",
+                            color: "#475569",
+                            cursor: "pointer",
+                            display: "grid",
+                            placeItems: "center",
+                            transition: "all .15s ease"
+                          }}
+                        >
+                          <Edit2 size={16} />
+                        </button>
+
+                        <button 
+                          onClick={() => handleDeleteClient(client)}
+                          title="Delete Entity"
+                          style={{ 
+                            width: 40, 
+                            height: 40, 
+                            borderRadius: 11,
+                            border: "1px solid #fee2e2",
+                            background: "#ffffff",
+                            color: "#ef4444",
+                            cursor: "pointer",
+                            display: "grid",
+                            placeItems: "center",
+                            transition: "all .15s ease"
+                          }}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </div>
-                    <button className="dv-btn pri" onClick={() => openAddDoc()} style={{ fontSize: 12, padding: "5px 12px" }}>
-                      <Plus size={13} /> Add Additional Document
-                    </button>
                   </div>
-                  {curDocs.length > 0 ? (
-                    <div className="dv-docs">
-                      <DocTableHeader />
-                      {curDocs.map((d, idx) => (
-                        <DocRow 
-                          key={d.id} 
-                          doc={d} 
-                          index={idx} 
-                          clients={firmClients}
-                          onView={openPreview} 
-                          onEdit={openEditDoc} 
-                          onRenew={openRenew} 
-                          onDelete={handleDeleteDoc} 
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <div style={{ padding: "20px 14px", textAlign: "center", color: "#64748b", background: "#f8fafc", borderRadius: 8, fontSize: 13 }}>
-                      No documents attached yet for {curClient.name}. Click "Upload Document" to attach one.
+
+                  {/* Stored Documents Table directly under this Firm card */}
+                  {isDocsOpen && (
+                    <div style={{ marginTop: 20, paddingTop: 18, borderTop: "1px dashed #e2e8f0" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                        <div>
+                          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#0f172a", display: "flex", alignItems: "center", gap: 8 }}>
+                            <Layers size={16} color="#dc2626" /> All Stored Documents for <span style={{ color: "#dc2626" }}>{highlightText(client.name, globalSearch)}</span> ({clientDisplayDocs.length})
+                            {globalSearch.trim() && (
+                              <span style={{ fontSize: 12, fontWeight: 600, color: "#b45309", background: "#fef3c7", padding: "2px 8px", borderRadius: 6 }}>
+                                Filtered by: "{globalSearch}"
+                              </span>
+                            )}
+                          </h3>
+                          <small style={{ color: "#64748b" }}>Currently attached checklist and corporate documents for this entity</small>
+                        </div>
+                        <button className="dv-btn pri" onClick={() => openAddDoc(client.id)} style={{ fontSize: 12, padding: "5px 12px" }}>
+                          <Plus size={13} /> Add Additional Document
+                        </button>
+                      </div>
+                      {clientDisplayDocs.length > 0 ? (
+                        <div className="dv-docs">
+                          <DocTableHeader />
+                          {clientDisplayDocs.map((d, idx) => (
+                            <DocRow 
+                              key={d.id} 
+                              doc={d} 
+                              index={idx} 
+                              clients={firmClients}
+                              highlight={globalSearch}
+                              onView={openPreview} 
+                              onEdit={openEditDoc} 
+                              onRenew={openRenew} 
+                              onDelete={handleDeleteDoc} 
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <div style={{ padding: "20px 14px", textAlign: "center", color: "#64748b", background: "#f8fafc", borderRadius: 8, fontSize: 13 }}>
+                          No matching documents found. Click "Add Additional Document" to attach.
+                        </div>
+                      )}
                     </div>
                   )}
-                </div>
-              )}
-            </div>
 
-            {/* Checklist Sections View (Only visible when clicking the + Add Doc button) */}
-            {showChecklist && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 12 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 14px", background: "#fef2f2", borderRadius: 10, border: "1px solid #fee2e2" }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: "#b91c1c" }}>
-                    Select Document Category & Type to Attach
-                  </span>
-                  <button 
-                    onClick={() => setShowChecklist(false)} 
-                    className="dv-btn"
-                    style={{ fontSize: 11, padding: "3px 10px", background: "#fff" }}
-                  >
-                    ✕ Close Checklist
-                  </button>
-                </div>
-                {filteredSections.map((sec) => {
-                const sectionItems = sec.items;
-                const completedInSec = sectionItems.filter((item) => curDocs.some((d) => d.type === item)).length;
-
-                return (
-                  <div key={sec.code} style={{ background: "#ffffff", borderRadius: 14, border: "1px solid var(--dv-line)", overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
-                    {/* Section Header */}
-                    <div style={{ 
-                      padding: "14px 20px", 
-                      background: "#f8fafc", 
-                      borderBottom: "1px solid var(--dv-line)", 
-                      display: "flex", 
-                      alignItems: "center", 
-                      justifyContent: "space-between" 
-                    }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <span style={{ 
-                          width: 26, 
-                          height: 26, 
-                          borderRadius: "50%", 
-                          background: "#dc2626", 
-                          color: "#fff", 
-                          display: "grid", 
-                          placeItems: "center", 
-                          fontSize: 12, 
-                          fontWeight: 700 
-                        }}>
-                          {sec.code}
+                  {/* Checklist Sections View directly under this Firm card */}
+                  {isChecklistOpen && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 14, paddingTop: 18, borderTop: "1px dashed #e2e8f0" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 14px", background: "#fef2f2", borderRadius: 10, border: "1px solid #fee2e2" }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: "#b91c1c" }}>
+                          Checklist Categories & Document Upload for {client.name}
                         </span>
-                        <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#0f172a" }}>
-                          {sec.title}
-                        </h3>
+                        <button 
+                          onClick={() => toggleChecklistForFirm(client.id)} 
+                          className="dv-btn"
+                          style={{ fontSize: 11, padding: "3px 10px", background: "#fff" }}
+                        >
+                          ✕ Close Checklist
+                        </button>
                       </div>
-                      <span className="dv-pill" style={{ background: completedInSec === sectionItems.length ? "#dcfce7" : "#f1f5f9", color: completedInSec === sectionItems.length ? "#16a34a" : "#64748b", fontWeight: 600 }}>
-                        {completedInSec} / {sectionItems.length} Uploaded
-                      </span>
-                    </div>
-
-                    {/* Checklist Items Table */}
-                    <div style={{ padding: "8px 12px" }}>
-                      {sectionItems.map((itemTitle, iIdx) => {
-                        const matchingDocs = curDocs.filter((d) => d.type === itemTitle);
-                        const isUploaded = matchingDocs.length > 0;
+                      {filteredSections.map((sec) => {
+                        const sectionItems = sec.items;
+                        const completedInSec = sectionItems.filter((item) => clientDocs.some((d) => d.type === item)).length;
 
                         return (
-                          <div 
-                            key={itemTitle} 
-                            style={{ 
-                              padding: "10px 14px", 
-                              borderBottom: iIdx === sectionItems.length - 1 ? "none" : "1px solid #f1f5f9",
+                          <div key={sec.code} style={{ background: "#ffffff", borderRadius: 14, border: "1px solid var(--dv-line)", overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
+                            {/* Section Header */}
+                            <div style={{ 
+                              padding: "14px 20px", 
+                              background: "#f8fafc", 
+                              borderBottom: "1px solid var(--dv-line)", 
                               display: "flex", 
                               alignItems: "center", 
-                              justifyContent: "space-between",
-                              gap: 12,
-                              background: isUploaded ? "#fdfefe" : "#fff",
-                              borderRadius: 8
-                            }}
-                          >
-                            <div style={{ display: "flex", alignItems: "flex-start", gap: 10, flex: 1 }}>
-                              <span style={{ marginTop: 2, color: isUploaded ? "#16a34a" : "#94a3b8" }}>
-                                {isUploaded ? <CheckCircle2 size={18} /> : <Square size={18} />}
-                              </span>
-                              <div>
-                                <div style={{ fontSize: 13.5, fontWeight: 600, color: isUploaded ? "#0f172a" : "#334155" }}>
-                                  {itemTitle}
-                                </div>
-                                {isUploaded && matchingDocs.map((md) => (
-                                  <div key={md.id} style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 4, fontSize: 12, color: "#64748b" }}>
-                                    {md.num && <span style={{ fontWeight: 600, color: "#1e293b" }}>Ref: {md.num}</span>}
-                                    {md.fname && (
-                                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                                        <File size={12} /> {md.fname}
-                                      </span>
-                                    )}
-                                    {md.issue && <span>Issued: {isoShort(md.issue)}</span>}
-                                    {md.expiry && <span className={`dv-pill ${status(md).k}`} style={{ fontSize: 10, padding: "2px 8px" }}>{status(md).t}</span>}
-                                  </div>
-                                ))}
+                              justifyContent: "space-between" 
+                            }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                <span style={{ 
+                                  width: 26, 
+                                  height: 26, 
+                                  borderRadius: "50%", 
+                                  background: "#dc2626", 
+                                  color: "#fff", 
+                                  display: "grid", 
+                                  placeItems: "center", 
+                                  fontSize: 12, 
+                                  fontWeight: 700 
+                                }}>
+                                  {sec.code}
+                                </span>
+                                <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#0f172a" }}>
+                                  {sec.title}
+                                </h3>
                               </div>
+                              <span className="dv-pill" style={{ background: completedInSec === sectionItems.length ? "#dcfce7" : "#f1f5f9", color: completedInSec === sectionItems.length ? "#16a34a" : "#64748b", fontWeight: 600 }}>
+                                {completedInSec} / {sectionItems.length} Uploaded
+                              </span>
                             </div>
 
-                            {/* Actions on this checklist item */}
-                            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                              {isUploaded ? (
-                                <>
-                                  <button 
-                                    className="dv-btn ic" 
-                                    onClick={() => openPreview(matchingDocs[0])} 
-                                    title="View Document"
+                            {/* Checklist Items Table */}
+                            <div style={{ padding: "8px 12px" }}>
+                              {sectionItems.map((itemTitle) => {
+                                const matchingDocs = clientDocs.filter((d) => d.type === itemTitle);
+                                const isUploaded = matchingDocs.length > 0;
+
+                                return (
+                                  <div
+                                    key={itemTitle}
+                                    style={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "space-between",
+                                      padding: "10px 14px",
+                                      borderBottom: "1px solid #f1f5f9",
+                                      gap: 12,
+                                      background: isUploaded ? "#fdfefe" : "#fff",
+                                      borderRadius: 8
+                                    }}
                                   >
-                                    <Icon name="eye" />
-                                  </button>
-                                  <button 
-                                    className="dv-btn ic" 
-                                    onClick={() => openEditDoc(matchingDocs[0])} 
-                                    title="Edit Document"
-                                  >
-                                    <Icon name="ed" />
-                                  </button>
-                                  <button 
-                                    className="dv-btn ic dng" 
-                                    onClick={() => handleDeleteDoc(matchingDocs[0])} 
-                                    title="Delete Document"
-                                  >
-                                    <Icon name="tr" />
-                                  </button>
-                                </>
-                              ) : (
-                                <button 
-                                  className="dv-btn outline" 
-                                  style={{ fontSize: 12, padding: "4px 10px" }}
-                                  onClick={() => openAddDoc(itemTitle)}
-                                >
-                                  <Upload size={13} style={{ marginRight: 4 }} /> Attach Doc
-                                </button>
-                              )}
+                                    <div style={{ display: "flex", alignItems: "flex-start", gap: 10, flex: 1 }}>
+                                      <span style={{ marginTop: 2, color: isUploaded ? "#16a34a" : "#94a3b8" }}>
+                                        {isUploaded ? <CheckCircle2 size={18} /> : <Square size={18} />}
+                                      </span>
+                                      <div>
+                                        <div style={{ fontSize: 13.5, fontWeight: 600, color: isUploaded ? "#0f172a" : "#334155" }}>
+                                          {itemTitle}
+                                        </div>
+                                        {isUploaded && matchingDocs.map((md) => (
+                                          <div key={md.id} style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 4, fontSize: 12, color: "#64748b" }}>
+                                            {md.num && <span style={{ fontWeight: 600, color: "#1e293b" }}>Ref: {highlightText(md.num, globalSearch)}</span>}
+                                            {md.fname && (
+                                              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                                                <File size={12} /> {highlightText(md.fname, globalSearch)}
+                                              </span>
+                                            )}
+                                            {md.issue && <span>Issued: {isoShort(md.issue)}</span>}
+                                            {md.expiry && <span className={`dv-pill ${status(md).k}`} style={{ fontSize: 10, padding: "2px 8px" }}>{status(md).t}</span>}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+
+                                    {/* Actions on this checklist item */}
+                                    <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                                      {isUploaded ? (
+                                        <>
+                                          <button 
+                                            className="dv-btn ic" 
+                                            onClick={() => openPreview(matchingDocs[0])} 
+                                            title="View Document"
+                                          >
+                                            <Icon name="eye" />
+                                          </button>
+                                          <button 
+                                            className="dv-btn ic" 
+                                            onClick={() => openEditDoc(matchingDocs[0])} 
+                                            title="Edit Document"
+                                          >
+                                            <Icon name="ed" />
+                                          </button>
+                                          <button 
+                                            className="dv-btn ic dng" 
+                                            onClick={() => handleDeleteDoc(matchingDocs[0])} 
+                                            title="Delete Document"
+                                          >
+                                            <Icon name="tr" />
+                                          </button>
+                                        </>
+                                      ) : (
+                                        <button 
+                                          className="dv-btn outline" 
+                                          style={{ fontSize: 12, padding: "4px 10px" }}
+                                          onClick={() => openAddDoc(client.id, itemTitle)}
+                                        >
+                                          <Upload size={13} style={{ marginRight: 4 }} /> Attach Doc
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
                         );
                       })}
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-            )}
-
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </main>

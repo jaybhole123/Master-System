@@ -387,6 +387,17 @@
   border-color: #cbd5e1;
   color: #0f172a;
 }
+.dv-top .dv-btn.pri {
+  background: var(--dv-acc) !important;
+  color: var(--dv-acc-ink) !important;
+  border-color: var(--dv-acc) !important;
+  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.25) !important;
+}
+.dv-top .dv-btn.pri:hover {
+  background: #b91c1c !important;
+  border-color: #b91c1c !important;
+  color: #ffffff !important;
+}
 
 /* ── Inputs ── */
 .dv-input, .dv-select, .dv-textarea {
