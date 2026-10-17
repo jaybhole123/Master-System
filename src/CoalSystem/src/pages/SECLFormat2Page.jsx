@@ -5,6 +5,7 @@ import EditModal from "../components/EditModal";
 import * as pdfjsLib from "pdfjs-dist";
 import workerUrl from "pdfjs-dist/build/pdf.worker.mjs?url";
 import { exportToExcel, exportToPDF } from "../utils/exportHelpers";
+import { extractSECLData } from "../utils/seclParser";
 import supabase from "../../../SupabaseClient";
 import { Edit, Trash, CheckCircle } from "lucide-react";
 
@@ -244,18 +245,18 @@ export default function SECLFormat2Page() {
 
   function parseGenericFields(text) {
     return {
-      buyerRef: grab(/Buyer(?:'s)?s?\.?\s*Ref\.?\s*No\.?\s*:?\s*([A-Za-z0-9_]+)/i, text),
-      company: grab(/Company\s*Name\s*:?\s*([A-Za-z0-9 .&()'-]+?)(?=\s*Contact Person|\s*Street|\s*UBID)/i, text),
-      contact: grab(/Contact\s*Person\s*:?\s*([A-Za-z .]+?)(?=\s*Street|\s*UBID|\s*City)/i, text),
+      buyerRef: grab(/Buyer(?:'s)?s?\.?\s*Ref\.?\s*No\.?\s*:?\s*:?\s*([A-Za-z0-9_/-]+)/i, text),
+      company: grab(/Company\s*Name\s*:?\s*:?\s*([A-Za-z0-9 .&()'-]+?)(?=\s*(?:Contact Person|Street|Address|UBID|City|$))/i, text),
+      contact: grab(/(?:Contact\s*Person|Name\s+of\s+(?:the\s+)?Contact\s*Person)\s*:?\s*:?\s*([A-Za-z .'-]+?)(?=\s*(?:Street|Address|UBID|City|Email|Phone|Mobile|Tel|PIN|PAN|$))/i, text),
       pan: grab(/PAN\s*NO\.?\s*:?\s*([A-Z0-9]{8,12})/i, text),
       auctionNo: grab(/Auction\s*(?:Number|ID|No\.?)\s*:?\s*([A-Za-z0-9_/.-]+)/i, text),
-      period: grab(/(?:Period of Auction|Auction\s*Date)\s*:?\s*([-0-9:\s/A-Za-z.]+?)(?=\s*We are pleased|\s*Bidder Details|\s*Dear|\s*Allocated Information|$)/i, text)
+      period: grab(/(?:Period\s+of\s+Auction|Auction\s*Period|Auction\s*Date|Date\s+of\s+Auction)\s*:?\s*:?\s*([0-9]{2}[-/][0-9]{2}[-/][0-9]{4}(?:\s+[0-9:]+(?:::| to | - )[0-9]{2}[-/][0-9]{2}[-/][0-9]{4}\s+[0-9:]+)?|[-0-9:\s/A-Za-z.]+?)(?=\s*We are pleased|\s*Bidder Details|\s*Dear|\s*Allocated Information|\s*Third Party Sampling|$)/i, text)
     };
   }
 
   function parseRows(text) {
     const rows = [];
-    const re = /SECL\s+(\S+)\s+((?:[A-Za-z]+\s?){1,2})\s+(Road|Rail)\s+(\w+)\s+(\w+)\s+(Sized\s*Rom\s*\(-?\)?\s*100\s*mm\)|Sized\s*Rom\s*\(-100mm\))\s+([\d.,]+)\s+([\d.,]+|-)\s*(?:MT)?\s+([\d.,]+|-)\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)/g;
+    const re = /SECL\s+([^\s]+)\s+((?:[A-Za-z0-9&()]+\s?){1,4})\s+(Road|Rail)\s+(\w+)\s+(\w+)\s+(Sized\s*Rom\s*\(-?\)?\s*100\s*mm\)|Sized\s*Rom\s*\(-100mm\))\s+([\d.,]+)\s+([\d.,]+|-)\s*(?:MT)?\s+([\d.,]+|-)\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)/gi;
     let m;
     while ((m = re.exec(text)) !== null) {
       const row = {
@@ -279,6 +280,109 @@ export default function SECLFormat2Page() {
     return rows;
   }
 
+  async function parseRowsFromPdf(file, text) {
+    try {
+      const parsed = await extractSECLData(file);
+      if (parsed && parsed.items && parsed.items.length > 0) {
+        return {
+          rows: parsed.items.map(it => {
+            const seller = it['Seller'] || it['Seller Name'] || it['Subsidiary'] || "SECL";
+            const bidId = it['Unique Bid Id'] || it['Auction Id'] || it['Bid ID'] || it['Bid Id'] || "—";
+            const source = it['Source Name'] || it['Source'] || it['Colliery'] || "—";
+            let mode = it['Mode'] || it['Dispatch Mode'] || "—";
+            let grade = it['Grade'] || (it['Grade / Size'] ? it['Grade / Size'].split(/[/(-]/)[0].trim() : "—");
+            let size = it['Size'] || (it['Grade / Size'] ? (it['Grade / Size'].includes('/') ? it['Grade / Size'].split('/')[1].trim() : it['Grade / Size'].trim()) : "—");
+
+            // --- Fix Mode / Grade / Size misalignment at mapping layer ---
+            const modeRe = /^(Road|Rail)\s*/i;
+            if (!mode || mode === "—" || mode === "-") {
+              const gm = String(grade).match(modeRe);
+              if (gm) {
+                mode = gm[1];
+                grade = String(grade).slice(gm[0].length).trim() || "—";
+              } else {
+                const sm = String(size).match(modeRe);
+                if (sm) {
+                  mode = sm[1];
+                  size = String(size).slice(sm[0].length).trim() || "—";
+                }
+              }
+            }
+            // If mode has extra text (e.g. "RoadG14"), split
+            const modeExtra = String(mode).match(/^(Road|Rail)(.+)$/i);
+            if (modeExtra && modeExtra[2]) {
+              mode = modeExtra[1];
+              grade = (modeExtra[2] + ' ' + (grade === "—" ? "" : grade)).trim() || "—";
+            }
+            // Clean size of Road/Rail remnants
+            const sizeStr = String(size).trim();
+            const remnant = sizeStr.match(/^(oad|ail|ad|il|d|l)\s+(.*)/i);
+            if (remnant) {
+              size = remnant[2].trim() || "—";
+            }
+
+            // --- Fix Bid ID & Source Name mixing ---
+            let cleanBidId = bidId !== "—" && bidId !== "-" ? String(bidId).trim() : "—";
+            let cleanSource = source !== "—" && source !== "-" ? String(source).trim() : "—";
+            
+            const bidOverflow = cleanBidId.match(/^(\d+[A-Za-z]?)\s+([A-Za-z]+)$/);
+            if (bidOverflow) {
+              cleanBidId = bidOverflow[1];
+              const extraLetter = bidOverflow[2];
+              if (!cleanSource.startsWith(extraLetter)) {
+                if (cleanSource && /^[a-z]/.test(cleanSource)) {
+                  cleanSource = extraLetter + cleanSource;
+                } else if (cleanSource && cleanSource !== "—") {
+                  cleanSource = (extraLetter + ' ' + cleanSource).trim();
+                } else {
+                  cleanSource = extraLetter;
+                }
+              }
+            } else {
+              const bidDirect = cleanBidId.match(/^(\d{4,8}[A-Za-z])([A-Za-z].*)$/);
+              if (bidDirect) {
+                cleanBidId = bidDirect[1];
+                const extraPart = bidDirect[2];
+                if (!cleanSource.startsWith(extraPart)) {
+                  cleanSource = cleanSource && cleanSource !== "—" ? (extraPart + ' ' + cleanSource).trim() : extraPart;
+                }
+              }
+            }
+
+            const offerQty = it['Offer Quantity (MT)'] || it['Offer Qty'] || it['Offer Quantity'] || "—";
+            const qtyAllotted = it['Quantity Allotted (MT)'] || it['Quantity Allotted'] || it['Allotted Qty'] || "—";
+            const bidPrice = it['Bid Price (Rs/MT)'] || it['Winning Bid Price (Rs/MT)'] || it['Bid Price'] || "—";
+            const notifiedPrice = it['Notified Price of Source (Rs/MT)'] || it['Floor Price'] || it['Notified Price'] || "—";
+            let premium = it['Premium (%)'] || it['Premium % Over Notified Price'] || it['Premium'] || "—";
+            if (premium && premium !== "—" && !String(premium).endsWith("%")) {
+              premium = `${premium}%`;
+            }
+            const balanceQty = it['Balance Quantity (MT)'] || it['Unbooked Qty'] || it['Balance Qty'] || "—";
+
+            return {
+              seller: seller === "-" || !seller ? "—" : seller,
+              bidId: cleanBidId,
+              source: cleanSource,
+              mode: mode === "-" || !mode ? "—" : mode,
+              grade: grade === "-" || !grade ? "—" : grade,
+              size: size === "-" || !size ? "—" : size,
+              offerQty: offerQty === "-" || !offerQty ? "—" : offerQty,
+              qtyAllotted: qtyAllotted === "-" || !qtyAllotted ? "—" : qtyAllotted,
+              bidPrice: bidPrice === "-" || !bidPrice ? "—" : bidPrice,
+              notifiedPrice: notifiedPrice === "-" || !notifiedPrice ? "—" : notifiedPrice,
+              premium: premium === "-" || !premium ? "—" : premium,
+              balanceQty: balanceQty === "-" || !balanceQty ? "—" : balanceQty
+            };
+          }),
+          meta: parsed.meta
+        };
+      }
+    } catch (err) {
+      console.warn("extractSECLData fallback:", err);
+    }
+    return { rows: parseRows(text), meta: null };
+  }
+
   const handleFiles = async (files) => {
     if (files.length === 0) {
       setError("Please upload only PDF files.");
@@ -295,7 +399,7 @@ export default function SECLFormat2Page() {
       try {
         const text = await extractTextFromPdf(file);
         const fields = parseGenericFields(text);
-        let rows = parseRows(text);
+        let { rows, meta } = await parseRowsFromPdf(file, text);
         if (rows.length === 0) {
           rows = [{ seller: "—", bidId: "—", source: "—", mode: "—", grade: "—", size: "—", offerQty: "—", qtyAllotted: "—", bidPrice: "—", notifiedPrice: "—", premium: "—", balanceQty: "—" }];
         }
@@ -305,11 +409,11 @@ export default function SECLFormat2Page() {
           pdfUrl: URL.createObjectURL(file),
           docType: text.includes("Sale Intimation") ? "Sale Intimation Letter" : "Allocation Letter",
           buyerRef: fields.buyerRef,
-          company: fields.company,
-          contact: fields.contact,
+          company: (meta && (meta['Company Name'] || meta['Name of the Bidder'] || meta['Name of Bidder'])) || fields.company,
+          contact: (meta && meta['Contact Person']) || fields.contact,
           pan: fields.pan,
           auctionNo: fields.auctionNo,
-          period: fields.period,
+          period: (meta && (meta['Auction Period'] || meta['Date of Auction'] || meta['Period of Auction'])) || fields.period,
           rows: rows,
           raw: text.slice(0, 1800) + (text.length > 1800 ? " …" : ""),
           showRaw: false
@@ -337,22 +441,38 @@ export default function SECLFormat2Page() {
     setDocs((prev) => prev.map(d => d.id === id ? { ...d, showRaw: !d.showRaw } : d));
   };
   const exportCols = [
-    { key: "company", label: "Company Name" },
-    { key: "seller", label: "Seller" },
+    { key: "period", label: "Period of Auction" },
     { key: "contact", label: "Contact Person" },
-    { key: "period", label: "Auction Period" },
-    { key: "bidId", label: "Bid ID" },
-    { key: "source", label: "Source" },
+    { key: "seller", label: "Seller" },
+    { key: "bidPrice", label: "Bid Price (Rs/MT)" },
     { key: "mode", label: "Mode" },
     { key: "grade", label: "Grade" },
     { key: "size", label: "Size" },
-    { key: "offerQty", label: "Offer Qty" },
-    { key: "qtyAllotted", label: "Allotted (MT)" },
-    { key: "bidPrice", label: "Bid ₹/MT" },
-    { key: "notifiedPrice", label: "Notified ₹/MT" },
-    { key: "premium", label: "Premium" },
-    { key: "balanceQty", label: "Balance Qty" }
+    { key: "offerQty", label: "Offer Quantity (MT)" },
+    { key: "qtyAllotted", label: "Quantity Allotted (MT)" },
+    { key: "notifiedPrice", label: "Notified Price of Source (Rs/MT)" },
+    { key: "premium", label: "Premium (%)" },
+    { key: "balanceQty", label: "Balance Quantity (MT)" },
+    { key: "bidId", label: "Bid ID" },
+    { key: "source", label: "Source" },
+    { key: "company", label: "Company Name" }
   ];
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   const getExportData = () => {
     return docs.flatMap(d => {
@@ -647,8 +767,8 @@ export default function SECLFormat2Page() {
                 <table className="stable">
                   <thead style={{ background: "#f9fafb" }}>
                     <tr>
-                      <th>#</th><th>Seller</th><th>Contact Person</th><th>Auction Period</th><th>Bid ID</th><th>Source</th><th>Mode</th><th>Grade</th><th>Size</th>
-                      <th>Offer Qty</th><th>Allotted</th><th>Bid ₹/MT</th><th>Notified ₹/MT</th><th>Premium</th><th>Balance Qty</th><th>Status</th><th>Preview</th><th>Action</th>
+                      <th>#</th><th>Period of Auction</th><th>Contact Person</th><th>Seller</th><th>Bid Price (Rs/MT)</th><th>Mode</th><th>Grade</th><th>Size</th><th>Offer Quantity (MT)</th><th>Quantity Allotted (MT)</th><th>Notified Price of Source (Rs/MT)</th><th>Premium (%)</th><th>Balance Quantity (MT)</th><th>Bid ID</th><th>Source</th><th>Status</th><th>Preview</th><th>Action</th>
+
                     </tr>
                   </thead>
                   <tbody>
@@ -669,22 +789,24 @@ export default function SECLFormat2Page() {
 
                       return filteredRows.map((r, i) => (
                         <tr key={i}>
-                          <td>{i + 1}</td>
-                          <td>{r.seller}</td>
-                          <td>{r._doc.contact}</td>
-                          <td>{r._doc.period}</td>
-                          <td>{r.bidId}</td>
-                          <td>{r.source}</td>
-                          <td>{r.mode}</td>
-                          <td>{r.grade}</td>
-                          <td>{r.size}</td>
-                          <td style={{ color: "var(--ember)", fontWeight: 500 }}>{r.offerQty}</td>
-                          <td style={{ color: "var(--ember)", fontWeight: 500 }}>{r.qtyAllotted}</td>
-                          <td style={{ color: "var(--ember)", fontWeight: 500 }}>{r.bidPrice}</td>
-                          <td>{r.notifiedPrice}</td>
-                          <td>{r.premium}</td>
-                          <td>{r.balanceQty}</td>
-                          <td>
+                          <td data-label="#">{i + 1}</td>
+                          <td data-label="Period of Auction">{r._doc.period}</td>
+                          <td data-label="Contact Person">{r._doc.contact}</td>
+                          <td data-label="Seller">{r.seller}</td>
+                          <td data-label="Bid Price (Rs/MT)" style={{ color: "var(--ember)", fontWeight: 500 }}>{r.bidPrice}</td>
+
+                          <td data-label="Mode">{r.mode}</td>
+                          <td data-label="Grade">{r.grade}</td>
+                          <td data-label="Size">{r.size}</td>
+                          <td data-label="Offer Quantity (MT)" style={{ color: "var(--ember)", fontWeight: 500 }}>{r.offerQty}</td>
+                          <td data-label="Quantity Allotted (MT)" style={{ color: "var(--ember)", fontWeight: 500 }}>{r.qtyAllotted}</td>
+
+                          <td data-label="Notified Price of Source (Rs/MT)">{r.notifiedPrice}</td>
+                          <td data-label="Premium (%)">{r.premium}</td>
+                          <td data-label="Balance Quantity (MT)">{r.balanceQty}</td>
+                          <td data-label="Bid ID">{r.bidId}</td>
+                          <td data-label="Source">{r.source}</td>
+                          <td data-label="Status">
                             <span style={{ 
                               padding: "4px 12px", 
                               borderRadius: "16px", 
@@ -697,7 +819,7 @@ export default function SECLFormat2Page() {
                               {r.status === "done" ? "Done" : "Pending"}
                             </span>
                           </td>
-                          <td>
+                          <td data-label="Preview">
                             {r._doc.pdfUrl ? (
                               <a
                                 href={r._doc.pdfUrl}
@@ -740,7 +862,7 @@ export default function SECLFormat2Page() {
                               <span style={{ color: "var(--muted)" }}>-</span>
                             )}
                           </td>
-                          <td>
+                          <td data-label="Action">
                             <div style={{ display: 'flex', gap: '8px' }}>
                               <button 
                                 onClick={() => handleMarkDone(r._dIdx, r._rIdx, r.dbId, r.status)} 

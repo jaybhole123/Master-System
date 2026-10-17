@@ -46,7 +46,7 @@ export const COLS = [
 // cells regardless of how text runs happen to be merged inside a cell.
 // ---------------------------------------------------------------------------
 const GMAIL_COL_EDGES = [
-  44.3, 60.2, 80.7, 100.9, 116.2, 132.9, 171.4, 195.6, 221.75, 253.5,
+  44.3, 60.2, 78.0, 98.0, 118.5, 132.9, 171.4, 195.6, 221.75, 253.5,
   271.15, 292.3, 331.2, 360.1, 382.9, 403.65, 420.35, 444.4, 465.45,
   485.9, 524.55, 543.6, 567.4
 ];
@@ -81,6 +81,9 @@ function colIndexForX(x, edges){
   return edges.length - 2;
 }
  
+// Known transport mode values — these should never be split across columns.
+const KNOWN_MODES = ['Road', 'Rail', 'ROAD', 'RAIL', 'road', 'rail'];
+
 // Splits one text item across column boundaries by estimating each
 // character's on-page x position from the item's total width. Needed
 // because the Gmail-exported table sometimes has zero space between two
@@ -90,6 +93,15 @@ function colIndexForX(x, edges){
 function splitItemAcrossColumns(item, edges){
   const len = item.str.length;
   if (len === 0) return [];
+  const trimmed = item.str.trim();
+
+  // If the entire text is a known mode keyword, assign it whole to its
+  // starting column — never split it character-by-character.
+  if (KNOWN_MODES.includes(trimmed)) {
+    const col = colIndexForX(item.x + (item.width || trimmed.length * 5) / 2, edges);
+    return [{ col, text: trimmed }];
+  }
+
   const width = item.width || (len * 5); // fallback estimate if width missing
   const charW = width / len;
   const segments = [];
@@ -142,10 +154,10 @@ export function parseMetaWinners(text){
     // FIX: source PDFs say "GST:" not "CGST:" — the old regex never matched.
     'GST': grab(/\bGST:\s*([A-Z0-9]+)/, text),
     'Auction Number': grab(/Auction Number:\s*(\d+)/, text),
-    'Date of Auction': grab(/Date of Auction:\s*([0-9A-Za-z, ]+?)Third Party Sampling/, text),
+    'Date of Auction': grab(/(?:Date\s+of\s+Auction|Period\s+of\s+Auction|Auction\s*Period|Auction\s*Date):\s*([0-9A-Za-z, :-]+?)(?=\s*(?:Third\s+Party\s+Sampling|We\s+are\s+pleased|$))/i, text),
     'Third Party Sampling': grab(/Third Party Sampling:\s*(YES|NO)/, text)
   };
-}
+} 
  
 export function parseMetaGmail(text){
   // Fields are rendered as "Label : : value" (two colon glyphs from the
@@ -162,7 +174,8 @@ export function parseMetaGmail(text){
     'City': field("City", "Country"),
     'Country': field("Country", "Pin"),
     'Pin': field("Pin", "PAN NO"),
-    'PAN': grab(/PAN NO\s*:\s*:?\s*([A-Z0-9]+)/i, text)
+    'PAN': grab(/PAN NO\s*:\s*:?\s*([A-Z0-9]+)/i, text),
+    'Auction Period': grab(/(?:Period\s+of\s+Auction|Auction\s*Period|Auction\s*Date|Date\s+of\s+Auction)\s*:?\s*:?\s*([0-9]{2}[-/][0-9]{2}[-/][0-9]{4}(?:\s+[0-9:]+(?:::| to | - )[0-9]{2}[-/][0-9]{2}[-/][0-9]{4}\s+[0-9:]+)?|[-0-9:\s/A-Za-z.]+?)(?=\s*(?:We\s+are\s+pleased|Bidder\s+Details|Dear|Allocated\s+Information|$))/i, text)
   };
 }
  
@@ -237,9 +250,14 @@ export function parseTableGmail(allItems){
  
   if(rowStarts.length === 0) return [];
  
-  // Stop each row (and the whole table) before the "[Quoted text hidden]"
-  // marker Gmail inserts right after the table in these exports.
-  const endY = findBoundaryY(allItems, it => it.str.includes('[Quoted'));
+  // Stop each row (and the whole table) before footer disclaimer text or Gmail quote
+  const endY = findBoundaryY(allItems, it => 
+    it.str.includes('[Quoted') || 
+    it.str.includes('*Final Bid') || 
+    it.str.includes('Final Bid price is Exclusive') ||
+    it.str.includes('Determination of coal') ||
+    it.str.includes('PAYMENT TERMS')
+  );
  
   const rows = [];
   for(let i=0; i<rowStarts.length; i++){
@@ -266,9 +284,115 @@ export function parseTableGmail(allItems){
       if (label === 'Seller' && isSubsidiaryCode(val)) val = val.trim().split(/\s+/)[0] || val;
       rowObj[label] = val;
     });
+
+    // --- Post-processing: fix Mode / Grade / Size misalignment ---
+    // Sometimes "Road" or "Rail" (or part of it) ends up in the Grade or Size
+    // column instead of Mode, because the PDF text run straddled the column
+    // boundary. Detect and relocate.
+    const modeVal = (rowObj['Mode'] || '').trim();
+    const gradeVal = (rowObj['Grade'] || '').trim();
+    const sizeVal = (rowObj['Size'] || '').trim();
+
+    // If Mode is empty but Grade starts with a mode keyword, split it out
+    const modeRegex = /^(Road|Rail)\s*/i;
+    if (!modeVal || modeVal === '—') {
+      const gradeMatch = gradeVal.match(modeRegex);
+      if (gradeMatch) {
+        rowObj['Mode'] = gradeMatch[1];
+        rowObj['Grade'] = gradeVal.slice(gradeMatch[0].length).trim() || '—';
+      } else {
+        // Check if mode keyword ended up in Size column
+        const sizeMatch = sizeVal.match(modeRegex);
+        if (sizeMatch) {
+          rowObj['Mode'] = sizeMatch[1];
+          rowObj['Size'] = sizeVal.slice(sizeMatch[0].length).trim() || '—';
+        }
+      }
+    }
+
+    // If Mode has extra text that belongs to Grade (e.g. "RoadG14")
+    const modeClean = (rowObj['Mode'] || '').trim();
+    const modeExtract = modeClean.match(/^(Road|Rail)(.+)$/i);
+    if (modeExtract && modeExtract[2]) {
+      rowObj['Mode'] = modeExtract[1];
+      // Prepend overflow to Grade
+      rowObj['Grade'] = (modeExtract[2] + ' ' + (rowObj['Grade'] || '')).trim();
+    }
+
+    // If Grade has text that belongs to Size (e.g. "G14Sized Rom")
+    // Grade values are typically short codes like G1-G17, so if Grade
+    // contains "Sized" or "ROM" or "mm", that part belongs to Size.
+    const gradeFixed = (rowObj['Grade'] || '').trim();
+    const sizeInGrade = gradeFixed.match(/^([A-Za-z0-9]+?)\s*(Sized.*|ROM.*|\(-?\d+.*mm.*)/i);
+    if (sizeInGrade) {
+      rowObj['Grade'] = sizeInGrade[1];
+      rowObj['Size'] = ((sizeInGrade[2] || '') + ' ' + (rowObj['Size'] || '')).trim();
+    }
+
+    // Clean up Size: if it starts with "ad" or "oad" or "ail" (remnant of Road/Rail split)
+    const sizeFixed = (rowObj['Size'] || '').trim();
+    const remnantMatch = sizeFixed.match(/^(oad|ail|ad|il|d|l)\s+(.*)/i);
+    if (remnantMatch) {
+      rowObj['Size'] = remnantMatch[2].trim() || '—';
+      // Try to reconstruct the mode if it was partially captured
+      const partialMode = (rowObj['Mode'] || '').trim();
+      if (partialMode && !partialMode.match(/^(Road|Rail)$/i)) {
+        // Try combining
+        const combined = partialMode + remnantMatch[1];
+        if (combined.match(/^(Road|Rail)$/i)) {
+          rowObj['Mode'] = combined;
+        }
+      }
+    }
+
+    // --- Post-processing: fix Bid ID & Source Name mixing ---
+    // A Bid ID is strictly numeric or numeric followed by a letter (e.g. "99063M", "98408M").
+    // If the Bid ID cell contains extra trailing letters (like "98408M K", "99063M A", "98409M P"),
+    // that trailing letter actually belongs to the start of Source Name (e.g., "K" + "hairahBurhar" -> "KhairahBurhar").
+    let bidIdVal = (rowObj['Unique Bid Id'] || '').trim();
+    let sourceVal = (rowObj['Source Name'] || '').trim();
+
+    const bidIdOverflow = bidIdVal.match(/^(\d+[A-Za-z]?)\s+([A-Za-z]+)$/);
+    if (bidIdOverflow) {
+      rowObj['Unique Bid Id'] = bidIdOverflow[1];
+      const overflowLetter = bidIdOverflow[2];
+      // Attach overflow letter to source if not already present
+      if (!sourceVal.startsWith(overflowLetter)) {
+        // If sourceVal starts with lowercase or continuation, attach directly or with space
+        if (sourceVal && /^[a-z]/.test(sourceVal)) {
+          rowObj['Source Name'] = overflowLetter + sourceVal;
+        } else {
+          rowObj['Source Name'] = (overflowLetter + ' ' + sourceVal).trim();
+        }
+      }
+    } else {
+      // If Bid ID ends with uppercase letters beyond normal pattern, e.g. "99063MAmera"
+      const bidIdDirectJoin = bidIdVal.match(/^(\d{4,8}[A-Za-z])([A-Za-z].*)$/);
+      if (bidIdDirectJoin) {
+        rowObj['Unique Bid Id'] = bidIdDirectJoin[1];
+        const overflowText = bidIdDirectJoin[2];
+        if (!sourceVal.startsWith(overflowText)) {
+          rowObj['Source Name'] = (overflowText + ' ' + sourceVal).trim();
+        }
+      }
+    }
+
     rows.push(rowObj);
   }
-  return rows;
+
+  // Filter out any rows that don't look like actual table data rows
+  return rows.filter(r => {
+    const seller = (r['Seller'] || '').trim();
+    if (!seller || !isSubsidiaryCode(seller)) return false;
+    // Must have at least a mode or grade or bidPrice or source or offerQty
+    const hasData = r['Source Name'] || r['Mode'] || r['Grade'] || r['Offer Quantity (MT)'] || r['Quantity Allotted (MT)'] || r['Bid Price (Rs/MT)'];
+    // Filter out rows that captured footer formula text
+    const textAll = Object.values(r).join(' ');
+    if (textAll.includes('Final Bid price') || textAll.includes('Exclusive of') || textAll.includes('clause 5.2') || textAll.includes('Clause 5.2') || textAll.includes('PAYMENT TERMS')) {
+      return false;
+    }
+    return Boolean(hasData);
+  });
 }
  
 export async function extractSECLData(file) {

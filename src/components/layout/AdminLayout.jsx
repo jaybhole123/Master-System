@@ -1429,9 +1429,17 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
     },
     {
       href: "/document-vault",
-      label: "Document valute",
+      label: "Individual Documents",
       icon: ShieldCheck,
       active: location.pathname === "/document-vault",
+      showFor: ["admin", "user", "HOD"],
+      module: "Document Vault",
+    },
+    {
+      href: "/document-vault/company",
+      label: "Firm & Company Documents",
+      icon: Building2,
+      active: location.pathname === "/document-vault/company",
       showFor: ["admin", "user", "HOD"],
       module: "Document Vault",
     },

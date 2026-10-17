@@ -7,6 +7,7 @@ import DocDialog from "../components/DocDialog";
 import RenewDialog from "../components/RenewDialog";
 import ConfirmDialog from "../components/ConfirmDialog";
 import PreviewDialog from "../components/PreviewDialog";
+import { Eye, Plus, Edit2, Trash2, Phone, Mail, MapPin } from "lucide-react";
 import { CLIENT_TYPES, CLIENT_TYPE_OPTIONS } from "../utils/constants";
 import { ini, worst, status, isoShort } from "../utils/helpers";
 
@@ -28,35 +29,55 @@ export default function DocumentVaultApp() {
   const [previewDlg, setPreviewDlg] = useState(false);
   const [previewDoc, setPreviewDoc] = useState(null);
   const [confirmDlg, setConfirmDlg] = useState(null);
+  const [showDocsTable, setShowDocsTable] = useState(false);
 
   const restoreRef = useRef(null);
+
+  // Only Individual persons
+  const individualClients = useMemo(() => {
+    return clients.filter((c) => !c.ctype || c.ctype === "Individual");
+  }, [clients]);
 
   // Filtered client list
   const filteredClients = useMemo(() => {
     const k = q.trim().toLowerCase();
-    return clients
+    return individualClients
       .filter((c) => {
-        if (ctf !== "All" && (c.ctype || "Individual") !== ctf) return false;
         if (!k) return true;
         return [c.name, c.phone, c.email, ...Object.values(c.fields || {})].some((v) => (v || "").toLowerCase().includes(k))
           || docs.some((d) => d.cid === c.id && [d.num, d.type, ...Object.values(d.fields || {})].some((v) => (v || "").toLowerCase().includes(k)));
       })
       .sort((a, b) => a.name.localeCompare(b.name));
-  }, [clients, docs, q, ctf]);
+  }, [individualClients, docs, q]);
 
-  const curClient = clients.find((x) => x.id === sel);
-  const curDocs = useMemo(() => docs.filter((d) => d.cid === sel).sort((a, b) => a.type.localeCompare(b.type)), [docs, sel]);
+  // Current selected individual person
+  const curClient = useMemo(() => {
+    if (!individualClients.length) return null;
+    const found = individualClients.find((x) => x.id === sel);
+    return found || individualClients[0];
+  }, [individualClients, sel]);
+
+  const curDocs = useMemo(() => {
+    if (!curClient) return [];
+    return docs.filter((d) => d.cid === curClient.id).sort((a, b) => a.type.localeCompare(b.type));
+  }, [docs, curClient]);
+
   const docTypes = useMemo(() => [...new Set(curDocs.map((d) => d.type))], [curDocs]);
   const activeFilt = filt !== "All" && !docTypes.includes(filt) ? "All" : filt;
   const shownDocs = activeFilt === "All" ? curDocs : curDocs.filter((d) => d.type === activeFilt);
 
-  // Stats
-  const statuses = useMemo(() => docs.map(status), [docs]);
+  // Stats for Individual Vault
+  const individualDocs = useMemo(() => {
+    const indIds = new Set(individualClients.map((c) => c.id));
+    return docs.filter((d) => indIds.has(d.cid));
+  }, [individualClients, docs]);
+
+  const statuses = useMemo(() => individualDocs.map(status), [individualDocs]);
   const warnCount = statuses.filter((x) => x.k === "warn").length;
   const badCount = statuses.filter((x) => x.k === "bad").length;
 
   // Handlers
-  const openAddClient = () => { setEditClient(null); setClientDlg(true); };
+  const openAddClient = () => { setEditClient({ ctype: "Individual" }); setClientDlg(true); };
   const openEditClient = () => { setEditClient(curClient); setClientDlg(true); };
   const openAddDoc = () => { setEditDoc(null); setDocDlg(true); };
   const openEditDoc = (d) => { setEditDoc(d); setDocDlg(true); };
@@ -95,11 +116,11 @@ export default function DocumentVaultApp() {
     <div className="dv-tiles">
       <div className="dv-tile">
         <span className="dv-ti"><Icon name="us" size={20} /></span>
-        <span><b>{clients.length}</b><small>Persons</small></span>
+        <span><b>{individualClients.length}</b><small>Persons</small></span>
       </div>
       <div className="dv-tile">
         <span className="dv-ti"><Icon name="fl" size={20} /></span>
-        <span><b>{docs.length}</b><small>Documents</small></span>
+        <span><b>{individualDocs.length}</b><small>Documents</small></span>
       </div>
       <button className={`dv-tile warn${view === "warn" ? " on" : ""}`} onClick={() => dispatch({ type: "SET_VIEW", view: view === "warn" ? "client" : "warn" })}>
         <span className="dv-ti"><Icon name="ck" size={20} /></span>
@@ -113,7 +134,7 @@ export default function DocumentVaultApp() {
   );
 
   const renderAlertView = () => {
-    const list = docs.filter((d) => status(d).k === view).sort((a, b) => (a.expiry || "").localeCompare(b.expiry || ""));
+    const list = individualDocs.filter((d) => status(d).k === view).sort((a, b) => (a.expiry || "").localeCompare(b.expiry || ""));
     const isBad = view === "bad";
     return (
       <div className="dv-client-view-container">
@@ -189,114 +210,263 @@ export default function DocumentVaultApp() {
 
     return (
       <div className="dv-client-view-container">
-        {/* Modern Client Info Card */}
-        <div className="dv-client-hero-card">
-          {/* Top Row: Avatar + Name/Badges + Action Buttons */}
-          <div className="dv-hero-top-row">
-            <div className="dv-hero-profile-group">
-              <div className="dv-client-hero-avatar">
+        {/* Modern Person Info Card - Matches Company Vault Style */}
+        <div 
+          className="dv-client-hero-card" 
+          style={{ 
+            background: "linear-gradient(135deg, #ffffff 0%, #fafafa 100%)",
+            border: "1px solid #e2e8f0",
+            borderLeft: "4px solid #dc2626",
+            borderRadius: 16,
+            padding: "20px 24px",
+            minHeight: 88,
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            boxShadow: "0 2px 10px -2px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04)",
+            gap: 16
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "nowrap" }}>
+            {/* Left: Avatar + Person Name + Badges + Contact info in clean inline pill design */}
+            <div style={{ display: "flex", alignItems: "center", gap: 16, minWidth: 0, flex: 1 }}>
+              {/* Distinctive Gradient Avatar */}
+              <div 
+                style={{ 
+                  width: 50, 
+                  height: 50, 
+                  minWidth: 50, 
+                  borderRadius: 14, 
+                  fontSize: 18, 
+                  fontWeight: 800,
+                  background: "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)", 
+                  color: "#ffffff", 
+                  display: "grid",
+                  placeItems: "center",
+                  boxShadow: "0 3px 10px rgba(220, 38, 38, 0.28)"
+                }}
+              >
                 {ini(curClient.name)}
               </div>
-              <div className="dv-client-main-heading">
-                <div className="dv-client-title-row">
-                  <h2 className="dv-client-name">{curClient.name}</h2>
-                  <span className="dv-type-tag">
-                    {curClient.ctype === "Plant" ? "Plant / Unit" : curClient.ctype || "Individual"}
-                  </span>
-                  <span className="dv-doc-count-badge">
-                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#16a34a", display: "inline-block" }}></span>
-                    {curDocs.length} Document{curDocs.length === 1 ? "" : "s"}
-                  </span>
-                </div>
-                
-                {/* Contact Items Line */}
-                <div className="dv-client-contact-row">
-                  {curClient.phone && (
-                    <span className="dv-contact-item" title="Mobile Number">
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                      {curClient.phone}
-                    </span>
-                  )}
-                  {curClient.email && (
-                    <span className="dv-contact-item" title="Email Address">
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-                      {curClient.email}
-                    </span>
-                  )}
-                  {curClient.addr && (
-                    <span className="dv-contact-item" title="Address / Location">
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-                      {curClient.addr}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
 
-            {/* Action Buttons */}
-            <div className="dv-hero-actions">
-              <button className="dv-btn pri" onClick={openAddDoc}>
-                <span style={{ fontSize: 16, lineHeight: 1 }}>+</span> Add Document
-              </button>
-              <button className="dv-btn" onClick={openEditClient}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
-                Edit Details
-              </button>
-              <button className="dv-btn dng" onClick={handleDeleteClient}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>
-                Delete
-              </button>
-            </div>
-          </div>
+              {/* Primary Details Row */}
+              <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", minWidth: 0 }}>
+                <h2 style={{ fontSize: 18, fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: "-0.01em", whiteSpace: "nowrap" }}>
+                  {curClient.name}
+                </h2>
 
-          {/* Bottom Row: Metadata Badges (GSTIN, PAN, Firm Type, etc.) */}
-          {infoFields.length > 0 && (
-            <div className="dv-custom-tags-wrap">
-              {infoFields.map((x) => (
-                <span className="dv-custom-tag" key={x.k}>
-                  <span className="dv-tag-label">{x.l}:</span>
-                  <strong className="dv-tag-val">{isoShort(v[x.k])}</strong>
+                <span style={{ 
+                  background: "#fef2f2", 
+                  color: "#dc2626", 
+                  border: "1px solid #fecaca", 
+                  padding: "4px 12px", 
+                  borderRadius: 7, 
+                  fontSize: 12,
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.03em"
+                }}>
+                  {curClient.ctype || "Individual"}
                 </span>
-              ))}
-            </div>
-          )}
-        </div>
 
-        {/* Filter Chips if multiple document types */}
-        {docTypes.length > 1 && (
-          <div className="dv-category-bar">
-            <span className="dv-category-title">Document Categories:</span>
-            <div className="dv-chips">
-              {["All", ...docTypes].map((t) => (
-                <button key={t} className={`dv-chip${t === activeFilt ? " on" : ""}`}
-                  onClick={() => dispatch({ type: "SET_FILT", filt: t })}>
-                  {t} ({t === "All" ? curDocs.length : curDocs.filter((d) => d.type === t).length})
-                </button>
-              ))}
+                <span style={{ 
+                  background: "#f0fdf4", 
+                  color: "#15803d", 
+                  border: "1px solid #bbf7d0", 
+                  padding: "4px 12px", 
+                  borderRadius: 7, 
+                  fontSize: 12,
+                  fontWeight: 700,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6
+                }}>
+                  <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#22c55e", display: "inline-block" }}></span>
+                  {curDocs.length} Document{curDocs.length === 1 ? "" : "s"}
+                </span>
+
+                {/* Clean Contact Indicators */}
+                {curClient.phone && (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, color: "#64748b", background: "#f8fafc", padding: "4px 12px", borderRadius: 7, border: "1px solid #f1f5f9" }}>
+                    <Phone size={13} style={{ color: "#94a3b8" }} /> {curClient.phone}
+                  </span>
+                )}
+                {curClient.email && (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, color: "#64748b", background: "#f8fafc", padding: "4px 12px", borderRadius: 7, border: "1px solid #f1f5f9" }}>
+                    <Mail size={13} style={{ color: "#94a3b8" }} /> {curClient.email}
+                  </span>
+                )}
+                {curClient.addr && (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, color: "#64748b", background: "#f8fafc", padding: "4px 12px", borderRadius: 7, border: "1px solid #f1f5f9" }}>
+                    <MapPin size={13} style={{ color: "#94a3b8" }} /> {curClient.addr}
+                  </span>
+                )}
+
+                {/* Metadata tags (e.g. Aadhaar, PAN) */}
+                {infoFields.map((x) => (
+                  <span key={x.k} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#eff6ff", border: "1px solid #dbeafe", padding: "4px 12px", borderRadius: 7, fontSize: 12.5 }}>
+                    <span style={{ color: "#3b82f6", fontWeight: 700, fontSize: 11.5 }}>{x.l}:</span>
+                    <strong style={{ color: "#1e3a8a", fontFamily: "monospace", letterSpacing: "0.02em" }}>{isoShort(v[x.k])}</strong>
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Right: Clean Icon Action Group */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+              <button 
+                onClick={() => setShowDocsTable(!showDocsTable)}
+                title={showDocsTable ? "Hide Attached Documents" : `View Attached Documents (${curDocs.length})`}
+                style={{ 
+                  position: "relative", 
+                  width: 40, 
+                  height: 40, 
+                  borderRadius: 11,
+                  border: showDocsTable ? "1px solid #dc2626" : "1px solid #fecaca",
+                  background: showDocsTable ? "#b91c1c" : "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+                  color: "#ffffff",
+                  cursor: "pointer",
+                  display: "grid",
+                  placeItems: "center",
+                  transition: "all .15s ease",
+                  boxShadow: "0 2px 5px rgba(220, 38, 38, 0.22)"
+                }}
+              >
+                <Eye size={18} />
+                {curDocs.length > 0 && (
+                  <span style={{
+                    position: "absolute",
+                    top: -5,
+                    right: -5,
+                    background: "#0f172a",
+                    color: "#fff",
+                    fontSize: 10,
+                    fontWeight: 800,
+                    padding: "1px 5px",
+                    borderRadius: 99,
+                    border: "1.5px solid #fff",
+                    lineHeight: "14px"
+                  }}>
+                    {curDocs.length}
+                  </span>
+                )}
+              </button>
+
+              <button 
+                onClick={openAddDoc}
+                title="Add / Upload New Document"
+                style={{ 
+                  width: 40, 
+                  height: 40, 
+                  borderRadius: 11,
+                  border: "1px solid #fecaca",
+                  background: "#fef2f2",
+                  color: "#dc2626",
+                  cursor: "pointer",
+                  display: "grid",
+                  placeItems: "center",
+                  transition: "all .15s ease"
+                }}
+              >
+                <Plus size={20} />
+              </button>
+
+              <button 
+                onClick={openEditClient}
+                title="Edit Person Details"
+                style={{ 
+                  width: 40, 
+                  height: 40, 
+                  borderRadius: 11,
+                  border: "1px solid #e2e8f0",
+                  background: "#ffffff",
+                  color: "#475569",
+                  cursor: "pointer",
+                  display: "grid",
+                  placeItems: "center",
+                  transition: "all .15s ease"
+                }}
+              >
+                <Edit2 size={16} />
+              </button>
+
+              <button 
+                onClick={handleDeleteClient}
+                title="Delete Person"
+                style={{ 
+                  width: 40, 
+                  height: 40, 
+                  borderRadius: 11,
+                  border: "1px solid #fee2e2",
+                  background: "#ffffff",
+                  color: "#ef4444",
+                  cursor: "pointer",
+                  display: "grid",
+                  placeItems: "center",
+                  transition: "all .15s ease"
+                }}
+              >
+                <Trash2 size={16} />
+              </button>
             </div>
           </div>
-        )}
 
-        {/* Documents Table or Empty State */}
-        <div className="dv-docs">
-          {shownDocs.length > 0 ? (
-            <>
-              <DocTableHeader />
-              {shownDocs.map((d, idx) => (
-                <DocRow key={d.id} doc={d} index={idx} clients={clients}
-                  onView={openPreview} onEdit={openEditDoc} onRenew={openRenew} onDelete={handleDeleteDoc} />
-              ))}
-            </>
-          ) : (
-            <div className="dv-empty-pro">
-              <div className="dv-empty-icon-box">
-                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+          {/* Stored Documents Table directly under this Person card on clicking View Documents */}
+          {showDocsTable && (
+            <div style={{ marginTop: 20, paddingTop: 18, borderTop: "1px dashed #e2e8f0" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <div>
+                  <h3 style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", margin: 0 }}>
+                    All Stored Documents for {curClient.name} ({curDocs.length})
+                  </h3>
+                  <p style={{ margin: "2px 0 0", fontSize: 12.5, color: "#64748b" }}>
+                    Driving license, Aadhaar, PAN, RC book, bank passbook, and individual personal records
+                  </p>
+                </div>
+                <button 
+                  className="dv-btn pri" 
+                  onClick={openAddDoc}
+                  style={{ fontSize: 13, padding: "6px 14px", display: "inline-flex", alignItems: "center", gap: 6 }}
+                >
+                  <Plus size={15} /> Upload Document
+                </button>
               </div>
-              <h3>No documents attached for this person</h3>
-              <p>Add vehicle insurance, pollution certificates, GST papers, PAN card or licenses to track renewals automatically.</p>
-              <button className="dv-btn pri" onClick={openAddDoc} style={{ marginTop: 14 }}>
-                + Upload First Document
-              </button>
+
+              {/* Filter Chips if multiple document types */}
+              {docTypes.length > 1 && (
+                <div className="dv-category-bar" style={{ marginBottom: 12 }}>
+                  <span className="dv-category-title">Categories:</span>
+                  <div className="dv-chips">
+                    {["All", ...docTypes].map((t) => (
+                      <button key={t} className={`dv-chip${t === activeFilt ? " on" : ""}`}
+                        onClick={() => dispatch({ type: "SET_FILT", filt: t })}>
+                        {t} ({t === "All" ? curDocs.length : curDocs.filter((d) => d.type === t).length})
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Table or Empty State */}
+              <div className="dv-docs" style={{ border: "1px solid var(--dv-line)", borderRadius: 12, overflow: "hidden" }}>
+                {shownDocs.length > 0 ? (
+                  <>
+                    <DocTableHeader />
+                    {shownDocs.map((d, idx) => (
+                      <DocRow key={d.id} doc={d} index={idx} clients={clients}
+                        onView={openPreview} onEdit={openEditDoc} onRenew={openRenew} onDelete={handleDeleteDoc} />
+                    ))}
+                  </>
+                ) : (
+                  <div className="dv-empty-pro" style={{ padding: 24 }}>
+                    <div className="dv-empty-icon-box">
+                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+                    </div>
+                    <h3>No documents attached for this person</h3>
+                    <p>Upload DL, Aadhaar, PAN card, or personal files.</p>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -311,10 +481,34 @@ export default function DocumentVaultApp() {
         <div className="dv-brand">
           <span className="dv-logo"><Icon name="shield" size={20} /></span>
           <div>
-            <h1>Document Vault</h1>
-            <small>Legal, identity & vehicle document renewals repository</small>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <h1>Individual / Personal Document Vault</h1>
+              <span className="dv-type-tag" style={{ background: "#fef2f2", color: "#dc2626", borderColor: "#fecaca" }}>
+                Individual Docs
+              </span>
+            </div>
+            <small>Personal identity, DL, Aadhaar, PAN, voter card, vehicle RC, property and insurance repository</small>
           </div>
         </div>
+
+        <a 
+          href="/document-vault/company" 
+          className="dv-btn"
+          style={{ 
+            background: "#eff6ff", 
+            color: "#1d4ed8", 
+            borderColor: "#bfdbfe", 
+            textDecoration: "none", 
+            display: "inline-flex", 
+            alignItems: "center", 
+            gap: 6,
+            fontWeight: 600,
+            fontSize: 13,
+            padding: "8px 14px"
+          }}
+        >
+          Firm & Company Vault →
+        </a>
       </header>
 
       {/* Warning bar */}
@@ -345,25 +539,11 @@ export default function DocumentVaultApp() {
               )}
             </div>
 
-            {/* Client Type Dropdown */}
-            <div className="dv-select-wrap">
-              <select
-                className="dv-filter-select"
-                value={ctf}
-                onChange={(e) => dispatch({ type: "SET_CTF", ctf: e.target.value })}
-              >
-                <option value="All">All Entities / Types</option>
-                {CLIENT_TYPE_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </select>
-            </div>
-
             {/* Persons Dropdown */}
             <div className="dv-select-wrap">
               <select
                 className="dv-filter-select"
-                value={view === "client" && sel ? sel : ""}
+                value={view === "client" && curClient ? curClient.id : ""}
                 onChange={(e) => {
                   const val = e.target.value;
                   if (val) {
@@ -401,8 +581,8 @@ export default function DocumentVaultApp() {
       <div className={`dv-toast${toast ? " show" : ""}`} role="status">{toast}</div>
 
       {/* Dialogs */}
-      <ClientDialog open={clientDlg} onClose={() => setClientDlg(false)} onSave={saveClient} client={editClient} />
-      <DocDialog open={docDlg} onClose={() => setDocDlg(false)} onSave={saveDoc} doc={editDoc} clientId={sel} />
+      <ClientDialog open={clientDlg} onClose={() => setClientDlg(false)} onSave={saveClient} client={editClient} defaultType="Individual" allowedTypes={["Individual"]} />
+      <DocDialog open={docDlg} onClose={() => setDocDlg(false)} onSave={saveDoc} doc={editDoc} clientId={curClient?.id} defaultCategory="Personal" />
       <RenewDialog open={renewDlg} onClose={() => setRenewDlg(false)} onSave={saveDoc} doc={renewDoc} />
       <PreviewDialog open={previewDlg} onClose={() => setPreviewDlg(false)} doc={previewDoc} />
       <ConfirmDialog open={!!confirmDlg} onClose={() => setConfirmDlg(null)}

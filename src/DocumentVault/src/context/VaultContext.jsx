@@ -10,6 +10,8 @@ function reducer(state, action) {
       return { ...state, clients: action.clients, docs: action.docs, loaded: true };
     case "SET_SEL":
       return { ...state, sel: action.id, view: "client", filt: "All" };
+    case "SET_SEL_COMPANY":
+      return { ...state, selCompany: action.id };
     case "SET_VIEW":
       return { ...state, view: action.view };
     case "SET_FILT":
@@ -22,10 +24,22 @@ function reducer(state, action) {
       const i = state.clients.findIndex((x) => x.id === action.client.id);
       const clients = [...state.clients];
       if (i > -1) clients[i] = action.client; else clients.push(action.client);
-      return { ...state, clients, sel: action.client.id };
+      const isFirm = action.client.ctype === "Firm" || action.client.ctype === "Company" || action.client.ctype === "Plant";
+      return { 
+        ...state, 
+        clients, 
+        sel: isFirm ? state.sel : action.client.id,
+        selCompany: isFirm ? action.client.id : state.selCompany 
+      };
     }
     case "DEL_CLIENT": {
-      return { ...state, clients: state.clients.filter((x) => x.id !== action.id), docs: state.docs.filter((d) => d.cid !== action.id), sel: null };
+      return { 
+        ...state, 
+        clients: state.clients.filter((x) => x.id !== action.id), 
+        docs: state.docs.filter((d) => d.cid !== action.id), 
+        sel: state.sel === action.id ? null : state.sel,
+        selCompany: state.selCompany === action.id ? null : state.selCompany
+      };
     }
     case "UPSERT_DOC": {
       const i = state.docs.findIndex((x) => x.id === action.doc.id);
@@ -49,7 +63,7 @@ function reducer(state, action) {
   }
 }
 
-const initial = { clients: [], docs: [], sel: null, view: "client", filt: "All", q: "", ctf: "All", loaded: false };
+const initial = { clients: [], docs: [], sel: null, selCompany: null, view: "client", filt: "All", q: "", ctf: "All", loaded: false };
 
 export function VaultProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initial);
@@ -61,8 +75,14 @@ export function VaultProvider({ children }) {
       dispatch({ type: "INIT", clients, docs });
       if (w) setWarning(w);
       if (clients.length) {
-        const sorted = [...clients].sort((a, b) => a.name.localeCompare(b.name));
-        dispatch({ type: "SET_SEL", id: sorted[0].id });
+        const indClients = clients.filter((c) => !c.ctype || c.ctype === "Individual").sort((a, b) => a.name.localeCompare(b.name));
+        const firmClients = clients.filter((c) => c.ctype === "Firm" || c.ctype === "Company" || c.ctype === "Plant").sort((a, b) => a.name.localeCompare(b.name));
+        if (indClients.length) {
+          dispatch({ type: "SET_SEL", id: indClients[0].id });
+        }
+        if (firmClients.length) {
+          dispatch({ type: "SET_SEL_COMPANY", id: firmClients[0].id });
+        }
       }
     });
   }, []);

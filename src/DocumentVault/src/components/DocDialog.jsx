@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
 import Modal from "./Modal";
-import { TYPES, PERSONAL, MAX_FILE_SIZE } from "../utils/constants";
+import { TYPES, PERSONAL, COMPANY_DOC_TYPES, COMPANY_CHECKLIST_SECTIONS, MAX_FILE_SIZE } from "../utils/constants";
 
-export default function DocDialog({ open, onClose, onSave, doc, clientId }) {
-  const [type, setType] = useState(PERSONAL[0]);
+export default function DocDialog({ open, onClose, onSave, doc, clientId, defaultCategory = "Individual" }) {
+  const isFirmDefault = defaultCategory === "Firm" || defaultCategory === "Company" || defaultCategory === "Plant";
+  const [docCategory, setDocCategory] = useState(isFirmDefault ? "Company" : "Personal");
+  const [type, setType] = useState(isFirmDefault ? COMPANY_DOC_TYPES[0] : PERSONAL[0]);
   const [num, setNum] = useState("");
   const [issue, setIssue] = useState("");
   const [expiry, setExpiry] = useState("");
@@ -13,7 +15,10 @@ export default function DocDialog({ open, onClose, onSave, doc, clientId }) {
 
   useEffect(() => {
     if (open) {
-      setType(doc?.type || PERSONAL[0]);
+      const isCompanyDoc = doc?.category === "Company" || COMPANY_DOC_TYPES.includes(doc?.type);
+      const cat = doc?.category || (isCompanyDoc ? "Company" : (isFirmDefault ? "Company" : "Personal"));
+      setDocCategory(cat);
+      setType(doc?.type || (cat === "Company" ? COMPANY_DOC_TYPES[0] : PERSONAL[0]));
       setNum(doc?.num || "");
       setIssue(doc?.issue || "");
       setExpiry(doc?.expiry || "");
@@ -21,7 +26,7 @@ export default function DocDialog({ open, onClose, onSave, doc, clientId }) {
       setFile(null);
       setFields(doc?.fields || {});
     }
-  }, [open, doc]);
+  }, [open, doc, isFirmDefault]);
 
   const typeConf = TYPES[type] || TYPES.Other;
   const handleFieldChange = (k, v) => setFields((prev) => ({ ...prev, [k]: v }));
@@ -63,6 +68,7 @@ export default function DocDialog({ open, onClose, onSave, doc, clientId }) {
       cid: doc?.cid || clientId,
       history: doc?.history || [],
       type, num: n,
+      category: docCategory,
       issue: finalIssue,
       expiry: finalExpiry,
       note: note.trim(),
@@ -76,10 +82,49 @@ export default function DocDialog({ open, onClose, onSave, doc, clientId }) {
   return (
     <Modal open={open} onClose={onClose} className="wide">
       <h3>{doc ? "Edit document" : "Add document"}</h3>
+
+      {/* Scope / Category Toggle */}
+      <div style={{ marginBottom: 14, display: "flex", gap: 8, alignItems: "center" }}>
+        <button
+          type="button"
+          onClick={() => {
+            setDocCategory("Personal");
+            if (COMPANY_DOC_TYPES.includes(type)) setType(PERSONAL[0]);
+          }}
+          className={`dv-btn ${docCategory === "Personal" ? "pri" : ""}`}
+          style={{ padding: "6px 14px", fontSize: 13 }}
+        >
+          Personal / Individual Doc
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setDocCategory("Company");
+            if (PERSONAL.includes(type)) setType(COMPANY_DOC_TYPES[0]);
+          }}
+          className={`dv-btn ${docCategory === "Company" ? "pri" : ""}`}
+          style={{ padding: "6px 14px", fontSize: 13 }}
+        >
+          Company / Firm Checklist Doc
+        </button>
+      </div>
+
       <label className="dv-label">Document type *</label>
       <select className="dv-select" value={type} onChange={(e) => handleTypeChange(e.target.value)}>
-        {PERSONAL.map((t) => <option key={t}>{t}</option>)}
-        {doc && !PERSONAL.includes(doc.type) && <option>{doc.type}</option>}
+        {docCategory === "Company" ? (
+          COMPANY_CHECKLIST_SECTIONS.map((sec) => (
+            <optgroup key={sec.code} label={`${sec.code}. ${sec.title}`}>
+              {sec.items.map((item) => (
+                <option key={item} value={item}>{item}</option>
+              ))}
+            </optgroup>
+          ))
+        ) : (
+          PERSONAL.map((t) => <option key={t} value={t}>{t}</option>)
+        )}
+        {doc && !PERSONAL.includes(doc.type) && !COMPANY_DOC_TYPES.includes(doc.type) && (
+          <option value={doc.type}>{doc.type}</option>
+        )}
       </select>
 
       <label className="dv-label">{typeConf.n}</label>

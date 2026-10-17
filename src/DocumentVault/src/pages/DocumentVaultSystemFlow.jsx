@@ -4,7 +4,7 @@ import {
   Shield, Users, FileText, Clock, AlertTriangle,
   ArrowRight, ArrowDown, CheckCircle2, Sparkles,
   Database, RefreshCw,
-  FileCheck2, Layers
+  FileCheck2, Layers, Building2
 } from "lucide-react";
 
 export default function DocumentVaultSystemFlow() {
@@ -47,6 +47,18 @@ export default function DocumentVaultSystemFlow() {
       description: "Track document expiry, get alerts for renewals due in 30 days, and maintain renewal history",
       features: ["Auto expiry status computation", "30-day renewal warning", "Full renewal history log", "Old file & details preserved"],
       route: "/document-vault"
+    },
+    {
+      id: "company-vault",
+      title: "Firm & Company Checklist Vault",
+      icon: Building2,
+      color: "from-blue-600 to-indigo-700",
+      bgColor: "bg-blue-50",
+      borderColor: "border-blue-200",
+      textColor: "text-blue-800",
+      description: "Complete corporate checklist (Sections A–E) for company registration, MCA, bank records, tax & audit papers",
+      features: ["5 Checklist Sections (A–E)", "25+ Corporate Document Types", "Checklist progress tracking (%)", "Firm, Company & Plant support"],
+      route: "/document-vault/company"
     },
     {
       id: "vault-core",

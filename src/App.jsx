@@ -86,6 +86,7 @@ import ChallanSystem from "./TransportSystem/src/pages/ChallanSystem"
 import "./DocumentVault/src/index.css"
 import DocumentVaultSystemFlow from "./DocumentVault/src/pages/DocumentVaultSystemFlow"
 import DocumentVaultApp from "./DocumentVault/src/pages/DocumentVaultApp"
+import CompanyVaultPage from "./DocumentVault/src/pages/CompanyVaultPage"
 import { VaultProvider } from "./DocumentVault/src/context/VaultContext"
 
 // --- Data & Delegation Imports ---
@@ -637,6 +638,7 @@ function App() {
                     {/* --- Document Vault System Routes --- */}
                     <Route path="/document-vault/system-flow" element={<DocumentVaultWrapper><DocumentVaultSystemFlow /></DocumentVaultWrapper>} />
                     <Route path="/document-vault" element={<DocumentVaultWrapper><DocumentVaultApp /></DocumentVaultWrapper>} />
+                    <Route path="/document-vault/company" element={<DocumentVaultWrapper><CompanyVaultPage /></DocumentVaultWrapper>} />
 
                     {/* --- Backward Compatibility Redirects (From Snippet 1) --- */}
                     {/* These catch old URLs and forward them to the new structure */}

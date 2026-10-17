@@ -2,8 +2,8 @@ import React, { useState, useEffect } from "react";
 import Modal from "./Modal";
 import { CLIENT_TYPES, CLIENT_TYPE_OPTIONS } from "../utils/constants";
 
-export default function ClientDialog({ open, onClose, onSave, client }) {
-  const [ctype, setCtype] = useState("Individual");
+export default function ClientDialog({ open, onClose, onSave, client, defaultType = "Individual", allowedTypes = null }) {
+  const [ctype, setCtype] = useState(defaultType);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -12,14 +12,14 @@ export default function ClientDialog({ open, onClose, onSave, client }) {
 
   useEffect(() => {
     if (open) {
-      setCtype(client?.ctype || "Individual");
+      setCtype(client?.ctype || defaultType);
       setName(client?.name || "");
       setPhone(client?.phone || "");
       setEmail(client?.email || "");
       setAddr(client?.addr || "");
       setFields(client?.fields || {});
     }
-  }, [open, client]);
+  }, [open, client, defaultType]);
 
   const ct = CLIENT_TYPES[ctype] || CLIENT_TYPES.Individual;
 
@@ -51,13 +51,29 @@ export default function ClientDialog({ open, onClose, onSave, client }) {
     onClose();
   };
 
+  const visibleOptions = allowedTypes 
+    ? CLIENT_TYPE_OPTIONS.filter((o) => allowedTypes.includes(o.value)) 
+    : CLIENT_TYPE_OPTIONS;
+
+  const isIndividualOnly = allowedTypes && allowedTypes.length === 1 && allowedTypes[0] === "Individual";
+
   return (
     <Modal open={open} onClose={onClose} className="wide">
-      <h3>{client ? "Edit Person" : "Add Person"}</h3>
-      <label className="dv-label">Person / Entity Type</label>
-      <select className="dv-select" value={ctype} onChange={(e) => { setCtype(e.target.value); setFields({}); }}>
-        {CLIENT_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-      </select>
+      <h3>
+        {client 
+          ? (ctype === "Individual" ? "Edit Person" : `Edit ${ctype}`) 
+          : (ctype === "Individual" ? "Add Person" : `Add ${ctype}`)}
+      </h3>
+
+      {!isIndividualOnly && visibleOptions.length > 1 && (
+        <>
+          <label className="dv-label">Person / Entity Type</label>
+          <select className="dv-select" value={ctype} onChange={(e) => { setCtype(e.target.value); setFields({}); }}>
+            {visibleOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </>
+      )}
+
       <label className="dv-label">{ct.nl} *</label>
       <input className="dv-input" value={name} onChange={(e) => setName(e.target.value)} required />
       <div className="dv-two">
@@ -70,8 +86,12 @@ export default function ClientDialog({ open, onClose, onSave, client }) {
           <input className="dv-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
         </div>
       </div>
-      <label className="dv-label">Notes</label>
-      <textarea className="dv-textarea" rows={3} value={addr} onChange={(e) => setAddr(e.target.value)} />
+      {ctype !== "Individual" && (
+        <>
+          <label className="dv-label">Notes</label>
+          <textarea className="dv-textarea" rows={3} value={addr} onChange={(e) => setAddr(e.target.value)} />
+        </>
+      )}
       {ct.f.length > 0 && (
         <>
           <div className="dv-dsec">{ctype === "Plant" ? "Plant / unit" : ctype} details</div>

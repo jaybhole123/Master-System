@@ -95,6 +95,84 @@ export const PERSONAL = [
   "Agreement / Contract", "Tax / GST", "Other"
 ];
 
+// ── Company / Firm Document Checklist (from Company Document Checklist) ──
+export const COMPANY_CHECKLIST_SECTIONS = [
+  {
+    code: "A",
+    title: "Company / Firm Registration",
+    items: [
+      "Certificate of Incorporation / Firm Registration Certificate",
+      "Company / Firm PAN card",
+      "TAN allotment certificate",
+      "Memorandum and Articles of Association (MOA / AOA)",
+      "Partnership Deed / LLP Agreement",
+      "Latest MCA Master Data and address / name change records"
+    ]
+  },
+  {
+    code: "B",
+    title: "Directors / Partners / Authorised Persons",
+    items: [
+      "Current list of directors / partners and DIN details",
+      "PAN, identity proof, address proof and photograph of relevant persons",
+      "Appointment / resignation records and signing authority / resolution",
+      "Latest shareholding / ownership details"
+    ]
+  },
+  {
+    code: "C",
+    title: "Office Address and Bank",
+    items: [
+      "Registered office ownership proof / rent or lease agreement",
+      "Owner NOC and recent utility bill for office address",
+      "Cancelled cheque / bank account confirmation for each account",
+      "Bank statements for the required period"
+    ]
+  },
+  {
+    code: "D",
+    title: "Tax, Accounts and Corporate Records",
+    items: [
+      "GST registration certificate with latest amendments",
+      "GST returns, acknowledgments and payment challans for required period",
+      "ITR acknowledgments and tax computations for last 3 financial years",
+      "Signed financial statements and audit reports for last 3 financial years",
+      "Tax audit report / Form 3CD and TDS records",
+      "Latest ROC annual filings with acknowledgments (for company / LLP)",
+      "Net worth / turnover certificate"
+    ]
+  },
+  {
+    code: "E",
+    title: "Other Applicable Documents",
+    items: [
+      "Udyam / MSME, IEC, EPFO and ESIC registration certificates",
+      "Trade / sector licences and current insurance policies",
+      "Loan sanction letters, agreements and charge records",
+      "Key contracts, purchase / work orders and legal notices",
+      "Company letterhead and logo"
+    ]
+  }
+];
+
+export const COMPANY_DOC_TYPES = COMPANY_CHECKLIST_SECTIONS.flatMap(s => s.items);
+
+// Extend TYPES with company checklist types
+COMPANY_DOC_TYPES.forEach(title => {
+  if (!TYPES[title]) {
+    TYPES[title] = {
+      n: "Document / Ref Number",
+      needIssue: true,
+      needExpiry: false,
+      f: [
+        T("fy", "Financial Year / Period"),
+        T("authority", "Issuing Authority / Bank / Dept"),
+        TA("desc", "Description / Details")
+      ]
+    };
+  }
+});
+
 // GSTIN / PAN / CIN regex and client-type schemas
 const GSTIN_RE = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
 const PAN_RE = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
@@ -125,3 +203,4 @@ export const CLIENT_TYPE_OPTIONS = [
   { value: "Company", label: "Company" },
   { value: "Plant", label: "Plant / Unit" }
 ];
+
