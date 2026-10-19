@@ -919,35 +919,35 @@ export default function CLPage() {
 
                         return filteredRows.map((r, i) => (
                           <tr key={i}>
-                            <td>{i + 1}</td>
-                            <td>{r._doc.data.info['Company'] || '-'}</td>
-                            <td>{r._doc.data.info['Contact Person'] || '-'}</td>
-                            <td>{r._doc.data.info['Auction ID'] || '-'}</td>
-                            <td>{r._doc.data.info['Auction Ref No'] || '-'}</td>
-                            <td>{r._doc.data.info['Auction Start'] || '-'}</td>
-                            <td>{r._doc.data.info['Auction End'] || '-'}</td>
-                            <td>{r._doc.data.info['Mail Date'] || '-'}</td>
-                            <td>{r._doc.data.info['Buyer Ref No'] || '-'}</td>
-                            <td>{r.subsidiary}</td>
-                            <td>{r.source}</td>
-                            <td>{r.bidId}</td>
-                            <td>{r.mode}</td>
-                            <td>{r.repGrade}</td>
-                            <td>{r.size}</td>
-                            <td>{inr(r.offerQty)}</td>
-                            <td>{inr(r.repNotifiedPrice)}</td>
-                            <td>{r.colliery}</td>
-                            <td>{r.collieryGrade}</td>
-                            <td style={{ color: "var(--ember)", fontWeight: 500 }}>{inr(r.allocatedQty)}</td>
-                            <td style={{ color: "var(--ember)", fontWeight: 500 }}>{inr(r.bidPrice, 0)}</td>
-                            <td>{inr(r.collieryNotified)}</td>
-                            <td>{inr(r.finalBid, 0)}</td>
-                            <td>{r.supplyRange || '-'}</td>
-                            <td>{inr(r.premium)}</td>
-                            <td>{r.seniority}</td>
-                            <td>{r.thirdParty}</td>
-                            <td>{inr(r.value)}</td>
-                            <td>
+                            <td data-label="#">{i + 1}</td>
+                            <td data-label="Company">{r._doc.data.info['Company'] || '-'}</td>
+                            <td data-label="Contact Person">{r._doc.data.info['Contact Person'] || '-'}</td>
+                            <td data-label="Auction ID">{r._doc.data.info['Auction ID'] || '-'}</td>
+                            <td data-label="Auction Ref No">{r._doc.data.info['Auction Ref No'] || '-'}</td>
+                            <td data-label="Auction Start">{r._doc.data.info['Auction Start'] || '-'}</td>
+                            <td data-label="Auction End">{r._doc.data.info['Auction End'] || '-'}</td>
+                            <td data-label="Mail Date">{r._doc.data.info['Mail Date'] || '-'}</td>
+                            <td data-label="Buyer Ref No">{r._doc.data.info['Buyer Ref No'] || '-'}</td>
+                            <td data-label="Subsidiary">{r.subsidiary}</td>
+                            <td data-label="Source">{r.source}</td>
+                            <td data-label="Bid ID">{r.bidId}</td>
+                            <td data-label="Mode">{r.mode}</td>
+                            <td data-label="Rep. Grade">{r.repGrade}</td>
+                            <td data-label="Size">{r.size}</td>
+                            <td data-label="Offer Qty">{inr(r.offerQty)}</td>
+                            <td data-label="Rep. Notified">{inr(r.repNotifiedPrice)}</td>
+                            <td data-label="Colliery">{r.colliery}</td>
+                            <td data-label="Grade">{r.collieryGrade}</td>
+                            <td data-label="Allocated" style={{ color: "var(--ember)", fontWeight: 500 }}>{inr(r.allocatedQty)}</td>
+                            <td data-label="Bid ₹/MT" style={{ color: "var(--ember)", fontWeight: 500 }}>{inr(r.bidPrice, 0)}</td>
+                            <td data-label="Coll. Notified">{inr(r.collieryNotified)}</td>
+                            <td data-label="Final Bid">{inr(r.finalBid, 0)}</td>
+                            <td data-label="Supply Range">{r.supplyRange || '-'}</td>
+                            <td data-label="Premium %">{inr(r.premium)}</td>
+                            <td data-label="Seniority">{r.seniority}</td>
+                            <td data-label="Third Party">{r.thirdParty}</td>
+                            <td data-label="Value ₹">{inr(r.value)}</td>
+                            <td data-label="Status">
                             <span style={{ 
                               padding: "4px 12px", 
                               borderRadius: "16px", 
@@ -960,7 +960,7 @@ export default function CLPage() {
                               {r.status === "done" ? "Done" : "Pending"}
                             </span>
                           </td>
-                          <td>
+                          <td data-label="Preview">
                               {r._doc.pdfUrl ? (
                                 <a href={r._doc.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "4px 8px", borderRadius: "8px", background: (/\.(jpg|jpeg|png|webp|gif|bmp)$/i.test(r._doc.fileName || r._doc.pdfUrl)) ? "#f5f3ff" : "#fff1f1", border: `1px solid ${(/\.(jpg|jpeg|png|webp|gif|bmp)$/i.test(r._doc.fileName || r._doc.pdfUrl)) ? "#ddd6fe" : "#fed7d7"}`, textDecoration: "none", boxShadow: (/\.(jpg|jpeg|png|webp|gif|bmp)$/i.test(r._doc.fileName || r._doc.pdfUrl)) ? "0 1px 2px rgba(124, 58, 237, 0.12)" : "0 1px 2px rgba(220, 38, 38, 0.08)", transition: "all 0.2s ease", cursor: "pointer" }}>
                                   {(() => {
@@ -985,7 +985,7 @@ export default function CLPage() {
                                 <span style={{ color: "var(--muted)" }}>-</span>
                               )}
                             </td>
-                            <td>
+                            <td data-label="Action">
                               <div style={{ display: 'flex', gap: '8px' }}>
                                 <button 
                                 onClick={() => handleMarkDone(r._dIdx, r._rIdx, r.dbId, r.status)} 
