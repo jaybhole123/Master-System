@@ -84,6 +84,16 @@ export default function MasterDashboard() {
     loading: true
   });
 
+  // Live real-time Clock & Month Date state
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   const COLORS = {
     blue: ['#3b82f6', '#93c5fd', '#bfdbfe'],
     emerald: ['#10b981', '#6ee7b7', '#a7f3d0'],
@@ -165,7 +175,12 @@ export default function MasterDashboard() {
         if (payrollError) console.error('Error fetching payroll summary:', payrollError);
 
         const attendancePresent = (attendanceRows || []).filter(row => ['P', 'HD'].includes(row[currentDayKey])).length;
-        const attendanceOther = Math.max(totalEmployees - attendancePresent, 0);
+        const attendanceExplicitAbsent = (attendanceRows || []).filter(row => row[currentDayKey] === 'A').length;
+        // Total absent includes employees explicitly marked 'A', or if absent is not explicitly marked yet, other remaining active employees
+        const attendanceAbsent = attendanceExplicitAbsent > 0 
+          ? attendanceExplicitAbsent 
+          : Math.max(totalEmployees - attendancePresent, 0);
+        const attendanceOther = Math.max(totalEmployees - attendancePresent - attendanceAbsent, 0);
         const pendingLeaves = (leaveRows || []).filter(row => ['pending', 'requested'].includes(String(row.status || '').trim().toLowerCase())).length;
         const approvedLeaves = (leaveRows || []).filter(row => String(row.status || '').trim().toLowerCase() === 'approved').length;
         const processedPayroll = (payrollRows || []).filter(row => row.month_year).length;
@@ -177,6 +192,7 @@ export default function MasterDashboard() {
           ],
           attendance: [
             { name: 'Present', value: attendancePresent },
+            { name: 'Absent', value: attendanceAbsent },
             { name: 'Other', value: attendanceOther }
           ],
           leaves: [
@@ -607,6 +623,25 @@ export default function MasterDashboard() {
           </div>
 
           <div className="relative z-10 grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-3 w-full lg:w-auto">
+            {/* Live Clock & Month / Date Widget */}
+            <div className="bg-white/15 backdrop-blur-md border border-white/20 rounded-xl sm:rounded-2xl px-5 sm:px-6 py-2.5 text-center shadow-lg min-w-[200px] sm:min-w-[230px] flex flex-col justify-center">
+              <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-red-100 uppercase tracking-wider">
+                <Calendar className="h-3.5 w-3.5 text-amber-300 shrink-0" />
+                <span className="whitespace-nowrap">
+                  {currentTime.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
+                </span>
+              </div>
+              <div className="flex items-center justify-center gap-2 my-0.5">
+                <Clock className="h-4 w-4 text-emerald-300 animate-pulse shrink-0" />
+                <span className="text-lg sm:text-xl font-black text-white tracking-wider tabular-nums whitespace-nowrap">
+                  {currentTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
+                </span>
+              </div>
+              <div className="text-[10.5px] font-semibold text-red-100/80 leading-none">
+                {currentTime.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
+              </div>
+            </div>
+
             <div className="bg-white/15 backdrop-blur-md border border-white/20 rounded-xl sm:rounded-2xl px-4 sm:px-5 py-3 text-center shadow-lg">
               <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-red-100 uppercase tracking-wider mb-0.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -1057,20 +1092,26 @@ export default function MasterDashboard() {
                 </span>
               </div>
               
-              <div className="grid grid-cols-2 gap-2 mb-3">
-                <div className="rounded-xl border border-orange-100 bg-orange-50/40 p-2.5">
-                  <span className="text-xs font-bold text-slate-600 block">Today Present</span>
+              <div className="grid grid-cols-3 gap-2 mb-3">
+                <div className="rounded-xl border border-emerald-100 bg-emerald-50/40 p-2.5 text-center">
+                  <span className="text-[11px] font-bold text-slate-600 block truncate">Today Present</span>
                   <div className="text-base font-black text-emerald-600 mt-0.5">
                     {(stats.hrMetrics.attendance || []).find(i => i.name === 'Present')?.value || 0}
                   </div>
                 </div>
-                <div className="rounded-xl border border-orange-100 bg-orange-50/40 p-2.5">
-                  <span className="text-xs font-bold text-slate-600 block">Pending Leaves</span>
+                <div className="rounded-xl border border-rose-100 bg-rose-50/40 p-2.5 text-center">
+                  <span className="text-[11px] font-bold text-slate-600 block truncate">Total Absent</span>
+                  <div className="text-base font-black text-rose-600 mt-0.5">
+                    {(stats.hrMetrics.attendance || []).find(i => i.name === 'Absent')?.value || 0}
+                  </div>
+                </div>
+                <div className="rounded-xl border border-orange-100 bg-orange-50/40 p-2.5 text-center">
+                  <span className="text-[11px] font-bold text-slate-600 block truncate">Pending Leaves</span>
                   <div className="text-base font-black text-orange-600 mt-0.5">
                     {(stats.hrMetrics.leaves || []).find(i => i.name === 'Pending')?.value || 0}
                   </div>
                 </div>
-                <div className="rounded-xl border border-orange-100 bg-orange-50/40 p-2.5 col-span-2">
+                <div className="rounded-xl border border-orange-100 bg-orange-50/40 p-2.5 col-span-3">
                   <span className="text-xs font-bold text-slate-600 block">Payroll Status</span>
                   <div className="text-sm font-black text-purple-700 mt-0.5">
                     {(stats.hrMetrics.payroll || []).find(i => i.name === 'Processed')?.value > 0 ? 'Processing Active' : 'Monthly Ready'}

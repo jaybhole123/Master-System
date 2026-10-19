@@ -76,6 +76,8 @@ const MODULES = [
       'Request Forecloser', 
       'Collect NOC', 
       'Bank Guarantee',
+      'Individual Documents',
+      'Firm & Company Documents',
       'Settings'
     ]
   },
@@ -118,11 +120,6 @@ const MODULES = [
     id: 'Transport Reporting',
     name: 'Transport Reporting',
     pages: ['System Flow', 'Dashboard', 'Purchase Truck', 'Fastag', 'Challan', 'Truck Reports']
-  },
-  {
-    id: 'Document Vault',
-    name: 'Document Vault',
-    pages: ['System Flow', 'Individual Documents', 'Firm & Company Documents']
   },
   {
     id: 'Global Settings',

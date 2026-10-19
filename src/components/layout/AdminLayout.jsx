@@ -92,20 +92,15 @@ const getHeaderTitle = (pathname, routes) => {
     const match = flat.find(r => r.href && pathname === r.href);
     return { module: "Coal System", page: match?.label || "Coal System" };
   }
-  // Check Document Vault routes
-  if (pathname.startsWith("/document-vault")) {
-    const flat = routes.flatMap(r => r.subItems ? r.subItems : [r]);
-    const match = flat.find(r => r.href && pathname === r.href);
-    return { module: "Document Vault", page: match?.label || "Document Vault" };
-  }
-  // Check Document & Substruction routes
+  // Check Document & Substruction routes (including Document Vault)
   if (
     pathname.includes("/doc-dashboard") ||
     pathname.includes("/resource-manager") ||
     pathname.includes("/document/") ||
     pathname.includes("/subscription/") ||
     pathname.includes("/loan/") ||
-    pathname.includes("/bg/")
+    pathname.includes("/bg/") ||
+    pathname.startsWith("/document-vault")
   ) {
     // Find exact page label
     const flat = routes.flatMap(r => r.subItems ? r.subItems : [r]);
@@ -156,6 +151,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
   const [pettyCashBadges, setPettyCashBadges] = useState({});
   const [hrBadges, setHrBadges] = useState({});
   const [schedulerBadges, setSchedulerBadges] = useState({});
+  const [helpSlipPendingCount, setHelpSlipPendingCount] = useState(0);
 
   useEffect(() => {
     let isMounted = true;
@@ -404,6 +400,51 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
     return () => { isMounted = false; };
   }, [isSuperAdmin, systemAccess]);
 
+  useEffect(() => {
+    let isMounted = true;
+    const fetchHelpSlipPending = async () => {
+      try {
+        const loggedInUserName = localStorage.getItem('user-name') || '';
+        let query = supabase
+          .from('help_slips')
+          .select('id, admin_reply, name');
+
+        if (!isSuperAdmin && loggedInUserName) {
+          query = query.ilike('name', loggedInUserName);
+        }
+
+        const { data, error } = await query;
+        if (error) {
+          console.error("Error fetching help slips for badge:", error);
+          return;
+        }
+
+        if (isMounted && data) {
+          // Count slips where admin_reply is null or empty/whitespace
+          const pendingCount = data.filter(r => !r.admin_reply || !r.admin_reply.trim()).length;
+          setHelpSlipPendingCount(pendingCount);
+        }
+      } catch (err) {
+        console.error("Error in fetchHelpSlipPending:", err);
+      }
+    };
+
+    fetchHelpSlipPending();
+
+    // Subscribe to realtime changes on help_slips
+    const channel = supabase
+      .channel('realtime:help_slips_badge')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'help_slips' }, () => {
+        fetchHelpSlipPending();
+      })
+      .subscribe();
+
+    return () => {
+      isMounted = false;
+      supabase.removeChannel(channel);
+    };
+  }, [isSuperAdmin]);
+
   // Get data from Document Store
   const { documents, subscriptions, loans, bgs, shareHistory, carInsurances, renewalHistory } = useDataStore();
 
@@ -495,6 +536,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
   // States for Document Submenus
   const [isResourceMenuOpen, setIsResourceMenuOpen] = useState(false);
   const [isLoanMenuOpen, setIsLoanMenuOpen] = useState(false);
+  const [isVaultMenuOpen, setIsVaultMenuOpen] = useState(() => location.pathname.startsWith("/document-vault"));
 
   // State for Module Accordions
   const [openModules, setOpenModules] = useState(() => {
@@ -507,10 +549,9 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       "Daily Scheduler": path.startsWith("/daily-scheduler"),
       "Checklist & Delegation": path.startsWith("/dashboard") && !path.includes("/dashboard/profile") && !path.includes("/dashboard/global-settings") && !path.includes("/dashboard/rent-management") && !path.includes("/dashboard/rent-tracker") && !path.includes("/dashboard/help-slip"),
       "Help Slip": path.includes("/dashboard/help-slip"),
-      "Document & Substruction": path.includes("/document") || path.includes("/doc-dashboard") || path.includes("/resource-manager") || path.includes("/loan") || path.includes("/subscription") || path.includes("/bg") || path === "/",
+      "Document & Substruction": path.includes("/document") || path.includes("/doc-dashboard") || path.includes("/resource-manager") || path.includes("/loan") || path.includes("/subscription") || path.includes("/bg") || path.startsWith("/document-vault") || path === "/",
       "Rent Management Tracker": path.includes("/dashboard/rent-tracker"),
       "Coal System": path.startsWith("/coal-system"),
-      "Document Vault": path.startsWith("/document-vault"),
       "Transport Reporting": path.startsWith("/transport-system"),
       "Letter": path.startsWith("/letter")
     };
@@ -970,6 +1011,22 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       showFor: ["admin", "user", "HOD"],
       module: "Document & Substruction",
     },
+    // Document Vault Submenu right after Dashboard
+    {
+      label: "Document Vault",
+      icon: ShieldCheck,
+      showFor: ["admin", "user", "HOD"],
+      isSubmenu: true,
+      isOpen: isVaultMenuOpen,
+      setIsOpen: setIsVaultMenuOpen,
+      active: location.pathname.startsWith("/document-vault"),
+      module: "Document & Substruction",
+      subItems: [
+        { href: "/document-vault/system-flow", label: "System Flow", active: location.pathname === "/document-vault/system-flow", showFor: ["admin", "user", "HOD"] },
+        { href: "/document-vault", label: "Individual Documents", active: location.pathname === "/document-vault", showFor: ["admin", "user", "HOD"] },
+        { href: "/document-vault/company", label: "Firm & Company Documents", active: location.pathname === "/document-vault/company", showFor: ["admin", "user", "HOD"] },
+      ]
+    },
     {
       label: "Resource Manager",
       icon: FileText,
@@ -984,10 +1041,14 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
         { href: "/resource-manager", label: "Insurance", badge: insuranceBadge, active: location.pathname === "/resource-manager", showFor: ["admin", "user", "HOD"] },
         { href: "/document/car-insurance", label: "Car Insurance", badge: carInsuranceBadge, active: location.pathname === "/document/car-insurance", showFor: ["admin", "user", "HOD"] },
         { href: "/document/renewal", label: "Document Renewal", badge: docRenewalBadge, active: location.pathname === "/document/renewal", showFor: ["admin", "user", "HOD"] },
+        /*
         { href: "/subscription/renewal", label: "Subscription Renewal", badge: subRenewalBadge, active: location.pathname === "/subscription/renewal", showFor: ["admin", "user", "HOD"] },
+        */
         { href: "/document/shared", label: "Document Shared", badge: docSharedBadge, active: location.pathname === "/document/shared", showFor: ["admin", "user", "HOD"] },
+        /*
         { href: "/subscription/approval", label: "Subscription Approval", badge: subApprovalBadge, active: location.pathname === "/subscription/approval", showFor: ["admin", "user", "HOD"] },
         { href: "/subscription/payment", label: "Subscription Payment", badge: subPaymentBadge, active: location.pathname === "/subscription/payment", showFor: ["admin", "user", "HOD"] },
+        */
       ]
     },
     {
@@ -1006,6 +1067,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
          { href: "/loan/noc", label: "Collect NOC", badge: loanNocBadge, active: location.pathname === "/loan/noc", showFor: ["admin", "user", "HOD"] }
       ]
     },
+    /*
     {
       href: "/bg/all",
       label: "Bank Guarantee",
@@ -1015,6 +1077,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       showFor: ["admin", "user", "HOD"],
       module: "Document & Substruction",
     },
+    */
     {
       href: "/dashboard/setting",
       label: "Settings",
@@ -1213,6 +1276,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/dashboard/help-slip",
       showFor: ["admin", "user", "HOD"],
       module: "Help Slip",
+      badge: helpSlipPendingCount > 0 ? helpSlipPendingCount : null,
     },
     // Global Settings moved to after Daily Scheduler
     // --- Daily Scheduler Module Routes ---
@@ -1418,31 +1482,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       badge: coalBadges["Sauda Sale"] > 0 ? coalBadges["Sauda Sale"] : null,
     },
 
-    // --- Document Vault Module Routes ---
-    {
-      href: "/document-vault/system-flow",
-      label: "System Flow",
-      icon: GitFork,
-      active: location.pathname === "/document-vault/system-flow",
-      showFor: ["admin", "user", "HOD"],
-      module: "Document Vault",
-    },
-    {
-      href: "/document-vault",
-      label: "Individual Documents",
-      icon: ShieldCheck,
-      active: location.pathname === "/document-vault",
-      showFor: ["admin", "user", "HOD"],
-      module: "Document Vault",
-    },
-    {
-      href: "/document-vault/company",
-      label: "Firm & Company Documents",
-      icon: Building2,
-      active: location.pathname === "/document-vault/company",
-      showFor: ["admin", "user", "HOD"],
-      module: "Document Vault",
-    },
+
     {
       href: "/dashboard/global-settings",
       label: "Global Settings",
@@ -1647,7 +1687,6 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                         {moduleName === "Daily Scheduler" && <CalendarCheck className="h-4 w-4" />}
                         {moduleName === "Rent Management Tracker" && <Banknote className="h-4 w-4" />}
                         {moduleName === "Coal System" && <Database className="h-4 w-4" />}
-                        {moduleName === "Document Vault" && <ShieldCheck className="h-4 w-4" />}
                         {moduleName === "Letter" && <FileText className="h-4 w-4" />}
                         {moduleName === "Transport Reporting" && <Truck className="h-4 w-4" />}
                         {moduleName === "Help Slip" && <HelpCircle className="h-4 w-4" />}
@@ -1917,7 +1956,6 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                             {moduleName === "Daily Scheduler" && <CalendarCheck className="h-4 w-4" />}
                             {moduleName === "Rent Management Tracker" && <Banknote className="h-4 w-4" />}
                             {moduleName === "Coal System" && <Database className="h-4 w-4" />}
-                            {moduleName === "Document Vault" && <ShieldCheck className="h-4 w-4" />}
                             {moduleName === "Letter" && <FileText className="h-4 w-4" />}
                             {moduleName === "Transport Reporting" && <Truck className="h-4 w-4" />}
                             {moduleName === "Help Slip" && <HelpCircle className="h-4 w-4" />}
