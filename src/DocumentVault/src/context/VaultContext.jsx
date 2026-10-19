@@ -1,5 +1,19 @@
 import React, { createContext, useContext, useReducer, useEffect, useState, useCallback } from "react";
 import { initStorage, put, del, uid, createBackup, restoreBackup } from "../utils/storage";
+import {
+  fetchIndividualsFromSupabase,
+  fetchDocumentsFromSupabase,
+  upsertIndividualInSupabase,
+  deleteIndividualFromSupabase,
+  upsertDocumentInSupabase,
+  deleteDocumentFromSupabase,
+  fetchCompaniesFromSupabase,
+  fetchCompanyDocumentsFromSupabase,
+  upsertCompanyInSupabase,
+  deleteCompanyFromSupabase,
+  upsertCompanyDocumentInSupabase,
+  deleteCompanyDocumentFromSupabase
+} from "../utils/supabaseVaultService";
 
 const VaultCtx = createContext(null);
 export const useVault = () => useContext(VaultCtx);
@@ -51,7 +65,6 @@ function reducer(state, action) {
       return { ...state, docs: state.docs.filter((x) => x.id !== action.id) };
     }
     case "RESTORE": {
-      // merge restored data
       const cm = new Map(state.clients.map((c) => [c.id, c]));
       action.clients.forEach((c) => cm.set(c.id, c));
       const dm = new Map(state.docs.map((d) => [d.id, d]));
@@ -70,22 +83,55 @@ export function VaultProvider({ children }) {
   const [warning, setWarning] = useState(null);
   const [toast, setToast] = useState("");
 
-  useEffect(() => {
-    initStorage().then(({ clients, docs, warning: w }) => {
-      dispatch({ type: "INIT", clients, docs });
-      if (w) setWarning(w);
-      if (clients.length) {
-        const indClients = clients.filter((c) => !c.ctype || c.ctype === "Individual").sort((a, b) => a.name.localeCompare(b.name));
-        const firmClients = clients.filter((c) => c.ctype === "Firm" || c.ctype === "Company" || c.ctype === "Plant").sort((a, b) => a.name.localeCompare(b.name));
-        if (indClients.length) {
-          dispatch({ type: "SET_SEL", id: indClients[0].id });
-        }
-        if (firmClients.length) {
-          dispatch({ type: "SET_SEL_COMPANY", id: firmClients[0].id });
-        }
+  const loadData = useCallback(async () => {
+    let loadedClients = [];
+    let loadedDocs = [];
+    let isSupabaseLoaded = false;
+
+    try {
+      const [supaInds, supaIndDocs, supaComps, supaCompDocs] = await Promise.all([
+        fetchIndividualsFromSupabase(),
+        fetchDocumentsFromSupabase(),
+        fetchCompaniesFromSupabase(),
+        fetchCompanyDocumentsFromSupabase()
+      ]);
+
+      loadedClients = [...(supaInds || []), ...(supaComps || [])];
+      loadedDocs = [...(supaIndDocs || []), ...(supaCompDocs || [])];
+      isSupabaseLoaded = true;
+    } catch (err) {
+      console.warn("Supabase fetch fallback to local storage:", err.message);
+    }
+
+    if (!isSupabaseLoaded) {
+      const local = await initStorage();
+      loadedClients = local.clients || [];
+      loadedDocs = local.docs || [];
+      if (local.warning) setWarning(local.warning);
+    }
+
+    dispatch({ type: "INIT", clients: loadedClients, docs: loadedDocs });
+
+    if (loadedClients.length) {
+      const indClients = loadedClients
+        .filter((c) => !c.ctype || c.ctype === "Individual")
+        .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+      const firmClients = loadedClients
+        .filter((c) => c.ctype === "Firm" || c.ctype === "Company" || c.ctype === "Plant")
+        .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+
+      if (indClients.length) {
+        dispatch({ type: "SET_SEL", id: indClients[0].id });
       }
-    });
+      if (firmClients.length) {
+        dispatch({ type: "SET_SEL_COMPANY", id: firmClients[0].id });
+      }
+    }
   }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const showToast = useCallback((msg) => {
     setToast(msg);
@@ -93,33 +139,87 @@ export function VaultProvider({ children }) {
   }, []);
 
   const saveClient = useCallback(async (c) => {
-    const client = { ...c, id: c.id || uid() };
-    try { await put("clients", client, state.clients, state.docs); } catch { showToast("Could not save. Browser storage may be blocked."); return null; }
-    dispatch({ type: "UPSERT_CLIENT", client });
-    showToast("Client saved");
-    return client;
+    const isCompany = c.ctype === "Firm" || c.ctype === "Company" || c.ctype === "Plant";
+    try {
+      const saved = isCompany 
+        ? await upsertCompanyInSupabase(c)
+        : await upsertIndividualInSupabase(c);
+
+      dispatch({ type: "UPSERT_CLIENT", client: saved });
+      showToast(`${isCompany ? "Firm / Company" : "Individual"} saved to Supabase`);
+      return saved;
+    } catch (err) {
+      console.warn("Supabase save failed, saving locally:", err.message);
+      const fallbackClient = { ...c, id: c.id || uid() };
+      await put("clients", fallbackClient, state.clients, state.docs);
+      dispatch({ type: "UPSERT_CLIENT", client: fallbackClient });
+      showToast("Saved locally (offline mode)");
+      return fallbackClient;
+    }
   }, [state.clients, state.docs, showToast]);
 
   const deleteClient = useCallback(async (id) => {
-    const clientDocs = state.docs.filter((d) => d.cid === id);
-    for (const d of clientDocs) await del("docs", d.id, state.clients, state.docs);
-    await del("clients", id, state.clients, state.docs);
-    dispatch({ type: "DEL_CLIENT", id });
-    showToast("Client deleted");
+    const target = state.clients.find((x) => x.id === id);
+    const isCompany = target && (target.ctype === "Firm" || target.ctype === "Company" || target.ctype === "Plant");
+    try {
+      if (isCompany) {
+        await deleteCompanyFromSupabase(id);
+      } else {
+        await deleteIndividualFromSupabase(id);
+      }
+      dispatch({ type: "DEL_CLIENT", id });
+      showToast(`${isCompany ? "Company" : "Individual"} deleted from Supabase`);
+    } catch (err) {
+      console.warn("Supabase delete failed, deleting locally:", err.message);
+      const clientDocs = state.docs.filter((d) => d.cid === id);
+      for (const d of clientDocs) await del("docs", d.id, state.clients, state.docs);
+      await del("clients", id, state.clients, state.docs);
+      dispatch({ type: "DEL_CLIENT", id });
+      showToast("Deleted locally");
+    }
   }, [state.clients, state.docs, showToast]);
 
   const saveDoc = useCallback(async (d) => {
-    const doc = { ...d, id: d.id || uid() };
-    try { await put("docs", doc, state.clients, state.docs); } catch { showToast("Could not save. Browser storage may be full."); return null; }
-    dispatch({ type: "UPSERT_DOC", doc });
-    showToast("Document saved");
-    return doc;
+    const ownerClient = state.clients.find((x) => x.id === d.cid);
+    const isCompanyDoc = d.category === "Company" || (ownerClient && (ownerClient.ctype === "Firm" || ownerClient.ctype === "Company" || ownerClient.ctype === "Plant"));
+
+    try {
+      const saved = isCompanyDoc
+        ? await upsertCompanyDocumentInSupabase(d)
+        : await upsertDocumentInSupabase(d);
+
+      dispatch({ type: "UPSERT_DOC", doc: saved });
+      showToast("Document saved to Supabase");
+      return saved;
+    } catch (err) {
+      console.warn("Supabase doc save failed, saving locally:", err.message);
+      const fallbackDoc = { ...d, id: d.id || uid() };
+      await put("docs", fallbackDoc, state.clients, state.docs);
+      dispatch({ type: "UPSERT_DOC", doc: fallbackDoc });
+      showToast("Document saved locally");
+      return fallbackDoc;
+    }
   }, [state.clients, state.docs, showToast]);
 
   const deleteDoc = useCallback(async (id) => {
-    await del("docs", id, state.clients, state.docs);
-    dispatch({ type: "DEL_DOC", id });
-    showToast("Document deleted");
+    const targetDoc = state.docs.find((x) => x.id === id);
+    const ownerClient = targetDoc ? state.clients.find((x) => x.id === targetDoc.cid) : null;
+    const isCompanyDoc = targetDoc?.category === "Company" || (ownerClient && (ownerClient.ctype === "Firm" || ownerClient.ctype === "Company" || ownerClient.ctype === "Plant"));
+
+    try {
+      if (isCompanyDoc) {
+        await deleteCompanyDocumentFromSupabase(id);
+      } else {
+        await deleteDocumentFromSupabase(id);
+      }
+      dispatch({ type: "DEL_DOC", id });
+      showToast("Document deleted from Supabase");
+    } catch (err) {
+      console.warn("Supabase doc delete failed, deleting locally:", err.message);
+      await del("docs", id, state.clients, state.docs);
+      dispatch({ type: "DEL_DOC", id });
+      showToast("Document deleted locally");
+    }
   }, [state.clients, state.docs, showToast]);
 
   const backup = useCallback(async () => {

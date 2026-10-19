@@ -122,7 +122,7 @@ const MODULES = [
   {
     id: 'Document Vault',
     name: 'Document Vault',
-    pages: ['System Flow', 'Document valute']
+    pages: ['System Flow', 'Individual Documents', 'Firm & Company Documents']
   },
   {
     id: 'Global Settings',

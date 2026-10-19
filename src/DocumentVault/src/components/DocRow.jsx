@@ -3,12 +3,19 @@ import Icon from "./Icon";
 import { status, fmt, size, sum } from "../utils/helpers";
 
 function download(d) {
-  if (!d.file) return;
-  const u = URL.createObjectURL(d.file);
-  const a = document.createElement("a");
-  a.href = u; a.download = d.fname || "document";
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(u), 60000);
+  if (d.file instanceof Blob || d.file instanceof File) {
+    const u = URL.createObjectURL(d.file);
+    const a = document.createElement("a");
+    a.href = u; a.download = d.fname || "document";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(u), 60000);
+  } else if (d.file_url) {
+    const a = document.createElement("a");
+    a.href = d.file_url;
+    a.target = "_blank";
+    a.download = d.fname || "document";
+    document.body.appendChild(a); a.click(); a.remove();
+  }
 }
 
 function highlightText(text, query) {
@@ -62,12 +69,12 @@ export default function DocRow({ doc, index, clients, showClient, onView, onEdit
         {doc.expiry && s.k !== "ok" && <div className="s">Expiry {fmt(doc.expiry)}</div>}
       </div>
       <div data-l="File">
-        {doc.file ? (
+        {doc.file || doc.file_url ? (
           <button
             type="button"
             className="dv-file-tile-btn"
             onClick={() => onView?.(doc)}
-            title={`Preview: ${doc.fname} (${size(doc.file.size)})`}
+            title={`Preview: ${doc.fname || "Document"}`}
           >
             <svg
               className="dv-file-tile-icon"
@@ -93,7 +100,7 @@ export default function DocRow({ doc, index, clients, showClient, onView, onEdit
       </div>
       <div className="dv-ra">
         <button className="dv-btn ic" onClick={() => onView?.(doc)} title="View details"><Icon name="eye" /></button>
-        {doc.file && <button className="dv-btn ic" onClick={() => download(doc)} title="Download file"><Icon name="dl" /></button>}
+        {(doc.file || doc.file_url) && <button className="dv-btn ic" onClick={() => download(doc)} title="Download file"><Icon name="dl" /></button>}
         <button className={`dv-btn ic rn${due ? " due" : ""}`} onClick={() => onRenew?.(doc)} title="Renew document"><Icon name="rn" /></button>
         <button className="dv-btn ic" onClick={() => onEdit?.(doc)} title="Edit"><Icon name="ed" /></button>
         <button className="dv-btn ic dng" onClick={() => onDelete?.(doc)} title="Delete"><Icon name="tr" /></button>

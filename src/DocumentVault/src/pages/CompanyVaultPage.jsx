@@ -411,9 +411,6 @@ export default function CompanyVaultPage() {
             </div>
             <h3>{globalSearch ? `No firms match "${globalSearch}"` : "No Firms or Companies Added Yet"}</h3>
             <p>{globalSearch ? "Try searching by another name, GSTIN or phone." : "Add your first company, partnership firm, proprietorship or plant entity to begin storing and managing corporate checklist documents."}</p>
-            <button className="dv-btn pri" onClick={openAddEntity} style={{ marginTop: 16 }}>
-              + Add First Company / Firm
-            </button>
           </div>
         ) : (
           <div className="dv-client-view-container" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -466,15 +463,15 @@ export default function CompanyVaultPage() {
                     gap: 16
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "nowrap" }}>
-                    {/* Left: Avatar + Firm Brand + Badges + Contact info in clean inline pill design */}
-                    <div style={{ display: "flex", alignItems: "center", gap: 16, minWidth: 0, flex: 1 }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
+                    {/* Left: Avatar + Firm Brand & Details */}
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 16, minWidth: 0, flex: 1 }}>
                       {/* Distinctive Gradient Avatar */}
                       <div 
                         style={{ 
-                          width: 50, 
-                          height: 50, 
-                          minWidth: 50, 
+                          width: 48, 
+                          height: 48, 
+                          minWidth: 48, 
                           borderRadius: 14, 
                           fontSize: 18, 
                           fontWeight: 800,
@@ -482,74 +479,81 @@ export default function CompanyVaultPage() {
                           color: "#ffffff", 
                           display: "grid",
                           placeItems: "center",
-                          boxShadow: "0 3px 10px rgba(220, 38, 38, 0.28)"
+                          boxShadow: "0 3px 10px rgba(220, 38, 38, 0.28)",
+                          flexShrink: 0
                         }}
                       >
                         {ini(client.name)}
                       </div>
 
-                      {/* Primary Details Row */}
-                      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", minWidth: 0 }}>
-                        <h2 style={{ fontSize: 18, fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: "-0.01em", whiteSpace: "nowrap" }}>
-                          {highlightText(client.name, globalSearch)}
-                        </h2>
+                      {/* Details Column with 2 balanced rows */}
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 0, flex: 1 }}>
+                        {/* Top Row: Name + Type Badge + Docs Count + Contacts */}
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                          <h2 style={{ fontSize: 18, fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: "-0.01em", whiteSpace: "nowrap" }}>
+                            {highlightText(client.name, globalSearch)}
+                          </h2>
 
-                        <span style={{ 
-                          background: "#fef2f2", 
-                          color: "#dc2626", 
-                          border: "1px solid #fecaca", 
-                          padding: "4px 12px", 
-                          borderRadius: 7, 
-                          fontSize: 12,
-                          fontWeight: 700,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.03em"
-                        }}>
-                          {client.ctype}
-                        </span>
-
-                        <span style={{ 
-                          background: "#f0fdf4", 
-                          color: "#15803d", 
-                          border: "1px solid #bbf7d0", 
-                          padding: "4px 12px", 
-                          borderRadius: 7, 
-                          fontSize: 12,
-                          fontWeight: 700,
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 6
-                        }}>
-                          <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#22c55e", display: "inline-block" }}></span>
-                          {clientDocs.length} Docs
-                        </span>
-
-                        {/* Clean Contact Indicators */}
-                        {client.phone && (
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, color: "#64748b", background: "#f8fafc", padding: "4px 12px", borderRadius: 7, border: "1px solid #f1f5f9" }}>
-                            <Phone size={13} style={{ color: "#94a3b8" }} /> {highlightText(client.phone, globalSearch)}
+                          <span style={{ 
+                            background: "#fef2f2", 
+                            color: "#dc2626", 
+                            border: "1px solid #fecaca", 
+                            padding: "3px 10px", 
+                            borderRadius: 6, 
+                            fontSize: 11.5,
+                            fontWeight: 700,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.03em"
+                          }}>
+                            {client.ctype}
                           </span>
+
+                          <span style={{ 
+                            background: "#f0fdf4", 
+                            color: "#15803d", 
+                            border: "1px solid #bbf7d0", 
+                            padding: "3px 10px", 
+                            borderRadius: 6, 
+                            fontSize: 11.5,
+                            fontWeight: 700,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 5
+                          }}>
+                            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#22c55e", display: "inline-block" }}></span>
+                            {clientDocs.length} Docs
+                          </span>
+
+                          {client.phone && (
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, color: "#475569", background: "#f8fafc", padding: "3px 10px", borderRadius: 6, border: "1px solid #e2e8f0" }}>
+                              <Phone size={12} style={{ color: "#94a3b8" }} /> {highlightText(client.phone, globalSearch)}
+                            </span>
+                          )}
+                          {client.email && (
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, color: "#475569", background: "#f8fafc", padding: "3px 10px", borderRadius: 6, border: "1px solid #e2e8f0" }}>
+                              <Mail size={12} style={{ color: "#94a3b8" }} /> {highlightText(client.email, globalSearch)}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Bottom Row: Metadata tags (GSTIN, PAN, Udyam, CIN, etc.) */}
+                        {infoFields.length > 0 && (
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                            {infoFields.map((x) => (
+                              <span key={x.k} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "#eff6ff", border: "1px solid #dbeafe", padding: "3px 9px", borderRadius: 6, fontSize: 11.5 }}>
+                                <span style={{ color: "#3b82f6", fontWeight: 700, fontSize: 11 }}>{x.l}:</span>
+                                <strong style={{ color: "#1e3a8a", fontFamily: "monospace", letterSpacing: "0.02em" }}>
+                                  {highlightText(isoShort(v[x.k]), globalSearch)}
+                                </strong>
+                              </span>
+                            ))}
+                          </div>
                         )}
-                        {client.email && (
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, color: "#64748b", background: "#f8fafc", padding: "4px 12px", borderRadius: 7, border: "1px solid #f1f5f9" }}>
-                            <Mail size={13} style={{ color: "#94a3b8" }} /> {highlightText(client.email, globalSearch)}
-                          </span>
-                        )}
-
-                        {/* Metadata tags (e.g. GSTIN, PAN) */}
-                        {infoFields.map((x) => (
-                          <span key={x.k} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#eff6ff", border: "1px solid #dbeafe", padding: "4px 12px", borderRadius: 7, fontSize: 12.5 }}>
-                            <span style={{ color: "#3b82f6", fontWeight: 700, fontSize: 11.5 }}>{x.l}:</span>
-                            <strong style={{ color: "#1e3a8a", fontFamily: "monospace", letterSpacing: "0.02em" }}>
-                              {highlightText(isoShort(v[x.k]), globalSearch)}
-                            </strong>
-                          </span>
-                        ))}
                       </div>
                     </div>
 
                     {/* Right: Modern Metric Capsule + Action Buttons */}
-                    <div style={{ display: "flex", alignItems: "center", gap: 14, flexShrink: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0, alignSelf: "center" }}>
                       {/* Micro Progress Capsule */}
                       <div style={{ 
                         display: "flex", 

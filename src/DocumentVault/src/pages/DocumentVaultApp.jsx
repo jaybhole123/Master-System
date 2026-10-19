@@ -230,11 +230,6 @@ export default function DocumentVaultApp() {
           </div>
           <h3>{q.trim() ? `No persons match "${q}"` : "No Persons Added Yet"}</h3>
           <p>{q.trim() ? "Try searching by another name, phone, or document number." : "Create your first person to start storing driving licenses, property papers, insurance, and bank documents."}</p>
-          {!q.trim() && (
-            <button className="dv-btn pri" onClick={openAddClient} style={{ marginTop: 14 }}>
-              + Add First Person
-            </button>
-          )}
         </div>
       );
     }

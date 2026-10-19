@@ -18,12 +18,19 @@ import {
 } from "lucide-react";
 
 function download(d) {
-  if (!d.file) return;
-  const u = URL.createObjectURL(d.file);
-  const a = document.createElement("a");
-  a.href = u; a.download = d.fname || "document";
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(u), 60000);
+  if (d.file instanceof Blob || d.file instanceof File) {
+    const u = URL.createObjectURL(d.file);
+    const a = document.createElement("a");
+    a.href = u; a.download = d.fname || "document";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(u), 60000);
+  } else if (d.file_url) {
+    const a = document.createElement("a");
+    a.href = d.file_url;
+    a.target = "_blank";
+    a.download = d.fname || "document";
+    document.body.appendChild(a); a.click(); a.remove();
+  }
 }
 
 export default function PreviewDialog({ open, onClose, doc }) {
@@ -32,12 +39,22 @@ export default function PreviewDialog({ open, onClose, doc }) {
   const [rotation, setRotation] = useState(0);
 
   useEffect(() => {
-    if (open && doc?.file) {
-      const u = URL.createObjectURL(doc.file);
-      setPvUrl(u);
-      setZoom(1);
-      setRotation(0);
-      return () => URL.revokeObjectURL(u);
+    if (open) {
+      if (doc?.file instanceof Blob || doc?.file instanceof File) {
+        const u = URL.createObjectURL(doc.file);
+        setPvUrl(u);
+        setZoom(1);
+        setRotation(0);
+        return () => URL.revokeObjectURL(u);
+      } else if (doc?.file_url) {
+        setPvUrl(doc.file_url);
+        setZoom(1);
+        setRotation(0);
+      } else {
+        setPvUrl("");
+        setZoom(1);
+        setRotation(0);
+      }
     } else {
       setPvUrl("");
       setZoom(1);
@@ -52,8 +69,10 @@ export default function PreviewDialog({ open, onClose, doc }) {
   const v = doc.fields || {};
   const filledFields = fields.filter((x) => v[x.k]);
 
-  const isImage = doc.file && /^image/.test(doc.file.type);
-  const isPdf = doc.file && /pdf/.test(doc.file.type);
+  const hasFile = Boolean(doc.file || doc.file_url);
+  const ext = (doc.fname || doc.file_url || "").toLowerCase();
+  const isImage = (doc.file && /^image/.test(doc.file.type)) || /\.(png|jpe?g|webp|gif|svg)$/i.test(ext);
+  const isPdf = (doc.file && /pdf/.test(doc.file.type)) || /\.pdf$/i.test(ext);
 
   return (
     <Modal open={open} onClose={onClose} className="preview">
@@ -182,7 +201,7 @@ export default function PreviewDialog({ open, onClose, doc }) {
 
         {/* Viewport */}
         <div className="min-h-[340px] max-h-[58vh] flex items-center justify-center p-4 overflow-auto bg-slate-100/60">
-          {!doc.file && (
+          {!hasFile && (
             <div className="text-center p-8">
               <FileText className="mx-auto h-12 w-12 text-gray-300 mb-2" />
               <p className="text-sm font-semibold text-gray-700">No scanned file attached</p>
