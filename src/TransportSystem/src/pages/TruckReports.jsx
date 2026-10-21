@@ -274,6 +274,142 @@ export default function TruckReports() {
   const totalDieselSum = filteredData.reduce((sum, item) => sum + (parseInt(String(item.diesel).replace(/[^0-9]/g, '')) || 0), 0);
   const totalDistanceSum = filteredData.reduce((sum, item) => sum + (parseInt(String(item.distance).replace(/[^0-9]/g, '')) || 0), 0);
 
+  // Helper to rename a dropdown option value across database and state
+  const handleRenameOption = async (type, oldValue) => {
+    const newValue = window.prompt(`Edit "${oldValue}":`, oldValue);
+    if (!newValue || newValue.trim() === '' || newValue.trim() === oldValue) return;
+    const finalVal = (type === 'from' || type === 'to') ? newValue.trim().toUpperCase() : newValue.trim();
+
+    try {
+      if (type === 'from') {
+        const { error } = await supabase.from('truck_reports').update({ from_location: finalVal }).eq('from_location', oldValue);
+        if (error) throw error;
+        setExtraFromOptions(prev => prev.map(v => v === oldValue ? finalVal : v));
+        if (formData.from === oldValue) setFormData(prev => ({ ...prev, from: finalVal }));
+      } else if (type === 'to') {
+        const { error } = await supabase.from('truck_reports').update({ to_location: finalVal }).eq('to_location', oldValue);
+        if (error) throw error;
+        setExtraToOptions(prev => prev.map(v => v === oldValue ? finalVal : v));
+        if (formData.to === oldValue) setFormData(prev => ({ ...prev, to: finalVal }));
+      } else if (type === 'party') {
+        const { error } = await supabase.from('truck_reports').update({ party_name: finalVal }).eq('party_name', oldValue);
+        if (error) throw error;
+        setExtraPartyOptions(prev => prev.map(v => v === oldValue ? finalVal : v));
+        if (formData.partyName === oldValue) setFormData(prev => ({ ...prev, partyName: finalVal }));
+      } else if (type === 'doparty') {
+        const { error } = await supabase.from('truck_reports').update({ do_party_name: finalVal }).eq('do_party_name', oldValue);
+        if (error) throw error;
+        setExtraDoPartyOptions(prev => prev.map(v => v === oldValue ? finalVal : v));
+        if (formData.doPartyName === oldValue) setFormData(prev => ({ ...prev, doPartyName: finalVal }));
+      } else if (type === 'diesel') {
+        const { error } = await supabase.from('truck_reports').update({ diesel: finalVal }).eq('diesel', oldValue);
+        if (error) throw error;
+        setExtraDieselOptions(prev => prev.map(v => v === oldValue ? finalVal : v));
+        if (formData.diesel === oldValue) setFormData(prev => ({ ...prev, diesel: finalVal }));
+      } else if (type === 'advance') {
+        const { error } = await supabase.from('truck_reports').update({ advance: Number(finalVal) || 0 }).eq('advance', Number(oldValue) || 0);
+        if (error) throw error;
+        setExtraAdvanceOptions(prev => prev.map(v => v === oldValue ? finalVal : v));
+        if (formData.advance === oldValue) setFormData(prev => ({ ...prev, advance: finalVal }));
+      }
+
+      toast.success(`Updated "${oldValue}" to "${finalVal}"`);
+      await fetchReports();
+    } catch (err) {
+      console.error('Error updating option:', err);
+      toast.error('Failed to update option');
+    }
+  };
+
+  // Helper to delete an option from dropdown (clears from previous records or removes added option)
+  const handleDeleteOption = async (type, valToDelete) => {
+    if (!window.confirm(`Are you sure you want to delete "${valToDelete}" from options?`)) return;
+
+    try {
+      if (type === 'from') {
+        const { error } = await supabase.from('truck_reports').update({ from_location: '' }).eq('from_location', valToDelete);
+        if (error) throw error;
+        setExtraFromOptions(prev => prev.filter(v => v !== valToDelete));
+        if (formData.from === valToDelete) setFormData(prev => ({ ...prev, from: '' }));
+      } else if (type === 'to') {
+        const { error } = await supabase.from('truck_reports').update({ to_location: '' }).eq('to_location', valToDelete);
+        if (error) throw error;
+        setExtraToOptions(prev => prev.filter(v => v !== valToDelete));
+        if (formData.to === valToDelete) setFormData(prev => ({ ...prev, to: '' }));
+      } else if (type === 'party') {
+        const { error } = await supabase.from('truck_reports').update({ party_name: '' }).eq('party_name', valToDelete);
+        if (error) throw error;
+        setExtraPartyOptions(prev => prev.filter(v => v !== valToDelete));
+        if (formData.partyName === valToDelete) setFormData(prev => ({ ...prev, partyName: '' }));
+      } else if (type === 'doparty') {
+        const { error } = await supabase.from('truck_reports').update({ do_party_name: '' }).eq('do_party_name', valToDelete);
+        if (error) throw error;
+        setExtraDoPartyOptions(prev => prev.filter(v => v !== valToDelete));
+        if (formData.doPartyName === valToDelete) setFormData(prev => ({ ...prev, doPartyName: '' }));
+      } else if (type === 'diesel') {
+        const { error } = await supabase.from('truck_reports').update({ diesel: '' }).eq('diesel', valToDelete);
+        if (error) throw error;
+        setExtraDieselOptions(prev => prev.filter(v => v !== valToDelete));
+        if (formData.diesel === valToDelete) setFormData(prev => ({ ...prev, diesel: '' }));
+      } else if (type === 'advance') {
+        const { error } = await supabase.from('truck_reports').update({ advance: 0 }).eq('advance', Number(valToDelete) || 0);
+        if (error) throw error;
+        setExtraAdvanceOptions(prev => prev.filter(v => v !== valToDelete));
+        if (formData.advance === valToDelete) setFormData(prev => ({ ...prev, advance: '' }));
+      }
+
+      toast.success(`Deleted "${valToDelete}"`);
+      await fetchReports();
+    } catch (err) {
+      console.error('Error deleting option:', err);
+      toast.error('Failed to delete option');
+    }
+  };
+
+  // Generic Editable Option component for react-select
+  const makeCustomOption = (type) => (props) => {
+    return (
+      <components.Option {...props}>
+        <div className="flex items-center justify-between w-full py-0.5">
+          <span className="truncate pr-2 font-medium">{props.label}</span>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              title="Edit value"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleRenameOption(type, props.value);
+              }}
+              className="p-1 text-slate-500 hover:text-blue-600 bg-slate-100 hover:bg-blue-100 rounded-md transition-colors"
+            >
+              <Edit2 size={13} />
+            </button>
+            <button
+              type="button"
+              title="Delete value"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleDeleteOption(type, props.value);
+              }}
+              className="p-1 text-slate-500 hover:text-rose-600 bg-slate-100 hover:bg-rose-100 rounded-md transition-colors"
+            >
+              <Trash2 size={13} />
+            </button>
+          </div>
+        </div>
+      </components.Option>
+    );
+  };
+
+  const FromOptionComponent = useMemo(() => makeCustomOption('from'), [reportsData, extraFromOptions]);
+  const ToOptionComponent = useMemo(() => makeCustomOption('to'), [reportsData, extraToOptions]);
+  const PartyOptionComponent = useMemo(() => makeCustomOption('party'), [reportsData, extraPartyOptions]);
+  const DoPartyOptionComponent = useMemo(() => makeCustomOption('doparty'), [reportsData, extraDoPartyOptions]);
+  const DieselOptionComponent = useMemo(() => makeCustomOption('diesel'), [reportsData, extraDieselOptions]);
+  const AdvanceOptionComponent = useMemo(() => makeCustomOption('advance'), [reportsData, extraAdvanceOptions]);
+
   const uniqueFromLocations = [...new Set([...reportsData.map(r => r.from), ...extraFromOptions])].filter(Boolean);
   const fromOptions = uniqueFromLocations.map(loc => ({ label: loc, value: loc }));
 
@@ -426,10 +562,17 @@ export default function TruckReports() {
     const currentDate = new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
     doc.text(`Generated on: ${currentDate}`, 14, 28);
 
-    const tableColumn = ["S.No", "Date", "Vehicle No", "From", "To", "Dist.", "Diesel", "Advance", "DO No", "Tonnage", "Freight", "Trips", "Per MT", "Balance"];
+    const tableColumn = ["S.No", "Date", "Vehicle No", "From", "To", "Dist.", "Diesel", "Price", "Total Diesel Price", "Advance", "DO No", "Tonnage", "Freight", "Trips", "Per MT", "Balance"];
     const tableRows = [];
     filteredData.forEach(row => {
-      tableRows.push([row.sNo, row.date, row.vehicleNo, row.from, row.to, row.distance, row.diesel, row.advance, row.doNo, row.tonnage, row.totalFreight, row.totalTrips, row.perMT, row.vehicleBalance]);
+      const dL = parseFloat(String(row.diesel || '').replace(/[^0-9.]/g, '')) || 0;
+      const dP = parseFloat(row.dieselPrice) || 0;
+      const totalDieselCost = Math.round(dL * dP);
+      tableRows.push([
+        row.sNo, row.date, row.vehicleNo, row.from, row.to, row.distance, 
+        row.diesel, row.dieselPrice, totalDieselCost, row.advance, row.doNo, 
+        row.tonnage, row.totalFreight, row.totalTrips, row.perMT, row.vehicleBalance
+      ]);
     });
 
     autoTable(doc, { 
@@ -724,11 +867,11 @@ export default function TruckReports() {
                 <th className="py-3.5 px-3.5 text-center whitespace-nowrap">S.No</th>
                 <th className="py-3.5 px-3.5 whitespace-nowrap">Date</th>
                 <th className="py-3.5 px-3.5 whitespace-nowrap">Vehicle No.</th>
-                <th className="py-3.5 px-3.5 whitespace-nowrap">Party Name</th>
                 <th className="py-3.5 px-3.5 whitespace-nowrap">Route (From ➔ To)</th>
                 <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Dist.</th>
                 <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Diesel</th>
                 <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Price</th>
+                <th className="py-3.5 px-3.5 text-right whitespace-nowrap text-purple-700">Total Diesel Price</th>
                 <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Advance</th>
                 <th className="py-3.5 px-3.5 whitespace-nowrap">DO No.</th>
                 <th className="py-3.5 px-3.5 whitespace-nowrap">DO Party</th>
@@ -742,91 +885,97 @@ export default function TruckReports() {
             </thead>
             <tbody className="divide-y divide-slate-100 bg-white text-sm text-slate-700">
               {displayedData.length > 0 ? (
-                displayedData.map((row, index) => (
-                  <tr 
-                    key={row.id || index} 
-                    className="hover:bg-slate-50/80 transition-colors group"
-                  >
-                    <td className="py-3.5 px-3.5 text-center font-bold text-slate-400">
-                      {row.sNo}
-                    </td>
-                    <td className="py-3.5 px-3.5 font-semibold text-slate-700 whitespace-nowrap">
-                      {row.date}
-                    </td>
-                    <td className="py-3.5 px-3.5 whitespace-nowrap">
-                      <span className="inline-block px-3 py-1 bg-blue-50 text-blue-700 border border-blue-200/90 rounded-lg font-black font-mono tracking-wider text-xs shadow-2xs">
-                        {row.vehicleNo?.toUpperCase().includes('CG') ? row.vehicleNo : `CG-10-CG ${row.vehicleNo}`}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-3.5 font-bold text-slate-800 whitespace-nowrap">
-                      {row.partyName || '—'}
-                    </td>
-                    <td className="py-3.5 px-3.5 whitespace-nowrap font-medium">
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 text-xs font-bold">
-                        <span>{row.from}</span>
-                        <ArrowRight size={12} className="text-red-500 shrink-0" />
-                        <span>{row.to}</span>
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-3.5 text-right font-bold text-slate-700 whitespace-nowrap">
-                      {row.distance || '—'}
-                    </td>
-                    <td className="py-3.5 px-3.5 text-right font-black text-purple-700 whitespace-nowrap">
-                      {row.diesel ? `${row.diesel} L` : '—'}
-                    </td>
-                    <td className="py-3.5 px-3.5 text-right font-semibold text-slate-500 whitespace-nowrap">
-                      ₹{row.dieselPrice || 0}
-                    </td>
-                    <td className="py-3.5 px-3.5 text-right font-black text-amber-600 whitespace-nowrap">
-                      ₹{row.advance ? Number(row.advance).toLocaleString('en-IN') : 0}
-                    </td>
-                    <td className="py-3.5 px-3.5 whitespace-nowrap font-mono font-bold text-slate-700">
-                      {row.doNo ? (
-                        <span className="bg-slate-100 border border-slate-200/70 px-2.5 py-0.5 rounded text-xs">
-                          {row.doNo}
+                displayedData.map((row, index) => {
+                  const dieselNum = parseFloat(String(row.diesel || '').replace(/[^0-9.]/g, '')) || 0;
+                  const dieselPriceNum = parseFloat(row.dieselPrice) || 0;
+                  const totalDieselPrice = Math.round(dieselNum * dieselPriceNum);
+
+                  return (
+                    <tr 
+                      key={row.id || index} 
+                      className="hover:bg-slate-50/80 transition-colors group"
+                    >
+                      <td className="py-3.5 px-3.5 text-center font-bold text-slate-400">
+                        {row.sNo}
+                      </td>
+                      <td className="py-3.5 px-3.5 font-semibold text-slate-700 whitespace-nowrap">
+                        {row.date}
+                      </td>
+                      <td className="py-3.5 px-3.5 whitespace-nowrap">
+                        <span className="inline-block px-3 py-1 bg-blue-50 text-blue-700 border border-blue-200/90 rounded-lg font-black font-mono tracking-wider text-xs shadow-2xs">
+                          {row.vehicleNo?.toUpperCase().includes('CG') ? row.vehicleNo : `CG-10-CG ${row.vehicleNo}`}
                         </span>
-                      ) : '—'}
-                    </td>
-                    <td className="py-3.5 px-3.5 whitespace-nowrap font-medium text-slate-600">
-                      {row.doPartyName || '—'}
-                    </td>
-                    <td className="py-3.5 px-3.5 text-right font-bold text-slate-800 whitespace-nowrap">
-                      {row.tonnage ? `${row.tonnage} MT` : '—'}
-                    </td>
-                    <td className="py-3.5 px-3.5 text-right font-black text-emerald-700 whitespace-nowrap">
-                      ₹{row.totalFreight ? Number(row.totalFreight).toLocaleString('en-IN') : 0}
-                    </td>
-                    <td className="py-3.5 px-3.5 text-center font-bold text-slate-800 whitespace-nowrap">
-                      {row.totalTrips || 1}
-                    </td>
-                    <td className="py-3.5 px-3.5 text-right font-semibold text-slate-600 whitespace-nowrap">
-                      ₹{row.perMT || 0}
-                    </td>
-                    <td className="py-3.5 px-3.5 text-right font-black whitespace-nowrap">
-                      <span className={Number(row.vehicleBalance) >= 0 ? "text-emerald-600" : "text-rose-600"}>
-                        ₹{row.vehicleBalance ? Number(row.vehicleBalance).toLocaleString('en-IN') : 0}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                      <div className="inline-flex items-center gap-1.5">
-                        <button 
-                          onClick={() => handleEditReport(row)}
-                          className="p-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white transition-colors cursor-pointer"
-                          title="Edit trip report"
-                        >
-                          <Edit2 size={14} />
-                        </button>
-                        <button 
-                          onClick={() => handleDeleteReport(row.sNo)}
-                          className="p-1.5 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-600 hover:text-white transition-colors cursor-pointer"
-                          title="Delete trip report"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                      <td className="py-3.5 px-3.5 whitespace-nowrap font-medium">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 text-xs font-bold">
+                          <span>{row.from}</span>
+                          <ArrowRight size={12} className="text-red-500 shrink-0" />
+                          <span>{row.to}</span>
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-3.5 text-right font-bold text-slate-700 whitespace-nowrap">
+                        {row.distance || '—'}
+                      </td>
+                      <td className="py-3.5 px-3.5 text-right font-black text-purple-700 whitespace-nowrap">
+                        {row.diesel ? `${row.diesel} L` : '—'}
+                      </td>
+                      <td className="py-3.5 px-3.5 text-right font-semibold text-slate-500 whitespace-nowrap">
+                        ₹{row.dieselPrice || 0}
+                      </td>
+                      <td className="py-3.5 px-3.5 text-right font-black text-purple-700 whitespace-nowrap bg-purple-50/30">
+                        {totalDieselPrice > 0 ? `₹${totalDieselPrice.toLocaleString('en-IN')}` : '₹0'}
+                      </td>
+                      <td className="py-3.5 px-3.5 text-right font-black text-amber-600 whitespace-nowrap">
+                        ₹{row.advance ? Number(row.advance).toLocaleString('en-IN') : 0}
+                      </td>
+                      <td className="py-3.5 px-3.5 whitespace-nowrap font-mono font-bold text-slate-700">
+                        {row.doNo ? (
+                          <span className="bg-slate-100 border border-slate-200/70 px-2.5 py-0.5 rounded text-xs">
+                            {row.doNo}
+                          </span>
+                        ) : '—'}
+                      </td>
+                      <td className="py-3.5 px-3.5 whitespace-nowrap font-medium text-slate-600">
+                        {row.doPartyName || '—'}
+                      </td>
+                      <td className="py-3.5 px-3.5 text-right font-bold text-slate-800 whitespace-nowrap">
+                        {row.tonnage ? `${row.tonnage} MT` : '—'}
+                      </td>
+                      <td className="py-3.5 px-3.5 text-right font-black text-emerald-700 whitespace-nowrap">
+                        ₹{row.totalFreight ? Number(row.totalFreight).toLocaleString('en-IN') : 0}
+                      </td>
+                      <td className="py-3.5 px-3.5 text-center font-bold text-slate-800 whitespace-nowrap">
+                        {row.totalTrips || 1}
+                      </td>
+                      <td className="py-3.5 px-3.5 text-right font-semibold text-slate-600 whitespace-nowrap">
+                        ₹{row.perMT || 0}
+                      </td>
+                      <td className="py-3.5 px-3.5 text-right font-black whitespace-nowrap">
+                        <span className={Number(row.vehicleBalance) >= 0 ? "text-emerald-600" : "text-rose-600"}>
+                          ₹{row.vehicleBalance ? Number(row.vehicleBalance).toLocaleString('en-IN') : 0}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                        <div className="inline-flex items-center gap-1.5">
+                          <button 
+                            onClick={() => handleEditReport(row)}
+                            className="p-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white transition-colors cursor-pointer"
+                            title="Edit trip report"
+                          >
+                            <Edit2 size={14} />
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteReport(row.sNo)}
+                            className="p-1.5 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-600 hover:text-white transition-colors cursor-pointer"
+                            title="Delete trip report"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
                   <td colSpan={17} className="py-12 text-center text-slate-400">
@@ -907,20 +1056,12 @@ export default function TruckReports() {
                   </div>
 
                   {/* Parties Info */}
-                  {(row.partyName || row.doPartyName) && (
-                    <div className="pt-1.5 border-t border-slate-200/60 flex items-center justify-between gap-2 text-xs">
-                      {row.partyName && (
-                        <div className="truncate">
-                          <span className="text-slate-400 text-[11px] font-medium">Party: </span>
-                          <span className="font-bold text-slate-700">{row.partyName}</span>
-                        </div>
-                      )}
-                      {row.doPartyName && (
-                        <div className="truncate text-right">
-                          <span className="text-slate-400 text-[11px] font-medium">DO Party: </span>
-                          <span className="font-bold text-slate-700">{row.doPartyName}</span>
-                        </div>
-                      )}
+                  {row.doPartyName && (
+                    <div className="pt-1.5 border-t border-slate-200/60 flex items-center justify-end gap-2 text-xs">
+                      <div className="truncate text-right">
+                        <span className="text-slate-400 text-[11px] font-medium">DO Party: </span>
+                        <span className="font-bold text-slate-700">{row.doPartyName}</span>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -945,9 +1086,22 @@ export default function TruckReports() {
 
                   {/* Diesel */}
                   <div className="bg-purple-50/50 p-2.5 rounded-xl border border-purple-100/80 shadow-2xs">
-                    <span className="text-[10px] font-bold text-purple-700 uppercase tracking-wider block">Diesel Issued</span>
+                    <span className="text-[10px] font-bold text-purple-700 uppercase tracking-wider block">Diesel (L × Rate)</span>
                     <span className="font-mono font-black text-purple-700 text-sm mt-0.5 block truncate">
-                      {row.diesel ? `${row.diesel} L` : '—'}
+                      {row.diesel ? `${row.diesel} L` : '—'} <span className="text-[11px] font-normal text-slate-500">(@ ₹{row.dieselPrice || 0})</span>
+                    </span>
+                  </div>
+
+                  {/* Total Diesel Price */}
+                  <div className="bg-purple-50/80 p-2.5 rounded-xl border border-purple-200/90 shadow-2xs">
+                    <span className="text-[10px] font-bold text-purple-800 uppercase tracking-wider block">Total Diesel Price</span>
+                    <span className="font-mono font-black text-purple-800 text-sm mt-0.5 block truncate">
+                      {(() => {
+                        const dL = parseFloat(String(row.diesel || '').replace(/[^0-9.]/g, '')) || 0;
+                        const dP = parseFloat(row.dieselPrice) || 0;
+                        const total = Math.round(dL * dP);
+                        return total > 0 ? `₹ ${total.toLocaleString('en-IN')}` : '₹ 0';
+                      })()}
                     </span>
                   </div>
 
@@ -1082,7 +1236,7 @@ export default function TruckReports() {
                     value={formData.from ? { label: formData.from, value: formData.from } : null}
                     onChange={(newValue) => handleInputChange({ target: { name: 'from', value: newValue ? newValue.value : '' } })}
                     placeholder="Select Origin..."
-                    components={{ MenuList: CustomMenuList }}
+                    components={{ MenuList: CustomMenuList, Option: FromOptionComponent }}
                     styles={{
                       control: (base) => ({
                         ...base,
@@ -1106,7 +1260,7 @@ export default function TruckReports() {
                     value={formData.to ? { label: formData.to, value: formData.to } : null}
                     onChange={(newValue) => handleInputChange({ target: { name: 'to', value: newValue ? newValue.value : '' } })}
                     placeholder="Select Destination..."
-                    components={{ MenuList: ToMenuList }}
+                    components={{ MenuList: ToMenuList, Option: ToOptionComponent }}
                     styles={{
                       control: (base) => ({
                         ...base,
@@ -1135,30 +1289,6 @@ export default function TruckReports() {
                   />
                 </div>
 
-                {/* Party Name */}
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-600 uppercase">Party Name</label>
-                  <Select
-                    isClearable
-                    options={partyOptions}
-                    value={formData.partyName ? { label: formData.partyName, value: formData.partyName } : null}
-                    onChange={(newValue) => handleInputChange({ target: { name: 'partyName', value: newValue ? newValue.value : '' } })}
-                    placeholder="Select Party..."
-                    components={{ MenuList: PartyMenuList }}
-                    styles={{
-                      control: (base) => ({
-                        ...base,
-                        padding: '2px',
-                        borderRadius: '12px',
-                        border: '1px solid #e2e8f0',
-                        fontSize: '14px',
-                        '&:hover': { borderColor: '#cbd5e1' }
-                      }),
-                      menu: (base) => ({ ...base, zIndex: 9999 })
-                    }}
-                  />
-                </div>
-
                 {/* Diesel Liter */}
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-600 uppercase">Diesel (L)</label>
@@ -1168,7 +1298,7 @@ export default function TruckReports() {
                     value={formData.diesel ? { label: formData.diesel, value: formData.diesel } : null}
                     onChange={(newValue) => handleInputChange({ target: { name: 'diesel', value: newValue ? newValue.value : '' } })}
                     placeholder="Select or enter liters..."
-                    components={{ MenuList: DieselMenuList }}
+                    components={{ MenuList: DieselMenuList, Option: DieselOptionComponent }}
                     styles={{
                       control: (base) => ({
                         ...base,
@@ -1196,6 +1326,24 @@ export default function TruckReports() {
                   />
                 </div>
 
+                {/* Total Diesel Cost (Calculated) */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-purple-700 uppercase">Total Diesel Price (₹)</label>
+                  <input 
+                    type="text" 
+                    readOnly
+                    value={
+                      (() => {
+                        const dL = parseFloat(String(formData.diesel || '').replace(/[^0-9.]/g, '')) || 0;
+                        const dP = parseFloat(formData.dieselPrice) || 0;
+                        return (dL > 0 && dP > 0) ? `₹${Math.round(dL * dP).toLocaleString('en-IN')}` : '';
+                      })()
+                    }
+                    placeholder="Auto (Diesel L × Price)" 
+                    className="w-full px-3.5 py-2.5 bg-purple-50 border border-purple-200 rounded-xl text-sm font-black text-purple-800 outline-none shadow-2xs"
+                  />
+                </div>
+
                 {/* Advance */}
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-600 uppercase">Advance (₹)</label>
@@ -1205,7 +1353,7 @@ export default function TruckReports() {
                     value={formData.advance ? { label: formData.advance, value: formData.advance } : null}
                     onChange={(newValue) => handleInputChange({ target: { name: 'advance', value: newValue ? newValue.value : '' } })}
                     placeholder="Select advance..."
-                    components={{ MenuList: AdvanceMenuList }}
+                    components={{ MenuList: AdvanceMenuList, Option: AdvanceOptionComponent }}
                     styles={{
                       control: (base) => ({
                         ...base,
@@ -1243,7 +1391,7 @@ export default function TruckReports() {
                     value={formData.doPartyName ? { label: formData.doPartyName, value: formData.doPartyName } : null}
                     onChange={(newValue) => handleInputChange({ target: { name: 'doPartyName', value: newValue ? newValue.value : '' } })}
                     placeholder="Select DO Party..."
-                    components={{ MenuList: DoPartyMenuList }}
+                    components={{ MenuList: DoPartyMenuList, Option: DoPartyOptionComponent }}
                     styles={{
                       control: (base) => ({
                         ...base,

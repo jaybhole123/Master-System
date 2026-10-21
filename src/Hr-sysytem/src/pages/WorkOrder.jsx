@@ -454,26 +454,26 @@ const WorkOrder = () => {
             </div>
 
             {/* Document Header */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', marginBottom: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '85px', marginBottom: '15px', position: 'relative' }}>
               {activeFirm.logo && (
-                <img src={activeFirm.logo} alt={activeFirm.name} style={{ height: '85px', width: 'auto', borderRadius: '4px', position: 'absolute', left: 0 }} />
+                <div style={{ position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', zIndex: 10 }}>
+                  <img src={activeFirm.logo} alt={activeFirm.name} style={{ height: '70px', maxWidth: '160px', objectFit: 'contain' }} />
+                </div>
               )}
               <h1 style={{ 
-                fontSize: '2.5rem', 
+                fontSize: activeFirm.name.length > 20 ? '2.1rem' : '2.4rem', 
                 fontWeight: 'bold', 
                 margin: 0, 
                 color: activeFirm.textColor,
                 fontFamily: '"Baloo 2", "Comic Sans MS", sans-serif',
                 textAlign: 'center',
-                flex: 1
+                width: '100%',
+                paddingLeft: activeFirm.logo ? '160px' : '0',
+                paddingRight: activeFirm.logo ? '160px' : '0',
+                boxSizing: 'border-box',
+                whiteSpace: 'nowrap'
               }}>
-                {activeFirm.name.split('').map((char, index) => 
-                  (char === 'i' || char === 'I') ? (
-                    <span key={index} style={{ margin: '0 2px' }}>i</span>
-                  ) : (
-                    char
-                  )
-                )}
+                {activeFirm.name}
               </h1>
             </div>
 
