@@ -28,6 +28,11 @@ export default function TruckReports() {
   const [extraPartyOptions, setExtraPartyOptions] = useState([]);
   const [extraDoPartyOptions, setExtraDoPartyOptions] = useState([]);
   const [extraDoNoOptions, setExtraDoNoOptions] = useState([]);
+  const [extraDistanceOptions, setExtraDistanceOptions] = useState([]);
+  const [extraDieselPriceOptions, setExtraDieselPriceOptions] = useState([]);
+  const [extraTripsOptions, setExtraTripsOptions] = useState([]);
+  const [extraPerMTOptions, setExtraPerMTOptions] = useState([]);
+  const [extraTonnageOptions, setExtraTonnageOptions] = useState([]);
   const [promptModal, setPromptModal] = useState({ isOpen: false, type: null, title: '', placeholder: '' });
   const [promptValue, setPromptValue] = useState('');
   const [visibleCount, setVisibleCount] = useState(50);
@@ -357,6 +362,31 @@ export default function TruckReports() {
         if (error) throw error;
         setExtraDoNoOptions(prev => prev.map(v => v === oldValue ? finalVal : v));
         if (formData.doNo === oldValue) setFormData(prev => ({ ...prev, doNo: finalVal }));
+      } else if (type === 'distance') {
+        const { error } = await supabase.from('truck_reports').update({ distance: finalVal }).eq('distance', oldValue);
+        if (error) throw error;
+        setExtraDistanceOptions(prev => prev.map(v => v === oldValue ? finalVal : v));
+        if (formData.distance === oldValue) setFormData(prev => ({ ...prev, distance: finalVal }));
+      } else if (type === 'dieselPrice') {
+        const { error } = await supabase.from('truck_reports').update({ diesel_price: Number(finalVal) || 0 }).eq('diesel_price', Number(oldValue) || 0);
+        if (error) throw error;
+        setExtraDieselPriceOptions(prev => prev.map(v => v === oldValue ? finalVal : v));
+        if (String(formData.dieselPrice) === String(oldValue)) handleInputChange({ target: { name: 'dieselPrice', value: finalVal } });
+      } else if (type === 'trips') {
+        const { error } = await supabase.from('truck_reports').update({ total_trips: Number(finalVal) || 0 }).eq('total_trips', Number(oldValue) || 0);
+        if (error) throw error;
+        setExtraTripsOptions(prev => prev.map(v => v === oldValue ? finalVal : v));
+        if (String(formData.totalTrips) === String(oldValue)) handleInputChange({ target: { name: 'totalTrips', value: finalVal } });
+      } else if (type === 'perMT') {
+        const { error } = await supabase.from('truck_reports').update({ per_mt: Number(finalVal) || 0 }).eq('per_mt', Number(oldValue) || 0);
+        if (error) throw error;
+        setExtraPerMTOptions(prev => prev.map(v => v === oldValue ? finalVal : v));
+        if (String(formData.perMT) === String(oldValue)) handleInputChange({ target: { name: 'perMT', value: finalVal } });
+      } else if (type === 'tonnage') {
+        const { error } = await supabase.from('truck_reports').update({ tonnage: Number(finalVal) || 0 }).eq('tonnage', Number(oldValue) || 0);
+        if (error) throw error;
+        setExtraTonnageOptions(prev => prev.map(v => v === oldValue ? finalVal : v));
+        if (String(formData.tonnage) === String(oldValue)) handleInputChange({ target: { name: 'tonnage', value: finalVal } });
       }
 
       toast.success(`Updated "${oldValue}" to "${finalVal}"`);
@@ -407,6 +437,31 @@ export default function TruckReports() {
         if (error) throw error;
         setExtraDoNoOptions(prev => prev.filter(v => v !== valToDelete));
         if (formData.doNo === valToDelete) setFormData(prev => ({ ...prev, doNo: '' }));
+      } else if (type === 'distance') {
+        const { error } = await supabase.from('truck_reports').update({ distance: '' }).eq('distance', valToDelete);
+        if (error) throw error;
+        setExtraDistanceOptions(prev => prev.filter(v => v !== valToDelete));
+        if (formData.distance === valToDelete) setFormData(prev => ({ ...prev, distance: '' }));
+      } else if (type === 'dieselPrice') {
+        const { error } = await supabase.from('truck_reports').update({ diesel_price: 0 }).eq('diesel_price', Number(valToDelete) || 0);
+        if (error) throw error;
+        setExtraDieselPriceOptions(prev => prev.filter(v => v !== valToDelete));
+        if (String(formData.dieselPrice) === String(valToDelete)) handleInputChange({ target: { name: 'dieselPrice', value: '' } });
+      } else if (type === 'trips') {
+        const { error } = await supabase.from('truck_reports').update({ total_trips: 0 }).eq('total_trips', Number(valToDelete) || 0);
+        if (error) throw error;
+        setExtraTripsOptions(prev => prev.filter(v => v !== valToDelete));
+        if (String(formData.totalTrips) === String(valToDelete)) handleInputChange({ target: { name: 'totalTrips', value: '' } });
+      } else if (type === 'perMT') {
+        const { error } = await supabase.from('truck_reports').update({ per_mt: 0 }).eq('per_mt', Number(valToDelete) || 0);
+        if (error) throw error;
+        setExtraPerMTOptions(prev => prev.filter(v => v !== valToDelete));
+        if (String(formData.perMT) === String(valToDelete)) handleInputChange({ target: { name: 'perMT', value: '' } });
+      } else if (type === 'tonnage') {
+        const { error } = await supabase.from('truck_reports').update({ tonnage: 0 }).eq('tonnage', Number(valToDelete) || 0);
+        if (error) throw error;
+        setExtraTonnageOptions(prev => prev.filter(v => v !== valToDelete));
+        if (String(formData.tonnage) === String(valToDelete)) handleInputChange({ target: { name: 'tonnage', value: '' } });
       }
 
       toast.success(`Deleted "${valToDelete}"`);
@@ -644,6 +699,135 @@ export default function TruckReports() {
       </components.MenuList>
     );
   };
+
+  // Distance Dropdown
+  const DistanceOptionComponent = useMemo(() => makeCustomOption('distance'), [reportsData, extraDistanceOptions]);
+  const uniqueDistancesList = [...new Set([...reportsData.map(item => item.distance), ...extraDistanceOptions])]
+    .filter(Boolean)
+    .sort((a, b) => {
+      const numA = parseFloat(String(a).replace(/[^0-9.]/g, '')) || 0;
+      const numB = parseFloat(String(b).replace(/[^0-9.]/g, '')) || 0;
+      return numA !== numB ? numA - numB : String(a).localeCompare(String(b));
+    });
+  const distanceOptions = uniqueDistancesList.map(d => ({ label: String(d), value: String(d) }));
+
+  const DistanceMenuList = (props) => (
+    <components.MenuList {...props}>
+      {props.children}
+      <div 
+        className="p-2.5 border-t border-slate-100 text-red-600 font-bold text-xs flex items-center gap-2 bg-slate-50 hover:bg-red-50 cursor-pointer transition-colors"
+        onMouseDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setPromptModal({ isOpen: true, type: 'distance', title: 'Enter new Distance', placeholder: 'e.g. 58 km' });
+          setPromptValue('');
+        }}
+      >
+        <Plus size={14} />
+        Add New Distance
+      </div>
+    </components.MenuList>
+  );
+
+  // Diesel Price Dropdown
+  const DieselPriceOptionComponent = useMemo(() => makeCustomOption('dieselPrice'), [reportsData, extraDieselPriceOptions]);
+  const uniqueDieselPricesList = [...new Set([...reportsData.map(item => item.dieselPrice ? String(item.dieselPrice) : null), ...extraDieselPriceOptions])]
+    .filter(Boolean)
+    .sort((a, b) => (parseFloat(a) || 0) - (parseFloat(b) || 0));
+  const dieselPriceOptions = uniqueDieselPricesList.map(p => ({ label: `₹${p}`, value: String(p) }));
+
+  const DieselPriceMenuList = (props) => (
+    <components.MenuList {...props}>
+      {props.children}
+      <div 
+        className="p-2.5 border-t border-slate-100 text-red-600 font-bold text-xs flex items-center gap-2 bg-slate-50 hover:bg-red-50 cursor-pointer transition-colors"
+        onMouseDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setPromptModal({ isOpen: true, type: 'dieselPrice', title: 'Enter new Diesel Price (₹/L)', placeholder: 'e.g. 96' });
+          setPromptValue('');
+        }}
+      >
+        <Plus size={14} />
+        Add New Diesel Price
+      </div>
+    </components.MenuList>
+  );
+
+  // Total Trips Dropdown
+  const TripsOptionComponent = useMemo(() => makeCustomOption('trips'), [reportsData, extraTripsOptions]);
+  const uniqueTripsList = [...new Set([...reportsData.map(item => item.totalTrips ? String(item.totalTrips) : null), ...extraTripsOptions, '1', '2', '3'])]
+    .filter(Boolean)
+    .sort((a, b) => (parseFloat(a) || 0) - (parseFloat(b) || 0));
+  const tripsOptions = uniqueTripsList.map(t => ({ label: String(t), value: String(t) }));
+
+  const TripsMenuList = (props) => (
+    <components.MenuList {...props}>
+      {props.children}
+      <div 
+        className="p-2.5 border-t border-slate-100 text-red-600 font-bold text-xs flex items-center gap-2 bg-slate-50 hover:bg-red-50 cursor-pointer transition-colors"
+        onMouseDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setPromptModal({ isOpen: true, type: 'trips', title: 'Enter new Total Trips', placeholder: 'e.g. 1' });
+          setPromptValue('');
+        }}
+      >
+        <Plus size={14} />
+        Add New Total Trips
+      </div>
+    </components.MenuList>
+  );
+
+  // Rate Per MT Dropdown
+  const PerMTOptionComponent = useMemo(() => makeCustomOption('perMT'), [reportsData, extraPerMTOptions]);
+  const uniquePerMTList = [...new Set([...reportsData.map(item => item.perMT ? String(item.perMT) : null), ...extraPerMTOptions])]
+    .filter(Boolean)
+    .sort((a, b) => (parseFloat(a) || 0) - (parseFloat(b) || 0));
+  const perMTOptions = uniquePerMTList.map(m => ({ label: `₹${m}`, value: String(m) }));
+
+  const PerMTMenuList = (props) => (
+    <components.MenuList {...props}>
+      {props.children}
+      <div 
+        className="p-2.5 border-t border-slate-100 text-red-600 font-bold text-xs flex items-center gap-2 bg-slate-50 hover:bg-red-50 cursor-pointer transition-colors"
+        onMouseDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setPromptModal({ isOpen: true, type: 'perMT', title: 'Enter new Rate Per MT (₹)', placeholder: 'e.g. 1200' });
+          setPromptValue('');
+        }}
+      >
+        <Plus size={14} />
+        Add New Rate Per MT
+      </div>
+    </components.MenuList>
+  );
+
+  // Tonnage Dropdown
+  const TonnageOptionComponent = useMemo(() => makeCustomOption('tonnage'), [reportsData, extraTonnageOptions]);
+  const uniqueTonnageList = [...new Set([...reportsData.map(item => item.tonnage ? String(item.tonnage) : null), ...extraTonnageOptions])]
+    .filter(Boolean)
+    .sort((a, b) => (parseFloat(a) || 0) - (parseFloat(b) || 0));
+  const tonnageOptions = uniqueTonnageList.map(tn => ({ label: `${tn} MT`, value: String(tn) }));
+
+  const TonnageMenuList = (props) => (
+    <components.MenuList {...props}>
+      {props.children}
+      <div 
+        className="p-2.5 border-t border-slate-100 text-red-600 font-bold text-xs flex items-center gap-2 bg-slate-50 hover:bg-red-50 cursor-pointer transition-colors"
+        onMouseDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setPromptModal({ isOpen: true, type: 'tonnage', title: 'Enter new Tonnage (MT)', placeholder: 'e.g. 35' });
+          setPromptValue('');
+        }}
+      >
+        <Plus size={14} />
+        Add New Tonnage
+      </div>
+    </components.MenuList>
+  );
 
   // Export functions
   const exportToPDF = () => {
@@ -1394,14 +1578,24 @@ export default function TruckReports() {
                 {/* Distance */}
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-600 uppercase">Distance (KM) *</label>
-                  <input 
-                    type="text" 
-                    name="distance" 
-                    value={formData.distance} 
-                    onChange={handleInputChange} 
-                    placeholder="e.g. 58 km" 
-                    required 
-                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all shadow-2xs"
+                  <Select
+                    isClearable
+                    options={distanceOptions}
+                    value={formData.distance ? { label: formData.distance, value: formData.distance } : null}
+                    onChange={(newValue) => handleInputChange({ target: { name: 'distance', value: newValue ? newValue.value : '' } })}
+                    placeholder="Select or enter distance..."
+                    components={{ MenuList: DistanceMenuList, Option: DistanceOptionComponent }}
+                    styles={{
+                      control: (base) => ({
+                        ...base,
+                        padding: '2px',
+                        borderRadius: '12px',
+                        border: '1px solid #e2e8f0',
+                        fontSize: '14px',
+                        '&:hover': { borderColor: '#cbd5e1' }
+                      }),
+                      menu: (base) => ({ ...base, zIndex: 9999 })
+                    }}
                   />
                 </div>
 
@@ -1432,13 +1626,24 @@ export default function TruckReports() {
                 {/* Diesel Price */}
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-600 uppercase">Diesel Price (₹/L)</label>
-                  <input 
-                    type="number" 
-                    name="dieselPrice" 
-                    value={formData.dieselPrice} 
-                    onChange={handleInputChange} 
-                    placeholder="e.g. 96" 
-                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all shadow-2xs"
+                  <Select
+                    isClearable
+                    options={dieselPriceOptions}
+                    value={formData.dieselPrice ? { label: `₹${formData.dieselPrice}`, value: String(formData.dieselPrice) } : null}
+                    onChange={(newValue) => handleInputChange({ target: { name: 'dieselPrice', value: newValue ? newValue.value : '' } })}
+                    placeholder="Select diesel price..."
+                    components={{ MenuList: DieselPriceMenuList, Option: DieselPriceOptionComponent }}
+                    styles={{
+                      control: (base) => ({
+                        ...base,
+                        padding: '2px',
+                        borderRadius: '12px',
+                        border: '1px solid #e2e8f0',
+                        fontSize: '14px',
+                        '&:hover': { borderColor: '#cbd5e1' }
+                      }),
+                      menu: (base) => ({ ...base, zIndex: 9999 })
+                    }}
                   />
                 </div>
 
@@ -1535,42 +1740,72 @@ export default function TruckReports() {
                 {/* Total Trips */}
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-600 uppercase">Total Trips *</label>
-                  <input 
-                    type="number" 
-                    name="totalTrips" 
-                    value={formData.totalTrips} 
-                    onChange={handleInputChange} 
-                    placeholder="e.g. 1" 
-                    required 
-                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all shadow-2xs"
+                  <Select
+                    isClearable
+                    options={tripsOptions}
+                    value={formData.totalTrips ? { label: String(formData.totalTrips), value: String(formData.totalTrips) } : null}
+                    onChange={(newValue) => handleInputChange({ target: { name: 'totalTrips', value: newValue ? newValue.value : '' } })}
+                    placeholder="Select trips..."
+                    components={{ MenuList: TripsMenuList, Option: TripsOptionComponent }}
+                    styles={{
+                      control: (base) => ({
+                        ...base,
+                        padding: '2px',
+                        borderRadius: '12px',
+                        border: '1px solid #e2e8f0',
+                        fontSize: '14px',
+                        '&:hover': { borderColor: '#cbd5e1' }
+                      }),
+                      menu: (base) => ({ ...base, zIndex: 9999 })
+                    }}
                   />
                 </div>
 
                 {/* Per MT */}
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-600 uppercase">Rate Per MT (₹) *</label>
-                  <input 
-                    type="number" 
-                    name="perMT" 
-                    value={formData.perMT} 
-                    onChange={handleInputChange} 
-                    placeholder="e.g. 1200" 
-                    required 
-                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all shadow-2xs"
+                  <Select
+                    isClearable
+                    options={perMTOptions}
+                    value={formData.perMT ? { label: `₹${formData.perMT}`, value: String(formData.perMT) } : null}
+                    onChange={(newValue) => handleInputChange({ target: { name: 'perMT', value: newValue ? newValue.value : '' } })}
+                    placeholder="Select Rate/MT..."
+                    components={{ MenuList: PerMTMenuList, Option: PerMTOptionComponent }}
+                    styles={{
+                      control: (base) => ({
+                        ...base,
+                        padding: '2px',
+                        borderRadius: '12px',
+                        border: '1px solid #e2e8f0',
+                        fontSize: '14px',
+                        '&:hover': { borderColor: '#cbd5e1' }
+                      }),
+                      menu: (base) => ({ ...base, zIndex: 9999 })
+                    }}
                   />
                 </div>
 
                 {/* Tonnage */}
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-600 uppercase">Tonnage (MT) *</label>
-                  <input 
-                    type="number" 
-                    name="tonnage" 
-                    value={formData.tonnage} 
-                    onChange={handleInputChange} 
-                    placeholder="e.g. 35" 
-                    required 
-                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all shadow-2xs"
+                  <Select
+                    isClearable
+                    options={tonnageOptions}
+                    value={formData.tonnage ? { label: `${formData.tonnage} MT`, value: String(formData.tonnage) } : null}
+                    onChange={(newValue) => handleInputChange({ target: { name: 'tonnage', value: newValue ? newValue.value : '' } })}
+                    placeholder="Select tonnage..."
+                    components={{ MenuList: TonnageMenuList, Option: TonnageOptionComponent }}
+                    styles={{
+                      control: (base) => ({
+                        ...base,
+                        padding: '2px',
+                        borderRadius: '12px',
+                        border: '1px solid #e2e8f0',
+                        fontSize: '14px',
+                        '&:hover': { borderColor: '#cbd5e1' }
+                      }),
+                      menu: (base) => ({ ...base, zIndex: 9999 })
+                    }}
                   />
                 </div>
 
@@ -1705,6 +1940,21 @@ export default function TruckReports() {
                       } else if (promptModal.type === 'dono') {
                         setExtraDoNoOptions(prev => [...prev, val]);
                         handleInputChange({ target: { name: 'doNo', value: val } });
+                      } else if (promptModal.type === 'distance') {
+                        setExtraDistanceOptions(prev => [...prev, val]);
+                        handleInputChange({ target: { name: 'distance', value: val } });
+                      } else if (promptModal.type === 'dieselPrice') {
+                        setExtraDieselPriceOptions(prev => [...prev, val]);
+                        handleInputChange({ target: { name: 'dieselPrice', value: val } });
+                      } else if (promptModal.type === 'trips') {
+                        setExtraTripsOptions(prev => [...prev, val]);
+                        handleInputChange({ target: { name: 'totalTrips', value: val } });
+                      } else if (promptModal.type === 'perMT') {
+                        setExtraPerMTOptions(prev => [...prev, val]);
+                        handleInputChange({ target: { name: 'perMT', value: val } });
+                      } else if (promptModal.type === 'tonnage') {
+                        setExtraTonnageOptions(prev => [...prev, val]);
+                        handleInputChange({ target: { name: 'tonnage', value: val } });
                       }
                     }
                     setPromptModal({ isOpen: false, type: null, title: '', placeholder: '' });
