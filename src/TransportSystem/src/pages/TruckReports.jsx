@@ -27,6 +27,7 @@ export default function TruckReports() {
   const [extraAdvanceOptions, setExtraAdvanceOptions] = useState([]);
   const [extraPartyOptions, setExtraPartyOptions] = useState([]);
   const [extraDoPartyOptions, setExtraDoPartyOptions] = useState([]);
+  const [extraDoNoOptions, setExtraDoNoOptions] = useState([]);
   const [promptModal, setPromptModal] = useState({ isOpen: false, type: null, title: '', placeholder: '' });
   const [promptValue, setPromptValue] = useState('');
   const [visibleCount, setVisibleCount] = useState(50);
@@ -351,6 +352,11 @@ export default function TruckReports() {
         if (error) throw error;
         setExtraAdvanceOptions(prev => prev.map(v => v === oldValue ? finalVal : v));
         if (formData.advance === oldValue) setFormData(prev => ({ ...prev, advance: finalVal }));
+      } else if (type === 'dono') {
+        const { error } = await supabase.from('truck_reports').update({ do_no: finalVal }).eq('do_no', oldValue);
+        if (error) throw error;
+        setExtraDoNoOptions(prev => prev.map(v => v === oldValue ? finalVal : v));
+        if (formData.doNo === oldValue) setFormData(prev => ({ ...prev, doNo: finalVal }));
       }
 
       toast.success(`Updated "${oldValue}" to "${finalVal}"`);
@@ -396,6 +402,11 @@ export default function TruckReports() {
         if (error) throw error;
         setExtraAdvanceOptions(prev => prev.filter(v => v !== valToDelete));
         if (formData.advance === valToDelete) setFormData(prev => ({ ...prev, advance: '' }));
+      } else if (type === 'dono') {
+        const { error } = await supabase.from('truck_reports').update({ do_no: '' }).eq('do_no', valToDelete);
+        if (error) throw error;
+        setExtraDoNoOptions(prev => prev.filter(v => v !== valToDelete));
+        if (formData.doNo === valToDelete) setFormData(prev => ({ ...prev, doNo: '' }));
       }
 
       toast.success(`Deleted "${valToDelete}"`);
@@ -450,7 +461,9 @@ export default function TruckReports() {
   const DieselOptionComponent = useMemo(() => makeCustomOption('diesel'), [reportsData, extraDieselOptions]);
   const AdvanceOptionComponent = useMemo(() => makeCustomOption('advance'), [reportsData, extraAdvanceOptions]);
 
-  const uniqueFromLocations = [...new Set([...reportsData.map(r => r.from), ...extraFromOptions])].filter(Boolean);
+  const uniqueFromLocations = [...new Set([...reportsData.map(r => r.from), ...extraFromOptions])]
+    .filter(Boolean)
+    .sort((a, b) => String(a).localeCompare(String(b), undefined, { sensitivity: 'base' }));
   const fromOptions = uniqueFromLocations.map(loc => ({ label: loc, value: loc }));
 
   const CustomMenuList = (props) => {
@@ -473,7 +486,9 @@ export default function TruckReports() {
     );
   };
 
-  const uniqueToLocations = [...new Set([...reportsData.map(r => r.to), ...extraToOptions])].filter(Boolean);
+  const uniqueToLocations = [...new Set([...reportsData.map(r => r.to), ...extraToOptions])]
+    .filter(Boolean)
+    .sort((a, b) => String(a).localeCompare(String(b), undefined, { sensitivity: 'base' }));
   const toOptions = uniqueToLocations.map(loc => ({ label: loc, value: loc }));
 
   const ToMenuList = (props) => {
@@ -496,7 +511,13 @@ export default function TruckReports() {
     );
   };
 
-  const uniqueDiesel = [...new Set([...reportsData.map(r => r.diesel), ...extraDieselOptions])].filter(Boolean);
+  const uniqueDiesel = [...new Set([...reportsData.map(r => r.diesel), ...extraDieselOptions])]
+    .filter(Boolean)
+    .sort((a, b) => {
+      const numA = parseFloat(String(a).replace(/[^0-9.]/g, '')) || 0;
+      const numB = parseFloat(String(b).replace(/[^0-9.]/g, '')) || 0;
+      return numA !== numB ? numA - numB : String(a).localeCompare(String(b));
+    });
   const dieselOptions = uniqueDiesel.map(val => ({ label: val, value: val }));
 
   const DieselMenuList = (props) => {
@@ -519,7 +540,13 @@ export default function TruckReports() {
     );
   };
 
-  const uniqueAdvance = [...new Set([...reportsData.map(r => String(r.advance)), ...extraAdvanceOptions])].filter(Boolean);
+  const uniqueAdvance = [...new Set([...reportsData.map(r => String(r.advance)), ...extraAdvanceOptions])]
+    .filter(Boolean)
+    .sort((a, b) => {
+      const numA = parseFloat(String(a).replace(/[^0-9.]/g, '')) || 0;
+      const numB = parseFloat(String(b).replace(/[^0-9.]/g, '')) || 0;
+      return numA !== numB ? numA - numB : String(a).localeCompare(String(b));
+    });
   const advanceOptions = uniqueAdvance.map(val => ({ label: val, value: val }));
 
   const AdvanceMenuList = (props) => {
@@ -542,7 +569,9 @@ export default function TruckReports() {
     );
   };
 
-  const uniqueParties = [...new Set([...reportsData.map(r => r.partyName), ...extraPartyOptions])].filter(Boolean);
+  const uniqueParties = [...new Set([...reportsData.map(r => r.partyName), ...extraPartyOptions])]
+    .filter(Boolean)
+    .sort((a, b) => String(a).localeCompare(String(b), undefined, { sensitivity: 'base' }));
   const partyOptions = uniqueParties.map(p => ({ label: p, value: p }));
 
   const PartyMenuList = (props) => {
@@ -565,7 +594,9 @@ export default function TruckReports() {
     );
   };
 
-  const uniqueDoParties = [...new Set([...reportsData.map(r => r.doPartyName), ...extraDoPartyOptions])].filter(Boolean);
+  const uniqueDoParties = [...new Set([...reportsData.map(r => r.doPartyName), ...extraDoPartyOptions])]
+    .filter(Boolean)
+    .sort((a, b) => String(a).localeCompare(String(b), undefined, { sensitivity: 'base' }));
   const doPartyOptions = uniqueDoParties.map(p => ({ label: p, value: p }));
 
   const DoPartyMenuList = (props) => {
@@ -583,6 +614,32 @@ export default function TruckReports() {
         >
           <Plus size={14} />
           Add New DO Party Name
+        </div>
+      </components.MenuList>
+    );
+  };
+
+  const DoNoOptionComponent = useMemo(() => makeCustomOption('dono'), [reportsData, extraDoNoOptions]);
+  const uniqueDoNumbersList = [...new Set([...reportsData.map(item => item.doNo), ...extraDoNoOptions])]
+    .filter(Boolean)
+    .sort((a, b) => String(a).localeCompare(String(b), undefined, { sensitivity: 'base' }));
+  const doNoOptions = uniqueDoNumbersList.map(no => ({ label: String(no), value: String(no) }));
+
+  const DoNoMenuList = (props) => {
+    return (
+      <components.MenuList {...props}>
+        {props.children}
+        <div 
+          className="p-2.5 border-t border-slate-100 text-red-600 font-bold text-xs flex items-center gap-2 bg-slate-50 hover:bg-red-50 cursor-pointer transition-colors"
+          onMouseDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setPromptModal({ isOpen: true, type: 'dono', title: 'Enter new DO Number', placeholder: 'e.g. 87912' });
+            setPromptValue('');
+          }}
+        >
+          <Plus size={14} />
+          Add New DO Number
         </div>
       </components.MenuList>
     );
@@ -1430,14 +1487,24 @@ export default function TruckReports() {
                 {/* DO No */}
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-600 uppercase">DO Number *</label>
-                  <input 
-                    type="text" 
-                    name="doNo" 
-                    value={formData.doNo} 
-                    onChange={handleInputChange} 
-                    placeholder="e.g. DO-1004" 
-                    required 
-                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all shadow-2xs"
+                  <Select
+                    isClearable
+                    options={doNoOptions}
+                    value={formData.doNo ? { label: formData.doNo, value: formData.doNo } : null}
+                    onChange={(newValue) => handleInputChange({ target: { name: 'doNo', value: newValue ? newValue.value : '' } })}
+                    placeholder="Select DO Number..."
+                    components={{ MenuList: DoNoMenuList, Option: DoNoOptionComponent }}
+                    styles={{
+                      control: (base) => ({
+                        ...base,
+                        padding: '2px',
+                        borderRadius: '12px',
+                        border: '1px solid #e2e8f0',
+                        fontSize: '14px',
+                        '&:hover': { borderColor: '#cbd5e1' }
+                      }),
+                      menu: (base) => ({ ...base, zIndex: 9999 })
+                    }}
                   />
                 </div>
 
@@ -1635,6 +1702,9 @@ export default function TruckReports() {
                       } else if (promptModal.type === 'doparty') {
                         setExtraDoPartyOptions(prev => [...prev, val]);
                         handleInputChange({ target: { name: 'doPartyName', value: val } });
+                      } else if (promptModal.type === 'dono') {
+                        setExtraDoNoOptions(prev => [...prev, val]);
+                        handleInputChange({ target: { name: 'doNo', value: val } });
                       }
                     }
                     setPromptModal({ isOpen: false, type: null, title: '', placeholder: '' });
