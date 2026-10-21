@@ -8,7 +8,7 @@ import Select, { components } from 'react-select';
 import { 
   Truck, Banknote, Fuel, Route, Search, Plus, Download, FileSpreadsheet, 
   Calendar, RotateCcw, Edit2, Trash2, X, ArrowRight, Shield, Sparkles, Filter,
-  Layers, MapPin, Gauge, IndianRupee, Hash, Check
+  Layers, MapPin, Gauge, IndianRupee, Hash, Check, Eye
 } from 'lucide-react';
 import './TruckReports.css';
 
@@ -20,6 +20,7 @@ export default function TruckReports() {
   const [filterDoNo, setFilterDoNo] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [viewModal, setViewModal] = useState({ isOpen: false, data: null });
   const [extraFromOptions, setExtraFromOptions] = useState([]);
   const [extraToOptions, setExtraToOptions] = useState([]);
   const [extraDieselOptions, setExtraDieselOptions] = useState([]);
@@ -84,30 +85,69 @@ export default function TruckReports() {
     date: '', vehicleNo: '', from: '', to: '', distance: '', partyName: '', doPartyName: '', diesel: '', dieselPrice: '', advance: '', doNo: '', totalTrips: '', vehicleBalance: '', perMT: '', tonnage: '', totalFreight: ''
   });
 
-  // Auto-fetch distance dynamically based on past data
+  // Auto-fetch distance & Rate Per MT dynamically based on past data
   useEffect(() => {
     if (formData.from && formData.to && reportsData.length > 0) {
-      const dynamicRouteDistances = {};
-      reportsData.forEach(r => {
-        if (r.from && r.to && r.distance) {
-          const route1 = `${r.from.toLowerCase().trim()}-${r.to.toLowerCase().trim()}`;
-          const route2 = `${r.to.toLowerCase().trim()}-${r.from.toLowerCase().trim()}`;
-          if (!dynamicRouteDistances[route1]) dynamicRouteDistances[route1] = r.distance;
-          if (!dynamicRouteDistances[route2]) dynamicRouteDistances[route2] = r.distance;
-        }
-      });
+      const fromTrimmed = formData.from.toLowerCase().trim();
+      const toTrimmed = formData.to.toLowerCase().trim();
+      const routeKey = `${fromTrimmed}-${toTrimmed}`;
+      const routeReverseKey = `${toTrimmed}-${fromTrimmed}`;
 
-      const routeKey = `${formData.from.toLowerCase().trim()}-${formData.to.toLowerCase().trim()}`;
-      if (dynamicRouteDistances[routeKey]) {
-        const distVal = dynamicRouteDistances[routeKey];
-        const finalDist = String(distVal).toLowerCase().includes('km') ? distVal : `${distVal} km`;
-        setFormData(prev => {
-          if (prev.distance !== finalDist) {
-            return { ...prev, distance: finalDist };
-          }
-          return prev;
-        });
+      // Look for the most recent trip report with matching route that has distance or perMT
+      let foundDistance = '';
+      let foundPerMT = '';
+
+      for (let i = reportsData.length - 1; i >= 0; i--) {
+        const r = reportsData[i];
+        if (!r.from || !r.to) continue;
+        const rFrom = r.from.toLowerCase().trim();
+        const rTo = r.to.toLowerCase().trim();
+
+        if (rFrom === fromTrimmed && rTo === toTrimmed) {
+          if (!foundDistance && r.distance) foundDistance = r.distance;
+          if (!foundPerMT && r.perMT) foundPerMT = String(r.perMT);
+        } else if (rFrom === toTrimmed && rTo === fromTrimmed) {
+          if (!foundDistance && r.distance) foundDistance = r.distance;
+          if (!foundPerMT && r.perMT) foundPerMT = String(r.perMT);
+        }
+
+        if (foundDistance && foundPerMT) break;
       }
+
+      setFormData(prev => {
+        let updated = { ...prev };
+        let hasChanges = false;
+
+        if (foundDistance) {
+          const finalDist = String(foundDistance).toLowerCase().includes('km') ? foundDistance : `${foundDistance} km`;
+          if (prev.distance !== finalDist) {
+            updated.distance = finalDist;
+            hasChanges = true;
+          }
+        }
+
+        if (foundPerMT && prev.perMT !== foundPerMT) {
+          updated.perMT = foundPerMT;
+          hasChanges = true;
+
+          // Re-calculate freight and balance if tonnage is already present
+          const perMTNum = parseFloat(foundPerMT) || 0;
+          const tonnageNum = parseFloat(updated.tonnage) || 0;
+          if (perMTNum > 0 && tonnageNum > 0) {
+            const totalFreight = Math.round(perMTNum * tonnageNum);
+            updated.totalFreight = totalFreight.toString();
+
+            const dieselStr = String(updated.diesel || '');
+            const dieselVal = parseFloat(dieselStr.replace(/[^0-9.]/g, '')) || 0;
+            const dieselPriceVal = parseFloat(updated.dieselPrice) || 0;
+            const advanceVal = parseFloat(updated.advance) || 0;
+            const vehicleBalance = totalFreight - (dieselVal * dieselPriceVal) - advanceVal;
+            updated.vehicleBalance = Math.round(vehicleBalance).toString();
+          }
+        }
+
+        return hasChanges ? updated : prev;
+      });
     }
   }, [formData.from, formData.to, reportsData]);
 
@@ -865,6 +905,7 @@ export default function TruckReports() {
             <thead className="sticky top-0 z-20 bg-slate-50/95 backdrop-blur-md border-b border-slate-200">
               <tr className="text-xs font-black text-slate-500 uppercase tracking-wider">
                 <th className="py-3.5 px-3.5 text-center whitespace-nowrap">S.No</th>
+                <th className="py-3.5 px-3.5 text-center whitespace-nowrap">View</th>
                 <th className="py-3.5 px-3.5 whitespace-nowrap">Date</th>
                 <th className="py-3.5 px-3.5 whitespace-nowrap">Vehicle No.</th>
                 <th className="py-3.5 px-3.5 whitespace-nowrap">Route (From ➔ To)</th>
@@ -897,6 +938,16 @@ export default function TruckReports() {
                     >
                       <td className="py-3.5 px-3.5 text-center font-bold text-slate-400">
                         {row.sNo}
+                      </td>
+                      <td className="py-3.5 px-3.5 text-center whitespace-nowrap">
+                        <button
+                          type="button"
+                          onClick={() => setViewModal({ isOpen: true, data: row })}
+                          className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-colors cursor-pointer inline-flex items-center justify-center shadow-2xs"
+                          title="View Trip Details"
+                        >
+                          <Eye size={15} />
+                        </button>
                       </td>
                       <td className="py-3.5 px-3.5 font-semibold text-slate-700 whitespace-nowrap">
                         {row.date}
@@ -978,7 +1029,7 @@ export default function TruckReports() {
                 })
               ) : (
                 <tr>
-                  <td colSpan={17} className="py-12 text-center text-slate-400">
+                  <td colSpan={18} className="py-12 text-center text-slate-400">
                     <Truck className="h-8 w-8 mx-auto text-slate-300 mb-2" />
                     <p className="font-bold text-slate-700 text-sm">No trip reports found matching your filters</p>
                     <p className="text-xs text-slate-400 mt-1">Try resetting search or date filters above.</p>
@@ -1006,6 +1057,14 @@ export default function TruckReports() {
                     <span className="text-xs font-mono font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md shrink-0">
                       #{row.sNo}
                     </span>
+                    <button
+                      type="button"
+                      onClick={() => setViewModal({ isOpen: true, data: row })}
+                      className="p-1 rounded-md bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-colors cursor-pointer"
+                      title="View Details"
+                    >
+                      <Eye size={13} />
+                    </button>
                     <span className="inline-flex items-center px-2.5 py-1 bg-blue-50 text-blue-700 border border-blue-200/90 rounded-lg font-black font-mono tracking-wider text-xs shadow-2xs truncate">
                       {row.vehicleNo?.toUpperCase().includes('CG') ? row.vehicleNo : `CG-10-CG ${row.vehicleNo}`}
                     </span>
@@ -1585,6 +1644,167 @@ export default function TruckReports() {
                   Save Option
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════
+          VIEW TRIP DETAILS MODAL (OPENED BY EYE BUTTON)
+      ═══════════════════════════════════════════════════════════ */}
+      {viewModal.isOpen && viewModal.data && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col overflow-hidden border border-slate-100">
+            {/* Header */}
+            <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/70">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                  <Eye size={20} />
+                </div>
+                <div>
+                  <h2 className="text-lg font-black text-slate-800 leading-tight">
+                    Trip Report Details #{viewModal.data.sNo}
+                  </h2>
+                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
+                    Vehicle: {viewModal.data.vehicleNo} • Date: {viewModal.data.date}
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setViewModal({ isOpen: false, data: null })}
+                className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-xl transition-colors cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Content Body */}
+            <div className="p-5 sm:p-6 overflow-y-auto space-y-4 custom-sidebar-scroll bg-slate-50/30 text-sm">
+              {/* Route banner */}
+              <div className="p-3.5 bg-white rounded-2xl border border-slate-200 shadow-2xs flex items-center justify-between gap-3">
+                <div className="space-y-0.5">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase">Route</span>
+                  <div className="flex items-center gap-2 font-black text-slate-800 text-sm">
+                    <span>{viewModal.data.from || 'Origin'}</span>
+                    <ArrowRight size={14} className="text-red-500" />
+                    <span>{viewModal.data.to || 'Destination'}</span>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase">Distance</span>
+                  <p className="font-mono font-bold text-slate-700 text-sm">{viewModal.data.distance || '—'}</p>
+                </div>
+              </div>
+
+              {/* Grid of Details */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-white p-3 rounded-xl border border-slate-200/80">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Vehicle No</span>
+                  <span className="font-mono font-black text-blue-700 text-sm mt-0.5 block">{viewModal.data.vehicleNo}</span>
+                </div>
+
+                <div className="bg-white p-3 rounded-xl border border-slate-200/80">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block">DO Number</span>
+                  <span className="font-mono font-bold text-slate-800 text-sm mt-0.5 block">{viewModal.data.doNo || '—'}</span>
+                </div>
+
+                <div className="bg-white p-3 rounded-xl border border-slate-200/80">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block">DO Party Name</span>
+                  <span className="font-bold text-slate-700 text-sm mt-0.5 block">{viewModal.data.doPartyName || '—'}</span>
+                </div>
+
+                <div className="bg-white p-3 rounded-xl border border-slate-200/80">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Total Trips</span>
+                  <span className="font-bold text-slate-800 text-sm mt-0.5 block">{viewModal.data.totalTrips || 1}</span>
+                </div>
+
+                <div className="bg-white p-3 rounded-xl border border-slate-200/80">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Tonnage</span>
+                  <span className="font-bold text-slate-800 text-sm mt-0.5 block">{viewModal.data.tonnage ? `${viewModal.data.tonnage} MT` : '—'}</span>
+                </div>
+
+                <div className="bg-white p-3 rounded-xl border border-slate-200/80">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Rate Per MT</span>
+                  <span className="font-mono font-bold text-slate-700 text-sm mt-0.5 block">₹{viewModal.data.perMT || 0}</span>
+                </div>
+
+                <div className="bg-purple-50/60 p-3 rounded-xl border border-purple-200/80">
+                  <span className="text-[10px] font-bold text-purple-700 uppercase block">Diesel (Liters)</span>
+                  <span className="font-mono font-black text-purple-700 text-sm mt-0.5 block">{viewModal.data.diesel ? `${viewModal.data.diesel} L` : '—'}</span>
+                </div>
+
+                <div className="bg-purple-50/60 p-3 rounded-xl border border-purple-200/80">
+                  <span className="text-[10px] font-bold text-purple-700 uppercase block">Diesel Price (₹/L)</span>
+                  <span className="font-mono font-bold text-purple-700 text-sm mt-0.5 block">₹{viewModal.data.dieselPrice || 0}</span>
+                </div>
+
+                <div className="bg-purple-100/70 p-3 rounded-xl border border-purple-300 col-span-2">
+                  <span className="text-[10px] font-bold text-purple-800 uppercase block">Total Diesel Price</span>
+                  <span className="font-mono font-black text-purple-900 text-base mt-0.5 block">
+                    {(() => {
+                      const dL = parseFloat(String(viewModal.data.diesel || '').replace(/[^0-9.]/g, '')) || 0;
+                      const dP = parseFloat(viewModal.data.dieselPrice) || 0;
+                      return `₹${Math.round(dL * dP).toLocaleString('en-IN')}`;
+                    })()}
+                  </span>
+                </div>
+
+                <div className="bg-amber-50/60 p-3 rounded-xl border border-amber-200/80">
+                  <span className="text-[10px] font-bold text-amber-700 uppercase block">Advance Amount</span>
+                  <span className="font-mono font-black text-amber-600 text-sm mt-0.5 block">₹{viewModal.data.advance ? Number(viewModal.data.advance).toLocaleString('en-IN') : 0}</span>
+                </div>
+
+                <div className="bg-emerald-50/60 p-3 rounded-xl border border-emerald-200/80">
+                  <span className="text-[10px] font-bold text-emerald-700 uppercase block">Total Freight</span>
+                  <span className="font-mono font-black text-emerald-700 text-sm mt-0.5 block">₹{viewModal.data.totalFreight ? Number(viewModal.data.totalFreight).toLocaleString('en-IN') : 0}</span>
+                </div>
+
+                <div className="bg-blue-50/70 p-3 rounded-xl border border-blue-200/80 col-span-2 flex items-center justify-between">
+                  <span className="text-xs font-bold text-blue-700 uppercase">Vehicle Balance</span>
+                  <span className={`font-mono font-black text-base ${Number(viewModal.data.vehicleBalance) >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                    ₹{viewModal.data.vehicleBalance ? Number(viewModal.data.vehicleBalance).toLocaleString('en-IN') : 0}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer with Edit, Delete & Close actions */}
+            <div className="p-4 border-t border-slate-100 flex items-center justify-between bg-slate-50/70">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const rowData = viewModal.data;
+                    setViewModal({ isOpen: false, data: null });
+                    handleEditReport(rowData);
+                  }}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm shadow-blue-500/20 transition-all cursor-pointer"
+                >
+                  <Edit2 size={14} />
+                  <span>Edit Report</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const sNoToDelete = viewModal.data.sNo;
+                    setViewModal({ isOpen: false, data: null });
+                    handleDeleteReport(sNoToDelete);
+                  }}
+                  className="px-4 py-2 bg-rose-50 hover:bg-rose-600 text-rose-700 hover:text-white border border-rose-200 hover:border-transparent rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                >
+                  <Trash2 size={14} />
+                  <span>Delete Report</span>
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setViewModal({ isOpen: false, data: null })}
+                className="px-5 py-2 bg-slate-700 hover:bg-slate-800 text-white rounded-xl text-xs font-bold cursor-pointer transition-colors"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>
