@@ -102,6 +102,24 @@ export default function TransportDashboard() {
       
       const itemDate = new Date(item.date);
       
+      if (customStart || customEnd) {
+        if (customStart && customEnd) {
+          const start = new Date(customStart);
+          start.setHours(0, 0, 0, 0);
+          const end = new Date(customEnd);
+          end.setHours(23, 59, 59, 999);
+          return itemDate >= start && itemDate <= end;
+        } else if (customStart) {
+          const start = new Date(customStart);
+          start.setHours(0, 0, 0, 0);
+          return itemDate >= start;
+        } else if (customEnd) {
+          const end = new Date(customEnd);
+          end.setHours(23, 59, 59, 999);
+          return itemDate <= end;
+        }
+      }
+
       switch (filterType) {
         case 'This Month':
           return itemDate.getMonth() === today.getMonth() && itemDate.getFullYear() === today.getFullYear();
@@ -115,13 +133,6 @@ export default function TransportDashboard() {
         case 'This Year':
           return itemDate.getFullYear() === today.getFullYear();
         case 'Custom':
-          if (customStart && customEnd) {
-            const start = new Date(customStart);
-            start.setHours(0, 0, 0, 0);
-            const end = new Date(customEnd);
-            end.setHours(23, 59, 59, 999);
-            return itemDate >= start && itemDate <= end;
-          }
           return true;
         case 'All Time':
         default:
@@ -199,18 +210,33 @@ export default function TransportDashboard() {
 
   // Export Handler
   const handleExport = (format) => {
+    // Priority: exportStart/exportEnd modal inputs if provided, otherwise active table date filter
+    const activeStart = exportStart || customStart;
+    const activeEnd = exportEnd || customEnd;
+
     let exportData = [...reportsData];
     
-    if (exportStart && exportEnd) {
-      const start = new Date(exportStart);
-      start.setHours(0, 0, 0, 0);
-      const end = new Date(exportEnd);
-      end.setHours(23, 59, 59, 999);
+    // Also apply vehicle and DO filters if active in view
+    if (filterVehicleNo) {
+      exportData = exportData.filter(item => item.vehicle_no === filterVehicleNo);
+    }
+    if (filterDoNo) {
+      exportData = exportData.filter(item => item.do_no === filterDoNo);
+    }
+
+    if (activeStart || activeEnd) {
+      const start = activeStart ? new Date(activeStart) : null;
+      if (start) start.setHours(0, 0, 0, 0);
+      const end = activeEnd ? new Date(activeEnd) : null;
+      if (end) end.setHours(23, 59, 59, 999);
       
       exportData = exportData.filter(item => {
         if (!item.date) return false;
         const d = new Date(item.date);
-        return d >= start && d <= end;
+        if (start && end) return d >= start && d <= end;
+        if (start) return d >= start;
+        if (end) return d <= end;
+        return true;
       });
     }
 
@@ -236,7 +262,14 @@ export default function TransportDashboard() {
     }, {});
 
     const exportTruckWiseData = Object.values(exportTruckWiseCount).sort((a, b) => b.trips - a.trips);
-    const dateSuffix = (exportStart && exportEnd) ? `_${exportStart}_to_${exportEnd}` : '';
+    const dateRangeLabel = (activeStart && activeEnd) 
+      ? `${formatDateDisplay(activeStart)} to ${formatDateDisplay(activeEnd)}` 
+      : activeStart 
+        ? `From ${formatDateDisplay(activeStart)}` 
+        : activeEnd 
+          ? `Up to ${formatDateDisplay(activeEnd)}` 
+          : 'All Recorded Dates';
+    const dateSuffix = (activeStart && activeEnd) ? `_${activeStart}_to_${activeEnd}` : '';
 
     if (format === 'excel') {
       const wsData = exportTruckWiseData.map((truck, idx) => ({
@@ -244,9 +277,9 @@ export default function TransportDashboard() {
         "Date": formatDateDisplay(truck.date),
         "Vehicle No.": truck.name || '-',
         "Total Trips": truck.trips,
+        "Total Diesel (L)": truck.diesel || 0,
         "DO No.": truck.do_no || '-',
         "Freight (₹)": truck.freight || 0,
-        "Total Diesel (L)": truck.diesel || 0,
         "Vehicle Bal. (₹)": truck.balance || 0
       }));
       
@@ -256,9 +289,18 @@ export default function TransportDashboard() {
       XLSX.writeFile(wb, `Trip_Details_Report${dateSuffix}.xlsx`);
     } else if (format === 'pdf') {
       const doc = new jsPDF('landscape');
-      doc.text(`Trip Details Report ${exportStart ? `(${formatDateDisplay(exportStart)} to ${formatDateDisplay(exportEnd)})` : ''}`, 14, 15);
       
-      const tableColumn = ["S.No.", "Date", "Vehicle No.", "Total Trips", "DO No.", "Freight", "Total Diesel (L)", "Vehicle Bal."];
+      // Title & Date Range Header
+      doc.setFontSize(16);
+      doc.setTextColor(220, 38, 38);
+      doc.text("Trip Details Report", 14, 15);
+      
+      doc.setFontSize(10);
+      doc.setTextColor(71, 85, 105);
+      doc.text(`Date Range: ${dateRangeLabel}`, 14, 22);
+      doc.text(`Generated On: ${formatDateDisplay(new Date())} | Total Vehicles: ${exportTruckWiseData.length}`, 14, 28);
+      
+      const tableColumn = ["S.No.", "Date", "Vehicle No.", "Total Trips", "Total Diesel (L)", "DO No.", "Freight", "Vehicle Bal."];
       const tableRows = [];
 
       exportTruckWiseData.forEach((truck, idx) => {
@@ -267,14 +309,20 @@ export default function TransportDashboard() {
           formatDateDisplay(truck.date),
           truck.name || '-',
           truck.trips,
+          `${(truck.diesel || 0).toLocaleString()} L`,
           truck.do_no || '-',
           `Rs ${(truck.freight || 0).toLocaleString()}`,
-          `${(truck.diesel || 0).toLocaleString()} L`,
           `Rs ${(truck.balance || 0).toLocaleString()}`
         ]);
       });
 
-      autoTable(doc, { head: [tableColumn], body: tableRows, startY: 20, styles: { fontSize: 8 } });
+      autoTable(doc, { 
+        head: [tableColumn], 
+        body: tableRows, 
+        startY: 33, 
+        styles: { fontSize: 8, cellPadding: 3 },
+        headStyles: { fillColor: [239, 68, 68], textColor: [255, 255, 255], fontStyle: 'bold' }
+      });
       doc.save(`Trip_Details_Report${dateSuffix}.pdf`);
     }
     
@@ -560,97 +608,122 @@ export default function TransportDashboard() {
       <div className="bg-white rounded-2xl shadow-xs border border-slate-200/80 p-3.5 sm:p-5 lg:p-6 overflow-hidden w-full">
         
         {/* Table Header & Controls Bar */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3.5 mb-4 pb-4 border-b border-slate-100">
-          <div>
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-red-50 text-red-600 rounded-lg shrink-0">
-                <FileSpreadsheet className="h-4 w-4" />
-              </div>
-              <h2 className="text-base font-extrabold text-slate-900 tracking-tight">
-                Trip Details Report
-              </h2>
-              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 ml-1">
-                {searchedReports.length}
-              </span>
+        <div className="flex flex-col gap-3 mb-4 pb-4 border-b border-slate-100">
+          {/* Title Row */}
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 bg-red-50 text-red-600 rounded-lg shrink-0">
+              <FileSpreadsheet className="h-4 w-4" />
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Aggregated vehicle trip logs, fuel consumption, and balances
-            </p>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-extrabold text-slate-900 tracking-tight">
+                  Trip Details Report
+                </h2>
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                  {searchedReports.length}
+                </span>
+              </div>
+              <p className="text-xs text-slate-400">
+                Aggregated vehicle trip logs, fuel consumption, and balances
+              </p>
+            </div>
           </div>
 
-          {/* Filter Controls */}
-          <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 w-full lg:w-auto">
-            
+          {/* Single Line Filter & Actions Row */}
+          <div className="flex flex-wrap items-center gap-2 pt-0.5">
             {/* Search Box */}
-            <div className="relative w-full sm:w-auto">
+            <div className="relative flex-1 min-w-[180px] max-w-xs">
               <Search className="h-3.5 w-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input 
                 type="text" 
                 placeholder="Search trips, vehicles, DOs..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full sm:w-44 lg:w-56 pl-8 pr-3 py-2 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-xl text-xs text-slate-700 outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20 transition-all placeholder:text-slate-400"
+                className="w-full pl-8 pr-3 py-2 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-xl text-xs text-slate-700 outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20 transition-all placeholder:text-slate-400"
               />
             </div>
 
-            {/* Dropdown Filters Grid */}
-            <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
-              {/* Period Filter */}
-              <select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-                className="w-full sm:w-auto px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20 cursor-pointer shadow-2xs transition-all"
-              >
-                {['This Month', 'Last Month', 'Last 3 Months', 'This Year', 'All Time', 'Custom'].map((filter) => (
-                  <option key={filter} value={filter}>
-                    {filter}
-                  </option>
-                ))}
-              </select>
-              
-              {/* Vehicle Filter */}
-              <select
-                value={filterVehicleNo}
-                onChange={(e) => setFilterVehicleNo(e.target.value)}
-                className="w-full sm:w-auto px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20 cursor-pointer shadow-2xs transition-all"
-              >
-                <option value="">All Vehicles</option>
-                {uniqueVehicles.map(v => <option key={v} value={v}>{v}</option>)}
-              </select>
+            {/* Period Filter */}
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              className="px-3 py-2 bg-slate-50 hover:bg-slate-100/70 border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20 cursor-pointer shadow-2xs transition-all shrink-0"
+            >
+              {['This Month', 'Last Month', 'Last 3 Months', 'This Year', 'All Time', 'Custom'].map((filter) => (
+                <option key={filter} value={filter}>
+                  {filter}
+                </option>
+              ))}
+            </select>
+            
+            {/* Vehicle Filter */}
+            <select
+              value={filterVehicleNo}
+              onChange={(e) => setFilterVehicleNo(e.target.value)}
+              className="px-3 py-2 bg-slate-50 hover:bg-slate-100/70 border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20 cursor-pointer shadow-2xs transition-all shrink-0"
+            >
+              <option value="">All Vehicles</option>
+              {uniqueVehicles.map(v => <option key={v} value={v}>{v}</option>)}
+            </select>
 
-              {/* DO Filter */}
-              <select
-                value={filterDoNo}
-                onChange={(e) => setFilterDoNo(e.target.value)}
-                className="col-span-2 sm:col-span-1 w-full sm:w-auto px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20 cursor-pointer shadow-2xs transition-all"
-              >
-                <option value="">All DO Numbers</option>
-                {uniqueDoNumbers.map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
+            {/* DO Filter */}
+            <select
+              value={filterDoNo}
+              onChange={(e) => setFilterDoNo(e.target.value)}
+              className="px-3 py-2 bg-slate-50 hover:bg-slate-100/70 border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20 cursor-pointer shadow-2xs transition-all shrink-0"
+            >
+              <option value="">All DO Numbers</option>
+              {uniqueDoNumbers.map(d => <option key={d} value={d}>{d}</option>)}
+            </select>
+
+            {/* Date Range Filter (Start Date to End Date) */}
+            <div className="flex items-center gap-1.5 bg-slate-50 hover:bg-slate-100/70 px-2.5 py-1.5 rounded-xl border border-slate-200 shadow-2xs transition-all shrink-0">
+              <Calendar className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+              <input 
+                type="date" 
+                value={customStart}
+                onChange={(e) => {
+                  setCustomStart(e.target.value);
+                  if (filterType !== 'Custom') setFilterType('Custom');
+                }}
+                className="px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-700 outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20"
+                title="Start Date"
+              />
+              <span className="text-slate-400 text-xs font-semibold px-0.5">to</span>
+              <input 
+                type="date" 
+                value={customEnd}
+                onChange={(e) => {
+                  setCustomEnd(e.target.value);
+                  if (filterType !== 'Custom') setFilterType('Custom');
+                }}
+                className="px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-700 outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20"
+                title="End Date"
+              />
+              {(customStart || customEnd) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCustomStart('');
+                    setCustomEnd('');
+                    setFilterType('All Time');
+                  }}
+                  className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
+                  title="Clear Date Range"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
             </div>
 
-            {filterType === 'Custom' && (
-              <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-1.5 rounded-xl border border-slate-200 w-full sm:w-auto justify-between sm:justify-start">
-                <input 
-                  type="date" 
-                  value={customStart}
-                  onChange={(e) => setCustomStart(e.target.value)}
-                  className="px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 outline-none flex-1 sm:flex-initial"
-                />
-                <span className="text-slate-400 text-xs">to</span>
-                <input 
-                  type="date" 
-                  value={customEnd}
-                  onChange={(e) => setCustomEnd(e.target.value)}
-                  className="px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 outline-none flex-1 sm:flex-initial"
-                />
-              </div>
-            )}
-
-            {/* Export Button */}
+            {/* Export Button on Same Line */}
             <button 
-              onClick={() => setShowExportModal(true)}
-              className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm shadow-red-600/20 flex items-center justify-center gap-1.5 cursor-pointer hover:-translate-y-0.5 active:translate-y-0"
+              onClick={() => {
+                if (customStart) setExportStart(customStart);
+                if (customEnd) setExportEnd(customEnd);
+                setShowExportModal(true);
+              }}
+              className="bg-red-600 hover:bg-red-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm shadow-red-600/20 flex items-center justify-center gap-1.5 cursor-pointer hover:-translate-y-0.5 active:translate-y-0 shrink-0 ml-auto"
             >
               <Download className="h-3.5 w-3.5" />
               <span>Export</span>
@@ -664,12 +737,11 @@ export default function TransportDashboard() {
             <thead className="sticky top-0 bg-slate-50 z-10 shadow-2xs">
               <tr className="border-b border-slate-200 text-xs font-black text-slate-500 uppercase tracking-wider">
                 <th className="py-3.5 px-3.5 text-center w-12 whitespace-nowrap">#</th>
-                <th className="py-3.5 px-3.5 min-w-[120px] whitespace-nowrap">Date</th>
-                <th className="py-3.5 px-3.5 min-w-[140px] whitespace-nowrap">Vehicle No.</th>
-                <th className="py-3.5 px-3.5 text-center whitespace-nowrap">Total Trips</th>
+                <th className="py-3.5 px-3.5 whitespace-nowrap">Vehicle No.</th>
+                <th className="py-3.5 px-3.5 whitespace-nowrap">Total Trips</th>
+                <th className="py-3.5 px-3.5 text-left whitespace-nowrap">Diesel (L)</th>
                 <th className="py-3.5 px-3.5 whitespace-nowrap">DO No.</th>
                 <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Freight (₹)</th>
-                <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Diesel (L)</th>
                 <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Vehicle Bal. (₹)</th>
               </tr>
             </thead>
@@ -677,23 +749,22 @@ export default function TransportDashboard() {
               {searchedReports.map((truck, idx) => (
                 <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
                   <td className="py-3 px-3.5 text-center text-slate-400 font-mono font-bold">{idx + 1}</td>
-                  <td className="py-3 px-3.5 text-slate-700 font-semibold whitespace-nowrap">{formatDateDisplay(truck.date)}</td>
                   <td className="py-3 px-3.5 whitespace-nowrap">
                     <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 font-black font-mono text-xs border border-slate-200/90 shadow-2xs">
                       {truck.name ? (truck.name.toUpperCase().includes('CG') ? truck.name : `CG-10-CG ${truck.name}`) : '-'}
                     </span>
                   </td>
-                  <td className="py-3 px-3.5 text-center whitespace-nowrap">
+                  <td className="py-3 px-3.5 whitespace-nowrap">
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 font-black font-mono text-xs border border-blue-200/70">
                       {truck.trips}
                     </span>
                   </td>
+                  <td className="py-3 px-3.5 text-left font-black text-purple-700 font-mono whitespace-nowrap">
+                    {(truck.diesel || 0).toLocaleString()} L
+                  </td>
                   <td className="py-3 px-3.5 text-slate-700 font-mono font-semibold whitespace-nowrap">{truck.do_no || '-'}</td>
                   <td className="py-3 px-3.5 text-right font-black text-emerald-700 font-mono whitespace-nowrap">
                     ₹ {(truck.freight || 0).toLocaleString()}
-                  </td>
-                  <td className="py-3 px-3.5 text-right font-black text-purple-700 font-mono whitespace-nowrap">
-                    {(truck.diesel || 0).toLocaleString()} L
                   </td>
                   <td className="py-3 px-3.5 text-right font-black text-rose-600 font-mono whitespace-nowrap">
                     ₹ {(truck.balance || 0).toLocaleString()}
@@ -702,7 +773,7 @@ export default function TransportDashboard() {
               ))}
               {searchedReports.length === 0 && (
                 <tr>
-                  <td colSpan="8" className="py-12 text-center text-slate-400 font-medium">
+                  <td colSpan="7" className="py-12 text-center text-slate-400 font-medium">
                     No matching trip records found for analysis
                   </td>
                 </tr>
