@@ -5,7 +5,7 @@ import {
   Search, Plus, Building2, X, Edit, Trash2, FileText, FileSpreadsheet, 
   Clock, CheckCircle2, Check, AlertCircle, TrendingUp, Users, Shield, 
   ArrowRight, LayoutDashboard, Phone, ExternalLink, Calendar as CalendarIcon, 
-  Sparkles, Wallet, Banknote, GitFork
+  Sparkles, Wallet, Banknote, GitFork, RotateCw, Eye
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -22,6 +22,15 @@ const RentMaster = () => {
   const [historyData, setHistoryData] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   
+  // Agreement Renewal Modal State
+  const [renewalModalOpen, setRenewalModalOpen] = useState(false);
+  const [renewalRecord, setRenewalRecord] = useState(null);
+  const [renewalEndDate, setRenewalEndDate] = useState('');
+  const [renewalMonthlyRent, setRenewalMonthlyRent] = useState('');
+  const [renewalRemarks, setRenewalRemarks] = useState('');
+  const [renewalAutoGenerate, setRenewalAutoGenerate] = useState(true);
+  const [isSubmittingRenewal, setIsSubmittingRenewal] = useState(false);
+
   const [mockData, setMockData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [documentFiles, setDocumentFiles] = useState([]);
@@ -381,6 +390,8 @@ const RentMaster = () => {
 
       console.log('Payload being sent to Supabase:', payload);
 
+      let savedRecordId = editingId;
+
       if (editingId) {
         const { data, error } = await supabase
           .from('rent_master')
@@ -407,7 +418,26 @@ const RentMaster = () => {
           throw error;
         }
         console.log('Insert success:', data);
+        savedRecordId = data && data[0] ? data[0].id : null;
         toast.success('Record added successfully');
+      }
+
+      // Auto-generate monthly tracker records if agreement period is present
+      if (payload.agreement_start && payload.agreement_end) {
+        await generateMonthlyTrackerRecords({
+          id: savedRecordId,
+          propertyName: payload.property_name,
+          tenantName: payload.tenant_name,
+          tenantContact: payload.tenant_contact,
+          monthlyRent: payload.monthly_rent,
+          agreementStart: payload.agreement_start,
+          agreementEnd: payload.agreement_end,
+          rentDueDateStart: payload.rent_due_date_start,
+          rentDueDateEnd: payload.rent_due_date_end,
+          paymentMode: payload.payment_mode,
+          bankDetails: payload.bank_details,
+          remarks: payload.remarks
+        }, false);
       }
 
       setIsModalOpen(false);
@@ -423,6 +453,190 @@ const RentMaster = () => {
       toast.error(error.message || 'Failed to save record');
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const generateMonthlyTrackerRecords = async (record, showToast = true) => {
+    if (!record.agreementStart || !record.agreementEnd) {
+      if (showToast) toast.error('Agreement Start and Agreement End dates are required to generate tracker schedule');
+      return;
+    }
+
+    try {
+      if (showToast) toast.loading('Generating monthly rent tracker records...', { id: 'gen-tracker' });
+
+      const start = new Date(record.agreementStart);
+      const end = new Date(record.agreementEnd);
+
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        if (showToast) toast.error('Invalid agreement dates', { id: 'gen-tracker' });
+        return;
+      }
+
+      if (start > end) {
+        if (showToast) toast.error('Agreement Start date must be before Agreement End date', { id: 'gen-tracker' });
+        return;
+      }
+
+      // 1. Fetch existing tracker records for this rent_master_id or property to prevent duplicate month entries
+      let query = supabase.from('rent_monthly_tracker').select('id, month, rent_master_id, property');
+      if (record.id) {
+        query = query.or(`rent_master_id.eq.${record.id},property.ilike.${record.propertyName}`);
+      } else {
+        query = query.ilike('property', record.propertyName);
+      }
+      const { data: existingRows, error: fetchErr } = await query;
+      if (fetchErr) {
+        console.warn('Error checking existing tracker rows:', fetchErr);
+      }
+
+      const existingMonthsSet = new Set(
+        (existingRows || []).map(r => (r.month || '').trim().toLowerCase())
+      );
+
+      // 2. Iterate through each month from start to end
+      const monthNames = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+      ];
+
+      const calculateDueDate = (dayString, year, monthIdx) => {
+        if (!dayString) return null;
+        const day = parseInt(dayString, 10);
+        if (isNaN(day)) return null;
+        // Last day of this specific month
+        const daysInMonth = new Date(year, monthIdx + 1, 0).getDate();
+        const safeDay = Math.min(day, daysInMonth);
+        const yyyy = year;
+        const mm = String(monthIdx + 1).padStart(2, '0');
+        const dd = String(safeDay).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+      };
+
+      const rowsToInsert = [];
+      
+      // Do not create records for months that have already passed in the current year/calendar.
+      // Start from the current month (or agreement start month if it is in the future).
+      const now = new Date();
+      const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const agreementStartMonth = new Date(start.getFullYear(), start.getMonth(), 1);
+      
+      let cur = agreementStartMonth < currentMonthStart ? new Date(currentMonthStart) : new Date(agreementStartMonth);
+      const endMonth = new Date(end.getFullYear(), end.getMonth(), 1);
+
+      while (cur <= endMonth) {
+        const curYear = cur.getFullYear();
+        const curMonthIdx = cur.getMonth();
+        const monthName = monthNames[curMonthIdx];
+
+        // Format stored in monthly tracker: e.g. "May 2026" or "May"
+        // Let's store "MonthName Year" (e.g. "November 2026") or check if MonthName matches
+        const monthLabel = `${monthName} ${curYear}`;
+        const shortMonthLabel = monthName;
+
+        // Check if already created
+        const alreadyExists = 
+          existingMonthsSet.has(monthLabel.toLowerCase()) || 
+          existingMonthsSet.has(shortMonthLabel.toLowerCase());
+
+        if (!alreadyExists) {
+          const dueDateStart = calculateDueDate(record.rentDueDateStart, curYear, curMonthIdx);
+          const dueDateEnd = calculateDueDate(record.rentDueDateEnd, curYear, curMonthIdx);
+
+          rowsToInsert.push({
+            rent_master_id: record.id || null,
+            month: monthLabel,
+            property: record.propertyName,
+            tenant: record.tenantName,
+            rent: record.monthlyRent ? Number(record.monthlyRent) : 0,
+            due_date_start: dueDateStart,
+            due_date_end: dueDateEnd,
+            received_date: null,
+            payment_mode: record.paymentMode || 'Cash',
+            bank_details: record.bankDetails || '',
+            status: 'Pending',
+            remarks: `Auto-generated agreement tenure (${record.agreementStart} to ${record.agreementEnd})`,
+            updated_at: new Date().toISOString()
+          });
+        }
+
+        // Advance to next month
+        cur.setMonth(cur.getMonth() + 1);
+      }
+
+      if (rowsToInsert.length === 0) {
+        if (showToast) {
+          toast.success('All monthly tracker cycles for this agreement already exist!', { id: 'gen-tracker' });
+        }
+        return;
+      }
+
+      const { error: insertErr } = await supabase
+        .from('rent_monthly_tracker')
+        .insert(rowsToInsert);
+
+      if (insertErr) throw insertErr;
+
+      if (showToast) {
+        toast.success(`Generated ${rowsToInsert.length} monthly rent tracker records!`, { id: 'gen-tracker' });
+      }
+    } catch (err) {
+      console.error('Error generating tracker schedule:', err);
+      if (showToast) toast.error(`Failed to generate schedule: ${err.message}`, { id: 'gen-tracker' });
+    }
+  };
+
+  const openRenewalModal = (record) => {
+    setRenewalRecord(record);
+    setRenewalEndDate('');
+    setRenewalMonthlyRent(record.monthlyRent || '');
+    setRenewalRemarks('');
+    setRenewalAutoGenerate(true);
+    setRenewalModalOpen(true);
+  };
+
+  const handleRenewalSubmit = async (e) => {
+    e.preventDefault();
+    if (!renewalRecord || !renewalEndDate) {
+      toast.error('Please enter a valid Agreement End Date');
+      return;
+    }
+
+    try {
+      setIsSubmittingRenewal(true);
+      const updatedPayload = {
+        agreement_end: renewalEndDate,
+        monthly_rent: renewalMonthlyRent ? Number(renewalMonthlyRent) : Number(renewalRecord.monthlyRent || 0),
+        remarks: renewalRemarks,
+        updated_at: new Date().toISOString()
+      };
+
+      const { error } = await supabase
+        .from('rent_master')
+        .update(updatedPayload)
+        .eq('id', renewalRecord.id);
+
+      if (error) throw error;
+
+      toast.success(`Agreement renewed successfully till ${formatDate(renewalEndDate)}!`);
+
+      // If auto-generate tracker is checked, create future tracker records up to the new agreement_end date
+      if (renewalAutoGenerate) {
+        await generateMonthlyTrackerRecords({
+          ...renewalRecord,
+          monthlyRent: updatedPayload.monthly_rent,
+          agreementEnd: renewalEndDate
+        }, true);
+      }
+
+      setRenewalModalOpen(false);
+      setRenewalRecord(null);
+      fetchRentMasterData();
+    } catch (err) {
+      console.error('Error renewing agreement:', err);
+      toast.error(`Failed to renew agreement: ${err.message}`);
+    } finally {
+      setIsSubmittingRenewal(false);
     }
   };
 
@@ -448,16 +662,6 @@ const RentMaster = () => {
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     return `${day}-${monthNames[parseInt(month, 10) - 1]}-${year}`;
   };
-  const filteredData = mockData.filter(record => {
-    if (!searchQuery) return true;
-    const q = searchQuery.toLowerCase();
-    return (
-      (record.propertyName || '').toLowerCase().includes(q) ||
-      (record.tenantName || '').toLowerCase().includes(q) ||
-      (record.tenantContact || '').toLowerCase().includes(q) ||
-      (record.ownerName || '').toLowerCase().includes(q)
-    );
-  });
 
   const handleDownloadPDF = () => {
     const doc = new jsPDF('landscape');
@@ -560,11 +764,36 @@ const RentMaster = () => {
     }
   };
 
+  const [filterTab, setFilterTab] = useState('ALL'); // 'ALL' or 'EXPIRED'
+
+  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
+
   const totalProperties = mockData.length;
   const totalMonthlyYield = mockData.reduce((sum, item) => sum + (Number(item.monthlyRent) || 0), 0);
   const totalSecurityDeposit = mockData.reduce((sum, item) => sum + (Number(item.securityDeposit) || 0), 0);
   const avgRent = totalProperties > 0 ? Math.round(totalMonthlyYield / totalProperties) : 0;
   const docsCount = mockData.filter(item => item.document && item.document.length > 0).length;
+
+  // Expired Agreements calculation
+  const expiredRecords = useMemo(() => {
+    return mockData.filter(item => item.agreementEnd && item.agreementEnd < todayStr);
+  }, [mockData, todayStr]);
+
+  const expiredCount = expiredRecords.length;
+
+  const filteredData = mockData.filter(record => {
+    if (filterTab === 'EXPIRED') {
+      if (!record.agreementEnd || record.agreementEnd >= todayStr) return false;
+    }
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      (record.propertyName || '').toLowerCase().includes(q) ||
+      (record.tenantName || '').toLowerCase().includes(q) ||
+      (record.tenantContact || '').toLowerCase().includes(q) ||
+      (record.ownerName || '').toLowerCase().includes(q)
+    );
+  });
 
   return (
     <AdminLayout>
@@ -649,10 +878,17 @@ const RentMaster = () => {
           </div>
         </div>
 
-        {/* ═══════════ TOP 5 KPI METRICS - SINGLE LINE ═══════════ */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: '10px' }}>
+        {/* ═══════════ TOP KPI METRICS - 6 IN SINGLE ROW ═══════════ */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: '10px' }}>
           
-          <div className="bg-white rounded-xl p-2.5 sm:py-2.5 sm:px-3 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group min-w-0">
+          {/* 1. Total Properties */}
+          <div 
+            onClick={() => setFilterTab('ALL')}
+            className={`bg-white rounded-xl p-2.5 sm:py-2.5 sm:px-3 border shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group min-w-0 cursor-pointer ${
+              filterTab === 'ALL' ? 'border-blue-400 ring-2 ring-blue-500/20' : 'border-slate-200/80'
+            }`}
+            title="Click to view all properties"
+          >
             <div className="flex items-center justify-between mb-1.5 gap-1">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 truncate" title="Total Units">
                 Total Properties
@@ -669,6 +905,7 @@ const RentMaster = () => {
             </div>
           </div>
 
+          {/* 2. Monthly Portfolio */}
           <div className="bg-white rounded-xl p-2.5 sm:py-2.5 sm:px-3 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group min-w-0">
             <div className="flex items-center justify-between mb-1.5 gap-1">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 truncate" title="Monthly Yield">
@@ -686,6 +923,7 @@ const RentMaster = () => {
             </div>
           </div>
 
+          {/* 3. Security Deposit */}
           <div className="bg-white rounded-xl p-2.5 sm:py-2.5 sm:px-3 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group min-w-0">
             <div className="flex items-center justify-between mb-1.5 gap-1">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 truncate" title="Security Deposit">
@@ -703,6 +941,7 @@ const RentMaster = () => {
             </div>
           </div>
 
+          {/* 4. Average Rent */}
           <div className="bg-white rounded-xl p-2.5 sm:py-2.5 sm:px-3 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group min-w-0">
             <div className="flex items-center justify-between mb-1.5 gap-1">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 truncate" title="Average Rent">
@@ -720,6 +959,41 @@ const RentMaster = () => {
             </div>
           </div>
 
+          {/* 5. Expired Agreements - Dedicated Renewal Alert Card */}
+          <div 
+            onClick={() => setFilterTab(prev => prev === 'EXPIRED' ? 'ALL' : 'EXPIRED')}
+            className={`bg-white rounded-xl p-2.5 sm:py-2.5 sm:px-3 border shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group min-w-0 cursor-pointer ${
+              filterTab === 'EXPIRED' 
+                ? 'border-amber-500 ring-2 ring-amber-500/20 bg-amber-50/30' 
+                : expiredCount > 0 
+                  ? 'border-amber-300 bg-amber-50/20' 
+                  : 'border-slate-200/80'
+            }`}
+            title="Click to filter expired agreements for renewal"
+          >
+            <div className="flex items-center justify-between mb-1.5 gap-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 truncate" title="Expired Agreements">
+                Expired Agreements
+              </span>
+              <div className={`p-1 rounded-lg shrink-0 ${expiredCount > 0 ? 'bg-amber-100 text-amber-600 animate-pulse' : 'bg-slate-100 text-slate-500'}`}>
+                <RotateCw className="h-3.5 w-3.5" />
+              </div>
+            </div>
+            <div className="text-base sm:text-lg font-black text-amber-600 tracking-tight leading-tight group-hover:text-amber-700 transition-colors truncate flex items-center gap-1.5">
+              <span>{expiredCount} Units</span>
+              {expiredCount > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-amber-100 text-amber-700 border border-amber-300">
+                  Needs Action
+                </span>
+              )}
+            </div>
+            <div className="text-[10px] text-amber-700 mt-0.5 font-bold truncate flex items-center justify-between">
+              <span>{filterTab === 'EXPIRED' ? 'Showing Expired' : 'Click to Filter'}</span>
+              <span className="underline">Renew</span>
+            </div>
+          </div>
+
+          {/* 6. Documents Attached */}
           <div className="bg-white rounded-xl p-2.5 sm:py-2.5 sm:px-3 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group min-w-0">
             <div className="flex items-center justify-between mb-1.5 gap-1">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 truncate" title="Documents Attached">
@@ -739,12 +1013,30 @@ const RentMaster = () => {
 
         </div>
 
+        {/* Expired Filter Active Notice Banner */}
+        {filterTab === 'EXPIRED' && (
+          <div className="bg-amber-50 border border-amber-200/90 rounded-xl p-3 flex items-center justify-between shadow-2xs animate-in fade-in">
+            <div className="flex items-center gap-2 text-xs text-amber-800 font-bold">
+              <RotateCw className="h-4 w-4 text-amber-600" />
+              <span>Filtering: Showing {filteredData.length} Expired Agreements that require renewal</span>
+            </div>
+            <button
+              onClick={() => setFilterTab('ALL')}
+              className="text-xs font-bold text-amber-700 hover:text-amber-900 px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 transition-colors flex items-center gap-1"
+            >
+              <X className="h-3.5 w-3.5" />
+              <span>Show All Properties</span>
+            </button>
+          </div>
+        )}
+
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden hidden md:block">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200">
                   <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">S.No.</th>
+                  <th className="px-3 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap text-center">View</th>
                   <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Property Name</th>
                   <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Tenant Name</th>
                   <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Tenant Contact No.</th>
@@ -766,7 +1058,7 @@ const RentMaster = () => {
               <tbody className="divide-y divide-slate-200">
                 {filteredData.length === 0 ? (
                   <tr>
-                    <td colSpan="17" className="px-4 py-8 text-center text-sm text-slate-500">
+                    <td colSpan="18" className="px-4 py-8 text-center text-sm text-slate-500">
                       No records found
                     </td>
                   </tr>
@@ -777,6 +1069,15 @@ const RentMaster = () => {
                     openHistoryModal(record);
                   }}>
                     <td className="px-4 py-4 whitespace-nowrap text-xs font-bold text-slate-400">{index + 1}</td>
+                    <td className="px-3 py-4 whitespace-nowrap text-center action-cell">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); openHistoryModal(record); }}
+                        title="View Rent Ledger & History"
+                        className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 hover:scale-105 transition-all shadow-2xs inline-flex items-center justify-center"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
+                    </td>
                     <td className="px-4 py-4 whitespace-nowrap">
                       <div className="text-sm font-extrabold text-slate-900 group-hover:text-red-600 transition-colors flex items-center gap-1.5">
                         <Building2 className="h-3.5 w-3.5 text-red-500 shrink-0" />
@@ -809,7 +1110,18 @@ const RentMaster = () => {
                       ₹{Number(record.securityDeposit || 0).toLocaleString('en-IN')}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-xs text-slate-600 font-medium">{formatDate(record.agreementStart)}</td>
-                    <td className="px-4 py-4 whitespace-nowrap text-xs text-slate-600 font-medium">{formatDate(record.agreementEnd)}</td>
+                    <td className="px-4 py-4 whitespace-nowrap text-xs text-slate-600 font-medium">
+                      <div className="flex items-center gap-1.5">
+                        <span>{formatDate(record.agreementEnd)}</span>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); openRenewalModal(record); }}
+                          title="Renew Agreement Tenure"
+                          className="p-1 rounded hover:bg-amber-100 text-amber-600 transition-colors"
+                        >
+                          <RotateCw className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </td>
                     <td className="px-4 py-4 whitespace-nowrap text-xs text-slate-700 font-semibold">
                       {record.rentDueDateStart && record.rentDueDateEnd ? `${record.rentDueDateStart} to ${record.rentDueDateEnd} of month` : '-'}
                     </td>
@@ -863,6 +1175,21 @@ const RentMaster = () => {
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium action-cell">
                       <div className="flex items-center justify-end gap-1.5">
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); openRenewalModal(record); }} 
+                          title="Renew Agreement (Update End Date & Rent)" 
+                          className="p-1.5 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-100 transition-colors shadow-2xs group flex items-center gap-1 font-bold text-[11px]"
+                        >
+                          <RotateCw className="h-3.5 w-3.5" />
+                          <span className="hidden xl:inline">Renew</span>
+                        </button>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); generateMonthlyTrackerRecords(record, true); }} 
+                          title="Generate/Sync Monthly Tracker for Entire Agreement Period" 
+                          className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors shadow-2xs group flex items-center gap-1"
+                        >
+                          <CalendarIcon className="h-3.5 w-3.5" />
+                        </button>
                         <button 
                           onClick={(e) => { e.stopPropagation(); handleUpdate(record.id); }} 
                           title="Update Profile" 
@@ -1281,6 +1608,125 @@ const RentMaster = () => {
                 </>
               )}
             </div>
+          </div>
+        </div>
+      )}
+      {/* ═══════════ AGREEMENT RENEWAL MODAL ═══════════ */}
+      {renewalModalOpen && renewalRecord && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl border border-slate-150 animate-in fade-in zoom-in duration-200">
+            {/* Header */}
+            <div className="px-6 py-4 bg-gradient-to-r from-amber-500 to-amber-600 flex justify-between items-center text-white">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-white/20 rounded-xl backdrop-blur-xs">
+                  <RotateCw className="h-5 w-5 text-white animate-spin-reverse" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-base tracking-tight">Renew Tenancy Agreement</h3>
+                  <p className="text-xs text-amber-100 font-medium">Extend agreement period & sync upcoming rent tracker cycles</p>
+                </div>
+              </div>
+              <button 
+                type="button"
+                onClick={() => { setRenewalModalOpen(false); setRenewalRecord(null); }}
+                className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleRenewalSubmit} className="p-6 space-y-4">
+              {/* Client Info Banner */}
+              <div className="p-3 bg-amber-50/70 border border-amber-200/80 rounded-xl flex items-center justify-between text-xs">
+                <div>
+                  <div className="font-bold text-slate-800 text-sm">{renewalRecord.propertyName}</div>
+                  <div className="text-slate-500 font-medium mt-0.5">Tenant: <span className="font-bold text-slate-700">{renewalRecord.tenantName}</span></div>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Current End Date</span>
+                  <span className="font-black text-rose-600 text-xs">{formatDate(renewalRecord.agreementEnd)}</span>
+                </div>
+              </div>
+
+              {/* New Agreement End Date */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700 uppercase flex items-center gap-1">
+                  <span>New Agreement End Date</span>
+                  <span className="text-red-500">*</span>
+                </label>
+                <input 
+                  type="date"
+                  value={renewalEndDate}
+                  onChange={(e) => setRenewalEndDate(e.target.value)}
+                  required
+                  min={renewalRecord.agreementEnd || new Date().toISOString().split('T')[0]}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 font-semibold text-slate-800 shadow-2xs"
+                />
+                <p className="text-[11px] text-slate-500">Select the extended expiration date for this contract.</p>
+              </div>
+
+              {/* Monthly Rent */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700 uppercase flex items-center gap-1">
+                  <span>Monthly Rent (₹)</span>
+                  <span className="text-slate-400 font-normal lowercase">(optional rate revision)</span>
+                </label>
+                <input 
+                  type="number"
+                  value={renewalMonthlyRent}
+                  onChange={(e) => setRenewalMonthlyRent(e.target.value)}
+                  placeholder="e.g. 25000"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 font-semibold text-slate-800 shadow-2xs"
+                />
+              </div>
+
+              {/* Remarks */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700 uppercase">Renewal Remarks</label>
+                <input 
+                  type="text"
+                  value={renewalRemarks}
+                  onChange={(e) => setRenewalRemarks(e.target.value)}
+                  placeholder="e.g. Agreement extended for 1 year with 5% hike"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 shadow-2xs"
+                />
+              </div>
+
+              {/* Auto generate tracker toggle */}
+              <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl flex items-start gap-2.5 cursor-pointer" onClick={() => setRenewalAutoGenerate(!renewalAutoGenerate)}>
+                <input 
+                  type="checkbox"
+                  id="auto-gen"
+                  checked={renewalAutoGenerate}
+                  onChange={(e) => setRenewalAutoGenerate(e.target.checked)}
+                  className="mt-0.5 rounded text-amber-600 focus:ring-amber-500 cursor-pointer"
+                />
+                <label htmlFor="auto-gen" className="text-xs text-slate-700 font-medium cursor-pointer">
+                  <span className="font-bold text-slate-900 block">Auto-Generate Rent Tracker for Renewal Period</span>
+                  Automatically create upcoming monthly payment tracker records up to the new end date.
+                </label>
+              </div>
+
+              {/* Actions */}
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => { setRenewalModalOpen(false); setRenewalRecord(null); }}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingRenewal}
+                  className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold shadow-md shadow-amber-500/25 transition-all flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  <RotateCw className={`h-3.5 w-3.5 ${isSubmittingRenewal ? 'animate-spin' : ''}`} />
+                  <span>{isSubmittingRenewal ? 'Renewing...' : 'Confirm Renewal'}</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

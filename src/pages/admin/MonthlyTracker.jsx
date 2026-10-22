@@ -384,7 +384,15 @@ const MonthlyTracker = () => {
 
   // Base month data before search and status filter
   const monthData = useMemo(() => {
-    return filterMonth ? mockData.filter(item => item.month === filterMonth) : mockData;
+    if (!filterMonth) return mockData;
+    const fm = filterMonth.trim().toLowerCase();
+    return mockData.filter(item => {
+      if (!item.month) return false;
+      const m = item.month.trim().toLowerCase();
+      // Match exact ("May" === "May" or "May 2026" === "May 2026")
+      // Or prefix/partial ("May 2026".startsWith("May") or vice-versa)
+      return m === fm || m.startsWith(fm) || fm.startsWith(m);
+    });
   }, [mockData, filterMonth]);
 
   // Filtered data by search & status
