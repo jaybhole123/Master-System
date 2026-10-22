@@ -26,7 +26,10 @@ import {
   PieChart as PieChartIcon,
   Layers,
   Sparkles,
-  ArrowRight
+  ArrowRight,
+  Eye,
+  MapPin,
+  Building2
 } from 'lucide-react';
 
 const FINANCIAL_COLORS = ['#f59e0b', '#10b981'];
@@ -41,6 +44,13 @@ export default function TransportDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterVehicleNo, setFilterVehicleNo] = useState('');
   const [filterDoNo, setFilterDoNo] = useState('');
+
+  // Vehicle Trip History Modal State
+  const [vehicleHistoryModal, setVehicleHistoryModal] = useState({
+    isOpen: false,
+    vehicleNo: '',
+    trips: []
+  });
 
   // Export Modal State
   const [showExportModal, setShowExportModal] = useState(false);
@@ -207,6 +217,25 @@ export default function TransportDashboard() {
       (truck.do_party_name && truck.do_party_name.toLowerCase().includes(query))
     );
   });
+
+  // Open Vehicle Trip History Modal
+  const openVehicleHistory = (vehicleNo) => {
+    // Get all trips for this specific vehicle from reportsData, sorted by date descending (or id descending)
+    const vehicleTrips = reportsData
+      .filter(item => String(item.vehicle_no || '').trim().toLowerCase() === String(vehicleNo || '').trim().toLowerCase())
+      .sort((a, b) => {
+        const dateA = a.date ? new Date(a.date).getTime() : 0;
+        const dateB = b.date ? new Date(b.date).getTime() : 0;
+        if (dateB !== dateA) return dateB - dateA;
+        return (b.id || 0) - (a.id || 0);
+      });
+
+    setVehicleHistoryModal({
+      isOpen: true,
+      vehicleNo: vehicleNo,
+      trips: vehicleTrips
+    });
+  };
 
   // Export Handler
   const handleExport = (format) => {
@@ -737,6 +766,7 @@ export default function TransportDashboard() {
             <thead className="sticky top-0 bg-slate-50 z-10 shadow-2xs">
               <tr className="border-b border-slate-200 text-xs font-black text-slate-500 uppercase tracking-wider">
                 <th className="py-3.5 px-3.5 text-center w-12 whitespace-nowrap">#</th>
+                <th className="py-3.5 px-2.5 text-center whitespace-nowrap w-12">View</th>
                 <th className="py-3.5 px-3.5 whitespace-nowrap">Vehicle No.</th>
                 <th className="py-3.5 px-3.5 whitespace-nowrap">Total Trips</th>
                 <th className="py-3.5 px-3.5 text-left whitespace-nowrap">Diesel (L)</th>
@@ -749,6 +779,16 @@ export default function TransportDashboard() {
               {searchedReports.map((truck, idx) => (
                 <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
                   <td className="py-3 px-3.5 text-center text-slate-400 font-mono font-bold">{idx + 1}</td>
+                  <td className="py-3 px-2.5 text-center whitespace-nowrap">
+                    <button
+                      type="button"
+                      onClick={() => openVehicleHistory(truck.name)}
+                      className="inline-flex items-center justify-center p-1.5 rounded-lg bg-red-50 hover:bg-red-600 text-red-600 hover:text-white transition-all shadow-2xs hover:shadow-sm cursor-pointer group"
+                      title={`View trip history for ${truck.name}`}
+                    >
+                      <Eye className="h-4 w-4 transition-transform group-hover:scale-110" />
+                    </button>
+                  </td>
                   <td className="py-3 px-3.5 whitespace-nowrap">
                     <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 font-black font-mono text-xs border border-slate-200/90 shadow-2xs">
                       {truck.name ? (truck.name.toUpperCase().includes('CG') ? truck.name : `CG-10-CG ${truck.name}`) : '-'}
@@ -773,7 +813,7 @@ export default function TransportDashboard() {
               ))}
               {searchedReports.length === 0 && (
                 <tr>
-                  <td colSpan="7" className="py-12 text-center text-slate-400 font-medium">
+                  <td colSpan="8" className="py-12 text-center text-slate-400 font-medium">
                     No matching trip records found for analysis
                   </td>
                 </tr>
@@ -786,10 +826,18 @@ export default function TransportDashboard() {
         <div className="block md:hidden space-y-2.5">
           {searchedReports.map((truck, idx) => (
             <div key={idx} className="bg-slate-50/70 hover:bg-slate-50 rounded-xl p-3 border border-slate-200/80 shadow-2xs space-y-2.5 transition-all">
-              {/* Header: S.No + Vehicle No + Total Trips */}
+              {/* Header: S.No + Eye Button + Vehicle No + Total Trips */}
               <div className="flex items-center justify-between gap-2 pb-2 border-b border-slate-200/70">
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="text-xs font-bold text-slate-400 font-mono shrink-0">#{idx + 1}</span>
+                  <button
+                    type="button"
+                    onClick={() => openVehicleHistory(truck.name)}
+                    className="p-1 rounded-md bg-red-50 hover:bg-red-600 text-red-600 hover:text-white transition-colors cursor-pointer shrink-0"
+                    title={`View trip history for ${truck.name}`}
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                  </button>
                   <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-white text-slate-800 font-black font-mono text-xs border border-slate-200 shadow-2xs truncate">
                     <Truck className="h-3 w-3 mr-1 text-slate-500 shrink-0" />
                     <span className="truncate">
@@ -797,9 +845,11 @@ export default function TransportDashboard() {
                     </span>
                   </span>
                 </div>
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 font-bold font-mono text-xs border border-blue-200/60 shrink-0">
-                  {truck.trips} Trips
-                </span>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 font-bold font-mono text-xs border border-blue-200/60">
+                    {truck.trips} Trips
+                  </span>
+                </div>
               </div>
 
               {/* Info Grid */}
@@ -910,6 +960,278 @@ export default function TransportDashboard() {
                 className="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 py-2 rounded-xl text-xs font-semibold transition-colors mt-1"
               >
                 Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════ VEHICLE TRIP HISTORY MODAL (Trip-wise & Date-wise) ═══════════ */}
+      {vehicleHistoryModal.isOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl max-h-[92vh] flex flex-col overflow-hidden border border-slate-100">
+            {/* Modal Header */}
+            <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-slate-50 via-red-50/20 to-white">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-red-600 to-rose-700 text-white flex items-center justify-center shadow-md shadow-red-600/20 shrink-0">
+                  <Truck className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+                      Vehicle Trip History
+                    </h3>
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-lg bg-red-100 text-red-700 font-black font-mono text-xs border border-red-200">
+                      {vehicleHistoryModal.vehicleNo?.toUpperCase().includes('CG') 
+                        ? vehicleHistoryModal.vehicleNo 
+                        : `CG-10-CG ${vehicleHistoryModal.vehicleNo}`}
+                    </span>
+                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                      {vehicleHistoryModal.trips.length} Total {vehicleHistoryModal.trips.length === 1 ? 'Trip' : 'Trips'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Complete trip-wise operational and financial history strictly for this vehicle
+                  </p>
+                </div>
+              </div>
+
+              <button 
+                onClick={() => setVehicleHistoryModal({ isOpen: false, vehicleNo: '', trips: [] })}
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                title="Close modal"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Quick Metrics Summary Bar */}
+            <div className="bg-slate-50/80 px-4 sm:px-6 py-3 border-b border-slate-100 grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
+              <div className="bg-white p-2.5 rounded-xl border border-slate-200/70 shadow-2xs">
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Trips</div>
+                <div className="text-sm font-black text-blue-700 font-mono mt-0.5">
+                  {vehicleHistoryModal.trips.length}
+                </div>
+              </div>
+              <div className="bg-white p-2.5 rounded-xl border border-slate-200/70 shadow-2xs">
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Diesel (L)</div>
+                <div className="text-sm font-black text-purple-700 font-mono mt-0.5">
+                  {vehicleHistoryModal.trips.reduce((sum, t) => sum + (Number(t.diesel) || parseFloat(String(t.diesel || '').replace(/[^0-9.]/g, '')) || 0), 0).toLocaleString()} L
+                </div>
+              </div>
+              <div className="bg-white p-2.5 rounded-xl border border-slate-200/70 shadow-2xs">
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Diesel Price</div>
+                <div className="text-sm font-black text-purple-900 font-mono mt-0.5">
+                  ₹ {vehicleHistoryModal.trips.reduce((sum, t) => {
+                    const dL = Number(t.diesel) || parseFloat(String(t.diesel || '').replace(/[^0-9.]/g, '')) || 0;
+                    const dP = parseFloat(t.diesel_price) || 0;
+                    return sum + Math.round(dL * dP);
+                  }, 0).toLocaleString('en-IN')}
+                </div>
+              </div>
+              <div className="bg-white p-2.5 rounded-xl border border-slate-200/70 shadow-2xs">
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Freight</div>
+                <div className="text-sm font-black text-emerald-700 font-mono mt-0.5">
+                  ₹ {vehicleHistoryModal.trips.reduce((sum, t) => sum + (Number(t.total_freight) || 0), 0).toLocaleString()}
+                </div>
+              </div>
+              <div className="bg-white p-2.5 rounded-xl border border-slate-200/70 shadow-2xs">
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Vehicle Balance</div>
+                <div className="text-sm font-black text-rose-600 font-mono mt-0.5">
+                  ₹ {vehicleHistoryModal.trips.reduce((sum, t) => sum + (Number(t.vehicle_balance) || 0), 0).toLocaleString()}
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Body / Table Content */}
+            <div className="p-4 overflow-y-auto flex-1 max-h-[60vh] space-y-3">
+              {/* Desktop Table View */}
+              <div className="hidden sm:block overflow-x-auto rounded-2xl border border-slate-200 shadow-2xs">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead className="bg-slate-50 sticky top-0 z-10 border-b border-slate-200 font-bold text-slate-500 uppercase tracking-wider">
+                    <tr>
+                      <th className="py-3 px-3 text-center w-10">#</th>
+                      <th className="py-3 px-3 whitespace-nowrap">Trip Date</th>
+                      <th className="py-3 px-3 whitespace-nowrap">Route (From → To)</th>
+                      <th className="py-3 px-3 whitespace-nowrap">Party / Consignee</th>
+                      <th className="py-3 px-3 whitespace-nowrap">DO No. / DO Party</th>
+                      <th className="py-3 px-3 text-right whitespace-nowrap">Diesel (L)</th>
+                      <th className="py-3 px-3 text-right whitespace-nowrap">Total Diesel Price</th>
+                      <th className="py-3 px-3 text-right whitespace-nowrap">Advance</th>
+                      <th className="py-3 px-3 text-right whitespace-nowrap">Freight</th>
+                      <th className="py-3 px-3 text-right whitespace-nowrap">Balance</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 bg-white">
+                    {vehicleHistoryModal.trips.map((trip, tIdx) => {
+                      const dieselVal = Number(trip.diesel) || parseFloat(String(trip.diesel || '').replace(/[^0-9.]/g, '')) || 0;
+                      const dieselPriceVal = parseFloat(trip.diesel_price) || 0;
+                      const totalDieselPrice = Math.round(dieselVal * dieselPriceVal);
+
+                      return (
+                        <tr key={trip.id || tIdx} className="hover:bg-slate-50/80 transition-colors">
+                          <td className="py-2.5 px-3 text-center text-slate-400 font-mono font-bold">
+                            {tIdx + 1}
+                          </td>
+                          <td className="py-2.5 px-3 whitespace-nowrap">
+                            <span className="inline-flex items-center gap-1 font-bold text-slate-800 font-mono">
+                              <Calendar className="h-3 w-3 text-red-500" />
+                              {formatDateDisplay(trip.date)}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-3 whitespace-nowrap">
+                            {(trip.from_location || trip.to_location) ? (
+                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-semibold text-[11px]">
+                                <span>{trip.from_location || '-'}</span>
+                                <ArrowRight className="h-3 w-3 text-red-500 shrink-0" />
+                                <span>{trip.to_location || '-'}</span>
+                              </span>
+                            ) : (
+                              <span className="text-slate-400">-</span>
+                            )}
+                          </td>
+                          <td className="py-2.5 px-3 whitespace-nowrap">
+                            <span className="font-semibold text-slate-700" title={trip.party_name}>
+                              {trip.party_name || '-'}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-3 whitespace-nowrap">
+                            <div className="flex flex-col">
+                              <span className="font-mono font-bold text-slate-800">
+                                {trip.do_no ? `#${trip.do_no}` : '-'}
+                              </span>
+                              {trip.do_party_name && (
+                                <span className="text-[10px] text-slate-400 truncate max-w-[140px]" title={trip.do_party_name}>
+                                  {trip.do_party_name}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-2.5 px-3 text-right font-black text-purple-700 font-mono whitespace-nowrap">
+                            {dieselVal > 0 ? `${dieselVal.toLocaleString()} L` : '-'}
+                          </td>
+                          <td className="py-2.5 px-3 text-right font-black text-purple-900 font-mono whitespace-nowrap bg-purple-50/30">
+                            {totalDieselPrice > 0 ? (
+                              <span>
+                                ₹ {totalDieselPrice.toLocaleString('en-IN')}
+                                {dieselPriceVal > 0 && (
+                                  <span className="block text-[10px] font-normal text-slate-400">
+                                    (@ ₹{dieselPriceVal}/L)
+                                  </span>
+                                )}
+                              </span>
+                            ) : '-'}
+                          </td>
+                          <td className="py-2.5 px-3 text-right font-black text-amber-600 font-mono whitespace-nowrap">
+                            ₹ {Number(trip.advance || 0).toLocaleString()}
+                          </td>
+                          <td className="py-2.5 px-3 text-right font-black text-emerald-700 font-mono whitespace-nowrap">
+                            ₹ {Number(trip.total_freight || 0).toLocaleString()}
+                          </td>
+                          <td className="py-2.5 px-3 text-right font-black text-rose-600 font-mono whitespace-nowrap">
+                            ₹ {Number(trip.vehicle_balance || 0).toLocaleString()}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Cards View for Vehicle Trips */}
+              <div className="block sm:hidden space-y-2.5">
+                {vehicleHistoryModal.trips.map((trip, tIdx) => {
+                  const dieselVal = Number(trip.diesel) || parseFloat(String(trip.diesel || '').replace(/[^0-9.]/g, '')) || 0;
+                  const dieselPriceVal = parseFloat(trip.diesel_price) || 0;
+                  const totalDieselPrice = Math.round(dieselVal * dieselPriceVal);
+
+                  return (
+                    <div key={trip.id || tIdx} className="bg-slate-50/70 p-3 rounded-xl border border-slate-200 space-y-2 text-xs">
+                      <div className="flex items-center justify-between border-b border-slate-200/70 pb-1.5">
+                        <span className="font-bold text-slate-400 font-mono">Trip #{tIdx + 1}</span>
+                        <span className="inline-flex items-center gap-1 font-bold text-slate-800 font-mono">
+                          <Calendar className="h-3 w-3 text-red-500" />
+                          {formatDateDisplay(trip.date)}
+                        </span>
+                      </div>
+
+                      {(trip.from_location || trip.to_location) && (
+                        <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-700 bg-white p-1.5 rounded-lg border border-slate-100">
+                          <MapPin className="h-3 w-3 text-slate-400 shrink-0" />
+                          <span className="truncate">{trip.from_location || '-'}</span>
+                          <ArrowRight className="h-3 w-3 text-red-500 shrink-0" />
+                          <span className="truncate">{trip.to_location || '-'}</span>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="bg-white p-2 rounded-lg border border-slate-100">
+                          <div className="text-[10px] text-slate-400 font-bold uppercase">Party / DO</div>
+                          <div className="font-semibold text-slate-800 truncate" title={trip.party_name}>
+                            {trip.party_name || '-'}
+                          </div>
+                          <div className="text-[10px] text-slate-500 font-mono truncate">
+                            {trip.do_no ? `DO: ${trip.do_no}` : ''}
+                          </div>
+                        </div>
+
+                        <div className="bg-purple-50/60 p-2 rounded-lg border border-purple-100">
+                          <div className="text-[10px] text-purple-700 font-bold uppercase">Diesel (L)</div>
+                          <div className="font-mono font-black text-purple-800">
+                            {dieselVal > 0 ? `${dieselVal.toLocaleString()} L` : '0 L'}
+                          </div>
+                        </div>
+
+                        <div className="bg-purple-100/60 p-2 rounded-lg border border-purple-200 col-span-2 flex items-center justify-between">
+                          <div className="text-[10px] text-purple-900 font-bold uppercase">Total Diesel Price</div>
+                          <div className="font-mono font-black text-purple-950 text-sm">
+                            {totalDieselPrice > 0 ? `₹ ${totalDieselPrice.toLocaleString('en-IN')}` : '₹ 0'}
+                            {dieselPriceVal > 0 && (
+                              <span className="text-[10px] font-normal text-slate-500 ml-1">
+                                (@ ₹{dieselPriceVal}/L)
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="bg-emerald-50/60 p-2 rounded-lg border border-emerald-100">
+                          <div className="text-[10px] text-emerald-700 font-bold uppercase">Freight</div>
+                          <div className="font-mono font-black text-emerald-800">
+                            ₹ {Number(trip.total_freight || 0).toLocaleString()}
+                          </div>
+                        </div>
+
+                        <div className="bg-rose-50/60 p-2 rounded-lg border border-rose-100">
+                          <div className="text-[10px] text-rose-700 font-bold uppercase">Balance</div>
+                          <div className="font-mono font-black text-rose-800">
+                            ₹ {Number(trip.vehicle_balance || 0).toLocaleString()}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {vehicleHistoryModal.trips.length === 0 && (
+                <div className="py-12 text-center text-slate-400">
+                  <Truck className="h-10 w-10 mx-auto text-slate-300 mb-2" />
+                  <p className="font-bold text-slate-700 text-sm">No trip records found for this vehicle</p>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-3.5 sm:p-4 border-t border-slate-100 flex items-center justify-between bg-slate-50/70">
+              <span className="text-xs font-semibold text-slate-500">
+                Displaying all recorded trips for <span className="text-slate-800 font-bold font-mono">{vehicleHistoryModal.vehicleNo}</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setVehicleHistoryModal({ isOpen: false, vehicleNo: '', trips: [] })}
+                className="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
+              >
+                Close
               </button>
             </div>
           </div>
