@@ -8,7 +8,7 @@ import Select, { components } from 'react-select';
 import { 
   Truck, Banknote, Fuel, Route, Search, Plus, Download, FileSpreadsheet, 
   Calendar, RotateCcw, Edit2, Trash2, X, ArrowRight, Shield, Sparkles, Filter,
-  Layers, MapPin, Gauge, IndianRupee, Hash, Check, Eye
+  Layers, MapPin, Gauge, IndianRupee, Hash, Check, Eye, Upload, FileUp, AlertCircle
 } from 'lucide-react';
 import './TruckReports.css';
 
@@ -36,6 +36,12 @@ export default function TruckReports() {
   const [promptModal, setPromptModal] = useState({ isOpen: false, type: null, title: '', placeholder: '' });
   const [promptValue, setPromptValue] = useState('');
   const [visibleCount, setVisibleCount] = useState(50);
+  
+  // Bulk Upload states
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  const [bulkFile, setBulkFile] = useState(null);
+  const [bulkParsedData, setBulkParsedData] = useState([]);
+  const [bulkUploading, setBulkUploading] = useState(false);
   
   const [reportsData, setReportsData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -891,6 +897,295 @@ export default function TruckReports() {
     toast.success("Excel exported successfully!");
   };
 
+  // Download Sample Template for Bulk Import (Excel & CSV format ready)
+  const downloadBulkTemplate = (fileType = 'xlsx') => {
+    const templateData = [
+      {
+        "Date": "2026-09-22",
+        "Vehicle No": "CG10CG9022",
+        "From (Origin)": "DIPKA",
+        "To (Destination)": "BIRGHANI",
+        "Distance (KM)": "58 km",
+        "Party Name": "JAY BHOLE",
+        "DO Party Name": "BALAJI FUELS",
+        "DO No": "87912",
+        "Diesel (L)": "35 L",
+        "Diesel Price (Rs)": 94.50,
+        "Advance (Rs)": 500,
+        "Total Trips": 1,
+        "Rate Per MT (Rs)": 350,
+        "Tonnage (MT)": 32.50
+      },
+      {
+        "Date": "2026-09-22",
+        "Vehicle No": "CG10CG6822",
+        "From (Origin)": "DIPKA",
+        "To (Destination)": "BIRGHANI",
+        "Distance (KM)": "58 km",
+        "Party Name": "JAY BHOLE",
+        "DO Party Name": "BALAJI FUELS",
+        "DO No": "87912",
+        "Diesel (L)": "37.85 L",
+        "Diesel Price (Rs)": 94.50,
+        "Advance (Rs)": 500,
+        "Total Trips": 1,
+        "Rate Per MT (Rs)": 350,
+        "Tonnage (MT)": 33.10
+      }
+    ];
+
+    const worksheet = XLSX.utils.json_to_sheet(templateData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Bulk_Trip_Template");
+
+    if (fileType === 'csv') {
+      XLSX.writeFile(workbook, "Truck_Trip_Bulk_Template.csv", { bookType: 'csv' });
+      toast.success("CSV Template downloaded!");
+    } else {
+      XLSX.writeFile(workbook, "Truck_Trip_Bulk_Template.xlsx");
+      toast.success("Excel Template downloaded!");
+    }
+  };
+
+  // Process and Auto-Calculate Trip Row
+  const processTripRow = (rawRow, index) => {
+    // Normalizing keys case-insensitively & removing special characters / spaces
+    const normalized = {};
+    Object.keys(rawRow).forEach(key => {
+      const cleanKey = key.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+      normalized[cleanKey] = rawRow[key];
+    });
+
+    const getVal = (...keys) => {
+      for (const k of keys) {
+        const clean = k.toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (normalized[clean] !== undefined && normalized[clean] !== null && String(normalized[clean]).trim() !== '') {
+          return normalized[clean];
+        }
+      }
+      return '';
+    };
+
+    // Extract values
+    let date = String(getVal('date', 'tripdate', 'dateoftrip') || '').trim();
+    if (typeof date === 'number') {
+      const parsedDate = new Date(Math.round((date - 25569) * 86400 * 1000));
+      date = parsedDate.toISOString().split('T')[0];
+    } else if (date.includes('/')) {
+      const parts = date.split('/');
+      if (parts.length === 3) {
+        if (parts[2].length === 4) {
+          date = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+        }
+      }
+    }
+
+    const vehicleNo = String(getVal('vehicleno', 'truckno', 'vehiclenumber', 'truck', 'vehicle') || '').trim().toUpperCase();
+    
+    // Origin / From
+    const from = String(getVal('fromorigin', 'from', 'origin', 'fromlocation', 'loadingpoint') || '').trim();
+    
+    // Destination / To
+    const to = String(getVal('todestination', 'to', 'destination', 'tolocation', 'unloadingpoint') || '').trim();
+    
+    let distance = String(getVal('distancekm', 'distance', 'dist', 'km') || '').trim();
+    if (distance && !distance.toLowerCase().includes('km') && !isNaN(Number(distance))) {
+      distance = `${distance} km`;
+    }
+
+    const partyName = String(getVal('partyname', 'party') || '').trim();
+    const doPartyName = String(getVal('dopartyname', 'doparty', 'doparty') || '').trim();
+    const doNo = String(getVal('dono', 'donumber') || '').trim();
+
+    // Diesel (e.g. 35 or 35 L)
+    let dieselRaw = String(getVal('diesell', 'diesel', 'fuel') || '').trim();
+    let dieselNumeric = parseFloat(dieselRaw.replace(/[^0-9.]/g, '')) || 0;
+    let diesel = dieselNumeric > 0 ? (dieselRaw.toLowerCase().includes('l') ? dieselRaw : `${dieselNumeric} L`) : '';
+
+    // Diesel Price (e.g. 94.50)
+    const dieselPriceRaw = String(getVal('dieselpricers', 'dieselprice', 'fuelprice', 'rateperliter', 'price') || '');
+    const dieselPrice = parseFloat(dieselPriceRaw.replace(/[^0-9.]/g, '')) || 0;
+
+    // Advance (e.g. 500)
+    const advanceRaw = String(getVal('advancers', 'advance', 'driveradvance', 'adv') || '');
+    const advance = parseFloat(advanceRaw.replace(/[^0-9.]/g, '')) || 0;
+
+    // Total Trips
+    const totalTripsRaw = String(getVal('totaltrips', 'trips', 'tripcount') || '');
+    const totalTrips = parseInt(totalTripsRaw.replace(/[^0-9]/g, ''), 10) || 1;
+
+    // Rate Per MT (e.g. 350)
+    const perMTRaw = String(getVal('ratepermtrs', 'ratepermt', 'permt', 'rate', 'freightrate') || '');
+    const perMT = parseFloat(perMTRaw.replace(/[^0-9.]/g, '')) || 0;
+
+    // Tonnage (MT) (e.g. 32.50)
+    const tonnageRaw = String(getVal('tonnagemt', 'tonnage', 'weight', 'mt') || '');
+    const tonnage = parseFloat(tonnageRaw.replace(/[^0-9.]/g, '')) || 0;
+
+    // Full Accurate Automatic Calculations:
+    // 1. Total Diesel Price = Diesel(L) * Diesel Price(₹)
+    const totalDieselPrice = Math.round(dieselNumeric * dieselPrice);
+
+    // 2. Total Freight = Rate Per MT * Tonnage (MT)
+    const totalFreight = (perMT > 0 && tonnage > 0) ? Math.round(perMT * tonnage) : 0;
+
+    // 3. Vehicle Balance = Total Freight - Total Diesel Price - Advance
+    const vehicleBalance = totalFreight > 0 ? Math.round(totalFreight - totalDieselPrice - advance) : 0;
+
+    return {
+      index: index + 1,
+      date: date || new Date().toISOString().split('T')[0],
+      vehicleNo,
+      from,
+      to,
+      distance,
+      partyName,
+      doPartyName,
+      doNo,
+      diesel,
+      dieselNumeric,
+      dieselPrice,
+      totalDieselPrice,
+      advance,
+      totalTrips,
+      perMT,
+      tonnage,
+      totalFreight,
+      vehicleBalance,
+      isValid: Boolean(vehicleNo)
+    };
+  };
+
+  // Handle Bulk File Upload (Excel or CSV)
+  const handleBulkFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setBulkFile(file);
+    const fileName = file.name.toLowerCase();
+
+    if (!fileName.endsWith('.xlsx') && !fileName.endsWith('.xls') && !fileName.endsWith('.csv')) {
+      toast.error("Please upload a valid Excel (.xlsx, .xls) or CSV (.csv) file!");
+      return;
+    }
+
+    const reader = new FileReader();
+
+    if (fileName.endsWith('.csv')) {
+      reader.onload = (evt) => {
+        try {
+          const csvText = evt.target.result;
+          const workbook = XLSX.read(csvText, { type: 'string' });
+          const firstSheetName = workbook.SheetNames[0];
+          const sheet = workbook.Sheets[firstSheetName];
+          const jsonData = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+          if (!jsonData || jsonData.length === 0) {
+            toast.error("The CSV file is empty!");
+            return;
+          }
+
+          const parsed = jsonData.map((row, idx) => processTripRow(row, idx));
+          setBulkParsedData(parsed);
+          toast.success(`Loaded ${parsed.length} rows from CSV! Review & Click Upload.`);
+        } catch (err) {
+          console.error("Error reading CSV:", err);
+          toast.error("Failed to parse CSV file!");
+        }
+      };
+      reader.readAsText(file);
+    } else {
+      reader.onload = (evt) => {
+        try {
+          const data = new Uint8Array(evt.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheetName = workbook.SheetNames[0];
+          const sheet = workbook.Sheets[firstSheetName];
+          const jsonData = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+          if (!jsonData || jsonData.length === 0) {
+            toast.error("The Excel sheet is empty!");
+            return;
+          }
+
+          const parsed = jsonData.map((row, idx) => processTripRow(row, idx));
+          setBulkParsedData(parsed);
+          toast.success(`Loaded ${parsed.length} rows from Excel! Review & Click Upload.`);
+        } catch (err) {
+          console.error("Error reading Excel:", err);
+          toast.error("Failed to parse Excel file!");
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+    // Reset file input target value so re-uploading works
+    e.target.value = '';
+  };
+
+  // Save Bulk Records to Supabase with Complete Calculated Data
+  const handleBulkUploadSubmit = async () => {
+    if (!bulkParsedData || bulkParsedData.length === 0) {
+      toast.error("No valid trip data to upload!");
+      return;
+    }
+
+    const invalidRows = bulkParsedData.filter(r => !r.isValid);
+    if (invalidRows.length > 0) {
+      if (!window.confirm(`${invalidRows.length} rows do not have Vehicle Number. Proceed anyway? (Invalid rows will be skipped)`)) {
+        return;
+      }
+    }
+
+    const rowsToInsert = bulkParsedData
+      .filter(r => r.isValid)
+      .map(r => ({
+        date: r.date,
+        vehicle_no: r.vehicleNo,
+        from_location: r.from,
+        to_location: r.to,
+        distance: r.distance,
+        party_name: r.partyName,
+        do_party_name: r.doPartyName,
+        diesel: r.diesel,
+        diesel_price: Number(r.dieselPrice) || 0,
+        advance: Number(r.advance) || 0,
+        do_no: r.doNo,
+        tonnage: Number(r.tonnage) || 0,
+        total_trips: Number(r.totalTrips) || 1,
+        vehicle_balance: Number(r.vehicleBalance) || 0,
+        per_mt: Number(r.perMT) || 0,
+        total_freight: Number(r.totalFreight) || 0
+      }));
+
+    if (rowsToInsert.length === 0) {
+      toast.error("No valid rows remaining after filtering!");
+      return;
+    }
+
+    setBulkUploading(true);
+    try {
+      const { data, error } = await supabase
+        .from('truck_reports')
+        .insert(rowsToInsert);
+
+      if (error) {
+        console.error("Supabase bulk insert error:", error);
+        toast.error(`Error saving records: ${error.message}`);
+      } else {
+        toast.success(`Successfully uploaded ${rowsToInsert.length} trips with calculations!`);
+        setIsBulkModalOpen(false);
+        setBulkFile(null);
+        setBulkParsedData([]);
+        await fetchReports();
+      }
+    } catch (err) {
+      console.error("Error in bulk upload:", err);
+      toast.error("Unexpected error occurred during upload.");
+    } finally {
+      setBulkUploading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="p-6 bg-slate-50 min-h-screen animate-pulse space-y-6">
@@ -950,6 +1245,19 @@ export default function TruckReports() {
           >
             <FileSpreadsheet size={15} /> 
             <span>Excel</span>
+          </button>
+
+          <button 
+            onClick={() => {
+              setBulkFile(null);
+              setBulkParsedData([]);
+              setIsBulkModalOpen(true);
+            }}
+            className="bg-white/15 hover:bg-white/25 text-white backdrop-blur-md border border-white/20 px-3.5 py-2 rounded-xl font-bold text-xs sm:text-sm shadow-sm transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
+            title="Bulk Upload Excel/CSV"
+          >
+            <Upload size={15} /> 
+            <span>Bulk Upload</span>
           </button>
 
           <button 
@@ -2126,6 +2434,251 @@ export default function TruckReports() {
                 Close
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════
+          BULK UPLOAD MODAL (EXCEL & CSV WITH AUTO CALCULATIONS)
+      ═══════════════════════════════════════════════════════════ */}
+      {isBulkModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-100 w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-red-600 via-rose-600 to-red-700 p-4 sm:p-5 text-white flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-white/20 rounded-xl backdrop-blur-md">
+                  <FileUp className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black tracking-tight">Bulk Upload Truck Trip Reports</h3>
+                  <p className="text-xs text-red-100 font-medium">Upload Excel (.xlsx, .xls) or CSV (.csv) file with automatic calculations</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => {
+                  setIsBulkModalOpen(false);
+                  setBulkFile(null);
+                  setBulkParsedData([]);
+                }}
+                className="p-1.5 hover:bg-white/20 rounded-xl transition-colors cursor-pointer text-white"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-4 sm:p-6 overflow-y-auto space-y-5 flex-1">
+              {/* Step 1: Download Sample Format Banner */}
+              <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/80 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1.5 font-bold text-amber-900 text-sm">
+                    <Sparkles className="h-4 w-4 text-amber-600 shrink-0" />
+                    <span>Download Ready Sample Format</span>
+                  </div>
+                  <p className="text-xs text-amber-800/80">
+                    Format me <strong>Rate Per MT</strong> &amp; <strong>Tonnage</strong> aur <strong>Diesel</strong> fill karein. <em>Freight &amp; Balance system khud auto-calculate karega!</em>
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => downloadBulkTemplate('xlsx')}
+                    className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                  >
+                    <FileSpreadsheet size={14} />
+                    <span>Excel Template (.xlsx)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => downloadBulkTemplate('csv')}
+                    className="px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                  >
+                    <Download size={14} />
+                    <span>CSV Template (.csv)</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Upload Dropzone */}
+              <div className="border-2 border-dashed border-red-200 hover:border-red-400 bg-red-50/40 rounded-2xl p-6 sm:p-8 text-center transition-all">
+                <input
+                  type="file"
+                  id="bulkTripFileInput"
+                  accept=".xlsx, .xls, .csv"
+                  onChange={handleBulkFileChange}
+                  className="hidden"
+                />
+                <label 
+                  htmlFor="bulkTripFileInput"
+                  className="cursor-pointer flex flex-col items-center justify-center gap-2"
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center shadow-inner">
+                    <Upload className="h-6 w-6" />
+                  </div>
+                  <div className="text-sm font-black text-slate-800">
+                    {bulkFile ? bulkFile.name : 'Click to select or drag & drop Excel / CSV file'}
+                  </div>
+                  <p className="text-xs text-slate-500">
+                    Supports Microsoft Excel (.xlsx, .xls) and Comma Separated (.csv) files
+                  </p>
+                </label>
+              </div>
+
+              {/* Parsed Data Preview & Calculated Summary */}
+              {bulkParsedData.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="font-black text-sm text-slate-800">Preview Data ({bulkParsedData.length} records)</span>
+                      <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                        {bulkParsedData.filter(r => r.isValid).length} Valid
+                      </span>
+                      {bulkParsedData.some(r => !r.isValid) && (
+                        <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-800 flex items-center gap-1">
+                          <AlertCircle size={11} />
+                          {bulkParsedData.filter(r => !r.isValid).length} Missing Vehicle No
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-xs font-semibold text-slate-500">Auto calculated values highlighted</span>
+                  </div>
+
+                  {/* Summary Calculation Chips */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+                    <div className="bg-slate-50 border border-slate-200 p-2.5 rounded-xl">
+                      <span className="text-slate-400 font-semibold block text-[10px] uppercase">Total Trips</span>
+                      <span className="font-bold text-slate-800 text-sm">{bulkParsedData.length}</span>
+                    </div>
+                    <div className="bg-purple-50 border border-purple-200 p-2.5 rounded-xl">
+                      <span className="text-purple-600 font-semibold block text-[10px] uppercase">Diesel Cost (Calculated)</span>
+                      <span className="font-black text-purple-700 text-sm">
+                        ₹{bulkParsedData.reduce((acc, r) => acc + (r.totalDieselPrice || 0), 0).toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                    <div className="bg-emerald-50 border border-emerald-200 p-2.5 rounded-xl">
+                      <span className="text-emerald-600 font-semibold block text-[10px] uppercase">Total Freight (Calculated)</span>
+                      <span className="font-black text-emerald-700 text-sm">
+                        ₹{bulkParsedData.reduce((acc, r) => acc + (r.totalFreight || 0), 0).toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                    <div className="bg-blue-50 border border-blue-200 p-2.5 rounded-xl">
+                      <span className="text-blue-600 font-semibold block text-[10px] uppercase">Net Balance (Calculated)</span>
+                      <span className="font-black text-blue-700 text-sm">
+                        ₹{bulkParsedData.reduce((acc, r) => acc + (r.vehicleBalance || 0), 0).toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Scrollable Preview Table */}
+                  <div className="border border-slate-200 rounded-xl overflow-x-auto max-h-60 overflow-y-auto">
+                    <table className="w-full text-left text-xs whitespace-nowrap">
+                      <thead className="bg-slate-100 text-slate-700 font-bold sticky top-0 z-10 shadow-2xs">
+                        <tr>
+                          <th className="p-2 border-b">#</th>
+                          <th className="p-2 border-b">Date</th>
+                          <th className="p-2 border-b">Vehicle No.</th>
+                          <th className="p-2 border-b">Route (From ➔ To)</th>
+                          <th className="p-2 border-b">Dist.</th>
+                          <th className="p-2 border-b">Diesel</th>
+                          <th className="p-2 border-b">Price</th>
+                          <th className="p-2 border-b text-purple-700 bg-purple-50/70">Total Diesel Price</th>
+                          <th className="p-2 border-b">Advance</th>
+                          <th className="p-2 border-b">DO No.</th>
+                          <th className="p-2 border-b">DO Party</th>
+                          <th className="p-2 border-b">Tonnage</th>
+                          <th className="p-2 border-b text-emerald-700 bg-emerald-50/70">Freight</th>
+                          <th className="p-2 border-b">Trips</th>
+                          <th className="p-2 border-b">Per MT</th>
+                          <th className="p-2 border-b text-blue-700 bg-blue-50/70">Vehicle Bal.</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 text-slate-600">
+                        {bulkParsedData.slice(0, 25).map((row, idx) => (
+                          <tr key={idx} className={!row.isValid ? 'bg-rose-50/60' : 'hover:bg-slate-50 transition-colors'}>
+                            <td className="p-2 font-mono font-medium">{row.index}</td>
+                            <td className="p-2 font-medium">{row.date}</td>
+                            <td className="p-2">
+                              {row.vehicleNo ? (
+                                <span className="font-black text-slate-800 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">{row.vehicleNo}</span>
+                              ) : (
+                                <span className="text-rose-600 font-bold bg-rose-100 px-1.5 py-0.5 rounded">Missing!</span>
+                              )}
+                            </td>
+                            <td className="p-2 font-semibold">
+                              <span className="text-slate-800">{row.from || '—'}</span>
+                              <span className="text-red-500 mx-1">➔</span>
+                              <span className="text-slate-800">{row.to || '—'}</span>
+                            </td>
+                            <td className="p-2">{row.distance || '—'}</td>
+                            <td className="p-2 font-bold text-purple-700">{row.diesel || '0'}</td>
+                            <td className="p-2 font-mono">₹{row.dieselPrice || 0}</td>
+                            <td className="p-2 font-black text-purple-800 bg-purple-50/40 font-mono">
+                              ₹{row.totalDieselPrice ? row.totalDieselPrice.toLocaleString('en-IN') : 0}
+                            </td>
+                            <td className="p-2 font-bold text-amber-600 font-mono">
+                              ₹{row.advance ? row.advance.toLocaleString('en-IN') : 0}
+                            </td>
+                            <td className="p-2 font-mono font-semibold">{row.doNo || '—'}</td>
+                            <td className="p-2 font-medium text-slate-700">{row.doPartyName || row.partyName || '—'}</td>
+                            <td className="p-2 font-bold">{row.tonnage ? `${row.tonnage} MT` : '0 MT'}</td>
+                            <td className="p-2 font-black text-emerald-800 bg-emerald-50/40 font-mono">
+                              ₹{row.totalFreight ? row.totalFreight.toLocaleString('en-IN') : 0}
+                            </td>
+                            <td className="p-2 font-bold text-center">{row.totalTrips || 1}</td>
+                            <td className="p-2 font-mono">₹{row.perMT || 0}</td>
+                            <td className="p-2 font-black text-blue-800 bg-blue-50/40 font-mono">
+                              ₹{row.vehicleBalance ? row.vehicleBalance.toLocaleString('en-IN') : 0}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {bulkParsedData.length > 15 && (
+                    <p className="text-[11px] text-slate-400 italic text-right">
+                      Showing first 15 of {bulkParsedData.length} records in preview.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Actions Footer */}
+            <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsBulkModalOpen(false);
+                  setBulkFile(null);
+                  setBulkParsedData([]);
+                }}
+                className="px-4 py-2 text-xs sm:text-sm font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-200/50 rounded-xl transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={handleBulkUploadSubmit}
+                disabled={bulkUploading || bulkParsedData.length === 0}
+                className="px-6 py-2.5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black rounded-xl shadow-md shadow-red-500/20 hover:shadow-lg transition-all text-xs sm:text-sm flex items-center gap-2 cursor-pointer"
+              >
+                {bulkUploading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Uploading Records...</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload size={16} />
+                    <span>Upload {bulkParsedData.filter(r => r.isValid).length} Trips to System</span>
+                  </>
+                )}
+              </button>
+            </div>
+
           </div>
         </div>
       )}

@@ -29,19 +29,28 @@ import {
   FileCheck,
   PhoneCall,
   BadgeAlert,
-  Percent
+  Percent,
+  RotateCw,
+  Eye,
+  Check,
+  Workflow,
+  Zap,
+  ArrowDownRight,
+  History,
+  Timer
 } from "lucide-react";
 
 export default function RentSystemFlow() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeFilter, setActiveFilter] = useState("all");
+  const [activeStep, setActiveStep] = useState(null);
 
   const [stats, setStats] = useState({
     totalProperties: 0,
     totalMonthlyYield: 0,
     activeAgreements: 0,
+    expiredAgreements: 0,
     expiringAgreements: 0,
     totalTenants: 0,
     uniqueLandlords: 0,
@@ -51,7 +60,8 @@ export default function RentSystemFlow() {
     currentMonthCollectedAmount: 0,
     currentMonthPendingAmount: 0,
     recoveryRate: 0,
-    totalDepositCustody: 0
+    totalDepositCustody: 0,
+    totalTrackerCycles: 0
   });
 
   const currentMonth = new Date().toLocaleString("default", { month: "long" });
@@ -78,9 +88,11 @@ export default function RentSystemFlow() {
       const tenantsSet = new Set();
       const today = new Date();
       today.setHours(0, 0, 0, 0);
+      const todayStr = today.toISOString().split("T")[0];
 
       let activeCount = 0;
       let expiringCount = 0;
+      let expiredCount = 0;
 
       master.forEach((m) => {
         totalYield += Number(m.monthly_rent) || 0;
@@ -89,20 +101,29 @@ export default function RentSystemFlow() {
         if (m.tenant_name) tenantsSet.add(m.tenant_name.trim());
 
         if (m.agreement_end) {
-          const end = new Date(m.agreement_end);
-          if (!isNaN(end.getTime())) {
-            const diffDays = Math.ceil((end - today) / (1000 * 60 * 60 * 24));
-            if (diffDays >= 0 && diffDays <= 60) {
-              expiringCount++;
-            } else if (diffDays > 60) {
-              activeCount++;
+          if (m.agreement_end < todayStr) {
+            expiredCount++;
+          } else {
+            const end = new Date(m.agreement_end);
+            if (!isNaN(end.getTime())) {
+              const diffDays = Math.ceil((end - today) / (1000 * 60 * 60 * 24));
+              if (diffDays >= 0 && diffDays <= 60) {
+                expiringCount++;
+              } else {
+                activeCount++;
+              }
             }
           }
         }
       });
 
       // Calculate current month tracker stats
-      const currentMonthRecords = tracker.filter((t) => (t.month || "").toLowerCase() === currentMonth.toLowerCase());
+      const currentMonthRecords = tracker.filter((t) => {
+        const m = (t.month || "").toLowerCase();
+        const cm = currentMonth.toLowerCase();
+        return m === cm || m.startsWith(cm);
+      });
+
       let pendingCount = 0;
       let receivedCount = 0;
       let delayCount = 0;
@@ -131,6 +152,7 @@ export default function RentSystemFlow() {
         totalProperties: totalProps,
         totalMonthlyYield: totalYield,
         activeAgreements: activeCount,
+        expiredAgreements: expiredCount,
         expiringAgreements: expiringCount,
         totalTenants: tenantsSet.size,
         uniqueLandlords: ownersSet.size,
@@ -140,7 +162,8 @@ export default function RentSystemFlow() {
         currentMonthCollectedAmount: collectedAmt,
         currentMonthPendingAmount: pendingAmt,
         recoveryRate: recovery,
-        totalDepositCustody: totalDeposit
+        totalDepositCustody: totalDeposit,
+        totalTrackerCycles: tracker.length
       });
     } catch (err) {
       console.error("Error fetching rent flow stats:", err);
@@ -158,101 +181,66 @@ export default function RentSystemFlow() {
     {
       id: "rent-master",
       title: "Rent Master Directory",
-      subtitle: "Property asset profiles, tenant KYC & custody",
-      category: "core",
+      subtitle: "Asset profiles, tenure contracts & custody documents",
       badge: "Origin / Asset Master",
       color: "red",
       icon: Building2,
       path: "/dashboard/rent-tracker/master",
+      features: [
+        "Single-click Tenancy Renewal Engine with rate revision",
+        "Auto-Schedule Monthly Tracker generation for remaining tenure",
+        "Instant View (Eye Icon) to inspect full rental ledger & history",
+        "Expired Agreement filter & direct action cards"
+      ],
       stats: [
         { label: "Total Assets", value: stats.totalProperties },
-        { label: "Monthly Yield", value: `₹${(stats.totalMonthlyYield / 1000).toFixed(1)}k` }
-      ],
-      description: "Foundational master directory. Register land/building assets, tenant agreements, payment cycle dates & security deposit custody.",
-      outputs: ["monthly-tracker", "rent-dashboard"]
+        { label: "Expired Contracts", value: stats.expiredAgreements, alert: stats.expiredAgreements > 0 }
+      ]
     },
     {
       id: "monthly-tracker",
       title: "Monthly Rent Tracker",
-      subtitle: "Billing cycles, grace tracking & WhatsApp receipts",
-      category: "execution",
-      badge: "Collection Operations",
+      subtitle: "Auto 1st-of-month cycles, grace windows & WhatsApp receipts",
+      badge: "Execution & Receipts",
       color: "amber",
       icon: CalendarIcon,
       path: "/dashboard/rent-tracker/monthly",
+      features: [
+        "Zero-touch auto display on the 1st of every month",
+        "Tracks due-date windows, on-time receipts & delay penalties",
+        "Automated WhatsApp rent payment receipts dispatched to tenant",
+        "Past expired months auto-skipped during schedule sync"
+      ],
       stats: [
         { label: "Pending (This Month)", value: stats.currentMonthPending, alert: stats.currentMonthPending > 0 },
-        { label: "Received", value: stats.currentMonthReceived }
-      ],
-      description: "Tracks active monthly rent dues against due dates, marks cash/bank settlements, logs delays, and dispatches automated WhatsApp rent receipts.",
-      outputs: ["rent-dashboard"]
+        { label: "Total Synced Cycles", value: stats.totalTrackerCycles }
+      ]
     },
     {
       id: "rent-dashboard",
       title: "Rent Intelligence & Analytics",
-      subtitle: "Yield graphs, defaulters list & landlord shares",
-      category: "reporting",
-      badge: "Decision Analytics",
+      subtitle: "Yield graphs, defaulter tracking & landlord revenue split",
+      badge: "Executive MIS",
       color: "rose",
       icon: LayoutDashboard,
       path: "/dashboard/rent-tracker/dashboard",
+      features: [
+        "Executive collection efficiency & recovery rate gauge",
+        "Landlord portfolio split & custody deposit ledger",
+        "One-click WhatsApp payment reminders to overdue tenants",
+        "Active vs expiring vs expired agreement radar"
+      ],
       stats: [
         { label: "Recovery Rate", value: `${stats.recoveryRate}%` },
-        { label: "Custody Deposit", value: `₹${(stats.totalDepositCustody / 1000).toFixed(1)}k` }
-      ],
-      description: "Real-time rental intelligence. Visualizes recovery KPIs, revenue shares per landlord, upcoming contract expiries & sends one-click WhatsApp reminders.",
-      outputs: []
+        { label: "Monthly Portfolio", value: `₹${(stats.totalMonthlyYield / 1000).toFixed(1)}k` }
+      ]
     }
   ];
-
-  const getColorClasses = (color) => {
-    switch (color) {
-      case "red":
-        return {
-          border: "border-red-200 hover:border-red-400",
-          bg: "bg-red-500/10",
-          cardBg: "from-red-50/60 via-white to-white",
-          text: "text-red-700",
-          badge: "bg-red-50 text-red-700 border-red-200",
-          ring: "focus:ring-red-400",
-          iconBg: "bg-gradient-to-tr from-red-600 to-rose-600 text-white shadow-red-200"
-        };
-      case "amber":
-        return {
-          border: "border-amber-200 hover:border-amber-400",
-          bg: "bg-amber-500/10",
-          cardBg: "from-amber-50/60 via-white to-white",
-          text: "text-amber-700",
-          badge: "bg-amber-50 text-amber-800 border-amber-200",
-          ring: "focus:ring-amber-400",
-          iconBg: "bg-amber-600 text-white shadow-amber-200"
-        };
-      case "rose":
-        return {
-          border: "border-rose-200 hover:border-rose-400",
-          bg: "bg-rose-500/10",
-          cardBg: "from-rose-50/60 via-white to-white",
-          text: "text-rose-700",
-          badge: "bg-rose-50 text-rose-700 border-rose-200",
-          ring: "focus:ring-rose-400",
-          iconBg: "bg-rose-600 text-white shadow-rose-200"
-        };
-      default:
-        return {
-          border: "border-gray-200 hover:border-red-400",
-          bg: "bg-red-500/10",
-          cardBg: "from-gray-50 via-white to-white",
-          text: "text-gray-800",
-          badge: "bg-gray-100 text-gray-700 border-gray-200",
-          ring: "focus:ring-red-400",
-          iconBg: "bg-red-600 text-white shadow-red-200"
-        };
-    }
-  };
 
   return (
     <AdminLayout>
       <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+        
         {/* Top Header Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-gray-200">
           <div className="flex items-center gap-3.5">
@@ -270,7 +258,7 @@ export default function RentSystemFlow() {
                 </span>
               </div>
               <p className="text-sm font-medium text-gray-500 mt-0.5">
-                How properties, monthly billing cycles, settlements, and performance reports connect — click any box to open that page
+                Complete architectural flow: Auto-generation, renewal engine, instant ledger view, and monthly settlements
               </p>
             </div>
           </div>
@@ -279,14 +267,14 @@ export default function RentSystemFlow() {
             <button
               onClick={fetchRentFlowData}
               disabled={refreshing}
-              className="flex items-center gap-2 px-3.5 py-2 text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm active:scale-95 disabled:opacity-60"
+              className="flex items-center gap-2 px-3.5 py-2 text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all shadow-xs active:scale-95 disabled:opacity-60"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin text-red-600" : "text-gray-500"}`} />
               <span>Refresh Stats</span>
             </button>
             <Link
               to="/dashboard/rent-tracker/dashboard"
-              className="flex items-center gap-2 px-3.5 py-2 text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all shadow-sm"
+              className="flex items-center gap-2 px-3.5 py-2 text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all shadow-xs"
             >
               <LayoutDashboard className="w-3.5 h-3.5 text-slate-600" />
               <span>Rent Dashboard</span>
@@ -302,10 +290,10 @@ export default function RentSystemFlow() {
         </div>
 
         {/* Navigation Shortcut Strip for Rent Module */}
-        <div className="bg-white/60 backdrop-blur-md rounded-2xl p-1.5 border border-gray-200/80 shadow-xs flex items-center gap-2 overflow-x-auto no-scrollbar">
+        <div className="bg-white/70 backdrop-blur-md rounded-2xl p-1.5 border border-gray-200/80 shadow-xs flex items-center gap-2 overflow-x-auto no-scrollbar">
           <Link
             to="/dashboard/rent-tracker/system-flow"
-            className="flex items-center gap-2 py-2 px-5 rounded-xl text-xs font-bold bg-red-600 text-white shadow-sm whitespace-nowrap"
+            className="flex items-center gap-2 py-2 px-5 rounded-xl text-xs font-bold bg-red-600 text-white shadow-xs whitespace-nowrap"
           >
             <GitFork className="w-4 h-4 transform rotate-90" />
             <span>System Flow</span>
@@ -323,6 +311,11 @@ export default function RentSystemFlow() {
           >
             <Building2 className="w-4 h-4" />
             <span>Rent Master</span>
+            {stats.expiredAgreements > 0 && (
+              <span className="bg-amber-500 text-white text-[10px] font-black px-1.5 py-0.2 rounded-full min-w-[18px] text-center" title="Expired agreements needing renewal">
+                {stats.expiredAgreements}
+              </span>
+            )}
           </Link>
           <Link
             to="/dashboard/rent-tracker/monthly"
@@ -338,169 +331,311 @@ export default function RentSystemFlow() {
           </Link>
         </div>
 
-        {/* ═══════════ INTERACTIVE MODULE MAP (WORKFLOW DIAGRAM) ═══════════ */}
-        <div className="bg-white rounded-3xl border border-gray-200/80 p-5 sm:p-7 shadow-sm overflow-hidden relative">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 pb-4 border-b border-gray-100">
-            <div>
-              <div className="flex items-center gap-2">
-                <Layers className="w-5 h-5 text-red-600" />
-                <h2 className="text-lg font-bold text-gray-900 tracking-tight">Interactive Rent Process Architecture</h2>
-              </div>
-              <p className="text-xs text-gray-500 mt-0.5">End-to-end data flow: From Property Onboarding to Monthly Settlements and Executive Analytics</p>
+        {/* ═══════════ NEW FEATURE HIGHLIGHT TICKER ═══════════ */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div className="bg-white rounded-2xl p-3.5 border border-red-200/80 shadow-2xs flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-red-50 text-red-600 flex items-center justify-center shrink-0">
+              <Zap className="w-4 h-4" />
             </div>
-
-            {/* Legend */}
-            <div className="flex flex-wrap items-center gap-3 text-[11px] font-semibold text-gray-600">
-              <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-red-600"></span> 1. Asset & Tenant Master
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span> 2. Monthly Collection Tracker
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-rose-600"></span> 3. Yield & Intelligence Dashboard
-              </span>
+            <div>
+              <div className="text-[10px] uppercase font-bold tracking-wider text-red-600">Auto-Scheduler</div>
+              <div className="text-xs font-extrabold text-slate-800">Auto Generate Cycles</div>
+              <p className="text-[10px] text-slate-400">Skips past months, syncs future</p>
             </div>
           </div>
 
-          {/* Diagram Cards & Connectors */}
-          <div className="grid grid-cols-1 lg:grid-cols-11 gap-4 lg:gap-2 items-center">
-            
-            {/* Step 1: Rent Master (Origin) */}
-            <div className="lg:col-span-3">
-              <div
-                onClick={() => navigate("/dashboard/rent-tracker/master")}
-                className="group cursor-pointer p-5 rounded-2xl bg-gradient-to-br from-red-600 via-rose-600 to-red-700 text-white shadow-lg shadow-red-600/25 border border-red-500 transition-all duration-300 hover:shadow-xl hover:scale-[1.02] relative"
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white">
-                    <Building2 className="w-5 h-5" />
-                  </div>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/20 backdrop-blur-md tracking-wider uppercase">
-                    Step 1: Onboard
-                  </span>
-                </div>
-                <h3 className="text-lg font-extrabold tracking-tight">Rent Master</h3>
-                <p className="text-xs text-red-100 mt-1 leading-relaxed">
-                  Single source of truth. Manage properties, tenants, landlord revenue split, agreement contracts, deposit custody & due date windows.
-                </p>
-                <div className="mt-4 pt-3 border-t border-white/20 flex items-center justify-between text-xs font-semibold">
-                  <span>{stats.totalProperties} Total Assets</span>
-                  <span className="flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                    Open <ArrowRight className="w-3.5 h-3.5" />
-                  </span>
-                </div>
-              </div>
+          <div className="bg-white rounded-2xl p-3.5 border border-amber-200/80 shadow-2xs flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+              <RotateCw className="w-4 h-4" />
             </div>
-
-            {/* Connector Arrow 1 */}
-            <div className="hidden lg:flex lg:col-span-1 items-center justify-center text-gray-300">
-              <div className="flex flex-col items-center gap-1">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Generates</span>
-                <ArrowRight className="w-6 h-6 text-red-500 animate-pulse" />
-              </div>
+            <div>
+              <div className="text-[10px] uppercase font-bold tracking-wider text-amber-600">Renewal Engine</div>
+              <div className="text-xs font-extrabold text-slate-800">Agreement Renewal Modal</div>
+              <p className="text-[10px] text-slate-400">Custom end date + rate hike sync</p>
             </div>
+          </div>
 
-            {/* Step 2: Monthly Tracker */}
-            <div className="lg:col-span-3">
-              <div
-                onClick={() => navigate("/dashboard/rent-tracker/monthly")}
-                className="group cursor-pointer p-5 rounded-2xl bg-white border-2 border-amber-300 hover:border-amber-500 shadow-sm hover:shadow-lg transition-all duration-300 relative"
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-200">
-                    <CalendarIcon className="w-5 h-5" />
-                  </div>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${stats.currentMonthPending > 0 ? "bg-amber-100 text-amber-800 animate-pulse" : "bg-emerald-100 text-emerald-800"}`}>
-                    Step 2: Collect & Settle
-                  </span>
-                </div>
-                <h3 className="text-lg font-extrabold text-gray-900 group-hover:text-amber-700 transition-colors">
-                  Monthly Tracker
-                </h3>
-                <p className="text-xs text-gray-600 mt-1 leading-relaxed">
-                  Tracks each month's rent. Record received amounts, payment modes (Cash/Bank), calculate delay days, and send automated WhatsApp payment receipts.
-                </p>
-                <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs font-semibold text-gray-700">
-                  <span className="text-amber-700">{stats.currentMonthPending} Pending for {currentMonth}</span>
-                  <span className="flex items-center gap-1 group-hover:translate-x-1 transition-transform text-amber-600">
-                    Open <ArrowRight className="w-3.5 h-3.5" />
-                  </span>
-                </div>
-              </div>
+          <div className="bg-white rounded-2xl p-3.5 border border-blue-200/80 shadow-2xs flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+              <Eye className="w-4 h-4" />
             </div>
-
-            {/* Connector Arrow 2 */}
-            <div className="hidden lg:flex lg:col-span-1 items-center justify-center text-gray-300">
-              <div className="flex flex-col items-center gap-1">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Aggregates</span>
-                <ArrowRight className="w-6 h-6 text-rose-500 animate-pulse" />
-              </div>
+            <div>
+              <div className="text-[10px] uppercase font-bold tracking-wider text-blue-600">Ledger View</div>
+              <div className="text-xs font-extrabold text-slate-800">Direct Eye Button</div>
+              <p className="text-[10px] text-slate-400">Full tenant payment history</p>
             </div>
+          </div>
 
-            {/* Step 3: Executive Analytics Dashboard */}
-            <div className="lg:col-span-3">
-              <div
-                onClick={() => navigate("/dashboard/rent-tracker/dashboard")}
-                className="group cursor-pointer p-5 rounded-2xl bg-gradient-to-br from-red-50/70 via-white to-white border-2 border-red-200 hover:border-red-500 shadow-sm hover:shadow-lg transition-all duration-300 relative"
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-red-600 text-white flex items-center justify-center shadow-md shadow-red-200">
-                    <LayoutDashboard className="w-5 h-5" />
-                  </div>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-800">
-                    Step 3: Executive MIS
-                  </span>
-                </div>
-                <h3 className="text-lg font-extrabold text-gray-900 group-hover:text-red-700 transition-colors">
-                  Rent Dashboard
-                </h3>
-                <p className="text-xs text-gray-600 mt-1 leading-relaxed">
-                  Consolidated KPIs: Monthly rental yield, on-time vs delayed metrics, landlord revenue share breakdown, and agreement expiry alerts.
-                </p>
-                <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs font-semibold text-gray-700">
-                  <span className="text-red-600">{stats.recoveryRate}% Recovery Rate</span>
-                  <span className="flex items-center gap-1 group-hover:translate-x-1 transition-transform text-red-600">
-                    Open <ArrowRight className="w-3.5 h-3.5" />
-                  </span>
-                </div>
-              </div>
+          <div className="bg-white rounded-2xl p-3.5 border border-emerald-200/80 shadow-2xs flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+              <Timer className="w-4 h-4" />
             </div>
-
+            <div>
+              <div className="text-[10px] uppercase font-bold tracking-wider text-emerald-600">1st Date Auto-Show</div>
+              <div className="text-xs font-extrabold text-slate-800">Monthly Tracker Live</div>
+              <p className="text-[10px] text-slate-400">Zero manual monthly entry</p>
+            </div>
           </div>
         </div>
 
-        {/* ═══════════ DETAILED MODULE CARDS ═══════════ */}
+        {/* ═══════════ CREATIVE ARCHITECTURE WORKFLOW DIAGRAM ═══════════ */}
+        <div className="bg-white rounded-3xl border border-gray-200/80 p-5 sm:p-7 shadow-sm overflow-hidden relative">
+          
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 pb-4 border-b border-gray-100">
+            <div>
+              <div className="flex items-center gap-2">
+                <Workflow className="w-5 h-5 text-red-600" />
+                <h2 className="text-lg font-bold text-gray-900 tracking-tight">Interactive Smart Rent Process Flowchart</h2>
+              </div>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Automated data pipeline connecting Asset Masters, Intelligent Renewal Scheduling, and Executive Real-Time MIS
+              </p>
+            </div>
+
+            {/* Badges / Legend */}
+            <div className="flex flex-wrap items-center gap-2.5 text-[11px] font-semibold text-gray-600">
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-50 text-red-700 border border-red-200">
+                <span className="w-2 h-2 rounded-full bg-red-600"></span> Step 1: Onboard & Renew
+              </span>
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                <span className="w-2 h-2 rounded-full bg-amber-500"></span> Step 2: Auto-Track & Receipts
+              </span>
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
+                <span className="w-2 h-2 rounded-full bg-rose-600"></span> Step 3: Yield & Defaulters MIS
+              </span>
+            </div>
+          </div>
+
+          {/* Diagram Body */}
+          <div className="grid grid-cols-1 lg:grid-cols-11 gap-4 lg:gap-2 items-stretch">
+            
+            {/* ═══════ STEP 1: RENT MASTER ═══════ */}
+            <div className="lg:col-span-3 flex flex-col justify-between">
+              <div
+                onClick={() => navigate("/dashboard/rent-tracker/master")}
+                className="group cursor-pointer p-5 rounded-2xl bg-gradient-to-br from-red-600 via-rose-600 to-red-700 text-white shadow-lg shadow-red-600/25 border border-red-500 transition-all duration-300 hover:shadow-xl hover:scale-[1.02] flex flex-col justify-between h-full relative overflow-hidden"
+              >
+                {/* Background decorative ring */}
+                <div className="absolute -right-6 -bottom-6 w-32 h-32 rounded-full bg-white/10 pointer-events-none blur-sm" />
+
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white">
+                      <Building2 className="w-5 h-5" />
+                    </div>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/20 backdrop-blur-md tracking-wider uppercase">
+                      Step 1: Onboard
+                    </span>
+                  </div>
+
+                  <h3 className="text-lg font-extrabold tracking-tight">Rent Master Directory</h3>
+                  <p className="text-xs text-red-100 mt-1 leading-relaxed">
+                    Central property asset repository. Manages tenant KYC, agreement start/end dates, custody deposits & landlord shares.
+                  </p>
+
+                  {/* Feature badges inside node */}
+                  <div className="mt-3.5 space-y-1.5 text-[11px] font-medium text-white/95">
+                    <div className="flex items-center gap-1.5 bg-white/15 px-2 py-1 rounded-lg backdrop-blur-xs">
+                      <RotateCw className="w-3.5 h-3.5 text-amber-300" />
+                      <span><strong>Agreement Renewal:</strong> Custom end-date extension</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 bg-white/15 px-2 py-1 rounded-lg backdrop-blur-xs">
+                      <Eye className="w-3.5 h-3.5 text-blue-200" />
+                      <span><strong>View Button:</strong> Instant full payment ledger</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 bg-white/15 px-2 py-1 rounded-lg backdrop-blur-xs">
+                      <CalendarIcon className="w-3.5 h-3.5 text-emerald-300" />
+                      <span><strong>1-Click Schedule:</strong> Sync active months to tracker</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-white/20 flex items-center justify-between text-xs font-semibold">
+                  <span>{stats.totalProperties} Active Units</span>
+                  <span className="flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                    Open Master <ArrowRight className="w-3.5 h-3.5" />
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* ═══════ CONNECTOR 1: AUTO-GENERATION ENGINE ═══════ */}
+            <div className="hidden lg:flex lg:col-span-1 flex-col items-center justify-center gap-2 text-center px-1">
+              <div className="w-full flex items-center justify-center">
+                <div className="h-0.5 w-full bg-gradient-to-r from-red-500 to-amber-500 relative">
+                  <span className="absolute -top-1 right-0 w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
+                </div>
+              </div>
+              <div className="p-2 rounded-xl bg-amber-50 border border-amber-200/80 shadow-2xs">
+                <Zap className="w-4 h-4 text-amber-600 mx-auto mb-0.5 animate-bounce" />
+                <span className="text-[9px] font-black uppercase tracking-wider text-amber-700 block">
+                  Auto-Gen
+                </span>
+                <span className="text-[8px] text-slate-500 leading-tight block">
+                  Only Active Months
+                </span>
+              </div>
+              <ArrowRight className="w-5 h-5 text-amber-500 animate-pulse" />
+            </div>
+
+            {/* ═══════ STEP 2: MONTHLY TRACKER ═══════ */}
+            <div className="lg:col-span-3 flex flex-col justify-between">
+              <div
+                onClick={() => navigate("/dashboard/rent-tracker/monthly")}
+                className="group cursor-pointer p-5 rounded-2xl bg-white border-2 border-amber-300 hover:border-amber-500 shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col justify-between h-full relative"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-200 shadow-2xs">
+                      <CalendarIcon className="w-5 h-5" />
+                    </div>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${stats.currentMonthPending > 0 ? "bg-amber-100 text-amber-800 animate-pulse" : "bg-emerald-100 text-emerald-800"}`}>
+                      Step 2: Collect & Settle
+                    </span>
+                  </div>
+
+                  <h3 className="text-lg font-extrabold text-gray-900 group-hover:text-amber-700 transition-colors">
+                    Monthly Rent Tracker
+                  </h3>
+                  <p className="text-xs text-gray-600 mt-1 leading-relaxed">
+                    Monthly cycle ledger. Records cash/bank receipts, tracks grace due dates, logs delays & generates automatic WhatsApp payment receipts.
+                  </p>
+
+                  {/* Feature badges inside node */}
+                  <div className="mt-3.5 space-y-1.5 text-[11px] font-medium text-slate-700">
+                    <div className="flex items-center gap-1.5 bg-amber-50/70 border border-amber-200/60 px-2 py-1 rounded-lg">
+                      <Timer className="w-3.5 h-3.5 text-amber-600" />
+                      <span><strong>1st Date Auto-Show:</strong> Default current month view</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 bg-amber-50/70 border border-amber-200/60 px-2 py-1 rounded-lg">
+                      <Send className="w-3.5 h-3.5 text-emerald-600" />
+                      <span><strong>Instant WhatsApp:</strong> Payment receipts to tenant</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 bg-amber-50/70 border border-amber-200/60 px-2 py-1 rounded-lg">
+                      <Clock className="w-3.5 h-3.5 text-rose-600" />
+                      <span><strong>Delay Tracker:</strong> Auto calculates overdue days</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs font-semibold text-gray-700">
+                  <span className="text-amber-700">{stats.currentMonthPending} Pending for {currentMonth}</span>
+                  <span className="flex items-center gap-1 group-hover:translate-x-1 transition-transform text-amber-600">
+                    Open Tracker <ArrowRight className="w-3.5 h-3.5" />
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* ═══════ CONNECTOR 2: AGGREGATION PIPELINE ═══════ */}
+            <div className="hidden lg:flex lg:col-span-1 flex-col items-center justify-center gap-2 text-center px-1">
+              <div className="w-full flex items-center justify-center">
+                <div className="h-0.5 w-full bg-gradient-to-r from-amber-500 to-rose-500 relative">
+                  <span className="absolute -top-1 right-0 w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+                </div>
+              </div>
+              <div className="p-2 rounded-xl bg-rose-50 border border-rose-200/80 shadow-2xs">
+                <TrendingUp className="w-4 h-4 text-rose-600 mx-auto mb-0.5" />
+                <span className="text-[9px] font-black uppercase tracking-wider text-rose-700 block">
+                  Real-Time
+                </span>
+                <span className="text-[8px] text-slate-500 leading-tight block">
+                  Yield & Defaulters
+                </span>
+              </div>
+              <ArrowRight className="w-5 h-5 text-rose-500 animate-pulse" />
+            </div>
+
+            {/* ═══════ STEP 3: EXECUTIVE ANALYTICS ═══════ */}
+            <div className="lg:col-span-3 flex flex-col justify-between">
+              <div
+                onClick={() => navigate("/dashboard/rent-tracker/dashboard")}
+                className="group cursor-pointer p-5 rounded-2xl bg-gradient-to-br from-red-50/70 via-white to-white border-2 border-red-200 hover:border-red-500 shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col justify-between h-full relative"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-red-600 text-white flex items-center justify-center shadow-md shadow-red-200">
+                      <LayoutDashboard className="w-5 h-5" />
+                    </div>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-800">
+                      Step 3: Executive MIS
+                    </span>
+                  </div>
+
+                  <h3 className="text-lg font-extrabold text-gray-900 group-hover:text-red-700 transition-colors">
+                    Rent Intelligence & MIS
+                  </h3>
+                  <p className="text-xs text-gray-600 mt-1 leading-relaxed">
+                    Consolidated executive decision dashboards. Real-time recovery rates, revenue shares, expiring contracts & WhatsApp defaulter nudges.
+                  </p>
+
+                  {/* Feature badges inside node */}
+                  <div className="mt-3.5 space-y-1.5 text-[11px] font-medium text-slate-700">
+                    <div className="flex items-center gap-1.5 bg-red-50/70 border border-red-200/60 px-2 py-1 rounded-lg">
+                      <Percent className="w-3.5 h-3.5 text-red-600" />
+                      <span><strong>Recovery Meter:</strong> Live {stats.recoveryRate}% collection rate</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 bg-red-50/70 border border-red-200/60 px-2 py-1 rounded-lg">
+                      <Users className="w-3.5 h-3.5 text-blue-600" />
+                      <span><strong>Landlord Split:</strong> Revenue breakdown by owner</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 bg-red-50/70 border border-red-200/60 px-2 py-1 rounded-lg">
+                      <BadgeAlert className="w-3.5 h-3.5 text-amber-600" />
+                      <span><strong>Expiry Watch:</strong> {stats.expiringAgreements} contracts due in 60 days</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs font-semibold text-gray-700">
+                  <span className="text-red-600 font-bold">{stats.recoveryRate}% Recovery Rate</span>
+                  <span className="flex items-center gap-1 group-hover:translate-x-1 transition-transform text-red-600">
+                    Open Dashboard <ArrowRight className="w-3.5 h-3.5" />
+                  </span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Bottom Feedback Loop */}
+          <div className="mt-6 pt-4 border-t border-dashed border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+            <div className="flex items-center gap-2">
+              <RotateCw className="w-4 h-4 text-amber-500 animate-spin-reverse" />
+              <span><strong>Continuous Lifecycle Loop:</strong> When contract approaches expiry, trigger <strong>Renew</strong> in Rent Master to extend tenure & auto-generate new cycles seamlessly.</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-bold text-[10px]">Active Loop</span>
+            </div>
+          </div>
+
+        </div>
+
+        {/* ═══════════ DEEP DIVE FEATURE CAPABILITIES ═══════════ */}
         <div className="space-y-4">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Module Deep-Dive Cards</h2>
-            <p className="text-xs text-gray-500">Live indicators, configuration capabilities, and operational flows</p>
+            <h2 className="text-lg font-bold text-gray-900">Module Capabilities & Feature Matrix</h2>
+            <p className="text-xs text-gray-500">How each component interacts with recent updates and live database records</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {flowNodes.map((node) => {
-              const styles = getColorClasses(node.color);
               const Icon = node.icon;
               return (
                 <div
                   key={node.id}
                   onClick={() => navigate(node.path)}
-                  className={`
-                    group relative flex flex-col p-5 bg-gradient-to-b ${styles.cardBg}
-                    border ${styles.border} rounded-2xl shadow-xs hover:shadow-lg hover:-translate-y-0.5
-                    transition-all duration-300 cursor-pointer text-left
-                  `}
+                  className="group relative flex flex-col p-5 bg-white border border-slate-200 rounded-2xl shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer text-left overflow-hidden"
                 >
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-xl ${styles.iconBg} flex items-center justify-center shadow-md`}>
+                      <div className="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center shadow-xs">
                         <Icon className="w-5 h-5" />
                       </div>
                       <div>
                         <h3 className="text-base font-bold text-gray-900 group-hover:text-red-600 transition-colors">
                           {node.title}
                         </h3>
-                        <span className={`inline-block mt-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold border ${styles.badge}`}>
+                        <span className="inline-block mt-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold border bg-slate-50 text-slate-700 border-slate-200">
                           {node.badge}
                         </span>
                       </div>
@@ -510,13 +645,23 @@ export default function RentSystemFlow() {
                     </div>
                   </div>
 
-                  <p className="text-xs text-gray-600 line-clamp-2 mb-4 leading-relaxed">
-                    {node.description}
+                  <p className="text-xs text-gray-600 mb-3 leading-relaxed">
+                    {node.subtitle}
                   </p>
+
+                  {/* Bullet features */}
+                  <div className="space-y-1.5 mb-4">
+                    {node.features.map((feat, fIdx) => (
+                      <div key={fIdx} className="flex items-start gap-1.5 text-[11px] text-slate-600">
+                        <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                        <span>{feat}</span>
+                      </div>
+                    ))}
+                  </div>
 
                   <div className="grid grid-cols-2 gap-2 mt-auto pt-3 border-t border-gray-100">
                     {node.stats.map((st, idx) => (
-                      <div key={idx} className="bg-white/90 border border-gray-100 rounded-xl p-2.5 shadow-2xs">
+                      <div key={idx} className="bg-slate-50/80 border border-slate-150 rounded-xl p-2.5">
                         <span className="block text-[10px] uppercase font-bold text-gray-400 tracking-wider">
                           {st.label}
                         </span>
@@ -528,7 +673,7 @@ export default function RentSystemFlow() {
                   </div>
 
                   <div className="mt-3 pt-2 flex items-center justify-between text-xs font-semibold text-gray-500 group-hover:text-gray-900 transition-colors">
-                    <span className="text-[11px] font-medium text-gray-400">Click to navigate</span>
+                    <span className="text-[11px] font-medium text-gray-400">Click to open module</span>
                     <span className="flex items-center gap-1 font-bold text-red-600 group-hover:translate-x-1 transition-transform">
                       Go to page <ChevronRight className="w-3.5 h-3.5" />
                     </span>
@@ -539,70 +684,70 @@ export default function RentSystemFlow() {
           </div>
         </div>
 
-        {/* ═══════════ COMPLETE RENT LIFECYCLE BLUEPRINT ═══════════ */}
+        {/* ═══════════ COMPLETE RENT LIFECYCLE BLUEPRINT (SOP) ═══════════ */}
         <div className="bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-sm space-y-6">
           <div className="flex items-center gap-3 pb-3 border-b border-gray-100">
             <Sparkles className="w-5 h-5 text-red-600" />
             <div>
               <h2 className="text-lg font-bold text-gray-900">Standard Operating Rent Cycle (SOP)</h2>
-              <p className="text-xs text-gray-500">Step-by-step lifecycle from asset onboarding to monthly reconciliation</p>
+              <p className="text-xs text-gray-500">Step-by-step lifecycle from asset onboarding, auto-scheduling to renewal</p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* Step 1 */}
-            <div className="p-4 rounded-2xl bg-red-50/40 border border-red-200/80 space-y-2">
+            <div className="p-4 rounded-2xl bg-red-50/40 border border-red-200/80 space-y-2 relative overflow-hidden">
               <div className="flex items-center justify-between">
                 <span className="w-7 h-7 rounded-lg bg-red-600 text-white font-black text-xs flex items-center justify-center shadow-xs">
                   1
                 </span>
-                <span className="text-[10px] font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded-full">Agreement</span>
+                <span className="text-[10px] font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded-full">Onboard & Save</span>
               </div>
-              <h4 className="text-sm font-bold text-gray-900">Asset & Tenant Setup</h4>
+              <h4 className="text-sm font-bold text-gray-900">Property & Contract Setup</h4>
               <p className="text-xs text-gray-600 leading-relaxed">
-                Property registered in Rent Master with monthly rent amount, security deposit, billing cycle window, landlord ownership, and agreement PDF custody.
+                Save property profile with monthly rent, deposit, start/end dates. System calculates remaining tenure and generates future monthly tracker entries.
               </p>
             </div>
 
             {/* Step 2 */}
-            <div className="p-4 rounded-2xl bg-amber-50/40 border border-amber-200/80 space-y-2">
+            <div className="p-4 rounded-2xl bg-amber-50/40 border border-amber-200/80 space-y-2 relative overflow-hidden">
               <div className="flex items-center justify-between">
                 <span className="w-7 h-7 rounded-lg bg-amber-600 text-white font-black text-xs flex items-center justify-center shadow-xs">
                   2
                 </span>
-                <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">Billing</span>
+                <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">Auto 1st Date</span>
               </div>
-              <h4 className="text-sm font-bold text-gray-900">Monthly Due Invoicing</h4>
+              <h4 className="text-sm font-bold text-gray-900">Monthly Cycle Activation</h4>
               <p className="text-xs text-gray-600 leading-relaxed">
-                Monthly records generated based on agreed payment window (e.g. 1st to 10th of every month). WhatsApp reminder sent to tenant ahead of due date.
+                On the 1st of every month, Monthly Tracker automatically pulls and displays pending dues with due-date windows without any manual data entry.
               </p>
             </div>
 
             {/* Step 3 */}
-            <div className="p-4 rounded-2xl bg-emerald-50/40 border border-emerald-200/80 space-y-2">
+            <div className="p-4 rounded-2xl bg-emerald-50/40 border border-emerald-200/80 space-y-2 relative overflow-hidden">
               <div className="flex items-center justify-between">
                 <span className="w-7 h-7 rounded-lg bg-emerald-600 text-white font-black text-xs flex items-center justify-center shadow-xs">
                   3
                 </span>
-                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">Collection</span>
+                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">WhatsApp Receipt</span>
               </div>
-              <h4 className="text-sm font-bold text-gray-900">Receive & WhatsApp Receipt</h4>
+              <h4 className="text-sm font-bold text-gray-900">Settlement & Instant Receipt</h4>
               <p className="text-xs text-gray-600 leading-relaxed">
-                Cash/Bank transfer logged in Monthly Tracker. System marks transaction as "On Time" or "Delay" and dispatches instant WhatsApp confirmation receipt.
+                Log cash/bank payment. System marks "On Time" or "Delay" based on agreed window and instantly dispatches branded WhatsApp receipt to tenant.
               </p>
             </div>
 
             {/* Step 4 */}
-            <div className="p-4 rounded-2xl bg-purple-50/40 border border-purple-200/80 space-y-2">
+            <div className="p-4 rounded-2xl bg-purple-50/40 border border-purple-200/80 space-y-2 relative overflow-hidden">
               <div className="flex items-center justify-between">
                 <span className="w-7 h-7 rounded-lg bg-purple-600 text-white font-black text-xs flex items-center justify-center shadow-xs">
                   4
                 </span>
-                <span className="text-[10px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">Analysis</span>
+                <span className="text-[10px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">Renew or Re-lease</span>
               </div>
-              <h4 className="text-sm font-bold text-gray-900">Analytics & Renewals</h4>
+              <h4 className="text-sm font-bold text-gray-900">Agreement Renewal & Sync</h4>
               <p className="text-xs text-gray-600 leading-relaxed">
-                Rent Dashboard visualizes total portfolio yield, landlord revenue splits, defaulter list, and contract renewals expiring within 60 days.
+                Track expiring/expired units on Rent Master. Open 1-click Renewal Modal, set new expiration date & optional rent hike to extend schedule effortlessly.
               </p>
             </div>
           </div>
@@ -612,3 +757,4 @@ export default function RentSystemFlow() {
     </AdminLayout>
   );
 }
+

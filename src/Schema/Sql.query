@@ -583,6 +583,7 @@ CREATE TABLE public.sales_orders (
   lifted_qty numeric,
   so_value_rate numeric,
   less_emd numeric,
+  status text DEFAULT 'pending'::text,
   CONSTRAINT sales_orders_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.secl_intimation_format_1 (
@@ -599,6 +600,7 @@ CREATE TABLE public.secl_intimation_format_1 (
   updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
   pdf_url text,
   submitted_date date,
+  status text DEFAULT 'pending'::text,
   CONSTRAINT secl_intimation_format_1_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.secl_payment_advices (
@@ -618,6 +620,8 @@ CREATE TABLE public.secl_payment_advices (
   incl_50 numeric,
   incl_total numeric,
   pdf_url text,
+  status text DEFAULT 'pending'::text,
+  remark text,
   CONSTRAINT secl_payment_advices_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.invoices (
@@ -776,18 +780,6 @@ CREATE TABLE public.item_transfers (
   rate numeric DEFAULT 0,
   CONSTRAINT item_transfers_pkey PRIMARY KEY (id)
 );
-CREATE TABLE public.sponge_production (
-  id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  created_at timestamp with time zone DEFAULT now(),
-  report_date date NOT NULL,
-  source_file text DEFAULT 'Manual Entry'::text,
-  item_grade text NOT NULL,
-  percent numeric,
-  kiln1 numeric DEFAULT 0,
-  kiln2 numeric DEFAULT 0,
-  total numeric DEFAULT 0,
-  CONSTRAINT sponge_production_pkey PRIMARY KEY (id)
-);
 CREATE TABLE public.sauda_sale (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   created_at timestamp with time zone DEFAULT now(),
@@ -864,15 +856,12 @@ CREATE TABLE public.sell_sauda (
   CONSTRAINT sell_sauda_pkey PRIMARY KEY (id),
   CONSTRAINT sell_sauda_buy_id_fkey FOREIGN KEY (buy_id) REFERENCES public.buy_sauda(id)
 );
-
-( DISPATCH TRACKING )
-
 CREATE TABLE public.dispatch_records (
-  id uuid NOT NULL DEFAULT extensions.uuid_generate_v4(),
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
   do_no text,
   truck_no text,
-  truck_qty numeric(15, 3),
-  freight numeric(15, 2),
+  truck_qty numeric,
+  freight numeric,
   receiver_party text,
   plant_name text,
   mines_name text,
@@ -880,11 +869,48 @@ CREATE TABLE public.dispatch_records (
   pdf_name text,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
+  order_no text,
+  order_qty numeric,
+  order_rate numeric,
+  dispatch_qty numeric,
+  balance_qty numeric,
+  status text DEFAULT 'pending'::text,
   CONSTRAINT dispatch_records_pkey PRIMARY KEY (id)
 );
-
-ALTER TABLE public.dispatch_records DISABLE ROW LEVEL SECURITY;
-
+CREATE TABLE public.production2_data (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  report_date date,
+  file_name text,
+  item_label text NOT NULL,
+  percent numeric,
+  kiln1 numeric,
+  kiln2 numeric,
+  total numeric,
+  file_url text,
+  CONSTRAINT production2_data_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.truck_reports (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  date date NOT NULL,
+  vehicle_no character varying NOT NULL,
+  from_location character varying NOT NULL,
+  to_location character varying NOT NULL,
+  distance character varying,
+  diesel character varying,
+  advance numeric DEFAULT 0,
+  do_no character varying,
+  tonnage numeric DEFAULT 0,
+  total_trips integer DEFAULT 0,
+  vehicle_balance numeric DEFAULT 0,
+  per_mt numeric DEFAULT 0,
+  total_freight numeric DEFAULT 0,
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  diesel_price numeric DEFAULT 0,
+  party_name text,
+  do_party_name text,
+  CONSTRAINT truck_reports_pkey PRIMARY KEY (id)
+);
 CREATE TABLE public.secl_intimation_format_2 (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   company_name text,
@@ -906,11 +932,9 @@ CREATE TABLE public.secl_intimation_format_2 (
   file_name text,
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
   updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  status text DEFAULT 'pending'::text,
   CONSTRAINT secl_intimation_format_2_pkey PRIMARY KEY (id)
 );
-
-ALTER TABLE public.secl_intimation_format_2 DISABLE ROW LEVEL SECURITY;
-
 CREATE TABLE public.secl_cmpdcil (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   company text,
@@ -944,11 +968,21 @@ CREATE TABLE public.secl_cmpdcil (
   file_name text,
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
   updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  status text DEFAULT 'pending'::text,
   CONSTRAINT secl_cmpdcil_pkey PRIMARY KEY (id)
 );
-
-ALTER TABLE public.secl_cmpdcil DISABLE ROW LEVEL SECURITY;
-
+CREATE TABLE public.production2 (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  report_date date NOT NULL,
+  source_file text NOT NULL DEFAULT 'Manual Entry'::text,
+  item_grade text NOT NULL,
+  percent numeric DEFAULT 0,
+  kiln1 numeric NOT NULL DEFAULT 0,
+  kiln2 numeric NOT NULL DEFAULT 0,
+  total numeric NOT NULL DEFAULT 0,
+  CONSTRAINT production2_pkey PRIMARY KEY (id)
+);
 CREATE TABLE public.trucks (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   vno text NOT NULL UNIQUE,
@@ -967,11 +1001,10 @@ CREATE TABLE public.trucks (
   remarks text,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
+  insurance_copy text,
+  registration_copy text,
   CONSTRAINT trucks_pkey PRIMARY KEY (id)
 );
-
-ALTER TABLE public.trucks DISABLE ROW LEVEL SECURITY;
-
 CREATE TABLE public.fastags (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   vno text NOT NULL UNIQUE,
@@ -981,16 +1014,13 @@ CREATE TABLE public.fastags (
   min_bal numeric DEFAULT 0,
   last_date date,
   last_amt numeric DEFAULT 0,
-  status text DEFAULT 'Active',
+  status text DEFAULT 'Active'::text,
   remarks text,
-  document_url text,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
+  document_url text,
   CONSTRAINT fastags_pkey PRIMARY KEY (id)
 );
-
-ALTER TABLE public.fastags DISABLE ROW LEVEL SECURITY;
-
 CREATE TABLE public.challans (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   challan_no text NOT NULL UNIQUE,
@@ -999,14 +1029,73 @@ CREATE TABLE public.challans (
   place text,
   offence text,
   amount numeric DEFAULT 0,
-  status text DEFAULT 'Pending',
+  status text DEFAULT 'Pending'::text,
   paid_date date,
   driver text,
   remarks text,
-  document_url text,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
+  document_url text,
   CONSTRAINT challans_pkey PRIMARY KEY (id)
 );
-
-ALTER TABLE public.challans DISABLE ROW LEVEL SECURITY;
+CREATE TABLE public.vault_individuals (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  phone text,
+  email text,
+  addr text,
+  ctype text NOT NULL DEFAULT 'Individual'::text,
+  fields jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT vault_individuals_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.vault_documents (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  cid uuid NOT NULL,
+  type text NOT NULL,
+  num text,
+  category text DEFAULT 'Personal'::text,
+  issue date,
+  expiry date,
+  note text,
+  file_url text,
+  fname text,
+  fields jsonb DEFAULT '{}'::jsonb,
+  history jsonb DEFAULT '[]'::jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT vault_documents_pkey PRIMARY KEY (id),
+  CONSTRAINT vault_documents_cid_fkey FOREIGN KEY (cid) REFERENCES public.vault_individuals(id)
+);
+CREATE TABLE public.vault_companies (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  ctype text NOT NULL CHECK (ctype = ANY (ARRAY['Firm'::text, 'Company'::text, 'Plant'::text])),
+  phone text,
+  email text,
+  addr text,
+  fields jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT vault_companies_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.vault_company_documents (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  cid uuid NOT NULL,
+  section_code text,
+  type text NOT NULL,
+  num text,
+  category text DEFAULT 'Company'::text,
+  issue date,
+  expiry date,
+  note text,
+  file_url text,
+  fname text,
+  fields jsonb DEFAULT '{}'::jsonb,
+  history jsonb DEFAULT '[]'::jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT vault_company_documents_pkey PRIMARY KEY (id),
+  CONSTRAINT vault_company_documents_cid_fkey FOREIGN KEY (cid) REFERENCES public.vault_companies(id)
+);

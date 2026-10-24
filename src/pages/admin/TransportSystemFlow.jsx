@@ -23,7 +23,11 @@ import {
   Layers,
   ChevronRight,
   Gauge,
-  Wallet
+  Wallet,
+  Eye,
+  Zap,
+  Activity,
+  Check
 } from "lucide-react";
 
 export default function TransportSystemFlow() {
@@ -106,13 +110,12 @@ export default function TransportSystemFlow() {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 w-full space-y-6">
-      {/* Top Header Section — System Red Theme with Single Line Heading & Buttons */}
+    <div className="p-4 sm:p-6 lg:p-8 w-full space-y-6 max-w-7xl mx-auto">
+      {/* Top Header Section */}
       <div className="pb-4 border-b border-gray-200 space-y-1">
         <div className="flex items-center justify-between gap-4">
-          {/* Left: Icon + Heading + Badge in Single Line */}
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-red-600 to-rose-500 flex items-center justify-center text-white shadow-md shadow-red-500/25 shrink-0">
+          <div className="flex items-center gap-3.5 min-w-0">
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-red-600 to-rose-500 flex items-center justify-center text-white shadow-md shadow-red-500/25 shrink-0">
               <GitFork className="w-5 h-5 transform rotate-90" />
             </div>
             <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap min-w-0">
@@ -126,7 +129,6 @@ export default function TransportSystemFlow() {
             </div>
           </div>
 
-          {/* Right: Buttons in Single Line */}
           <div className="flex items-center gap-2.5 shrink-0">
             <button
               onClick={fetchTransportStats}
@@ -147,13 +149,12 @@ export default function TransportSystemFlow() {
           </div>
         </div>
 
-        {/* Subtitle Underneath */}
-        <p className="text-xs sm:text-sm font-medium text-gray-500 pl-[52px]">
-          End-to-end fleet operational pipeline from truck onboarding, Fastag & Challan compliance, to trip dispatch and freight reconciliation
+        <p className="text-xs sm:text-sm font-medium text-gray-500 pl-[56px]">
+          End-to-end fleet operational pipeline from truck onboarding, Fastag & Challan compliance, to trip dispatch, diesel auditing, and vehicle-wise ledger history
         </p>
       </div>
 
-      {/* KPI Metric Cards — System Red Accent */}
+      {/* KPI Metric Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
         <div className="p-4 rounded-2xl bg-white border border-gray-200/80 shadow-2xs hover:border-red-300 transition-all">
           <div className="flex items-center justify-between text-gray-500 mb-1">
@@ -198,6 +199,53 @@ export default function TransportSystemFlow() {
         </div>
       </div>
 
+      {/* ═══════════ NEW FEATURE HIGHLIGHT TICKER (RECENT UPDATES) ═══════════ */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <div className="bg-white rounded-2xl p-3.5 border border-red-200/80 shadow-2xs flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-red-50 text-red-600 flex items-center justify-center shrink-0">
+            <Eye className="w-4.5 h-4.5" />
+          </div>
+          <div>
+            <div className="text-[10px] uppercase font-bold tracking-wider text-red-600">Vehicle Ledger</div>
+            <div className="text-xs font-extrabold text-slate-800">Eye Button (Trip History)</div>
+            <p className="text-[10px] text-slate-400">Positioned before Vehicle No.</p>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl p-3.5 border border-amber-200/80 shadow-2xs flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+            <Fuel className="w-4.5 h-4.5" />
+          </div>
+          <div>
+            <div className="text-[10px] uppercase font-bold tracking-wider text-amber-600">Expense Audit</div>
+            <div className="text-xs font-extrabold text-slate-800">Total Diesel Cost Column</div>
+            <p className="text-[10px] text-slate-400">Live trip-wise fuel calculation</p>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl p-3.5 border border-emerald-200/80 shadow-2xs flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+            <Calendar className="w-4.5 h-4.5" />
+          </div>
+          <div>
+            <div className="text-[10px] uppercase font-bold tracking-wider text-emerald-600">Timeline Tracking</div>
+            <div className="text-xs font-extrabold text-slate-800">Date-Wise Trip Audit</div>
+            <p className="text-[10px] text-slate-400">Chronological vehicle journey</p>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl p-3.5 border border-blue-200/80 shadow-2xs flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+            <Activity className="w-4.5 h-4.5" />
+          </div>
+          <div>
+            <div className="text-[10px] uppercase font-bold tracking-wider text-blue-600">Real-Time MIS</div>
+            <div className="text-xs font-extrabold text-slate-800">Net Freight Reconciliation</div>
+            <p className="text-[10px] text-slate-400">Freight − Diesel − Advance</p>
+          </div>
+        </div>
+      </div>
+
       {/* ══════════════════════════════════════════════════════════════
           AUTHENTIC FLOWCHART WORKFLOW CANVAS WITH ARROWS & NODES
       ══════════════════════════════════════════════════════════════ */}
@@ -227,25 +275,45 @@ export default function TransportSystemFlow() {
 
         {/* ─── DESKTOP HORIZONTAL FLOW PIPELINE (WITH SVG CONNECTORS) ─── */}
         <div className="hidden lg:block relative py-6 px-4 bg-slate-50/70 rounded-2xl border border-slate-200/80">
-          <div className="grid grid-cols-4 gap-6 items-center relative z-10">
+          <div className="grid grid-cols-4 gap-6 items-stretch relative z-10">
+            
             {/* Step 1 Node: Fleet Master Registration */}
-            <div className="relative group">
-              <div className="p-5 rounded-2xl bg-white border-2 border-emerald-500 shadow-md shadow-emerald-500/10 transition-all hover:scale-[1.02]">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="w-8 h-8 rounded-xl bg-emerald-600 text-white font-black text-sm flex items-center justify-center shadow-xs">
-                    01
-                  </span>
-                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                    Asset Master
-                  </span>
+            <div className="relative group flex flex-col justify-between">
+              <div 
+                onClick={() => navigate("/transport-system/purchase-truck")}
+                className="p-5 rounded-2xl bg-white border-2 border-emerald-500 shadow-md shadow-emerald-500/10 transition-all hover:scale-[1.02] cursor-pointer flex flex-col justify-between h-full"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="w-8 h-8 rounded-xl bg-emerald-600 text-white font-black text-sm flex items-center justify-center shadow-xs">
+                      01
+                    </span>
+                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                      Asset Master
+                    </span>
+                  </div>
+                  <h3 className="text-sm font-extrabold text-gray-900">Purchase Truck (Fleet Master)</h3>
+                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                    Vehicle Master registry. Records Vehicle No (VNO), chassis, RC ownership, insurance policies, and renewal due dates.
+                  </p>
+
+                  <div className="mt-3 space-y-1 text-[11px] text-slate-600">
+                    <div className="flex items-center gap-1.5">
+                      <Check className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>RC & Insurance Compliance</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Check className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>National Highway Permit</span>
+                    </div>
+                  </div>
                 </div>
-                <h3 className="text-sm font-bold text-gray-900">Purchase Truck</h3>
-                <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                  Vehicle Master registry. Records Vehicle No (VNO), chassis, RC ownership, insurance policies, and renewal due dates.
-                </p>
-                <div className="mt-3 pt-2.5 border-t border-gray-100 flex items-center justify-between text-[11px]">
+
+                <div className="mt-4 pt-2.5 border-t border-gray-100 flex items-center justify-between text-[11px]">
                   <span className="font-semibold text-emerald-600">{stats.totalTrucks} Vehicles Registered</span>
-                  <Link to="/transport-system/purchase-truck" className="text-gray-400 hover:text-emerald-600 font-bold">Trucks &rarr;</Link>
+                  <span className="text-emerald-600 font-bold group-hover:translate-x-1 transition-transform flex items-center gap-1">
+                    Trucks &rarr;
+                  </span>
                 </div>
               </div>
 
@@ -257,23 +325,42 @@ export default function TransportSystemFlow() {
             </div>
 
             {/* Step 2 Node: Highway Toll & Fastag Engine */}
-            <div className="relative group">
-              <div className="p-5 rounded-2xl bg-white border-2 border-amber-500 shadow-md shadow-amber-500/10 transition-all hover:scale-[1.02]">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="w-8 h-8 rounded-xl bg-amber-500 text-white font-black text-sm flex items-center justify-center shadow-xs">
-                    02
-                  </span>
-                  <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                    Toll Management
-                  </span>
+            <div className="relative group flex flex-col justify-between">
+              <div 
+                onClick={() => navigate("/transport-system/fastag")}
+                className="p-5 rounded-2xl bg-white border-2 border-amber-500 shadow-md shadow-amber-500/10 transition-all hover:scale-[1.02] cursor-pointer flex flex-col justify-between h-full"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="w-8 h-8 rounded-xl bg-amber-500 text-white font-black text-sm flex items-center justify-center shadow-xs">
+                      02
+                    </span>
+                    <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                      Toll Management
+                    </span>
+                  </div>
+                  <h3 className="text-sm font-extrabold text-gray-900">Fastag Toll System</h3>
+                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                    Highway toll wallet integration. Tracks wallet balance, minimum threshold warnings, and top-up recharge logs.
+                  </p>
+
+                  <div className="mt-3 space-y-1 text-[11px] text-slate-600">
+                    <div className="flex items-center gap-1.5">
+                      <Check className="w-3.5 h-3.5 text-amber-600" />
+                      <span>Wallet Balance Thresholds</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Check className="w-3.5 h-3.5 text-amber-600" />
+                      <span>Automated Plaza Auditing</span>
+                    </div>
+                  </div>
                 </div>
-                <h3 className="text-sm font-bold text-gray-900">Fastag System</h3>
-                <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                  Highway toll wallet integration. Tracks wallet balance, minimum threshold warnings, and top-up recharge logs.
-                </p>
-                <div className="mt-3 pt-2.5 border-t border-gray-100 flex items-center justify-between text-[11px]">
+
+                <div className="mt-4 pt-2.5 border-t border-gray-100 flex items-center justify-between text-[11px]">
                   <span className="font-semibold text-amber-600">{stats.activeFastags} Active Wallets</span>
-                  <Link to="/transport-system/fastag" className="text-gray-400 hover:text-amber-600 font-bold">Fastag &rarr;</Link>
+                  <span className="text-amber-600 font-bold group-hover:translate-x-1 transition-transform flex items-center gap-1">
+                    Fastag &rarr;
+                  </span>
                 </div>
               </div>
 
@@ -285,23 +372,42 @@ export default function TransportSystemFlow() {
             </div>
 
             {/* Step 3 Node: Traffic Legal & Challan Auditing */}
-            <div className="relative group">
-              <div className="p-5 rounded-2xl bg-white border-2 border-rose-500 shadow-md shadow-rose-500/10 transition-all hover:scale-[1.02]">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="w-8 h-8 rounded-xl bg-rose-600 text-white font-black text-sm flex items-center justify-center shadow-xs">
-                    03
-                  </span>
-                  <span className="text-[10px] font-bold text-rose-700 bg-rose-100 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                    Legal Clearance
-                  </span>
+            <div className="relative group flex flex-col justify-between">
+              <div 
+                onClick={() => navigate("/transport-system/Challan")}
+                className="p-5 rounded-2xl bg-white border-2 border-rose-500 shadow-md shadow-rose-500/10 transition-all hover:scale-[1.02] cursor-pointer flex flex-col justify-between h-full"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="w-8 h-8 rounded-xl bg-rose-600 text-white font-black text-sm flex items-center justify-center shadow-xs">
+                      03
+                    </span>
+                    <span className="text-[10px] font-bold text-rose-700 bg-rose-100 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                      Legal Clearance
+                    </span>
+                  </div>
+                  <h3 className="text-sm font-extrabold text-gray-900">Challan Management</h3>
+                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                    Traffic violation & e-challan tracker. Audits offence type, fine amount, payment status, and settlement receipts.
+                  </p>
+
+                  <div className="mt-3 space-y-1 text-[11px] text-slate-600">
+                    <div className="flex items-center gap-1.5">
+                      <Check className="w-3.5 h-3.5 text-rose-600" />
+                      <span>RTO Fine Status Verification</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Check className="w-3.5 h-3.5 text-rose-600" />
+                      <span>Zero-Hold Clearance</span>
+                    </div>
+                  </div>
                 </div>
-                <h3 className="text-sm font-bold text-gray-900">Challan Management</h3>
-                <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                  Traffic violation & e-challan tracker. Audits offence type, fine amount, payment status, and settlement receipts.
-                </p>
-                <div className="mt-3 pt-2.5 border-t border-gray-100 flex items-center justify-between text-[11px]">
+
+                <div className="mt-4 pt-2.5 border-t border-gray-100 flex items-center justify-between text-[11px]">
                   <span className="font-semibold text-rose-600">{stats.pendingChallans} Pending Audits</span>
-                  <Link to="/transport-system/Challan" className="text-gray-400 hover:text-rose-600 font-bold">Challan &rarr;</Link>
+                  <span className="text-rose-600 font-bold group-hover:translate-x-1 transition-transform flex items-center gap-1">
+                    Challan &rarr;
+                  </span>
                 </div>
               </div>
 
@@ -313,49 +419,69 @@ export default function TransportSystemFlow() {
             </div>
 
             {/* Step 4 Node: Trip Dispatch & Financial Reports */}
-            <div className="relative group">
-              <div className="p-5 rounded-2xl bg-white border-2 border-red-500 shadow-md shadow-red-500/10 transition-all hover:scale-[1.02]">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="w-8 h-8 rounded-xl bg-red-600 text-white font-black text-sm flex items-center justify-center shadow-xs">
-                    04
-                  </span>
-                  <span className="text-[10px] font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                    Operations & Billing
-                  </span>
+            <div className="relative group flex flex-col justify-between">
+              <div 
+                onClick={() => navigate("/transport-system/truck-reports")}
+                className="p-5 rounded-2xl bg-gradient-to-br from-red-500/10 via-white to-white border-2 border-red-500 shadow-md shadow-red-500/15 transition-all hover:scale-[1.02] cursor-pointer flex flex-col justify-between h-full"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="w-8 h-8 rounded-xl bg-red-600 text-white font-black text-sm flex items-center justify-center shadow-xs">
+                      04
+                    </span>
+                    <span className="text-[10px] font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                      Operations & Billing
+                    </span>
+                  </div>
+                  <h3 className="text-sm font-extrabold text-gray-900">Truck Reports & Analytics</h3>
+                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                    Trip logging (Weight, Rate, Diesel, Advance, Net Freight) + consolidated operational analytics & PDF exports.
+                  </p>
+
+                  <div className="mt-3 space-y-1 text-[11px] text-slate-700 font-medium">
+                    <div className="flex items-center gap-1.5 bg-red-50/70 border border-red-200/60 px-2 py-1 rounded-lg">
+                      <Eye className="w-3.5 h-3.5 text-red-600" />
+                      <span><strong>Eye Button:</strong> Vehicle-wise trip history</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 bg-amber-50/70 border border-amber-200/60 px-2 py-1 rounded-lg">
+                      <Fuel className="w-3.5 h-3.5 text-amber-600" />
+                      <span><strong>Diesel Audit:</strong> Total Diesel Cost column</span>
+                    </div>
+                  </div>
                 </div>
-                <h3 className="text-sm font-bold text-gray-900">Truck Reports & Analytics</h3>
-                <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                  Trip logging (From/To, Weight, Rate, Diesel, Advance, Net Freight) + consolidated operational analytics & PDF exports.
-                </p>
-                <div className="mt-3 pt-2.5 border-t border-gray-100 flex items-center justify-between text-[11px]">
+
+                <div className="mt-4 pt-2.5 border-t border-gray-100 flex items-center justify-between text-[11px]">
                   <span className="font-semibold text-red-600">{stats.totalTrips} Total Trips</span>
-                  <Link to="/transport-system/truck-reports" className="text-gray-400 hover:text-red-600 font-bold">Reports &rarr;</Link>
+                  <span className="text-red-600 font-bold group-hover:translate-x-1 transition-transform flex items-center gap-1">
+                    Reports &rarr;
+                  </span>
                 </div>
               </div>
             </div>
+
           </div>
 
           {/* ─── RETURN OPERATIONAL COST SETTLEMENT LOOP ─── */}
           <div className="mt-8 pt-6 border-t border-dashed border-slate-300">
-            <div className="flex items-center justify-between px-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-2">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-red-100 text-red-600 flex items-center justify-center font-bold">
+                <div className="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center font-bold shrink-0">
                   <Wallet className="w-5 h-5" />
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider flex items-center gap-2">
-                    Net Freight Calculation Cycle
+                    Net Freight & Diesel Reconciliation Cycle
                     <span className="px-2 py-0.2 rounded-full text-[10px] bg-red-50 text-red-700 border border-red-200">
                       Auto-Audited
                     </span>
                   </h4>
-                  <p className="text-xs text-gray-500">
-                    Gross Freight = Qty (MT) &times; Rate/MT. Net Freight = Gross Freight &minus; Diesel Cost &minus; Advance Cash &minus; Deductions.
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Gross Freight = Qty (MT) &times; Rate/MT. Net Freight = Gross Freight &minus; Total Diesel Cost &minus; Advance Cash &minus; Deductions.
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 text-xs font-bold text-red-600 bg-red-50 px-3.5 py-1.5 rounded-xl border border-red-200/80">
+              <div className="flex items-center gap-2 text-xs font-bold text-red-600 bg-red-50 px-3.5 py-1.5 rounded-xl border border-red-200/80 shrink-0">
                 <span>Trip Operations Synchronized</span>
                 <CheckCircle2 className="w-4 h-4 text-red-600" />
               </div>
@@ -443,7 +569,7 @@ export default function TransportSystemFlow() {
             </div>
             <h4 className="text-sm font-bold text-gray-900">Truck Reports (truck_reports)</h4>
             <p className="text-xs text-gray-600 mt-1">
-              Trip logging (From/To, Weight, Rate, Diesel, Advance, Net Freight) + consolidated operational analytics & PDF exports.
+              Trip logging (From/To, Weight, Rate, Diesel, Advance, Net Freight) + vehicle trip history eye button & total diesel cost audits.
             </p>
           </div>
         </div>
@@ -555,3 +681,4 @@ export default function TransportSystemFlow() {
     </div>
   );
 }
+
