@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import supabase from '../../../SupabaseClient';
 import {
   PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, Legend,
@@ -7,6 +7,7 @@ import {
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import html2canvas from 'html2canvas';
 import {
   Truck,
   Route,
@@ -29,7 +30,8 @@ import {
   ArrowRight,
   Eye,
   MapPin,
-  Building2
+  Building2,
+  Loader2
 } from 'lucide-react';
 
 const FINANCIAL_COLORS = ['#f59e0b', '#10b981'];
@@ -56,6 +58,10 @@ export default function TransportDashboard() {
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportStart, setExportStart] = useState('');
   const [exportEnd, setExportEnd] = useState('');
+  const [isDownloadingFullDashboard, setIsDownloadingFullDashboard] = useState(false);
+
+  // Ref for capturing full dashboard
+  const dashboardRef = useRef(null);
 
   // Date Formatting Helper (e.g., "23 - Sep - 2026")
   const formatDateDisplay = (dateString) => {
@@ -181,6 +187,7 @@ export default function TransportDashboard() {
         name: truck, 
         trips: 0, 
         freight: 0,
+        advance: 0,
         balance: 0,
         diesel: 0,
         date: curr.date,
@@ -198,6 +205,7 @@ export default function TransportDashboard() {
     }
     acc[truck].trips += 1;
     acc[truck].freight += (Number(curr.total_freight) || 0);
+    acc[truck].advance += (Number(curr.advance) || 0);
     acc[truck].balance += (Number(curr.vehicle_balance) || 0);
     acc[truck].diesel += dieselVal;
     return acc;
@@ -238,7 +246,7 @@ export default function TransportDashboard() {
   };
 
   // Export Handler
-  const handleExport = (format) => {
+  const handleExport = async (format) => {
     // Priority: exportStart/exportEnd modal inputs if provided, otherwise active table date filter
     const activeStart = exportStart || customStart;
     const activeEnd = exportEnd || customEnd;
@@ -274,7 +282,7 @@ export default function TransportDashboard() {
       const dieselVal = Number(curr.diesel) || parseFloat(String(curr.diesel || '').replace(/[^0-9.]/g, '')) || 0;
       if (!acc[truck]) {
         acc[truck] = { 
-          name: truck, trips: 0, freight: 0, balance: 0, diesel: 0,
+          name: truck, trips: 0, freight: 0, advance: 0, balance: 0, diesel: 0,
           date: curr.date, party_name: curr.party_name, do_no: curr.do_no, do_party_name: curr.do_party_name
         };
       } else if (curr.date && acc[truck].date) {
@@ -285,6 +293,7 @@ export default function TransportDashboard() {
       }
       acc[truck].trips += 1;
       acc[truck].freight += (Number(curr.total_freight) || 0);
+      acc[truck].advance += (Number(curr.advance) || 0);
       acc[truck].balance += (Number(curr.vehicle_balance) || 0);
       acc[truck].diesel += dieselVal;
       return acc;
@@ -309,6 +318,7 @@ export default function TransportDashboard() {
         "Total Diesel (L)": truck.diesel || 0,
         "DO No.": truck.do_no || '-',
         "Freight (₹)": truck.freight || 0,
+        "Total Advance (₹)": truck.advance || 0,
         "Vehicle Bal. (₹)": truck.balance || 0
       }));
       
@@ -329,7 +339,7 @@ export default function TransportDashboard() {
       doc.text(`Date Range: ${dateRangeLabel}`, 14, 22);
       doc.text(`Generated On: ${formatDateDisplay(new Date())} | Total Vehicles: ${exportTruckWiseData.length}`, 14, 28);
       
-      const tableColumn = ["S.No.", "Date", "Vehicle No.", "Total Trips", "Total Diesel (L)", "DO No.", "Freight", "Vehicle Bal."];
+      const tableColumn = ["S.No.", "Date", "Vehicle No.", "Total Trips", "Total Diesel (L)", "DO No.", "Freight", "Total Advance", "Vehicle Bal."];
       const tableRows = [];
 
       exportTruckWiseData.forEach((truck, idx) => {
@@ -341,6 +351,7 @@ export default function TransportDashboard() {
           `${(truck.diesel || 0).toLocaleString()} L`,
           truck.do_no || '-',
           `Rs ${(truck.freight || 0).toLocaleString()}`,
+          `Rs ${(truck.advance || 0).toLocaleString()}`,
           `Rs ${(truck.balance || 0).toLocaleString()}`
         ]);
       });
@@ -353,13 +364,197 @@ export default function TransportDashboard() {
         headStyles: { fillColor: [239, 68, 68], textColor: [255, 255, 255], fontStyle: 'bold' }
       });
       doc.save(`Trip_Details_Report${dateSuffix}.pdf`);
+    } else if (format === 'full_dashboard_pdf') {
+      await downloadFullDashboard();
     }
     
     setShowExportModal(false);
   };
 
+  // Full Visual Dashboard PDF Generator (Lightning-fast, No lag, 100% reliable)
+  const downloadFullDashboard = async () => {
+    setIsDownloadingFullDashboard(true);
+    try {
+      // Small tick so UI shows downloading spinner immediately
+      await new Promise(r => setTimeout(r, 60));
+
+      const doc = new jsPDF('landscape', 'mm', 'a4');
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+
+      // Top branding banner
+      doc.setFillColor(220, 38, 38); // Red-600
+      doc.rect(0, 0, pageWidth, 5, 'F');
+
+      // Title & Subtitle
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(18);
+      doc.setTextColor(15, 23, 42); // slate-900
+      doc.text("Transport Analytics Dashboard", 14, 16);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(100, 116, 139); // slate-500
+      const activeRange = (customStart && customEnd) 
+        ? `${formatDateDisplay(customStart)} to ${formatDateDisplay(customEnd)}` 
+        : filterType || 'All Time';
+      doc.text(`Fleet & Logistics Intelligence | Period: ${activeRange} | Generated: ${formatDateDisplay(new Date())}`, 14, 22);
+
+      // ══════════ 1. 6 KPI SUMMARY CARDS ══════════
+      const cardWidth = 43;
+      const cardHeight = 22;
+      const cardStartX = 14;
+      const cardStartY = 27;
+      const cardGap = 4;
+
+      const kpiCards = [
+        { title: "TOTAL TRIPS", value: String(totalTrips), sub: "Completed Trips", color: [37, 99, 235], bg: [239, 246, 255] },
+        { title: "TOTAL DISTANCE", value: `${totalDistance.toLocaleString()} km`, sub: "Road Travelled", color: [13, 148, 136], bg: [240, 253, 250] },
+        { title: "TOTAL FREIGHT", value: `Rs ${totalFreight.toLocaleString()}`, sub: "Gross Billed", color: [16, 185, 129], bg: [236, 253, 245] },
+        { title: "TOTAL ADVANCE", value: `Rs ${totalAdvance.toLocaleString()}`, sub: "Paid in Advance", color: [217, 119, 6], bg: [254, 243, 199] },
+        { title: "DIESEL LITER", value: `${totalDieselLiter.toLocaleString()} L`, sub: "Fuel Consumed", color: [147, 51, 234], bg: [250, 245, 255] },
+        { title: "VEHICLE BAL.", value: `Rs ${totalBalance.toLocaleString()}`, sub: "Pending Balance", color: [225, 29, 72], bg: [255, 241, 242] }
+      ];
+
+      kpiCards.forEach((card, idx) => {
+        const x = cardStartX + (idx * (cardWidth + cardGap));
+        const y = cardStartY;
+
+        // Card Border & Background
+        doc.setFillColor(255, 255, 255);
+        doc.setDrawColor(226, 232, 240); // slate-200
+        doc.setLineWidth(0.3);
+        doc.roundedRect(x, y, cardWidth, cardHeight, 2, 2, 'FD');
+
+        // Top Color strip
+        doc.setFillColor(card.color[0], card.color[1], card.color[2]);
+        doc.rect(x, y, cardWidth, 1.5, 'F');
+
+        // Card Title
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(6.5);
+        doc.setTextColor(100, 116, 139);
+        doc.text(card.title, x + 3, y + 6);
+
+        // Card Value
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(card.color[0], card.color[1], card.color[2]);
+        doc.text(card.value, x + 3, y + 13);
+
+        // Card Sub
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(6);
+        doc.setTextColor(148, 163, 184);
+        doc.text(card.sub, x + 3, y + 18.5);
+      });
+
+      // ══════════ 2. CHARTS (TRUCK WISE TRIPS & FINANCIAL DISTRIBUTION) ══════════
+      const chartsStartY = 54;
+      const chartWidth = 131;
+      const chartHeight = 52;
+
+      // --- Chart 1: Truck Wise Trips (Snapshot from browser DOM SVG) ---
+      const chartContainers = dashboardRef.current?.querySelectorAll('.recharts-responsive-container');
+      
+      const drawChartSvg = async (containerEl, targetX, targetY, tWidth, tHeight, titleText) => {
+        // Container box
+        doc.setFillColor(255, 255, 255);
+        doc.setDrawColor(226, 232, 240);
+        doc.setLineWidth(0.3);
+        doc.roundedRect(targetX, targetY, tWidth, tHeight, 2, 2, 'FD');
+
+        // Title
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8.5);
+        doc.setTextColor(30, 41, 59);
+        doc.text(titleText, targetX + 4, targetY + 6);
+
+        if (!containerEl) return;
+        const svgEl = containerEl.querySelector('svg');
+        if (!svgEl) return;
+
+        try {
+          const svgString = new XMLSerializer().serializeToString(svgEl);
+          const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+          const URL = window.URL || window.webkitURL || window;
+          const blobURL = URL.createObjectURL(svgBlob);
+
+          const img = new Image();
+          await new Promise((resolve) => {
+            img.onload = resolve;
+            img.onerror = resolve;
+            img.src = blobURL;
+          });
+
+          const c = document.createElement('canvas');
+          c.width = (svgEl.clientWidth || 400) * 2;
+          c.height = (svgEl.clientHeight || 200) * 2;
+          const ctx = c.getContext('2d');
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, c.width, c.height);
+          ctx.drawImage(img, 0, 0, c.width, c.height);
+
+          const pngData = c.toDataURL('image/png');
+          doc.addImage(pngData, 'PNG', targetX + 2, targetY + 8, tWidth - 4, tHeight - 10, undefined, 'FAST');
+          URL.revokeObjectURL(blobURL);
+        } catch (e) {
+          console.warn('SVG chart render fallback:', e);
+        }
+      };
+
+      if (chartContainers && chartContainers.length >= 2) {
+        await drawChartSvg(chartContainers[0], 14, chartsStartY, chartWidth, chartHeight, "TRUCK WISE TRIPS (Top Vehicles)");
+        await drawChartSvg(chartContainers[1], 150, chartsStartY, chartWidth, chartHeight, "FINANCIAL DISTRIBUTION (Advance vs Balance)");
+      }
+
+      // ══════════ 3. TRIP DETAILS REPORT TABLE ══════════
+      const tableColumn = ["S.No.", "Date", "Vehicle No.", "Total Trips", "Diesel (L)", "DO No.", "Freight", "Total Advance", "Vehicle Bal."];
+      const tableRows = [];
+
+      searchedReports.forEach((truck, idx) => {
+        tableRows.push([
+          idx + 1,
+          formatDateDisplay(truck.date),
+          truck.name || '-',
+          truck.trips,
+          `${(truck.diesel || 0).toLocaleString()} L`,
+          truck.do_no || '-',
+          `Rs ${(truck.freight || 0).toLocaleString()}`,
+          `Rs ${(truck.advance || 0).toLocaleString()}`,
+          `Rs ${(truck.balance || 0).toLocaleString()}`
+        ]);
+      });
+
+      autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY: chartsStartY + chartHeight + 6,
+        styles: { fontSize: 7.5, cellPadding: 2.5 },
+        headStyles: { fillColor: [220, 38, 38], textColor: [255, 255, 255], fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        margin: { left: 14, right: 14, bottom: 10 },
+        didDrawPage: (data) => {
+          // Footer
+          const pageNum = doc.internal.getNumberOfPages();
+          doc.setFontSize(7.5);
+          doc.setTextColor(148, 163, 184);
+          doc.text(`Page ${data.pageNumber} of ${pageNum} | Jay Bhole Transport Intelligence`, 14, pageHeight - 5);
+        }
+      });
+
+      const dateSuffix = (customStart && customEnd) ? `_${customStart}_to_${customEnd}` : '';
+      doc.save(`Transport_Analytics_Dashboard${dateSuffix}.pdf`);
+    } catch (err) {
+      console.error('Error generating dashboard PDF:', err);
+      alert('Error generating PDF: ' + (err.message || 'Please try again.'));
+    } finally {
+      setIsDownloadingFullDashboard(false);
+    }
+  };
+
   return (
-    <div className="w-full px-2.5 sm:px-6 py-2 space-y-5 sm:space-y-7 animate-in fade-in duration-300">
+    <div ref={dashboardRef} className="w-full px-2.5 sm:px-6 py-2 space-y-5 sm:space-y-7 animate-in fade-in duration-300">
       
       {/* ═══════════ HEADER ═══════════ */}
       <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 pb-2 border-b border-slate-200/80">
@@ -377,8 +572,8 @@ export default function TransportDashboard() {
           </p>
         </div>
 
-        {/* Top Summary Capsules */}
-        <div className="grid grid-cols-2 sm:flex sm:items-center gap-2.5 sm:gap-3 w-full lg:w-auto">
+        {/* Top Summary Capsules & Full Dashboard Download */}
+        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 w-full lg:w-auto">
           <div className="flex items-center gap-2.5 sm:gap-3 bg-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl border border-slate-200/80 shadow-xs">
             <div className="p-2 bg-blue-50 text-blue-600 rounded-xl shrink-0">
               <Truck className="h-4 w-4" />
@@ -398,6 +593,26 @@ export default function TransportDashboard() {
               <div className="text-sm sm:text-base font-extrabold text-emerald-600 leading-tight truncate">₹ {totalFreight.toLocaleString()}</div>
             </div>
           </div>
+
+          {/* Direct Full Dashboard Download Button */}
+          <button
+            onClick={downloadFullDashboard}
+            disabled={isDownloadingFullDashboard}
+            className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-bold text-xs rounded-2xl shadow-sm shadow-red-600/30 transition-all cursor-pointer hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed ml-auto lg:ml-0"
+            title="Download complete visual dashboard including all cards, bar charts, pie charts & tables as PDF"
+          >
+            {isDownloadingFullDashboard ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Downloading Dashboard...</span>
+              </>
+            ) : (
+              <>
+                <Download className="h-4 w-4" />
+                <span>Download Dashboard PDF</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
 
@@ -767,11 +982,13 @@ export default function TransportDashboard() {
               <tr className="border-b border-slate-200 text-xs font-black text-slate-500 uppercase tracking-wider">
                 <th className="py-3.5 px-3.5 text-center w-12 whitespace-nowrap">#</th>
                 <th className="py-3.5 px-2.5 text-center whitespace-nowrap w-12">View</th>
+                <th className="py-3.5 px-3.5 whitespace-nowrap">Date</th>
                 <th className="py-3.5 px-3.5 whitespace-nowrap">Vehicle No.</th>
                 <th className="py-3.5 px-3.5 whitespace-nowrap">Total Trips</th>
                 <th className="py-3.5 px-3.5 text-left whitespace-nowrap">Diesel (L)</th>
                 <th className="py-3.5 px-3.5 whitespace-nowrap">DO No.</th>
                 <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Freight (₹)</th>
+                <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Total Advance (₹)</th>
                 <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Vehicle Bal. (₹)</th>
               </tr>
             </thead>
@@ -790,6 +1007,12 @@ export default function TransportDashboard() {
                     </button>
                   </td>
                   <td className="py-3 px-3.5 whitespace-nowrap">
+                    <span className="inline-flex items-center gap-1 font-bold text-slate-700 font-mono text-xs">
+                      <Calendar className="h-3 w-3 text-red-500 shrink-0" />
+                      {formatDateDisplay(truck.date)}
+                    </span>
+                  </td>
+                  <td className="py-3 px-3.5 whitespace-nowrap">
                     <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 font-black font-mono text-xs border border-slate-200/90 shadow-2xs">
                       {truck.name ? (truck.name.toUpperCase().includes('CG') ? truck.name : `CG-10-CG ${truck.name}`) : '-'}
                     </span>
@@ -806,6 +1029,9 @@ export default function TransportDashboard() {
                   <td className="py-3 px-3.5 text-right font-black text-emerald-700 font-mono whitespace-nowrap">
                     ₹ {(truck.freight || 0).toLocaleString()}
                   </td>
+                  <td className="py-3 px-3.5 text-right font-black text-amber-600 font-mono whitespace-nowrap">
+                    ₹ {(truck.advance || 0).toLocaleString()}
+                  </td>
                   <td className="py-3 px-3.5 text-right font-black text-rose-600 font-mono whitespace-nowrap">
                     ₹ {(truck.balance || 0).toLocaleString()}
                   </td>
@@ -813,7 +1039,7 @@ export default function TransportDashboard() {
               ))}
               {searchedReports.length === 0 && (
                 <tr>
-                  <td colSpan="8" className="py-12 text-center text-slate-400 font-medium">
+                  <td colSpan="10" className="py-12 text-center text-slate-400 font-medium">
                     No matching trip records found for analysis
                   </td>
                 </tr>
@@ -868,6 +1094,12 @@ export default function TransportDashboard() {
                   <div className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Freight</div>
                   <div className="text-sm font-mono font-black text-emerald-700 mt-0.5 truncate">
                     ₹ {(truck.freight || 0).toLocaleString()}
+                  </div>
+                </div>
+                <div className="bg-amber-50/50 p-2 rounded-lg border border-amber-100/70">
+                  <div className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">Total Advance</div>
+                  <div className="text-sm font-mono font-black text-amber-700 mt-0.5 truncate">
+                    ₹ {(truck.advance || 0).toLocaleString()}
                   </div>
                 </div>
                 <div className="bg-purple-50/50 p-2 rounded-lg border border-purple-100/70">
@@ -942,6 +1174,18 @@ export default function TransportDashboard() {
 
             <div className="flex flex-col gap-2.5">
               <button 
+                onClick={() => handleExport('full_dashboard_pdf')}
+                disabled={isDownloadingFullDashboard}
+                className="w-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm shadow-red-600/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+              >
+                {isDownloadingFullDashboard ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4" />
+                )}
+                <span>Download Entire Dashboard PDF (Cards + Charts)</span>
+              </button>
+              <button 
                 onClick={() => handleExport('excel')}
                 className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm shadow-emerald-600/20 flex items-center justify-center gap-2 cursor-pointer"
               >
@@ -950,10 +1194,10 @@ export default function TransportDashboard() {
               </button>
               <button 
                 onClick={() => handleExport('pdf')}
-                className="w-full bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm shadow-red-600/20 flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full bg-slate-800 hover:bg-slate-900 text-white py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm shadow-slate-900/20 flex items-center justify-center gap-2 cursor-pointer"
               >
                 <FileText className="h-4 w-4" />
-                <span>Download PDF Document (.pdf)</span>
+                <span>Download Tabular Report PDF (.pdf)</span>
               </button>
               <button 
                 onClick={() => setShowExportModal(false)}
@@ -1006,7 +1250,7 @@ export default function TransportDashboard() {
             </div>
 
             {/* Quick Metrics Summary Bar */}
-            <div className="bg-slate-50/80 px-4 sm:px-6 py-3 border-b border-slate-100 grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
+            <div className="bg-slate-50/80 px-4 sm:px-6 py-3 border-b border-slate-100 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-xs">
               <div className="bg-white p-2.5 rounded-xl border border-slate-200/70 shadow-2xs">
                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Trips</div>
                 <div className="text-sm font-black text-blue-700 font-mono mt-0.5">
@@ -1033,6 +1277,12 @@ export default function TransportDashboard() {
                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Freight</div>
                 <div className="text-sm font-black text-emerald-700 font-mono mt-0.5">
                   ₹ {vehicleHistoryModal.trips.reduce((sum, t) => sum + (Number(t.total_freight) || 0), 0).toLocaleString()}
+                </div>
+              </div>
+              <div className="bg-white p-2.5 rounded-xl border border-slate-200/70 shadow-2xs">
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Advance</div>
+                <div className="text-sm font-black text-amber-600 font-mono mt-0.5">
+                  ₹ {vehicleHistoryModal.trips.reduce((sum, t) => sum + (Number(t.advance) || 0), 0).toLocaleString()}
                 </div>
               </div>
               <div className="bg-white p-2.5 rounded-xl border border-slate-200/70 shadow-2xs">
