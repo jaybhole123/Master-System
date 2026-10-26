@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, X, Save, Loader, Download, FileSpreadsheet, MapPin, Navigation, Clock, CheckCircle2, User, RefreshCw, LogOut, LogIn, Camera, UserPlus, Copy, Bot, Sparkles } from 'lucide-react';
+import { Plus, X, Save, Loader, Download, FileSpreadsheet, MapPin, Navigation, Clock, CheckCircle2, User, RefreshCw, LogOut, LogIn, Camera, UserPlus, Copy, Bot, Sparkles, UserCheck, Search, Check, AlertCircle, Edit2, Trash2 } from 'lucide-react';
 import { useEmployees } from '../hooks/useEmployees';
 import { useCurrentLocation } from '../hooks/useCurrentLocation';
 import { supabase } from '../lib/supabase';
@@ -12,6 +12,288 @@ import * as XLSX from 'xlsx';
 export default function Attendance() {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Staff Verify Modal State
+  const [showStaffVerifyModal, setShowStaffVerifyModal] = useState(false);
+  const [staffVerifyLoading, setStaffVerifyLoading] = useState(false);
+  const [staffUsers, setStaffUsers] = useState([]); // users table
+  const [monthlyEmployees, setMonthlyEmployees] = useState([]); // monthly_attendance table
+  const [verifySearchQuery, setVerifySearchQuery] = useState('');
+  const [verifyFilter, setVerifyFilter] = useState('all'); // 'all', 'matched', 'unmatched_users', 'unmatched_attendance'
+
+  // Inline edit state for Staff Verify modal
+  const [editingVerifyTarget, setEditingVerifyTarget] = useState(null); // { type: 'user' | 'attendance', id, originalName }
+  const [editingVerifyName, setEditingVerifyName] = useState('');
+  const [savingVerifyAction, setSavingVerifyAction] = useState(false);
+
+  const fetchStaffVerifyData = async () => {
+    setStaffVerifyLoading(true);
+    try {
+      // 1. Fetch from 'users' table
+      const { data: usersData, error: usersErr } = await supabase
+        .from('users')
+        .select('id, user_name, department, employee_id, status')
+        .order('user_name', { ascending: true });
+      if (usersErr) throw usersErr;
+
+      // 2. Fetch distinct employee_name from 'monthly_attendance' table
+      const { data: attData, error: attErr } = await supabase
+        .from('monthly_attendance')
+        .select('id, employee_id, employee_name, month_year')
+        .order('employee_name', { ascending: true });
+      if (attErr) throw attErr;
+
+      // Extract unique user names
+      const validUsers = (usersData || []).filter(u => u.user_name && u.user_name.trim());
+      setStaffUsers(validUsers);
+
+      // Extract unique employee names from monthly_attendance
+      const uniqueAttMap = new Map();
+      (attData || []).forEach(row => {
+        const name = (row.employee_name || '').trim();
+        if (name && !uniqueAttMap.has(name.toLowerCase())) {
+          uniqueAttMap.set(name.toLowerCase(), {
+            id: row.id,
+            employee_name: name,
+            employee_id: row.employee_id,
+            month_year: row.month_year
+          });
+        }
+      });
+      setMonthlyEmployees(Array.from(uniqueAttMap.values()));
+    } catch (err) {
+      console.error('Error fetching staff verification data:', err);
+      toast.error('Failed to load verification data: ' + err.message);
+    } finally {
+      setStaffVerifyLoading(false);
+    }
+  };
+
+  const handleOpenStaffVerify = () => {
+    setShowStaffVerifyModal(true);
+    fetchStaffVerifyData();
+  };
+
+  // Edit / Delete handlers for Staff Verify
+  const handleStartEditVerify = (type, item) => {
+    setEditingVerifyTarget({
+      type,
+      id: item.id,
+      originalName: type === 'user' ? item.user_name : item.employee_name,
+      employee_id: item.employee_id
+    });
+    setEditingVerifyName(type === 'user' ? item.user_name : item.employee_name);
+  };
+
+  const handleSaveEditVerify = async () => {
+    const trimmed = editingVerifyName.trim();
+    if (!trimmed) return toast.error('Name cannot be empty');
+    if (!editingVerifyTarget) return;
+
+    setSavingVerifyAction(true);
+    try {
+      if (editingVerifyTarget.type === 'user') {
+        const { error } = await supabase
+          .from('users')
+          .update({ user_name: trimmed })
+          .eq('id', editingVerifyTarget.id);
+        if (error) throw error;
+
+        setStaffUsers(prev => prev.map(u => u.id === editingVerifyTarget.id ? { ...u, user_name: trimmed } : u));
+        toast.success(`User updated to "${trimmed}"!`);
+      } else {
+        // Update in monthly_attendance table by employee_name or employee_id
+        let query = supabase.from('monthly_attendance').update({ employee_name: trimmed });
+        if (editingVerifyTarget.id) {
+          query = query.eq('id', editingVerifyTarget.id);
+        } else if (editingVerifyTarget.employee_id) {
+          query = query.eq('employee_id', editingVerifyTarget.employee_id);
+        } else {
+          query = query.eq('employee_name', editingVerifyTarget.originalName);
+        }
+        const { error } = await query;
+        if (error) throw error;
+
+        // Also update employees list in parent state if matching
+        setEmployees(prev => prev.map(e => e.name === editingVerifyTarget.originalName ? { ...e, name: trimmed } : e));
+        setMonthlyEmployees(prev => prev.map(m => m.employee_name === editingVerifyTarget.originalName ? { ...m, employee_name: trimmed } : m));
+        toast.success(`Attendance record updated to "${trimmed}"!`);
+      }
+      setEditingVerifyTarget(null);
+    } catch (err) {
+      console.error('Error saving edited name:', err);
+      toast.error('Failed to update: ' + err.message);
+    } finally {
+      setSavingVerifyAction(false);
+    }
+  };
+
+  const handleDeleteVerifyItem = async (type, item) => {
+    const name = type === 'user' ? item.user_name : item.employee_name;
+    const confirmDelete = window.confirm(`Are you sure you want to delete "${name}" from ${type === 'user' ? 'users table' : 'monthly_attendance'}?`);
+    if (!confirmDelete) return;
+
+    setSavingVerifyAction(true);
+    try {
+      if (type === 'user') {
+        const { error } = await supabase
+          .from('users')
+          .delete()
+          .eq('id', item.id);
+        if (error) throw error;
+
+        setStaffUsers(prev => prev.filter(u => u.id !== item.id));
+        toast.success(`User "${name}" deleted successfully!`);
+      } else {
+        let query = supabase.from('monthly_attendance').delete();
+        if (item.id) {
+          query = query.eq('id', item.id);
+        } else if (item.employee_id) {
+          query = query.eq('employee_id', item.employee_id);
+        } else {
+          query = query.eq('employee_name', item.employee_name);
+        }
+        const { error } = await query;
+        if (error) throw error;
+
+        // Also update state
+        setMonthlyEmployees(prev => prev.filter(m => m.employee_name !== item.employee_name));
+        toast.success(`Attendance record for "${name}" deleted!`);
+      }
+    } catch (err) {
+      console.error('Error deleting record:', err);
+      toast.error('Failed to delete: ' + err.message);
+    } finally {
+      setSavingVerifyAction(false);
+    }
+  };
+
+  // New record inline/modal state for both columns in Staff Verify
+  const [showAddUserRow, setShowAddUserRow] = useState(false);
+  const [newUserName, setNewUserName] = useState('');
+  const [newUserDept, setNewUserDept] = useState('');
+
+  const [showAddAttRow, setShowAddAttRow] = useState(false);
+  const [newAttName, setNewAttName] = useState('');
+
+  const handleAddNewUser = async (e) => {
+    if (e) e.preventDefault();
+    const trimmed = newUserName.trim();
+    if (!trimmed) return toast.error('Please enter user name');
+
+    setSavingVerifyAction(true);
+    try {
+      const payload = {
+        user_name: trimmed,
+        department: newUserDept.trim() || 'General',
+        status: 'active'
+      };
+      const { data, error } = await supabase
+        .from('users')
+        .insert([payload])
+        .select()
+        .single();
+      if (error) throw error;
+
+      setStaffUsers(prev => [...prev, data]);
+      toast.success(`User "${trimmed}" added successfully!`);
+      setNewUserName('');
+      setNewUserDept('');
+      setShowAddUserRow(false);
+    } catch (err) {
+      console.error('Error adding user:', err);
+      toast.error('Failed to add user: ' + err.message);
+    } finally {
+      setSavingVerifyAction(false);
+    }
+  };
+
+  const handleAddNewAttRecord = async (e) => {
+    if (e) e.preventDefault();
+    const trimmed = newAttName.trim();
+    if (!trimmed) return toast.error('Please enter employee name');
+
+    setSavingVerifyAction(true);
+    try {
+      const formattedMonth = getFormattedMonth(selectedMonth);
+
+      // Calculate next sequential numeric employee_id (e.g. 42 -> 43)
+      let nextNumericId = 1;
+
+      // Check existing monthlyEmployees and employees for numeric IDs
+      const allExistingIds = [
+        ...monthlyEmployees.map(m => parseInt(m.employee_id, 10)),
+        ...employees.map(e => parseInt(e.id, 10))
+      ].filter(n => !isNaN(n) && n > 0);
+
+      if (allExistingIds.length > 0) {
+        nextNumericId = Math.max(...allExistingIds) + 1;
+      }
+
+      // Check if employee already exists in employee table with numeric id
+      let emp = employees.find(e => (e.name || '').trim().toLowerCase() === trimmed.toLowerCase());
+      let empId = emp ? emp.id : null;
+
+      // If empId is not numeric or not found, use next sequential numeric ID
+      if (!empId || isNaN(parseInt(empId, 10))) {
+        empId = nextNumericId;
+
+        // Try inserting into employee table as well so both tables remain synchronized
+        try {
+          const { data: newEmpData } = await supabase
+            .from('employee')
+            .insert([{ id: empId, name: trimmed }])
+            .select()
+            .single();
+          if (newEmpData) {
+            setEmployees(prev => [...prev, newEmpData]);
+          }
+        } catch (_) {
+          // If inserting with specific id fails, try standard insert
+          try {
+            const { data: fallbackEmp } = await supabase
+              .from('employee')
+              .insert([{ name: trimmed }])
+              .select()
+              .single();
+            if (fallbackEmp) {
+              setEmployees(prev => [...prev, fallbackEmp]);
+            }
+          } catch (e) {}
+        }
+      }
+
+      const payload = {
+        employee_id: String(empId),
+        employee_name: trimmed,
+        month_year: formattedMonth
+      };
+      const { data, error } = await supabase
+        .from('monthly_attendance')
+        .insert([payload])
+        .select()
+        .single();
+      if (error) throw error;
+
+      setMonthlyEmployees(prev => [
+        ...prev,
+        {
+          id: data.id,
+          employee_name: data.employee_name,
+          employee_id: data.employee_id,
+          month_year: data.month_year
+        }
+      ]);
+      toast.success(`Attendance record "${trimmed}" added!`);
+      setNewAttName('');
+      setShowAddAttRow(false);
+    } catch (err) {
+      console.error('Error adding attendance record:', err);
+      toast.error('Failed to add attendance record: ' + err.message);
+    } finally {
+      setSavingVerifyAction(false);
+    }
+  };
 
   useEffect(() => {
     async function fetchEmployees() {
@@ -865,22 +1147,177 @@ Instructions:
           <h1 className="page-title">Attendance Dashboard</h1>
           <p className="page-subtitle">Excel-style Attendance Register and Overview Dashboard.</p>
         </div>
-        <div className="page-actions">
-          <button className="btn-primary" onClick={handleDownloadCSV} style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#0284c7' }}>
-            <FileSpreadsheet size={16} /> Export Excel
+        <div className="page-actions" style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          padding: '6px 10px',
+          backgroundColor: '#ffffff',
+          borderRadius: '16px',
+          boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.06), 0 2px 6px -1px rgba(0, 0, 0, 0.04)',
+          border: '1px solid #f1f5f9'
+        }}>
+          {/* Export Excel */}
+          <button
+            onClick={handleDownloadCSV}
+            title="Export Excel"
+            style={{
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '42px',
+              height: '42px',
+              borderRadius: '12px',
+              background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+              color: 'white',
+              border: 'none',
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(2, 132, 199, 0.28)',
+              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.transform = 'translateY(-2px) scale(1.05)';
+              e.currentTarget.style.boxShadow = '0 6px 18px rgba(2, 132, 199, 0.42)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.transform = 'translateY(0) scale(1)';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(2, 132, 199, 0.28)';
+            }}
+          >
+            <FileSpreadsheet size={20} strokeWidth={2.2} />
           </button>
-          <button className="btn-primary" onClick={handleDownloadPDF} style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#10b981' }}>
-            <Download size={16} /> Export PDF
+
+          {/* Export PDF */}
+          <button
+            onClick={handleDownloadPDF}
+            title="Export PDF"
+            style={{
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '42px',
+              height: '42px',
+              borderRadius: '12px',
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              color: 'white',
+              border: 'none',
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(16, 185, 129, 0.28)',
+              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.transform = 'translateY(-2px) scale(1.05)';
+              e.currentTarget.style.boxShadow = '0 6px 18px rgba(16, 185, 129, 0.42)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.transform = 'translateY(0) scale(1)';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.28)';
+            }}
+          >
+            <Download size={20} strokeWidth={2.2} />
           </button>
-          <button className="btn-primary" onClick={() => setShowModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'var(--text-secondary)' }}>
-            <Plus size={16} /> Upload CSV
+
+          {/* Upload CSV */}
+          <button
+            onClick={() => setShowModal(true)}
+            title="Upload CSV"
+            style={{
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '42px',
+              height: '42px',
+              borderRadius: '12px',
+              background: 'linear-gradient(135deg, #64748b 0%, #475569 100%)',
+              color: 'white',
+              border: 'none',
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(71, 85, 105, 0.28)',
+              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.transform = 'translateY(-2px) scale(1.05)';
+              e.currentTarget.style.boxShadow = '0 6px 18px rgba(71, 85, 105, 0.42)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.transform = 'translateY(0) scale(1)';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(71, 85, 105, 0.28)';
+            }}
+          >
+            <Plus size={22} strokeWidth={2.4} />
           </button>
-          <button className="btn-primary" onClick={() => setShowAddEmployeeModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#7c3aed' }}>
-            <UserPlus size={16} /> Add Employee
+
+          {/* Staff Verify */}
+          <button
+            onClick={handleOpenStaffVerify}
+            title="Staff Verify"
+            style={{
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '42px',
+              height: '42px',
+              borderRadius: '12px',
+              background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+              color: 'white',
+              border: 'none',
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(245, 158, 11, 0.32)',
+              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.transform = 'translateY(-2px) scale(1.05)';
+              e.currentTarget.style.boxShadow = '0 6px 18px rgba(245, 158, 11, 0.48)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.transform = 'translateY(0) scale(1)';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(245, 158, 11, 0.32)';
+            }}
+          >
+            <UserCheck size={20} strokeWidth={2.2} />
           </button>
-          <button className="btn-primary" onClick={handleSave} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {saving ? <Loader size={16} className="spin" /> : <Save size={16} />} 
-            {saving ? 'Saving...' : 'Save Changes'}
+
+          <div style={{ width: '1px', height: '26px', backgroundColor: '#e2e8f0', margin: '0 2px' }} />
+
+          {/* Save Changes */}
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            title="Save Changes"
+            style={{
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '42px',
+              height: '42px',
+              borderRadius: '12px',
+              background: saving
+                ? '#94a3b8'
+                : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+              color: 'white',
+              border: 'none',
+              cursor: saving ? 'not-allowed' : 'pointer',
+              opacity: saving ? 0.7 : 1,
+              boxShadow: '0 4px 12px rgba(220, 38, 38, 0.32)',
+              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+            }}
+            onMouseEnter={e => {
+              if (!saving) {
+                e.currentTarget.style.transform = 'translateY(-2px) scale(1.05)';
+                e.currentTarget.style.boxShadow = '0 6px 18px rgba(220, 38, 38, 0.48)';
+              }
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.transform = 'translateY(0) scale(1)';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(220, 38, 38, 0.32)';
+            }}
+          >
+            {saving ? <Loader size={20} className="spin" /> : <Save size={20} strokeWidth={2.2} />}
           </button>
         </div>
       </div>
@@ -1022,7 +1459,7 @@ Instructions:
                                 style={{
                                   flex: 1, border: '1px solid var(--primary-color)', borderRadius: '4px',
                                   padding: '2px 6px', fontSize: '0.82rem', fontWeight: 600,
-                                  textTransform: 'uppercase', outline: 'none', color: 'var(--text-primary)'
+                                  outline: 'none', color: 'var(--text-primary)'
                                 }}
                               />
                               <button
@@ -1039,7 +1476,7 @@ Instructions:
                             </div>
                           ) : (
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'space-between', paddingRight: '4px' }}>
-                              <span style={{ textTransform: 'uppercase', fontSize: '0.85rem' }}>{emp.name}</span>
+                              <span style={{ fontSize: '0.85rem' }}>{emp.name}</span>
                               <button
                                 onClick={() => handleEditEmpName(emp)}
                                 title="Edit Name"
@@ -1113,7 +1550,7 @@ Instructions:
                     <div className="flex justify-between items-center border-b pb-2 border-gray-100">
                       <div>
                         <span className="text-xs font-black text-gray-400 uppercase tracking-widest">#{idx + 1}</span>
-                        <p className="font-bold text-gray-900 text-sm mt-1 uppercase">{emp.name}</p>
+                        <p className="font-bold text-gray-900 text-sm mt-1">{emp.name}</p>
                       </div>
                       <div className="text-right">
                         <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Att. %</span>
@@ -1799,6 +2236,877 @@ Instructions:
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Staff Verify Modal */}
+      {showStaffVerifyModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.65)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px',
+          backdropFilter: 'blur(5px)'
+        }}>
+          <div style={{
+            backgroundColor: 'var(--bg-card, #ffffff)',
+            borderRadius: '16px',
+            width: '100%',
+            maxWidth: '1200px',
+            maxHeight: '90vh',
+            boxShadow: '0 25px 60px rgba(0,0,0,0.35)',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            border: '1px solid var(--border-color, #e5e7eb)'
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '18px 24px',
+              borderBottom: '1px solid var(--border-color, #e5e7eb)',
+              background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+              color: 'white'
+            }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <UserCheck size={24} /> Staff Verification (Users vs Monthly Attendance)
+                </h3>
+                <p style={{ margin: '4px 0 0', fontSize: '0.82rem', opacity: 0.9 }}>
+                  Cross-verify database users with monthly attendance records to spot missing or matched staff
+                </p>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <button
+                  onClick={fetchStaffVerifyData}
+                  disabled={staffVerifyLoading}
+                  title="Refresh Data"
+                  style={{
+                    background: 'rgba(255,255,255,0.2)',
+                    border: 'none',
+                    color: 'white',
+                    cursor: 'pointer',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '0.85rem',
+                    fontWeight: 600
+                  }}
+                >
+                  <RefreshCw size={16} className={staffVerifyLoading ? 'spin' : ''} /> Refresh
+                </button>
+                <button
+                  onClick={() => setShowStaffVerifyModal(false)}
+                  style={{
+                    background: 'rgba(255,255,255,0.2)',
+                    border: 'none',
+                    color: 'white',
+                    cursor: 'pointer',
+                    borderRadius: '8px',
+                    width: '34px',
+                    height: '34px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Stats Bar & Search Filter */}
+            {(() => {
+              const userNamesSet = new Set(staffUsers.map(u => (u.user_name || '').trim().toLowerCase()));
+              const attNamesSet = new Set(monthlyEmployees.map(e => (e.employee_name || '').trim().toLowerCase()));
+
+              const matchedCount = staffUsers.filter(u => attNamesSet.has((u.user_name || '').trim().toLowerCase())).length;
+              const unmatchedUsersCount = staffUsers.length - matchedCount;
+              const unmatchedAttCount = monthlyEmployees.filter(e => !userNamesSet.has((e.employee_name || '').trim().toLowerCase())).length;
+
+              return (
+                <div style={{
+                  padding: '16px 24px',
+                  backgroundColor: 'var(--bg-main, #f9fafb)',
+                  borderBottom: '1px solid var(--border-color, #e5e7eb)',
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '12px',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}>
+                  {/* Status Badges */}
+                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <div
+                      onClick={() => setVerifyFilter('all')}
+                      style={{
+                        cursor: 'pointer',
+                        padding: '6px 14px',
+                        borderRadius: '20px',
+                        fontSize: '0.82rem',
+                        fontWeight: 600,
+                        backgroundColor: verifyFilter === 'all' ? '#1f2937' : '#e5e7eb',
+                        color: verifyFilter === 'all' ? '#ffffff' : '#374151',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      Total Users: {staffUsers.length} | Att: {monthlyEmployees.length}
+                    </div>
+                    <div
+                      onClick={() => setVerifyFilter('matched')}
+                      style={{
+                        cursor: 'pointer',
+                        padding: '6px 14px',
+                        borderRadius: '20px',
+                        fontSize: '0.82rem',
+                        fontWeight: 600,
+                        backgroundColor: verifyFilter === 'matched' ? '#059669' : '#d1fae5',
+                        color: verifyFilter === 'matched' ? '#ffffff' : '#065f46',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <Check size={14} /> Matched in Both: {matchedCount}
+                    </div>
+                    <div
+                      onClick={() => setVerifyFilter('unmatched_users')}
+                      style={{
+                        cursor: 'pointer',
+                        padding: '6px 14px',
+                        borderRadius: '20px',
+                        fontSize: '0.82rem',
+                        fontWeight: 600,
+                        backgroundColor: verifyFilter === 'unmatched_users' ? '#dc2626' : '#fee2e2',
+                        color: verifyFilter === 'unmatched_users' ? '#ffffff' : '#991b1b',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <AlertCircle size={14} /> Users Not in Attendance: {unmatchedUsersCount}
+                    </div>
+                    <div
+                      onClick={() => setVerifyFilter('unmatched_attendance')}
+                      style={{
+                        cursor: 'pointer',
+                        padding: '6px 14px',
+                        borderRadius: '20px',
+                        fontSize: '0.82rem',
+                        fontWeight: 600,
+                        backgroundColor: verifyFilter === 'unmatched_attendance' ? '#d97706' : '#fef3c7',
+                        color: verifyFilter === 'unmatched_attendance' ? '#ffffff' : '#92400e',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <AlertCircle size={14} /> Attendance Not in Users: {unmatchedAttCount}
+                    </div>
+                  </div>
+
+                  {/* Search box */}
+                  <div style={{ position: 'relative', width: '260px' }}>
+                    <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
+                    <input
+                      type="text"
+                      value={verifySearchQuery}
+                      onChange={(e) => setVerifySearchQuery(e.target.value)}
+                      placeholder="Search employee name..."
+                      style={{
+                        width: '100%',
+                        padding: '8px 12px 8px 36px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border-color, #d1d5db)',
+                        backgroundColor: 'var(--bg-card, #ffffff)',
+                        color: 'var(--text-primary, #111827)',
+                        fontSize: '0.85rem',
+                        outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Modal Body - 2 Columns Layout */}
+            <div style={{
+              flex: 1,
+              overflowY: 'auto',
+              padding: '20px 24px',
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '20px',
+              backgroundColor: 'var(--bg-main, #f9fafb)'
+            }}>
+              {staffVerifyLoading ? (
+                <div style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 0', gap: '12px' }}>
+                  <Loader size={36} className="spin" style={{ color: '#f59e0b' }} />
+                  <span style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-secondary, #6b7280)' }}>
+                    Loading and verifying staff records...
+                  </span>
+                </div>
+              ) : (
+                (() => {
+                  const userNamesSet = new Set(staffUsers.map(u => (u.user_name || '').trim().toLowerCase()));
+                  const attNamesSet = new Set(monthlyEmployees.map(e => (e.employee_name || '').trim().toLowerCase()));
+
+                  // Filter users
+                  const filteredUsers = staffUsers.filter(u => {
+                    const name = (u.user_name || '').trim().toLowerCase();
+                    const matchesSearch = !verifySearchQuery || name.includes(verifySearchQuery.toLowerCase());
+                    const isMatched = attNamesSet.has(name);
+
+                    if (!matchesSearch) return false;
+                    if (verifyFilter === 'matched') return isMatched;
+                    if (verifyFilter === 'unmatched_users') return !isMatched;
+                    if (verifyFilter === 'unmatched_attendance') return false; // don't highlight left if filtering only att unmatched
+                    return true;
+                  });
+
+                  // Filter attendance records
+                  const filteredAtt = monthlyEmployees.filter(e => {
+                    const name = (e.employee_name || '').trim().toLowerCase();
+                    const matchesSearch = !verifySearchQuery || name.includes(verifySearchQuery.toLowerCase());
+                    const isMatched = userNamesSet.has(name);
+
+                    if (!matchesSearch) return false;
+                    if (verifyFilter === 'matched') return isMatched;
+                    if (verifyFilter === 'unmatched_attendance') return !isMatched;
+                    if (verifyFilter === 'unmatched_users') return false;
+                    return true;
+                  });
+
+                  return (
+                    <>
+                      {/* Column 1: Staff / Users Table */}
+                      <div style={{
+                        backgroundColor: 'var(--bg-card, #ffffff)',
+                        borderRadius: '12px',
+                        border: '1px solid var(--border-color, #e5e7eb)',
+                        overflow: 'hidden',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
+                      }}>
+                        <div style={{
+                          padding: '12px 16px',
+                          backgroundColor: '#f8fafc',
+                          borderBottom: '2px solid #3b82f6',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          gap: '12px',
+                          minHeight: '64px',
+                          boxSizing: 'border-box'
+                        }}>
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ fontWeight: 700, fontSize: '0.92rem', color: '#1e3a8a', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}>
+                              <User size={17} style={{ flexShrink: 0 }} /> Staff (users table)
+                            </div>
+                            <div style={{ fontSize: '0.73rem', color: '#64748b', marginTop: '2px', whiteSpace: 'nowrap' }}>
+                              Column: <code style={{ backgroundColor: '#e2e8f0', padding: '1px 5px', borderRadius: '4px' }}>user_name</code>
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                            <span style={{
+                              fontSize: '0.78rem',
+                              fontWeight: 700,
+                              padding: '4px 10px',
+                              borderRadius: '12px',
+                              backgroundColor: '#dbeafe',
+                              color: '#1d4ed8',
+                              whiteSpace: 'nowrap'
+                            }}>
+                              {filteredUsers.length} Users
+                            </span>
+                            <button
+                              onClick={() => setShowAddUserRow(prev => !prev)}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                background: '#2563eb',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '6px',
+                                padding: '5px 10px',
+                                fontSize: '0.78rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                whiteSpace: 'nowrap',
+                                boxShadow: '0 1px 3px rgba(37,99,235,0.2)'
+                              }}
+                            >
+                              <Plus size={14} /> Add User
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Inline Add User Form */}
+                        {showAddUserRow && (
+                          <form onSubmit={handleAddNewUser} style={{
+                            padding: '12px 14px',
+                            backgroundColor: '#eff6ff',
+                            borderBottom: '1px solid #bfdbfe',
+                            display: 'flex',
+                            gap: '8px',
+                            alignItems: 'center',
+                            flexWrap: 'wrap'
+                          }}>
+                            <input
+                              type="text"
+                              value={newUserName}
+                              onChange={e => setNewUserName(e.target.value)}
+                              placeholder="New user name *"
+                              autoFocus
+                              style={{
+                                flex: 1,
+                                minWidth: '150px',
+                                padding: '6px 10px',
+                                borderRadius: '6px',
+                                border: '1px solid #93c5fd',
+                                fontSize: '0.85rem',
+                                outline: 'none'
+                              }}
+                            />
+                            <input
+                              type="text"
+                              value={newUserDept}
+                              onChange={e => setNewUserDept(e.target.value)}
+                              placeholder="Dept (optional)"
+                              style={{
+                                width: '120px',
+                                padding: '6px 10px',
+                                borderRadius: '6px',
+                                border: '1px solid #93c5fd',
+                                fontSize: '0.85rem',
+                                outline: 'none'
+                              }}
+                            />
+                            <button
+                              type="submit"
+                              disabled={savingVerifyAction}
+                              style={{
+                                background: '#2563eb',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '6px',
+                                padding: '6px 12px',
+                                fontSize: '0.82rem',
+                                fontWeight: 600,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              Save
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => { setShowAddUserRow(false); setNewUserName(''); setNewUserDept(''); }}
+                              style={{
+                                background: 'transparent',
+                                color: '#64748b',
+                                border: '1px solid #cbd5e1',
+                                borderRadius: '6px',
+                                padding: '6px 10px',
+                                fontSize: '0.82rem',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              Cancel
+                            </button>
+                          </form>
+                        )}
+
+                        <div style={{ overflowY: 'auto', maxHeight: '55vh', padding: '8px' }}>
+                          {filteredUsers.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: '36px 12px', color: '#9ca3af', fontSize: '0.9rem' }}>
+                              No users match current filter
+                            </div>
+                          ) : (
+                            filteredUsers.map((u, idx) => {
+                              const name = (u.user_name || '').trim();
+                              const isMatched = attNamesSet.has(name.toLowerCase());
+
+                              return (
+                                <div
+                                  key={u.id || idx}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    padding: '10px 14px',
+                                    margin: '4px 0',
+                                    borderRadius: '8px',
+                                    backgroundColor: isMatched ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.06)',
+                                    border: isMatched ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(239, 68, 68, 0.25)',
+                                    transition: 'background-color 0.15s ease'
+                                  }}
+                                >
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, marginRight: '10px' }}>
+                                    <span style={{ fontSize: '0.78rem', color: '#9ca3af', width: '24px', fontWeight: 600 }}>
+                                      {idx + 1}.
+                                    </span>
+                                    {editingVerifyTarget?.type === 'user' && editingVerifyTarget.id === u.id ? (
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1 }}>
+                                        <input
+                                          type="text"
+                                          value={editingVerifyName}
+                                          onChange={e => setEditingVerifyName(e.target.value)}
+                                          onKeyDown={e => {
+                                            if (e.key === 'Enter') handleSaveEditVerify();
+                                            if (e.key === 'Escape') setEditingVerifyTarget(null);
+                                          }}
+                                          autoFocus
+                                          style={{
+                                            flex: 1,
+                                            padding: '4px 8px',
+                                            borderRadius: '6px',
+                                            border: '1px solid #3b82f6',
+                                            fontSize: '0.88rem',
+                                            outline: 'none',
+                                            backgroundColor: 'var(--bg-card, #ffffff)',
+                                            color: 'var(--text-primary, #111827)'
+                                          }}
+                                        />
+                                        <button
+                                          onClick={handleSaveEditVerify}
+                                          disabled={savingVerifyAction}
+                                          title="Save"
+                                          style={{ background: '#3b82f6', color: 'white', border: 'none', borderRadius: '5px', padding: '4px 8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
+                                        >✓</button>
+                                        <button
+                                          onClick={() => setEditingVerifyTarget(null)}
+                                          title="Cancel"
+                                          style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: '5px', padding: '4px 8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
+                                        >✗</button>
+                                      </div>
+                                    ) : (
+                                      <div>
+                                        <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary, #111827)' }}>
+                                          {name}
+                                        </div>
+                                        <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary, #6b7280)', marginTop: '2px' }}>
+                                          {u.department ? `Dept: ${u.department}` : ''} {u.employee_id ? `• ID: ${u.employee_id}` : ''}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    {isMatched ? (
+                                      <span style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        padding: '4px 8px',
+                                        borderRadius: '6px',
+                                        fontSize: '0.75rem',
+                                        fontWeight: 700,
+                                        backgroundColor: '#10b981',
+                                        color: '#ffffff'
+                                      }}>
+                                        <Check size={12} /> Matched
+                                      </span>
+                                    ) : (
+                                      <span style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        padding: '4px 8px',
+                                        borderRadius: '6px',
+                                        fontSize: '0.75rem',
+                                        fontWeight: 600,
+                                        backgroundColor: '#fee2e2',
+                                        color: '#b91c1c'
+                                      }}>
+                                        <AlertCircle size={12} /> Missing in Att
+                                      </span>
+                                    )}
+
+                                    {/* Action Buttons: Edit & Delete for User */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '4px' }}>
+                                      <button
+                                        onClick={() => handleStartEditVerify('user', u)}
+                                        title="Edit User Name"
+                                        style={{
+                                          background: 'rgba(59, 130, 246, 0.1)',
+                                          border: '1px solid rgba(59, 130, 246, 0.3)',
+                                          color: '#2563eb',
+                                          borderRadius: '6px',
+                                          padding: '5px 7px',
+                                          cursor: 'pointer',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          transition: 'all 0.15s'
+                                        }}
+                                        onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.2)'}
+                                        onMouseLeave={e => e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.1)'}
+                                      >
+                                        <Edit2 size={13} />
+                                      </button>
+                                      <button
+                                        onClick={() => handleDeleteVerifyItem('user', u)}
+                                        title="Delete User"
+                                        style={{
+                                          background: 'rgba(239, 68, 68, 0.1)',
+                                          border: '1px solid rgba(239, 68, 68, 0.3)',
+                                          color: '#dc2626',
+                                          borderRadius: '6px',
+                                          padding: '5px 7px',
+                                          cursor: 'pointer',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          transition: 'all 0.15s'
+                                        }}
+                                        onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.2)'}
+                                        onMouseLeave={e => e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.1)'}
+                                      >
+                                        <Trash2 size={13} />
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Column 2: Verify / Monthly Attendance Table */}
+                      <div style={{
+                        backgroundColor: 'var(--bg-card, #ffffff)',
+                        borderRadius: '12px',
+                        border: '1px solid var(--border-color, #e5e7eb)',
+                        overflow: 'hidden',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
+                      }}>
+                        <div style={{
+                          padding: '12px 16px',
+                          backgroundColor: '#f8fafc',
+                          borderBottom: '2px solid #10b981',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          gap: '12px',
+                          minHeight: '64px',
+                          boxSizing: 'border-box'
+                        }}>
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ fontWeight: 700, fontSize: '0.92rem', color: '#065f46', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}>
+                              <CheckCircle2 size={17} style={{ flexShrink: 0 }} /> Attendance (monthly_attendance)
+                            </div>
+                            <div style={{ fontSize: '0.73rem', color: '#64748b', marginTop: '2px', whiteSpace: 'nowrap' }}>
+                              Column: <code style={{ backgroundColor: '#e2e8f0', padding: '1px 5px', borderRadius: '4px' }}>employee_name</code>
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                            <span style={{
+                              fontSize: '0.78rem',
+                              fontWeight: 700,
+                              padding: '4px 10px',
+                              borderRadius: '12px',
+                              backgroundColor: '#d1fae5',
+                              color: '#047857',
+                              whiteSpace: 'nowrap'
+                            }}>
+                              {filteredAtt.length} Records
+                            </span>
+                            <button
+                              onClick={() => setShowAddAttRow(prev => !prev)}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                background: '#059669',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '6px',
+                                padding: '5px 10px',
+                                fontSize: '0.78rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                whiteSpace: 'nowrap',
+                                boxShadow: '0 1px 3px rgba(5,150,105,0.2)'
+                              }}
+                            >
+                              <Plus size={14} /> Add Record
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Inline Add Attendance Form */}
+                        {showAddAttRow && (
+                          <form onSubmit={handleAddNewAttRecord} style={{
+                            padding: '12px 14px',
+                            backgroundColor: '#ecfdf5',
+                            borderBottom: '1px solid #a7f3d0',
+                            display: 'flex',
+                            gap: '8px',
+                            alignItems: 'center',
+                            flexWrap: 'wrap'
+                          }}>
+                            <input
+                              type="text"
+                              value={newAttName}
+                              onChange={e => setNewAttName(e.target.value)}
+                              placeholder="New employee name in attendance *"
+                              autoFocus
+                              style={{
+                                flex: 1,
+                                minWidth: '180px',
+                                padding: '6px 10px',
+                                borderRadius: '6px',
+                                border: '1px solid #6ee7b7',
+                                fontSize: '0.85rem',
+                                outline: 'none'
+                              }}
+                            />
+                            <button
+                              type="submit"
+                              disabled={savingVerifyAction}
+                              style={{
+                                background: '#059669',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '6px',
+                                padding: '6px 12px',
+                                fontSize: '0.82rem',
+                                fontWeight: 600,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              Save
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => { setShowAddAttRow(false); setNewAttName(''); }}
+                              style={{
+                                background: 'transparent',
+                                color: '#64748b',
+                                border: '1px solid #cbd5e1',
+                                borderRadius: '6px',
+                                padding: '6px 10px',
+                                fontSize: '0.82rem',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              Cancel
+                            </button>
+                          </form>
+                        )}
+
+                        <div style={{ overflowY: 'auto', maxHeight: '55vh', padding: '8px' }}>
+                          {filteredAtt.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: '36px 12px', color: '#9ca3af', fontSize: '0.9rem' }}>
+                              No attendance records match current filter
+                            </div>
+                          ) : (
+                            filteredAtt.map((att, idx) => {
+                              const name = (att.employee_name || '').trim();
+                              const isMatched = userNamesSet.has(name.toLowerCase());
+                              const isEditingThis = editingVerifyTarget?.type === 'attendance' && (editingVerifyTarget.id === att.id || editingVerifyTarget.originalName === name);
+
+                              return (
+                                <div
+                                  key={idx}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    padding: '10px 14px',
+                                    margin: '4px 0',
+                                    borderRadius: '8px',
+                                    backgroundColor: isMatched ? 'rgba(16, 185, 129, 0.08)' : 'rgba(245, 158, 11, 0.08)',
+                                    border: isMatched ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(245, 158, 11, 0.3)',
+                                    transition: 'background-color 0.15s ease'
+                                  }}
+                                >
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, marginRight: '10px' }}>
+                                    <span style={{ fontSize: '0.78rem', color: '#9ca3af', width: '24px', fontWeight: 600 }}>
+                                      {idx + 1}.
+                                    </span>
+                                    {isEditingThis ? (
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1 }}>
+                                        <input
+                                          type="text"
+                                          value={editingVerifyName}
+                                          onChange={e => setEditingVerifyName(e.target.value)}
+                                          onKeyDown={e => {
+                                            if (e.key === 'Enter') handleSaveEditVerify();
+                                            if (e.key === 'Escape') setEditingVerifyTarget(null);
+                                          }}
+                                          autoFocus
+                                          style={{
+                                            flex: 1,
+                                            padding: '4px 8px',
+                                            borderRadius: '6px',
+                                            border: '1px solid #10b981',
+                                            fontSize: '0.88rem',
+                                            outline: 'none',
+                                            backgroundColor: 'var(--bg-card, #ffffff)',
+                                            color: 'var(--text-primary, #111827)'
+                                          }}
+                                        />
+                                        <button
+                                          onClick={handleSaveEditVerify}
+                                          disabled={savingVerifyAction}
+                                          title="Save"
+                                          style={{ background: '#10b981', color: 'white', border: 'none', borderRadius: '5px', padding: '4px 8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
+                                        >✓</button>
+                                        <button
+                                          onClick={() => setEditingVerifyTarget(null)}
+                                          title="Cancel"
+                                          style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: '5px', padding: '4px 8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
+                                        >✗</button>
+                                      </div>
+                                    ) : (
+                                      <div>
+                                        <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary, #111827)' }}>
+                                          {name}
+                                        </div>
+                                        <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary, #6b7280)', marginTop: '2px' }}>
+                                          {att.employee_id ? `ID: ${att.employee_id}` : ''} {att.month_year ? `• Month: ${att.month_year}` : ''}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    {isMatched ? (
+                                      <span style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        padding: '4px 8px',
+                                        borderRadius: '6px',
+                                        fontSize: '0.75rem',
+                                        fontWeight: 700,
+                                        backgroundColor: '#10b981',
+                                        color: '#ffffff'
+                                      }}>
+                                        <Check size={12} /> Verified
+                                      </span>
+                                    ) : (
+                                      <span style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        padding: '4px 8px',
+                                        borderRadius: '6px',
+                                        fontSize: '0.75rem',
+                                        fontWeight: 600,
+                                        backgroundColor: '#fef3c7',
+                                        color: '#b45309'
+                                      }}>
+                                        <AlertCircle size={12} /> Not in Users
+                                      </span>
+                                    )}
+
+                                    {/* Action Buttons: Edit & Delete for Monthly Attendance */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '4px' }}>
+                                      <button
+                                        onClick={() => handleStartEditVerify('attendance', att)}
+                                        title="Edit Attendance Employee Name"
+                                        style={{
+                                          background: 'rgba(16, 185, 129, 0.1)',
+                                          border: '1px solid rgba(16, 185, 129, 0.3)',
+                                          color: '#059669',
+                                          borderRadius: '6px',
+                                          padding: '5px 7px',
+                                          cursor: 'pointer',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          transition: 'all 0.15s'
+                                        }}
+                                        onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(16, 185, 129, 0.2)'}
+                                        onMouseLeave={e => e.currentTarget.style.backgroundColor = 'rgba(16, 185, 129, 0.1)'}
+                                      >
+                                        <Edit2 size={13} />
+                                      </button>
+                                      <button
+                                        onClick={() => handleDeleteVerifyItem('attendance', att)}
+                                        title="Delete Attendance Record"
+                                        style={{
+                                          background: 'rgba(239, 68, 68, 0.1)',
+                                          border: '1px solid rgba(239, 68, 68, 0.3)',
+                                          color: '#dc2626',
+                                          borderRadius: '6px',
+                                          padding: '5px 7px',
+                                          cursor: 'pointer',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          transition: 'all 0.15s'
+                                        }}
+                                        onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.2)'}
+                                        onMouseLeave={e => e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.1)'}
+                                      >
+                                        <Trash2 size={13} />
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{
+              padding: '14px 24px',
+              borderTop: '1px solid var(--border-color, #e5e7eb)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              backgroundColor: 'var(--bg-card, #ffffff)'
+            }}>
+              <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary, #6b7280)', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#10b981' }}></span> Green = Matched in Both Columns
+                </span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#ef4444' }}></span> Red/Yellow = Not Matched
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowStaffVerifyModal(false)}
+                className="btn-primary"
+                style={{
+                  backgroundColor: '#4b5563',
+                  color: 'white',
+                  padding: '8px 20px',
+                  fontWeight: 600,
+                  fontSize: '0.9rem',
+                  borderRadius: '8px'
+                }}
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
