@@ -1,6 +1,6 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { Upload, X, Eye, Check, XCircle, Plus, Search, ChevronLeft, ChevronRight, Calendar, Filter, Edit2, Trash2, RotateCcw } from 'lucide-react';
+import { Upload, X, Eye, Check, XCircle, Plus, Search, ChevronLeft, ChevronRight, Calendar, Filter, Edit2, Trash2, RotateCcw, ExternalLink, Image as ImageIcon } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import supabase from '../../../SupabaseClient';
 import SearchableSelect from '../../../components/SearchableSelect';
@@ -78,9 +78,16 @@ export default function Expenses() {
   const [loading, setLoading] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
   const [selectedImage, setSelectedImage] = useState('');
+  const [selectedExpenseDetail, setSelectedExpenseDetail] = useState(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
   const [showFormModal, setShowFormModal] = useState(false);
   const [activeTab, setActiveTab] = useState('pending'); // 'pending' or 'history'
   const [statusFilter, setStatusFilter] = useState('');
+
+  const handleViewExpenseDetails = (expense, sNo) => {
+    setSelectedExpenseDetail({ ...expense, sNo });
+    setShowDetailModal(true);
+  };
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [addModalType, setAddModalType] = useState('');
@@ -965,7 +972,17 @@ export default function Expenses() {
               <div className="flex justify-between items-center mb-0">
                 <div className="flex items-center gap-1.5">
                   <div>
-                    <span className="text-[8px] font-medium text-gray-400 uppercase tracking-widest block leading-none mb-0.5"># {idx + 1}</span>
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <span className="text-[8px] font-medium text-gray-400 uppercase tracking-widest block leading-none"># {idx + 1}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleViewExpenseDetails(expense, idx + 1)}
+                        className="text-red-600 hover:text-red-800 p-0.5 bg-red-50 hover:bg-red-100 rounded transition-colors"
+                        title="View Details"
+                      >
+                        <Eye size={11} />
+                      </button>
+                    </div>
                     <h3 className="font-medium text-gray-900 text-[11px] uppercase tracking-tight leading-none mt-[2px]">
                       {expense.person_name || expense.personName}
                     </h3>
@@ -1071,6 +1088,7 @@ export default function Expenses() {
             <thead className="bg-red-100 border-b border-red-200 sticky top-[90px] z-10 shadow-sm">
               <tr>
                 <th className="px-2 py-2 text-center text-xs font-bold text-red-900 uppercase border border-red-200 w-10">S.NO</th>
+                <th className="px-2 py-2 text-center text-xs font-bold text-red-900 uppercase border border-red-200 w-12">VIEW</th>
                 <th className="px-2 py-2 text-center text-xs font-bold text-red-900 uppercase border border-red-200 w-24">DATE</th>
                 <th className="px-2 py-2 text-center text-xs font-bold text-red-900 uppercase border border-red-200">PARTICULARS</th>
                 <th className="px-2 py-2 text-center text-xs font-bold text-red-900 uppercase border border-red-200">RECEIVED</th>
@@ -1090,6 +1108,16 @@ export default function Expenses() {
                 return (
                   <tr key={expense.id} className="bg-white hover:bg-red-50/50 border-b border-gray-200">
                     <td className="px-2 py-1.5 text-center text-xs border border-gray-200 font-medium">{sNo}</td>
+                    <td className="px-2 py-1.5 text-center text-xs border border-gray-200">
+                      <button
+                        type="button"
+                        onClick={() => handleViewExpenseDetails(expense, sNo)}
+                        className="inline-flex items-center justify-center p-1.5 rounded-lg text-red-600 hover:text-white hover:bg-red-600 bg-red-50 border border-red-200/80 transition-all shadow-2xs cursor-pointer group"
+                        title="View Details & Receipt"
+                      >
+                        <Eye size={14} className="group-hover:scale-110 transition-transform" />
+                      </button>
+                    </td>
                     <td className="px-2 py-1.5 text-center text-xs border border-gray-200 whitespace-nowrap">{formatDate(expense.date)}</td>
                     <td className="px-2 py-1.5 text-center text-xs border border-gray-300 font-bold text-gray-800">{particulars}</td>
                     <td className="px-2 py-1.5 text-right text-xs border border-gray-300 font-medium">{expense.received ? formatCurrency(expense.received) : ''}</td>
@@ -1238,6 +1266,137 @@ export default function Expenses() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Expense Details & Receipt Modal */}
+      {showDetailModal && selectedExpenseDetail && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-3 sm:p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-150">
+            
+            {/* Modal Header */}
+            <div className="px-4 sm:px-5 py-3.5 border-b border-slate-100 flex justify-between items-center bg-gradient-to-r from-red-50 via-white to-red-50">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-red-100 text-red-700 flex items-center justify-center font-bold text-xs shadow-2xs">
+                  #{selectedExpenseDetail.sNo}
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-bold text-slate-800">Expense Entry Details</h3>
+                  <p className="text-[11px] text-slate-500 font-medium flex items-center gap-1">
+                    <Calendar size={11} className="text-red-500" />
+                    {formatDate(selectedExpenseDetail.date)}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase ${
+                  selectedExpenseDetail.status === 'APPROVED' 
+                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' 
+                    : 'bg-amber-100 text-amber-800 border border-amber-200'
+                }`}>
+                  {selectedExpenseDetail.status || 'PENDING'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowDetailModal(false)}
+                  className="p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                  title="Close"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-4 sm:p-5 overflow-y-auto space-y-3.5 text-xs">
+              {/* Financial Snapshot */}
+              <div className="grid grid-cols-2 gap-2.5">
+                <div className="bg-slate-50 rounded-xl p-3 border border-slate-200/80">
+                  <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Paid Amount</p>
+                  <p className="text-base sm:text-lg font-black text-rose-600 mt-0.5">
+                    {formatCurrency(selectedExpenseDetail.amount)}
+                  </p>
+                </div>
+                <div className="bg-slate-50 rounded-xl p-3 border border-slate-200/80">
+                  <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Balance</p>
+                  <p className="text-base sm:text-lg font-black text-blue-700 mt-0.5">
+                    {selectedExpenseDetail.balance ? formatCurrency(selectedExpenseDetail.balance) : '-'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Transaction Details Grid */}
+              <div className="bg-white rounded-xl border border-slate-200 divide-y divide-slate-100 overflow-hidden shadow-2xs">
+                <div className="grid grid-cols-3 p-2.5 bg-slate-50/50">
+                  <span className="font-semibold text-slate-500">Particulars:</span>
+                  <span className="col-span-2 font-bold text-slate-800">{selectedExpenseDetail.particulars || 'CASH'}</span>
+                </div>
+                <div className="grid grid-cols-3 p-2.5">
+                  <span className="font-semibold text-slate-500">Paid To:</span>
+                  <span className="col-span-2 font-bold text-slate-800 uppercase">{selectedExpenseDetail.person_name || selectedExpenseDetail.personName || '-'}</span>
+                </div>
+                <div className="grid grid-cols-3 p-2.5 bg-slate-50/50">
+                  <span className="font-semibold text-slate-500">Approved By:</span>
+                  <span className="col-span-2 font-bold text-slate-800 uppercase">{selectedExpenseDetail.group_head || selectedExpenseDetail.groupHead || '-'}</span>
+                </div>
+                <div className="grid grid-cols-3 p-2.5">
+                  <span className="font-semibold text-slate-500">Payment Mode:</span>
+                  <span className="col-span-2 font-bold text-slate-800 uppercase">{selectedExpenseDetail.payment_mode || selectedExpenseDetail.paymentMode || selectedExpenseDetail.mode || 'CASH'}</span>
+                </div>
+                <div className="grid grid-cols-3 p-2.5 bg-slate-50/50">
+                  <span className="font-semibold text-slate-500">Remarks:</span>
+                  <span className="col-span-2 text-slate-800 uppercase font-medium">{selectedExpenseDetail.remarks || '-'}</span>
+                </div>
+              </div>
+
+              {/* Receipt / Attached Image Section */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                    <ImageIcon size={14} className="text-red-600" />
+                    Attached Receipt / Document
+                  </h4>
+                  {selectedExpenseDetail.image && (
+                    <a
+                      href={selectedExpenseDetail.image}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1 text-[11px]"
+                    >
+                      Open Full Image <ExternalLink size={12} />
+                    </a>
+                  )}
+                </div>
+
+                {selectedExpenseDetail.image ? (
+                  <div className="rounded-xl border border-slate-200 overflow-hidden bg-slate-50 p-2 flex items-center justify-center max-h-64">
+                    <img
+                      src={selectedExpenseDetail.image}
+                      alt="Receipt / Bill"
+                      className="max-h-60 object-contain rounded-lg shadow-2xs hover:scale-102 transition-transform cursor-pointer"
+                      onClick={() => window.open(selectedExpenseDetail.image, '_blank')}
+                      title="Click to open full view"
+                    />
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/60 p-4 text-center text-slate-400">
+                    <p className="text-xs">No receipt or bill image attached for this expense</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-4 sm:px-5 py-3 border-t border-slate-100 bg-slate-50 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowDetailModal(false)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-xs transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { TrendingUp, TrendingDown, AlertCircle, Eye, ChevronLeft, ChevronRight, Search, Filter, Download, Calendar, History } from 'lucide-react';
+import { TrendingUp, TrendingDown, AlertCircle, Eye, ChevronLeft, ChevronRight, Search, Filter, Download, Calendar, History, X, ExternalLink, Image as ImageIcon } from 'lucide-react';
 import supabase from '../../../SupabaseClient';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -125,7 +125,14 @@ export default function AdminDashboard() {
   const [itemsPerPage, setItemsPerPage] = useState(100);
   const [showImageModal, setShowImageModal] = useState(false);
   const [selectedImage, setSelectedImage] = useState('');
+  const [selectedTransactionDetail, setSelectedTransactionDetail] = useState(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
   const [summaryType, setSummaryType] = useState('DAILY');
+
+  const handleViewTransactionDetails = (t, sNo) => {
+    setSelectedTransactionDetail({ ...t, sNo });
+    setShowDetailModal(true);
+  };
 
   // Calculate statistics
   const totalCredit = credits.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
@@ -969,6 +976,7 @@ export default function AdminDashboard() {
             <thead className="bg-blue-100 border-b border-blue-300 sticky top-[90px] z-10 shadow-sm">
               <tr>
                 <th className="px-2 py-2 text-center text-xs font-bold text-blue-900 uppercase border border-blue-300 w-10">S.NO</th>
+                <th className="px-2 py-2 text-center text-xs font-bold text-blue-900 uppercase border border-blue-300 w-12">VIEW</th>
                 <th className="px-2 py-2 text-center text-xs font-bold text-blue-900 uppercase border border-blue-300 w-24">DATE</th>
                 <th className="px-2 py-2 text-center text-xs font-bold text-blue-900 uppercase border border-blue-300">PARTICULARS</th>
                 <th className="px-2 py-2 text-center text-xs font-bold text-blue-900 uppercase border border-blue-300">RECEIVED</th>
@@ -987,6 +995,16 @@ export default function AdminDashboard() {
                 return (
                   <tr key={t.id || idx} className="bg-white hover:bg-blue-50 border-b border-gray-300">
                     <td className="px-2 py-1.5 text-center text-xs border border-gray-300 font-medium">{sNo}</td>
+                    <td className="px-2 py-1.5 text-center text-xs border border-gray-300">
+                      <button
+                        type="button"
+                        onClick={() => handleViewTransactionDetails(t, sNo)}
+                        className="inline-flex items-center justify-center p-1.5 rounded-lg text-blue-600 hover:text-white hover:bg-blue-600 bg-blue-50 border border-blue-200/80 transition-all shadow-2xs cursor-pointer group"
+                        title="View Details & Receipt"
+                      >
+                        <Eye size={14} className="group-hover:scale-110 transition-transform" />
+                      </button>
+                    </td>
                     <td className="px-2 py-1.5 text-center text-xs border border-gray-300 whitespace-nowrap">{formatDate(t.date)}</td>
                     <td className="px-2 py-1.5 text-center text-xs border border-gray-300 font-bold text-gray-800">
                       {particulars}
@@ -1014,7 +1032,17 @@ export default function AdminDashboard() {
             <div key={t.id || idx} className="bg-white rounded-lg border border-indigo-50 shadow-[0_2px_10px_-4px_rgba(79,70,229,0.1)] p-1.5 relative flex flex-col gap-1 transition-all">
               <div className="flex justify-between items-start mb-0">
                 <div>
-                  <span className="text-[8px] font-medium text-gray-400 uppercase tracking-widest block leading-none"># {((currentPage - 1) * itemsPerPage) + idx + 1}</span>
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <span className="text-[8px] font-medium text-gray-400 uppercase tracking-widest block leading-none"># {((currentPage - 1) * itemsPerPage) + idx + 1}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleViewTransactionDetails(t, ((currentPage - 1) * itemsPerPage) + idx + 1)}
+                      className="text-blue-600 hover:text-blue-800 p-0.5 bg-blue-50 hover:bg-blue-100 rounded transition-colors"
+                      title="View Details"
+                    >
+                      <Eye size={11} />
+                    </button>
+                  </div>
                   <p className="font-medium text-gray-900 text-[11px] uppercase tracking-tight leading-tight mt-[2px]">{t.personName}</p>
                 </div>
                 <span className={`px-1 py-[1px] rounded text-[7px] font-medium uppercase tracking-widest ${
@@ -1120,6 +1148,141 @@ export default function AdminDashboard() {
               </button>
             </div>
             <img src={selectedImage} alt="Transaction" className="w-full rounded" />
+          </div>
+        </div>
+      )}
+
+      {/* Transaction Details & Receipt Modal */}
+      {showDetailModal && selectedTransactionDetail && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-3 sm:p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-150">
+            
+            {/* Modal Header */}
+            <div className="px-4 sm:px-5 py-3.5 border-b border-slate-100 flex justify-between items-center bg-gradient-to-r from-blue-50 via-white to-blue-50">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs shadow-2xs">
+                  #{selectedTransactionDetail.sNo}
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-bold text-slate-800">Transaction Details</h3>
+                  <p className="text-[11px] text-slate-500 font-medium flex items-center gap-1">
+                    <Calendar size={11} className="text-blue-500" />
+                    {formatDate(selectedTransactionDetail.date)}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase ${
+                  selectedTransactionDetail.type === 'CREDIT' 
+                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' 
+                    : 'bg-rose-100 text-rose-800 border border-rose-200'
+                }`}>
+                  {selectedTransactionDetail.type === 'CREDIT' ? 'CREDIT (RECEIVED)' : 'EXPENSE (PAID)'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowDetailModal(false)}
+                  className="p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                  title="Close"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-4 sm:p-5 overflow-y-auto space-y-3.5 text-xs">
+              {/* Financial Snapshot */}
+              <div className="grid grid-cols-2 gap-2.5">
+                <div className="bg-slate-50 rounded-xl p-3 border border-slate-200/80">
+                  <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Amount</p>
+                  <p className={`text-base sm:text-lg font-black mt-0.5 ${
+                    selectedTransactionDetail.type === 'CREDIT' ? 'text-emerald-600' : 'text-rose-600'
+                  }`}>
+                    {selectedTransactionDetail.type === 'CREDIT' ? '+' : '-'}{formatCurrency(Math.abs(selectedTransactionDetail.amount))}
+                  </p>
+                </div>
+                <div className="bg-slate-50 rounded-xl p-3 border border-slate-200/80">
+                  <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Balance</p>
+                  <p className="text-base sm:text-lg font-black text-blue-700 mt-0.5">
+                    {formatCurrency(selectedTransactionDetail.balance)}
+                  </p>
+                </div>
+              </div>
+
+              {/* Transaction Details Grid */}
+              <div className="bg-white rounded-xl border border-slate-200 divide-y divide-slate-100 overflow-hidden shadow-2xs">
+                <div className="grid grid-cols-3 p-2.5 bg-slate-50/50">
+                  <span className="font-semibold text-slate-500">Particulars:</span>
+                  <span className="col-span-2 font-bold text-slate-800">CASH</span>
+                </div>
+                <div className="grid grid-cols-3 p-2.5">
+                  <span className="font-semibold text-slate-500">{selectedTransactionDetail.type === 'CREDIT' ? 'Received From:' : 'Paid To:'}</span>
+                  <span className="col-span-2 font-bold text-slate-800 uppercase">{selectedTransactionDetail.personName || '-'}</span>
+                </div>
+                {selectedTransactionDetail.type !== 'CREDIT' && (
+                  <div className="grid grid-cols-3 p-2.5 bg-slate-50/50">
+                    <span className="font-semibold text-slate-500">Approved By:</span>
+                    <span className="col-span-2 font-bold text-slate-800 uppercase">{selectedTransactionDetail.groupHead || '-'}</span>
+                  </div>
+                )}
+                <div className="grid grid-cols-3 p-2.5">
+                  <span className="font-semibold text-slate-500">Payment Mode:</span>
+                  <span className="col-span-2 font-bold text-slate-800 uppercase">{selectedTransactionDetail.mode || 'CASH'}</span>
+                </div>
+                <div className="grid grid-cols-3 p-2.5 bg-slate-50/50">
+                  <span className="font-semibold text-slate-500">Remarks:</span>
+                  <span className="col-span-2 text-slate-800 uppercase font-medium">{selectedTransactionDetail.remarks || '-'}</span>
+                </div>
+              </div>
+
+              {/* Receipt / Attached Image Section */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                    <ImageIcon size={14} className="text-blue-600" />
+                    Attached Receipt / Document
+                  </h4>
+                  {selectedTransactionDetail.image && (
+                    <a
+                      href={selectedTransactionDetail.image}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1 text-[11px]"
+                    >
+                      Open Full Image <ExternalLink size={12} />
+                    </a>
+                  )}
+                </div>
+
+                {selectedTransactionDetail.image ? (
+                  <div className="rounded-xl border border-slate-200 overflow-hidden bg-slate-50 p-2 flex items-center justify-center max-h-64">
+                    <img
+                      src={selectedTransactionDetail.image}
+                      alt="Receipt / Bill"
+                      className="max-h-60 object-contain rounded-lg shadow-2xs hover:scale-102 transition-transform cursor-pointer"
+                      onClick={() => window.open(selectedTransactionDetail.image, '_blank')}
+                      title="Click to open full view"
+                    />
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/60 p-4 text-center text-slate-400">
+                    <p className="text-xs">No receipt or document image attached for this transaction</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-4 sm:px-5 py-3 border-t border-slate-100 bg-slate-50 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowDetailModal(false)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-xs transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

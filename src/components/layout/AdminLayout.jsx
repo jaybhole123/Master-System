@@ -689,7 +689,6 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
           if (data.profile_image) {
             setProfileImage(data.profile_image);
             localStorage.setItem("profile_image", data.profile_image);
-            console.log("✅ Profile image synced from DB:", data.profile_image);
           }
           try {
              let sysAccess = [];
@@ -718,8 +717,6 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
     if (storedUsername) {
       syncProfileImage();
     }
-
-    console.log("AdminLayout - Profile Image URL (Cached):", cachedImage);
 
     // Check if this is the super admin (username = 'admin')
     const normalizedUsername = (storedUsername || "").toLowerCase();

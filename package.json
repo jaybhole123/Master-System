@@ -50,6 +50,7 @@
     "shadcn-ui": "^0.9.5",
     "tailwind-variants": "^0.3.1",
     "tailwindcss-animate": "^1.0.7",
+    "tesseract.js": "^7.0.0",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.62.0",
     "xlsx": "^0.18.5",

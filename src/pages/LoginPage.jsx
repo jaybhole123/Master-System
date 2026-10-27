@@ -55,22 +55,20 @@ const LoginPage = () => {
   useEffect(() => {
     const handleLoginSuccess = async () => {
       if (isLoggedIn && userData) {
-        console.log("User Data received:", userData);
+        let designation = userData.designation || userData.Designation || "";
 
-        let designation = userData.Designation || userData.designation || "";
-
-        if (!designation && userData.user_name) {
+        if (!designation && (userData.user_name || userData.username)) {
           try {
             const { data } = await supabase
               .from('users')
-              .select('Designation')
+              .select('designation')
               .eq('user_name', userData.user_name || userData.username)
-              .single();
+              .maybeSingle();
             if (data) {
-              designation = data.Designation || "";
+              designation = data.designation || "";
             }
           } catch (err) {
-            console.error("Error fetching designation:", err);
+            // designation lookup is optional, ignore fallback errors
           }
         }
 
@@ -188,6 +186,7 @@ const LoginPage = () => {
                 id="username"
                 name="username"
                 type="text"
+                autoComplete="username"
                 placeholder="Enter your username or email"
                 required
                 value={formData.username}
@@ -212,6 +211,7 @@ const LoginPage = () => {
                 id="password"
                 name="password"
                 type={showPassword ? "text" : "password"}
+                autoComplete="current-password"
                 placeholder="••••••••"
                 required
                 value={formData.password}

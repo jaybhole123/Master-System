@@ -224,6 +224,37 @@ const DocumentVaultWrapper = ({ children }) => (
     </ProtectedRoute>
 );
 
+const PlantSystemWrapper = ({ children }) => (
+    <ProtectedRoute>
+        <AdminLayout noPadding={true}>
+            <div className="plant-system-container flex flex-col flex-1 w-full min-h-full bg-slate-50 overflow-x-hidden">
+                {children}
+            </div>
+        </AdminLayout>
+    </ProtectedRoute>
+);
+
+// --- Plant (Hindustan Datthu) Fallback Placeholders ---
+const PlantPlaceholder = ({ name }) => (
+    <div className="flex flex-col items-center justify-center p-12 text-center my-auto min-h-[60vh]">
+        <div className="w-16 h-16 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center mb-4 text-2xl font-bold shadow-xs">
+            🏭
+        </div>
+        <h2 className="text-xl font-bold text-slate-800 mb-2">{name}</h2>
+        <p className="text-sm text-slate-500 max-w-md">
+            The Plant module folder is not yet located in <code>src/Plant_Hindustan_Datthu</code>. Copy the folder to activate this page.
+        </p>
+    </div>
+);
+
+function PlantStock() { return <PlantPlaceholder name="Stock Management" />; }
+function PlantItemTransfer() { return <PlantPlaceholder name="Item Transfer" />; }
+function PlantProduction() { return <PlantPlaceholder name="Production (Kiln 1)" />; }
+function PlantProduction2() { return <PlantPlaceholder name="Production (Kiln 2)" />; }
+function PlantSaudaScale() { return <PlantPlaceholder name="Sauda Scale" />; }
+function PlantSaudaPurchase() { return <PlantPlaceholder name="Sauda Purchase" />; }
+function PlantMisReport() { return <PlantPlaceholder name="MIS Report" />; }
+
 function App() {
     return (
         <MagicToastProvider>
@@ -639,6 +670,16 @@ function App() {
                     <Route path="/document-vault/system-flow" element={<DocumentVaultWrapper><DocumentVaultSystemFlow /></DocumentVaultWrapper>} />
                     <Route path="/document-vault" element={<DocumentVaultWrapper><DocumentVaultApp /></DocumentVaultWrapper>} />
                     <Route path="/document-vault/company" element={<DocumentVaultWrapper><CompanyVaultPage /></DocumentVaultWrapper>} />
+
+                    {/* --- Plant (Hindustan Datthu) System Routes --- */}
+                    <Route path="/plant" element={<Navigate to="/plant/stock" replace />} />
+                    <Route path="/plant/stock" element={<PlantSystemWrapper><PlantStock /></PlantSystemWrapper>} />
+                    <Route path="/plant/transfer" element={<PlantSystemWrapper><PlantItemTransfer /></PlantSystemWrapper>} />
+                    <Route path="/plant/production" element={<PlantSystemWrapper><PlantProduction /></PlantSystemWrapper>} />
+                    <Route path="/plant/production2" element={<PlantSystemWrapper><PlantProduction2 /></PlantSystemWrapper>} />
+                    <Route path="/plant/sauda-scale" element={<PlantSystemWrapper><PlantSaudaScale /></PlantSystemWrapper>} />
+                    <Route path="/plant/sauda-purchase" element={<PlantSystemWrapper><PlantSaudaPurchase /></PlantSystemWrapper>} />
+                    <Route path="/plant/mis-report" element={<PlantSystemWrapper><PlantMisReport /></PlantSystemWrapper>} />
 
                     {/* --- Backward Compatibility Redirects (From Snippet 1) --- */}
                     {/* These catch old URLs and forward them to the new structure */}

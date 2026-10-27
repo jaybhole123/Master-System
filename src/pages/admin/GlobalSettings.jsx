@@ -122,6 +122,11 @@ const MODULES = [
     pages: ['System Flow', 'Dashboard', 'Purchase Truck', 'Fastag', 'Challan', 'Truck Reports']
   },
   {
+    id: 'Plant (Hindustan Datthu)',
+    name: 'Plant (Hindustan Datthu)',
+    pages: ['Stock Management', 'Item Transfer', 'Production', 'Production 2', 'Sauda Scale', 'Sauda Purchase', 'MIS Report']
+  },
+  {
     id: 'Global Settings',
     name: 'Global Settings',
     pages: ['Global Settings']

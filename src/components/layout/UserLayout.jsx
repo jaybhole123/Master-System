@@ -42,7 +42,6 @@ const UserLayout = ({ children }) => {
         if (data && data.profile_image) {
           setProfileImage(data.profile_image);
           localStorage.setItem("profile_image", data.profile_image);
-          console.log("✅ User profile image synced from DB:", data.profile_image);
         }
       } catch (err) {
         console.error("❌ Error syncing user profile image:", err);
@@ -52,8 +51,6 @@ const UserLayout = ({ children }) => {
     if (storedUsername) {
       syncProfileImage();
     }
-
-    console.log("UserLayout - Profile Image URL (Cached):", cachedImage);
   }, [navigate, username]) // Added username to dependency to ensure it runs when set
 
   // Logout handler

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Download, Search, ChevronLeft, ChevronRight, Calendar, Filter } from 'lucide-react';
+import { Download, Search, ChevronLeft, ChevronRight, Calendar, Filter, Eye, X, ExternalLink, Image as ImageIcon } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import supabase from '../../../SupabaseClient';
 import { formatDate, formatDateForInput, getTodayDate, formatCurrency, isDateInRange } from '../utils/helpers';
@@ -19,6 +19,13 @@ export default function Ledger() {
   const { user } = useAuthStore();
   const [credits, setCredits] = useState([]);
   const [expenses, setExpenses] = useState([]);
+  const [selectedEntry, setSelectedEntry] = useState(null);
+  const [showViewModal, setShowViewModal] = useState(false);
+
+  const handleViewDetails = (entry, context) => {
+    setSelectedEntry({ ...entry, ...context });
+    setShowViewModal(true);
+  };
 
   const fetchCredits = async () => {
     try {
@@ -150,7 +157,8 @@ export default function Ledger() {
         amount: parseFloat(c.amount || 0),
         date: c.date,
         createdAt: c.created_at || c.createdAt || c.date,
-        remarks: c.remarks || ''
+        remarks: c.remarks || '',
+        image: c.image || c.bill_image || c.receipt_image || c.file || null
       });
     });
 
@@ -164,7 +172,8 @@ export default function Ledger() {
         amount: parseFloat(e.amount || 0),
         date: e.date,
         createdAt: e.created_at || e.createdAt || e.date,
-        remarks: e.remarks || ''
+        remarks: e.remarks || '',
+        image: e.image || e.bill_image || e.receipt_image || e.file || null
       });
     });
 
@@ -679,7 +688,40 @@ export default function Ledger() {
           {paginatedLedger.map((entry) => (
             <div key={entry.id} className="bg-white rounded-lg border border-gray-200 shadow-sm p-1.5 relative flex flex-col gap-1 transition-all">
               <div className="flex justify-between items-center bg-gray-50 -mx-1.5 -mt-1.5 px-1.5 py-1 border-b border-gray-100 rounded-t-lg mb-0">
-                <span className="text-[8px] text-gray-500 font-medium font-mono leading-none">{((currentPage - 1) * itemsPerPage) + filteredLedger.indexOf(entry) + 1}</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[8px] text-gray-500 font-medium font-mono leading-none">{((currentPage - 1) * itemsPerPage) + filteredLedger.indexOf(entry) + 1}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      let remarks = entry.remarks || '';
+                      let approvedBy = entry.groupHead || '-';
+                      let image = entry.image || null;
+                      if (entry.type === 'CREDIT') {
+                        const credit = credits.find(c => c.id === entry.id || c.sn === entry.referenceId);
+                        if (credit) {
+                          if (credit.remarks) remarks = credit.remarks;
+                          if (credit.image) image = credit.image;
+                        }
+                        approvedBy = '-';
+                      } else {
+                        const expense = expenses.find(e => e.id === entry.id || e.sn === entry.referenceId);
+                        if (expense) {
+                          if (expense.remarks) remarks = expense.remarks;
+                          if (expense.group_head || expense.groupHead) approvedBy = expense.group_head || expense.groupHead;
+                          if (expense.image) image = expense.image;
+                        }
+                      }
+                      const sNo = ((currentPage - 1) * itemsPerPage) + filteredLedger.indexOf(entry) + 1;
+                      const isOpening = entry.type === 'CREDIT' && sNo === 1;
+                      const particulars = isOpening ? 'OPENING BALANCE' : 'CASH';
+                      handleViewDetails(entry, { sNo, particulars, remarks, approvedBy, image });
+                    }}
+                    className="text-red-600 hover:text-red-800 p-0.5 bg-red-50 hover:bg-red-100 rounded transition-colors"
+                    title="View Details"
+                  >
+                    <Eye size={11} />
+                  </button>
+                </div>
                 <span className={`px-1 py-[1px] rounded text-[7px] font-medium tracking-widest uppercase leading-none ${
                   entry.type === 'CREDIT' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                 }`}>
@@ -736,6 +778,7 @@ export default function Ledger() {
             <thead className="bg-red-100 border-b border-red-200 sticky top-[90px] z-10 shadow-sm">
               <tr>
                 <th className="px-2 py-2 text-center text-xs font-bold text-red-900 uppercase border border-red-200 w-10">S.NO</th>
+                <th className="px-2 py-2 text-center text-xs font-bold text-red-900 uppercase border border-red-200 w-12">VIEW</th>
                 <th className="px-2 py-2 text-center text-xs font-bold text-red-900 uppercase border border-red-200 w-24">DATE</th>
                 <th className="px-2 py-2 text-center text-xs font-bold text-red-900 uppercase border border-red-200">PARTICULARS</th>
                 <th className="px-2 py-2 text-center text-xs font-bold text-red-900 uppercase border border-red-200">RECEIVED</th>
@@ -750,16 +793,21 @@ export default function Ledger() {
               {paginatedLedger.map((entry, idx) => {
                 let remarks = entry.remarks || '';
                 let approvedBy = entry.groupHead || '-';
+                let image = entry.image || null;
                 
                 if (entry.type === 'CREDIT') {
                    const credit = credits.find(c => c.id === entry.id || c.sn === entry.referenceId);
-                   if (credit && credit.remarks) remarks = credit.remarks;
+                   if (credit) {
+                     if (credit.remarks) remarks = credit.remarks;
+                     if (credit.image) image = credit.image;
+                   }
                    approvedBy = '-';
                 } else {
                    const expense = expenses.find(e => e.id === entry.id || e.sn === entry.referenceId);
                    if (expense) {
                      if (expense.remarks) remarks = expense.remarks;
                      if (expense.group_head || expense.groupHead) approvedBy = expense.group_head || expense.groupHead;
+                     if (expense.image) image = expense.image;
                    }
                 }
 
@@ -770,6 +818,16 @@ export default function Ledger() {
                 return (
                   <tr key={entry.id} className="bg-white hover:bg-red-50/50 border-b border-gray-200">
                     <td className="px-2 py-1.5 text-center text-xs border border-gray-200 font-medium">{sNo}</td>
+                    <td className="px-2 py-1.5 text-center text-xs border border-gray-200">
+                      <button
+                        type="button"
+                        onClick={() => handleViewDetails(entry, { sNo, particulars, remarks, approvedBy, image })}
+                        className="inline-flex items-center justify-center p-1.5 rounded-lg text-red-600 hover:text-white hover:bg-red-600 bg-red-50 border border-red-200/80 transition-all shadow-2xs cursor-pointer group"
+                        title="View Details & Receipt"
+                      >
+                        <Eye size={14} className="group-hover:scale-110 transition-transform" />
+                      </button>
+                    </td>
                     <td className="px-2 py-1.5 text-center text-xs border border-gray-200 whitespace-nowrap">{formatDate(entry.date)}</td>
                     <td className={`px-2 py-1.5 text-center text-xs border border-gray-200 font-bold ${isOpening || entry.type === 'CREDIT' ? 'bg-red-50 text-red-800' : 'text-gray-800'}`}>
                       {particulars}
@@ -851,6 +909,135 @@ export default function Ledger() {
           </div>
         </div>
       </div>
+
+      {/* View Details & Receipt Modal */}
+      {showViewModal && selectedEntry && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-3 sm:p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-150">
+            
+            {/* Modal Header */}
+            <div className="px-4 sm:px-5 py-3.5 border-b border-slate-100 flex justify-between items-center bg-gradient-to-r from-red-50 via-white to-red-50">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-red-100 text-red-700 flex items-center justify-center font-bold text-xs shadow-2xs">
+                  #{selectedEntry.sNo}
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-bold text-slate-800">Ledger Entry Details</h3>
+                  <p className="text-[11px] text-slate-500 font-medium flex items-center gap-1">
+                    <Calendar size={11} className="text-red-500" />
+                    {formatDate(selectedEntry.date)}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase ${
+                  selectedEntry.type === 'CREDIT' 
+                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' 
+                    : 'bg-rose-100 text-rose-800 border border-rose-200'
+                }`}>
+                  {selectedEntry.type === 'CREDIT' ? 'CREDIT' : 'PAID'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowViewModal(false)}
+                  className="p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                  title="Close"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-4 sm:p-5 overflow-y-auto space-y-3.5 text-xs">
+              {/* Financial Snapshot */}
+              <div className="grid grid-cols-2 gap-2.5">
+                <div className="bg-slate-50 rounded-xl p-3 border border-slate-200/80">
+                  <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Amount</p>
+                  <p className={`text-base sm:text-lg font-black mt-0.5 ${
+                    selectedEntry.type === 'CREDIT' ? 'text-emerald-600' : 'text-rose-600'
+                  }`}>
+                    {selectedEntry.type === 'CREDIT' ? '+' : '-'}{formatCurrency(selectedEntry.amount)}
+                  </p>
+                </div>
+                <div className="bg-slate-50 rounded-xl p-3 border border-slate-200/80">
+                  <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Running Balance</p>
+                  <p className="text-base sm:text-lg font-black text-blue-700 mt-0.5">
+                    {formatCurrency(selectedEntry.balance !== undefined ? selectedEntry.balance : selectedEntry.balanceAfter)}
+                  </p>
+                </div>
+              </div>
+
+              {/* Transaction Details Grid */}
+              <div className="bg-white rounded-xl border border-slate-200 divide-y divide-slate-100 overflow-hidden shadow-2xs">
+                <div className="grid grid-cols-3 p-2.5 bg-slate-50/50">
+                  <span className="font-semibold text-slate-500">Particulars:</span>
+                  <span className="col-span-2 font-bold text-slate-800">{selectedEntry.particulars}</span>
+                </div>
+                <div className="grid grid-cols-3 p-2.5">
+                  <span className="font-semibold text-slate-500">Paid To / Person:</span>
+                  <span className="col-span-2 font-bold text-slate-800 uppercase">{selectedEntry.personName || '-'}</span>
+                </div>
+                <div className="grid grid-cols-3 p-2.5 bg-slate-50/50">
+                  <span className="font-semibold text-slate-500">Approved By:</span>
+                  <span className="col-span-2 font-bold text-slate-800 uppercase">{selectedEntry.approvedBy || '-'}</span>
+                </div>
+                <div className="grid grid-cols-3 p-2.5">
+                  <span className="font-semibold text-slate-500">Remarks:</span>
+                  <span className="col-span-2 text-slate-800 uppercase font-medium">{selectedEntry.remarks || '-'}</span>
+                </div>
+              </div>
+
+              {/* Receipt / Attached Image Section */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                    <ImageIcon size={14} className="text-red-600" />
+                    Attached Receipt / Document
+                  </h4>
+                  {selectedEntry.image && (
+                    <a
+                      href={selectedEntry.image}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1 text-[11px]"
+                    >
+                      Open Full Image <ExternalLink size={12} />
+                    </a>
+                  )}
+                </div>
+
+                {selectedEntry.image ? (
+                  <div className="rounded-xl border border-slate-200 overflow-hidden bg-slate-50 p-2 flex items-center justify-center max-h-64">
+                    <img
+                      src={selectedEntry.image}
+                      alt="Receipt / Bill"
+                      className="max-h-60 object-contain rounded-lg shadow-2xs hover:scale-102 transition-transform cursor-pointer"
+                      onClick={() => window.open(selectedEntry.image, '_blank')}
+                      title="Click to open full view"
+                    />
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/60 p-4 text-center text-slate-400">
+                    <p className="text-xs">No receipt or bill image attached for this entry</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-4 sm:px-5 py-3 border-t border-slate-100 bg-slate-50 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowViewModal(false)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-xs transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

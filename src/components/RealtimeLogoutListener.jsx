@@ -7,8 +7,8 @@ const RealtimeLogoutListener = () => {
 
   // ✅ Ask notification permission
   useEffect(() => {
-    if ("Notification" in window) {
-      Notification.requestPermission();
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission().catch(() => {});
     }
   }, []);
 

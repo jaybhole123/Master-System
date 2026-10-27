@@ -324,8 +324,6 @@ export const fetchDocumentsFromGoogleSheets = async (): Promise<DocumentItem[]> 
         const fallbackBase = headerIndex !== -1 ? (headerIndex + 2) : 2;
         const rowIndex = serverRowIndex || (index + fallbackBase);
 
-        console.log(r
-        );
         return {
           id: `doc-${index}-${Date.now()}`,
           sn: (r?.[1] || "").toString().trim(),

@@ -375,7 +375,8 @@ export default function PurchaseTruck() {
         <table className="w-full text-left border-collapse whitespace-nowrap mobile-card-table">
           <thead className="sticky top-0 z-10">
             <tr className="bg-gray-50 border-b border-gray-200 text-gray-600 text-[11px] uppercase tracking-wider font-bold shadow-sm">
-              <th className="p-4">#</th>
+              <th className="p-4 w-12 text-center">#</th>
+              <th className="p-4 w-14 text-center">View</th>
               <th className="p-4">Vehicle No.</th>
               <th className="p-4">Owner Name</th>
               <th className="p-4">Firm Name</th>
@@ -391,7 +392,19 @@ export default function PurchaseTruck() {
           <tbody className="divide-y divide-gray-50">
             {filtered.length ? filtered.map((t, i) => (
               <tr key={t.id} className="hover:bg-blue-50/40 transition-colors group">
-                <td data-label="#" className="p-4 text-gray-500 font-medium">{i + 1}</td>
+                <td data-label="#" className="p-4 text-gray-500 font-medium text-center">{i + 1}</td>
+                <td data-label="View" className="p-4 text-center">
+                  <button
+                    title="View Vehicle Profile & Details"
+                    className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white border border-blue-200 transition-all shadow-sm hover:scale-105 active:scale-95"
+                    onClick={() => setSelectedVehicle(t.vno)}
+                  >
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                  </button>
+                </td>
                 <td data-label="Vehicle No." className="p-4 font-bold text-gray-800 cursor-pointer text-blue-600 group-hover:underline" onClick={() => setSelectedVehicle(t.vno)}>{t.vno}</td>
                 <td data-label="Owner Name" className="p-4 text-gray-600">{t.ownerName}</td>
                 <td data-label="Firm Name" className="p-4 text-gray-600">{t.owner}</td>
@@ -414,15 +427,12 @@ export default function PurchaseTruck() {
                   </span>
                 </td>
                 <td data-label="Action" className="p-4 flex justify-end gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
-                  <button title="View Details" className="bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-600 hover:text-white px-2 py-1.5 rounded-md font-medium transition flex items-center justify-center" onClick={() => setSelectedVehicle(t.vno)}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                  </button>
                   <button className="bg-green-50/50 text-green-600 border border-green-200 hover:bg-green-500 hover:text-white px-3 py-1.5 rounded-md font-medium transition" onClick={() => handleRenew(t)}>Renew</button>
                   <button className="bg-blue-50/50 text-blue-600 border border-blue-200 hover:bg-blue-600 hover:text-white px-3 py-1.5 rounded-md font-medium transition" onClick={() => { setFormData(t); setIsModalOpen(true); }}>Edit</button>
                   <button className="bg-red-50/50 text-red-600 border border-red-200 hover:bg-red-500 hover:text-white px-3 py-1.5 rounded-md font-medium transition" onClick={() => handleDelete(t.id)}>Delete</button>
                 </td>
               </tr>
-            )) : <tr><td colSpan="11" className="p-10 text-center text-gray-500 font-medium">No trucks found. Click "+ Add Truck" to get started.</td></tr>}
+            )) : <tr><td colSpan="12" className="p-10 text-center text-gray-500 font-medium">No trucks found. Click "+ Add Truck" to get started.</td></tr>}
           </tbody>
         </table>
       </div>
