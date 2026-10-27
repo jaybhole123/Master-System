@@ -99,7 +99,7 @@ const getHeaderTitle = (pathname, routes) => {
       { href: "/plant/mis-report", label: "MIS Report" },
     ];
     const match = plantRoutes.find(r => pathname === r.href);
-    return { module: "Plant ( HDS )", page: match?.label || "Plant System" };
+    return { module: "Plant Hindustan Datthu Sponge", page: match?.label || "Plant System" };
   }
   // Check Coal System routes
   if (pathname.startsWith("/coal-system")) {
@@ -567,7 +567,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       "Document & Substruction": path.includes("/document") || path.includes("/doc-dashboard") || path.includes("/resource-manager") || path.includes("/loan") || path.includes("/subscription") || path.includes("/bg") || path.startsWith("/document-vault") || path === "/",
       "Rent Management Tracker": path.includes("/dashboard/rent-tracker"),
       "Coal System": path.startsWith("/coal-system"),
-      "Plant ( HDS )": path.startsWith("/plant"),
+      "Plant Hindustan Datthu Sponge": path.startsWith("/plant"),
       "Transport Reporting": path.startsWith("/transport-system"),
       "Letter": path.startsWith("/letter")
     };
@@ -1394,14 +1394,15 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       module: "Transport Reporting",
     },
 
-    // --- Plant ( HDS ) Module Routes ---
+    // --- Plant Hindustan Datthu Sponge Module Routes ---
     {
       label: "Stock Management",
       href: "/plant/stock",
       icon: Database,
       active: location.pathname === "/plant/stock" || location.pathname === "/plant",
       badge: null,
-      module: "Plant ( HDS )",
+      showFor: ["admin", "user", "HOD"],
+      module: "Plant Hindustan Datthu Sponge",
     },
     {
       label: "Incoming & Outgoing",
@@ -1409,7 +1410,8 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       icon: FileText,
       active: location.pathname === "/plant/transfer",
       badge: null,
-      module: "Plant ( HDS )",
+      showFor: ["admin", "user", "HOD"],
+      module: "Plant Hindustan Datthu Sponge",
     },
     {
       label: "Production 2",
@@ -1417,7 +1419,8 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       icon: Database,
       active: location.pathname === "/plant/production2",
       badge: null,
-      module: "Plant ( HDS )",
+      showFor: ["admin", "user", "HOD"],
+      module: "Plant Hindustan Datthu Sponge",
     },
     {
       label: "Sauda Scale",
@@ -1425,7 +1428,8 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       icon: Database,
       active: location.pathname === "/plant/sauda-scale",
       badge: null,
-      module: "Plant ( HDS )",
+      showFor: ["admin", "user", "HOD"],
+      module: "Plant Hindustan Datthu Sponge",
     },
     {
       label: "Sauda Purchase",
@@ -1433,7 +1437,8 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       icon: Package,
       active: location.pathname === "/plant/sauda-purchase",
       badge: null,
-      module: "Plant ( HDS )",
+      showFor: ["admin", "user", "HOD"],
+      module: "Plant Hindustan Datthu Sponge",
     },
     {
       label: "MIS Report",
@@ -1441,7 +1446,8 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       icon: FileText,
       active: location.pathname === "/plant/mis-report",
       badge: null,
-      module: "Plant ( HDS )",
+      showFor: ["admin", "user", "HOD"],
+      module: "Plant Hindustan Datthu Sponge",
     },
     // --- Coal System Module Routes ---
     {
@@ -1605,6 +1611,9 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
         if (route.label === "Holiday") {
             return userRoleNormalized === "admin";
         }
+        if (!route.showFor || !Array.isArray(route.showFor)) {
+            return true;
+        }
         return route.showFor.some(role => role.toLowerCase() === userRoleNormalized);
       })
       .map(route => {
@@ -1622,6 +1631,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                     const pageKey = `${route.module}::${mappedLabel}`;
                     return pageAccess && pageAccess.includes(pageKey);
                 }
+                if (!sub.showFor || !Array.isArray(sub.showFor)) return true;
                 return sub.showFor.some(role => role.toLowerCase() === userRoleNormalized);
             })
           };
@@ -1645,7 +1655,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       className={`flex h-screen overflow-hidden bg-gradient-to-br from-blue-50 to-purple-50`}
     >
       {/* Sidebar for desktop */}
-      <aside className={`max-md:hidden flex flex-col ${isCollapsed ? 'w-20' : 'w-[242px]'} flex-shrink-0 border-r border-slate-200/80 bg-white/95 backdrop-blur-md shadow-[4px_0_24px_rgba(0,0,0,0.03)] z-40 relative transition-all duration-300`}>
+      <aside className={`max-md:hidden flex flex-col ${isCollapsed ? 'w-20' : 'w-[275px]'} flex-shrink-0 border-r border-slate-200/80 bg-white/95 backdrop-blur-md shadow-[4px_0_24px_rgba(0,0,0,0.03)] z-40 relative transition-all duration-300`}>
         {/* Floating Toggle Button */}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
@@ -1749,12 +1759,12 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                         {moduleName === "Daily Scheduler" && <CalendarCheck className="h-4 w-4" />}
                         {moduleName === "Rent Management Tracker" && <Banknote className="h-4 w-4" />}
                         {moduleName === "Coal System" && <Database className="h-4 w-4" />}
-                        {moduleName === "Plant ( HDS )" && <Factory className="h-4 w-4" />}
+                        {moduleName === "Plant Hindustan Datthu Sponge" && <Factory className="h-4 w-4" />}
                         {moduleName === "Letter" && <FileText className="h-4 w-4" />}
                         {moduleName === "Transport Reporting" && <Truck className="h-4 w-4" />}
                         {moduleName === "Help Slip" && <HelpCircle className="h-4 w-4" />}
                       </div>
-                      {!isCollapsed && <span className="text-left leading-tight truncate">{moduleName}</span>}
+                      {!isCollapsed && <span className="text-left leading-tight break-words">{moduleName}</span>}
                     </div>
                     {!isCollapsed && (
                       <div className="flex items-center gap-1.5 shrink-0 ml-1">
@@ -2019,12 +2029,12 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                             {moduleName === "Daily Scheduler" && <CalendarCheck className="h-4 w-4" />}
                             {moduleName === "Rent Management Tracker" && <Banknote className="h-4 w-4" />}
                             {moduleName === "Coal System" && <Database className="h-4 w-4" />}
-                            {moduleName === "Plant ( HDS )" && <Factory className="h-4 w-4" />}
+                            {moduleName === "Plant Hindustan Datthu Sponge" && <Factory className="h-4 w-4" />}
                             {moduleName === "Letter" && <FileText className="h-4 w-4" />}
                             {moduleName === "Transport Reporting" && <Truck className="h-4 w-4" />}
                             {moduleName === "Help Slip" && <HelpCircle className="h-4 w-4" />}
                           </div>
-                          <span className="text-left leading-tight truncate">{moduleName}</span>
+                          <span className="text-left leading-tight break-words">{moduleName}</span>
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0 ml-1">
                           {!openModules[moduleName] && (() => {
