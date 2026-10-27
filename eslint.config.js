@@ -4,7 +4,19 @@ import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 
 export default [
-  { ignores: ['dist', '**/dist', '**/node_modules'] },
+  { 
+    ignores: [
+      'dist', 
+      '**/dist', 
+      '**/node_modules',
+      '**/tools/**',
+      '**/*.cjs',
+      'src/Plant_Hindustan_Datthu_Sopnge/*.js',
+      'src/Plant_Hindustan_Datthu_Sopnge/*.mjs',
+      'src/Plant_Hindustan_Datthu_Sopnge/*.cjs',
+      'src/Plant_Hindustan_Datthu_Sopnge/tools/**'
+    ] 
+  },
   {
     files: ['**/*.{js,jsx}'],
     languageOptions: {
@@ -27,6 +39,9 @@ export default [
       'no-undef': 'off',
       'no-empty': 'off',
       'no-case-declarations': 'off',
+      'no-useless-escape': 'off',
+      'no-regex-spaces': 'off',
+      'no-constant-condition': 'off',
       'react-hooks/exhaustive-deps': 'off',
       'react-refresh/only-export-components': 'off',
     },

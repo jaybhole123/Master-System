@@ -84,12 +84,8 @@ const Production = () => {
       formData[`totalRow_${index}`] = row.totalValue
     })
     formData.downTimeRemarks = downTimeRemarks
-
-    if (false) {
-    } else {
-      setEntries(prev => [...prev, { ...formData, id: Date.now() }])
-      showToast('Production entry added successfully.')
-    }
+    setEntries(prev => [...prev, { ...formData, id: Date.now() }])
+    showToast('Production entry added successfully.')
     resetForm()
   }
 
