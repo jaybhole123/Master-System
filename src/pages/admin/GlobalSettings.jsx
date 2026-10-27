@@ -122,8 +122,8 @@ const MODULES = [
     pages: ['System Flow', 'Dashboard', 'Purchase Truck', 'Fastag', 'Challan', 'Truck Reports']
   },
   {
-    id: 'Plant Hindustan Datthu Sponge',
-    name: 'Plant Hindustan Datthu Sponge',
+    id: 'Hindustan Dhaatu Ltd (Sponge) Report',
+    name: 'Hindustan Dhaatu Ltd (Sponge) Report',
     pages: ['Stock Management', 'Item Transfer', 'Production', 'Production 2', 'Sauda Scale', 'Sauda Purchase', 'MIS Report']
   },
   {
