@@ -406,59 +406,144 @@ export default function LeaveTracker() {
         </div>
       </div>
 
-      {/* Filter Bar */}
-      <div className="card" style={{ marginBottom: '20px', padding: '12px 20px' }}>
-        <div className="flex flex-col md:flex-row flex-wrap gap-3 items-stretch md:items-center w-full">
-          <input 
-            type="text" 
-            placeholder="Search employee, leave type, reason..." 
-            className="flex-1 min-w-[140px] px-3 py-2 text-sm h-[38px] border border-gray-300 rounded-lg focus:outline-none focus:border-primary w-full md:w-auto"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          <select
-            value={designationFilter}
-            onChange={(e) => setDesignationFilter(e.target.value)}
-            className="w-full md:w-auto px-2 py-2 text-sm h-[38px] rounded-lg border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:border-primary"
-          >
-            <option value="">All Designations</option>
-            {uniqueDesignations.map((desg, idx) => (
-              <option key={idx} value={desg}>{desg}</option>
-            ))}
-          </select>
-          <select
-            value={departmentFilter}
-            onChange={(e) => setDepartmentFilter(e.target.value)}
-            className="w-full md:w-auto px-2 py-2 text-sm h-[38px] rounded-lg border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:border-primary"
-          >
-            <option value="">All Departments</option>
-            {uniqueDepartments.map((dept, idx) => (
-              <option key={idx} value={dept}>{dept}</option>
-            ))}
-          </select>
+      {/* Filter Bar - Single Row Full Width */}
+      <div className="card" style={{ marginBottom: '20px', padding: '12px 16px' }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          width: '100%',
+          overflowX: 'auto',
+          whiteSpace: 'nowrap',
+          paddingBottom: '2px'
+        }}>
+          {/* Search Input */}
+          <div style={{ flex: '2 1 200px', minWidth: '180px' }}>
+            <input 
+              type="text" 
+              placeholder="Search employee, leave type, reason..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                width: '100%',
+                height: '38px',
+                padding: '0 12px',
+                fontSize: '0.85rem',
+                border: '1px solid var(--border-color, #d1d5db)',
+                borderRadius: '8px',
+                backgroundColor: 'var(--bg-main, #ffffff)',
+                color: 'var(--text-primary, #111827)',
+                outline: 'none',
+                boxSizing: 'border-box'
+              }}
+            />
+          </div>
+
+          {/* Designations */}
+          <div style={{ flex: '1 1 140px', minWidth: '130px' }}>
+            <select
+              value={designationFilter}
+              onChange={(e) => setDesignationFilter(e.target.value)}
+              style={{
+                width: '100%',
+                height: '38px',
+                padding: '0 10px',
+                fontSize: '0.85rem',
+                border: '1px solid var(--border-color, #d1d5db)',
+                borderRadius: '8px',
+                backgroundColor: 'var(--bg-card, #f9fafb)',
+                color: 'var(--text-primary, #111827)',
+                outline: 'none',
+                cursor: 'pointer',
+                boxSizing: 'border-box'
+              }}
+            >
+              <option value="">All Designations</option>
+              {uniqueDesignations.map((desg, idx) => (
+                <option key={idx} value={desg}>{desg}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Departments */}
+          <div style={{ flex: '1 1 140px', minWidth: '130px' }}>
+            <select
+              value={departmentFilter}
+              onChange={(e) => setDepartmentFilter(e.target.value)}
+              style={{
+                width: '100%',
+                height: '38px',
+                padding: '0 10px',
+                fontSize: '0.85rem',
+                border: '1px solid var(--border-color, #d1d5db)',
+                borderRadius: '8px',
+                backgroundColor: 'var(--bg-card, #f9fafb)',
+                color: 'var(--text-primary, #111827)',
+                outline: 'none',
+                cursor: 'pointer',
+                boxSizing: 'border-box'
+              }}
+            >
+              <option value="">All Departments</option>
+              {uniqueDepartments.map((dept, idx) => (
+                <option key={idx} value={dept}>{dept}</option>
+              ))}
+            </select>
+          </div>
 
           {activeTab === 'Requests' && (
             <>
-              <select
-                value={leaveTypeFilter}
-                onChange={(e) => setLeaveTypeFilter(e.target.value)}
-                className="w-full md:w-auto px-2 py-2 text-sm h-[38px] rounded-lg border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:border-primary"
-              >
-                <option value="">All Leave Types</option>
-                <option value="CL">CL (Casual)</option>
-                <option value="SL">SL (Sick)</option>
-                <option value="EL">EL (Earned)</option>
-              </select>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full md:w-auto px-2 py-2 text-sm h-[38px] rounded-lg border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:border-primary"
-              >
-                <option value="">All Statuses</option>
-                <option value="Pending">Pending</option>
-                <option value="Approved">Approved</option>
-                <option value="Rejected">Rejected</option>
-              </select>
+              {/* Leave Types */}
+              <div style={{ flex: '1 1 130px', minWidth: '120px' }}>
+                <select
+                  value={leaveTypeFilter}
+                  onChange={(e) => setLeaveTypeFilter(e.target.value)}
+                  style={{
+                    width: '100%',
+                    height: '38px',
+                    padding: '0 10px',
+                    fontSize: '0.85rem',
+                    border: '1px solid var(--border-color, #d1d5db)',
+                    borderRadius: '8px',
+                    backgroundColor: 'var(--bg-card, #f9fafb)',
+                    color: 'var(--text-primary, #111827)',
+                    outline: 'none',
+                    cursor: 'pointer',
+                    boxSizing: 'border-box'
+                  }}
+                >
+                  <option value="">All Leave Types</option>
+                  <option value="CL">CL (Casual)</option>
+                  <option value="SL">SL (Sick)</option>
+                  <option value="EL">EL (Earned)</option>
+                </select>
+              </div>
+
+              {/* Statuses */}
+              <div style={{ flex: '1 1 120px', minWidth: '115px' }}>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  style={{
+                    width: '100%',
+                    height: '38px',
+                    padding: '0 10px',
+                    fontSize: '0.85rem',
+                    border: '1px solid var(--border-color, #d1d5db)',
+                    borderRadius: '8px',
+                    backgroundColor: 'var(--bg-card, #f9fafb)',
+                    color: 'var(--text-primary, #111827)',
+                    outline: 'none',
+                    cursor: 'pointer',
+                    boxSizing: 'border-box'
+                  }}
+                >
+                  <option value="">All Statuses</option>
+                  <option value="Pending">Pending</option>
+                  <option value="Approved">Approved</option>
+                  <option value="Rejected">Rejected</option>
+                </select>
+              </div>
             </>
           )}
 
@@ -471,22 +556,63 @@ export default function LeaveTracker() {
                 setLeaveTypeFilter('');
                 setStatusFilter('');
               }}
-              className="text-sm font-semibold text-primary whitespace-nowrap bg-transparent border-none cursor-pointer hover:underline self-start md:self-center"
+              style={{
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                color: 'var(--primary-color, #dc2626)',
+                whiteSpace: 'nowrap',
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '0 6px',
+                flexShrink: 0
+              }}
             >
-              Reset Filters
+              Reset
             </button>
           )}
 
-          {/* Action Buttons aligned to the right inside the Filter section */}
+          {/* Action Buttons aligned to the right inside the single row */}
           {activeTab === 'Balance' && (
-            <button className="btn-primary" onClick={saveAllotments} disabled={savingBalances} style={{ flexShrink: 0, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '6px', marginLeft: 'auto', height: '38px', padding: '0 16px' }}>
+            <button 
+              className="btn-primary" 
+              onClick={saveAllotments} 
+              disabled={savingBalances} 
+              style={{ 
+                flexShrink: 0, 
+                whiteSpace: 'nowrap', 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                gap: '6px', 
+                height: '38px', 
+                padding: '0 16px',
+                borderRadius: '8px',
+                fontWeight: 600,
+                fontSize: '0.85rem'
+              }}
+            >
               {savingBalances ? <Loader size={16} className="spin" /> : <Save size={16} />} 
               {savingBalances ? 'Saving...' : 'Save Balances'}
             </button>
           )}
 
           {activeTab === 'Requests' && (
-            <button className="btn-primary" onClick={() => { setNewRequest({ empId: '', type: 'CL', from: '', to: '', reason: '', status: 'Pending' }); setShowModal(true); }} style={{ flexShrink: 0, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '6px', marginLeft: 'auto', height: '38px', padding: '0 16px' }}>
+            <button 
+              className="btn-primary" 
+              onClick={() => { setNewRequest({ empId: '', type: 'CL', from: '', to: '', reason: '', status: 'Pending' }); setShowModal(true); }} 
+              style={{ 
+                flexShrink: 0, 
+                whiteSpace: 'nowrap', 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                gap: '6px', 
+                height: '38px', 
+                padding: '0 16px',
+                borderRadius: '8px',
+                fontWeight: 600,
+                fontSize: '0.85rem'
+              }}
+            >
               <Plus size={16} /> New Request
             </button>
           )}

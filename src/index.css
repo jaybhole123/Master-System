@@ -117,3 +117,82 @@
   background: #cbd5e1;
 }
 
+/* ==========================================================================
+   Bulletproof Desktop Table & Mobile View Display Fix
+   Works across all modules (Rent, Tasks, Delegation, HR, Petty Cash, etc.)
+   ========================================================================== */
+@media (max-width: 767.98px) {
+  .desktop-table-view,
+  [class*="hidden"][class*="md:block"],
+  [class*="hidden"][class*="md:flex"],
+  [class*="max-md:hidden"] {
+    display: none !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .mobile-cards-view,
+  [class~="md:hidden"],
+  [class*=" md:hidden"] {
+    display: none !important;
+  }
+  .desktop-table-view,
+  [class*="hidden"][class*="md:block"],
+  [class*="md:block"],
+  div.md\:block,
+  .md\:block {
+    display: block !important;
+  }
+  [class*="hidden"][class*="md:flex"],
+  [class*="hidden"][class*="lg:flex"],
+  [class*="md:flex"],
+  div.md\:flex,
+  .md\:flex,
+  .desktop-table-view[class*="md:flex"],
+  .desktop-table-view.md\:flex {
+    display: flex !important;
+  }
+  [class*="hidden"][class*="md:grid"],
+  [class*="md:grid"],
+  div.md\:grid,
+  .md\:grid {
+    display: grid !important;
+  }
+  [class*="md:table"],
+  div.md\:table,
+  .md\:table {
+    display: table !important;
+  }
+}
+
+@media (min-width: 640px) {
+  [class*="sm:block"] { display: block !important; }
+  [class*="sm:flex"] { display: flex !important; }
+  [class*="sm:grid"] { display: grid !important; }
+  [class~="sm:hidden"], [class*=" sm:hidden"] { display: none !important; }
+}
+
+@media (min-width: 1024px) {
+  [class*="hidden"][class*="lg:block"],
+  [class*="lg:block"],
+  div.lg\:block,
+  .lg\:block {
+    display: block !important;
+  }
+  [class*="hidden"][class*="lg:flex"],
+  [class*="lg:flex"],
+  div.lg\:flex,
+  .lg\:flex {
+    display: flex !important;
+  }
+  [class*="hidden"][class*="lg:grid"],
+  [class*="lg:grid"],
+  div.lg\:grid,
+  .lg\:grid {
+    display: grid !important;
+  }
+  [class~="lg:hidden"], [class*=" lg:hidden"] { display: none !important; }
+}
+
+
+

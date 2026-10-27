@@ -1539,7 +1539,7 @@ function MyDelegation() {
                 </div>
 
                 {/* History Table - Mobile Responsive */}
-                <div className="hidden md:block overflow-x-auto">
+                <div className="desktop-table-view md:block overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50 sticky top-0 z-20 shadow-sm">
                       <tr>
@@ -1756,7 +1756,7 @@ function MyDelegation() {
             ) : (
               <>
                 {/* Regular Tasks Table - Mobile Responsive */}
-                <div className="hidden md:block overflow-x-auto">
+                <div className="desktop-table-view md:block overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>

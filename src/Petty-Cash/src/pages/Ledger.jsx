@@ -459,38 +459,38 @@ export default function Ledger() {
         <div className="flex flex-col lg:flex-row w-full gap-2 items-center">
           
           {/* Search + Export Row (Mobile grouping) */}
-          <div className="flex items-center gap-2 w-full lg:w-auto lg:flex-[1.5]">
+          <div className="flex items-center gap-2 w-full md:w-auto md:flex-[1.5]">
             <div className="flex-1 w-full relative">
-              <Search className="absolute left-2.5 top-[9px] lg:top-[11px] text-gray-400" size={14} />
+              <Search className="absolute left-2.5 top-[9px] md:top-[11px] text-gray-400" size={14} />
               <input
                 type="text"
                 placeholder="Search ref ID, person, amount..."
                 value={filters.searchQuery}
                 onChange={(e) => setFilters({ ...filters, searchQuery: e.target.value })}
-                className="w-full bg-white border border-gray-300 rounded-lg lg:rounded pl-8 pr-2 py-1.5 focus:outline-none focus:border-indigo-500 text-xs md:text-sm h-[32px] md:h-[38px]"
+                className="w-full bg-white border border-gray-300 rounded-lg md:rounded pl-8 pr-2 py-1.5 focus:outline-none focus:border-indigo-500 text-xs md:text-sm h-[32px] md:h-[38px]"
               />
             </div>
             {/* Mobile Filter Button */}
             <button
                onClick={() => setShowMobileFilters(!showMobileFilters)}
-               className={`lg:hidden flex items-center justify-center rounded-lg shadow-sm h-[32px] w-[32px] flex-shrink-0 transition ${showMobileFilters ? 'bg-indigo-100 text-indigo-700 border-indigo-200' : 'bg-white border border-gray-300 text-gray-600 hover:bg-gray-50'}`}
+               className={`md:hidden flex items-center justify-center rounded-lg shadow-sm h-[32px] w-[32px] flex-shrink-0 transition ${showMobileFilters ? 'bg-indigo-100 text-indigo-700 border-indigo-200' : 'bg-white border border-gray-300 text-gray-600 hover:bg-gray-50'}`}
             >
               <Filter size={14} />
             </button>
             {/* Mobile Export Button */}
             <button
                onClick={handleDownloadCSV}
-               className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg flex items-center justify-center lg:hidden h-[32px] w-[32px] flex-shrink-0 shadow-sm transition"
+               className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg flex items-center justify-center md:hidden h-[32px] w-[32px] flex-shrink-0 shadow-sm transition"
             >
               <Download size={16} />
             </button>
           </div>
 
           {/* Filters */}
-          <div className={`${showMobileFilters ? 'grid' : 'hidden'} lg:flex grid-cols-2 lg:flex-row lg:flex-wrap gap-2 w-full lg:w-auto lg:flex-[5] items-center`}>
+          <div className={`${showMobileFilters ? 'grid' : 'max-md:hidden'} flex flex-col md:flex md:flex-row md:flex-wrap gap-2 w-full md:w-auto md:flex-[5] items-center`}>
             {/* Day Navigation Control */}
-            <div className="col-span-2 lg:flex-1 w-full lg:min-w-[320px] flex-shrink-0">
-              <div className="flex items-center justify-between bg-white border border-gray-300 rounded-lg lg:rounded p-1 text-gray-700 h-[32px] md:h-[38px] relative w-full shadow-sm overflow-hidden">
+            <div className="col-span-2 md:flex-1 w-full md:min-w-[320px] flex-shrink-0">
+              <div className="flex items-center justify-between bg-white border border-gray-300 rounded-lg md:rounded p-1 text-gray-700 h-[32px] md:h-[38px] relative w-full shadow-sm overflow-hidden">
                 <div className="flex items-center gap-1 flex-shrink-0">
                   <button
                     type="button"
@@ -565,7 +565,7 @@ export default function Ledger() {
                 )}
               </div>
             </div>
-             <div className="w-full lg:min-w-[140px] lg:flex-1">
+            <div className="w-full md:min-w-[140px] md:flex-1">
                 <SearchableSelect
                   value={filters.personName}
                   onChange={(val) => setFilters({ ...filters, personName: val })}
@@ -576,7 +576,7 @@ export default function Ledger() {
                   ]}
                 />
              </div>
-             <div className="w-full lg:min-w-[120px] lg:flex-1">
+             <div className="w-full md:min-w-[120px] md:flex-1">
                <SearchableSelect
                  value={filters.transactionType}
                  onChange={(val) => setFilters({ ...filters, transactionType: val })}
@@ -588,7 +588,7 @@ export default function Ledger() {
                  ]}
                />
              </div>
-             <div className="w-full lg:min-w-[140px] lg:flex-1">
+             <div className="w-full md:min-w-[140px] md:flex-1">
                 <SearchableSelect
                   value={filters.remarks}
                   onChange={(val) => setFilters({ ...filters, remarks: val })}
@@ -603,16 +603,16 @@ export default function Ledger() {
         </div>
 
         {/* Desktop Export Button */}
-        <div className="hidden lg:flex gap-2 w-full lg:w-auto flex-shrink-0">
+        <div className="hidden md:flex gap-2 w-full md:w-auto flex-shrink-0">
           <button
              onClick={handleDownloadCSV}
-             className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 h-[38px] rounded-lg font-semibold flex items-center justify-center gap-2 transition shadow-sm"
+             className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 h-[38px] rounded-lg font-semibold flex items-center justify-center gap-2 transition shadow-sm whitespace-nowrap"
           >
             <Download size={16} /> Export CSV
           </button>
           <button
              onClick={handleDownloadPDF}
-             className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 h-[38px] rounded-lg font-semibold flex items-center justify-center gap-2 transition shadow-sm"
+             className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 h-[38px] rounded-lg font-semibold flex items-center justify-center gap-2 transition shadow-sm whitespace-nowrap"
           >
             <Download size={16} /> Export PDF
           </button>
@@ -767,7 +767,7 @@ export default function Ledger() {
         </div>
 
         {/* Desktop View: Table */}
-        <div className="hidden md:block overflow-x-auto overflow-y-auto max-h-[calc(100vh-310px)] flex-1 min-h-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <div className="desktop-table-view md:block overflow-x-auto overflow-y-auto max-h-[calc(100vh-310px)] flex-1 min-h-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           <div className="bg-red-600 border-b-2 border-red-700 p-2 text-center shadow-sm sticky top-0 z-20">
             <h1 className="text-white font-bold text-lg md:text-2xl tracking-wider uppercase">JAI BHOLE GROUPS OF COMPANIES</h1>
           </div>

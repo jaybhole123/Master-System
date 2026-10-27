@@ -247,13 +247,13 @@ const PlantPlaceholder = ({ name }) => (
     </div>
 );
 
-function PlantStock() { return <PlantPlaceholder name="Stock Management" />; }
-function PlantItemTransfer() { return <PlantPlaceholder name="Item Transfer" />; }
-function PlantProduction() { return <PlantPlaceholder name="Production (Kiln 1)" />; }
-function PlantProduction2() { return <PlantPlaceholder name="Production (Kiln 2)" />; }
-function PlantSaudaScale() { return <PlantPlaceholder name="Sauda Scale" />; }
-function PlantSaudaPurchase() { return <PlantPlaceholder name="Sauda Purchase" />; }
-function PlantMisReport() { return <PlantPlaceholder name="MIS Report" />; }
+import PlantStock from './Plant_Hindustan_Datthu_Sopnge/src/pages/Stock';
+import PlantItemTransfer from './Plant_Hindustan_Datthu_Sopnge/src/pages/ItemTransfer';
+import PlantProduction from './Plant_Hindustan_Datthu_Sopnge/src/pages/Production';
+import PlantProduction2 from './Plant_Hindustan_Datthu_Sopnge/src/pages/Production2';
+import PlantSaudaScale from './Plant_Hindustan_Datthu_Sopnge/src/pages/SaudaScale';
+import PlantSaudaPurchase from './Plant_Hindustan_Datthu_Sopnge/src/pages/SaudaPurchase';
+import PlantMisReport from './Plant_Hindustan_Datthu_Sopnge/src/pages/MisReport';
 
 function App() {
     return (

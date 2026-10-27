@@ -1030,7 +1030,7 @@ const RentMaster = () => {
           </div>
         )}
 
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden hidden md:block">
+        <div className="desktop-table-view bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden md:block">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -1214,7 +1214,7 @@ const RentMaster = () => {
         </div>
 
         {/* Mobile View */}
-        <div className="md:hidden flex flex-col gap-4">
+        <div className="mobile-cards-view md:hidden flex flex-col gap-4">
           {filteredData.length === 0 ? (
             <div className="text-center py-8 text-sm text-slate-500 bg-white rounded-xl border border-slate-200">
               No records found

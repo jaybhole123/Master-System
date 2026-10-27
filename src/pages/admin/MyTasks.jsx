@@ -119,6 +119,18 @@ const MyTasks = () => {
     return Array.from(givens).sort();
   }, [tasks, historyData, showHistory]);
 
+  const filterDropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (filterDropdownRef.current && !filterDropdownRef.current.contains(e.target)) {
+        setDropdownOpen({ dateFilter: false, userFilter: false, givenByFilter: false });
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   // Fetch holidays and users on mount
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -1110,184 +1122,209 @@ const MyTasks = () => {
     <AdminLayout>
       <div className="space-y-4 sm:space-y-6">
         {/* Sticky Header Section */}
-        {/* Sticky Header Section */}
-        <div className="sticky top-0 z-40 bg-white/60 backdrop-blur-xl py-2 border-b border-gray-100/50 shadow-sm transition-all duration-300">
-          <div className="max-w-7xl mx-auto space-y-2">
-            {/* Tab System & Primary Actions */}
-            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3">
-              <div className="flex-shrink-0">
-                <TaskManagementTabs activeTab={activeTab} setActiveTab={(newTab) => {
-                  setActiveTab(newTab);
-                  setShowHistory(false);
-                  setSelectedItems(new Set());
-                  setSearchTerm("");
-                  setDateFilter("all");
-                }} />
+        <div className="sticky top-0 z-30 bg-white/90 backdrop-blur-xl py-2.5 border-b border-gray-200/80 shadow-xs transition-all duration-300">
+          <div className="w-full space-y-2.5">
+            {/* Row 1: Tab Navigation System */}
+            <div className="w-full overflow-x-auto no-scrollbar">
+              <TaskManagementTabs activeTab={activeTab} setActiveTab={(newTab) => {
+                setActiveTab(newTab);
+                setShowHistory(false);
+                setSelectedItems(new Set());
+                setSearchTerm("");
+                setDateFilter("all");
+              }} />
+            </div>
+
+            {/* Row 2: Clean Search & Actions Toolbar */}
+            <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2.5 bg-white/70 backdrop-blur-md p-2 rounded-2xl border border-gray-200/80 shadow-2xs">
+              {/* Left: Search Bar */}
+              <div className="relative w-full lg:w-72 xl:w-80 shrink-0">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" size={15} />
+                <input
+                  type="text"
+                  placeholder={showHistory ? "Search history..." : "Search tasks..."}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-9 pr-8 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-400/20 focus:border-red-500 text-xs bg-slate-50/60 hover:bg-white focus:bg-white transition-all shadow-2xs"
+                />
+                {searchTerm && (
+                  <button 
+                    onClick={() => setSearchTerm("")} 
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5"
+                    title="Clear search"
+                  >
+                    <X size={13} />
+                  </button>
+                )}
               </div>
 
-              <div className="flex flex-col xl:flex-row items-center gap-3 flex-grow justify-end w-full">
-                <div className="relative flex-grow w-full xl:max-w-sm">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                  <input
-                    type="text"
-                    placeholder={showHistory ? "Search history..." : "Search..."}
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-9 pr-4 py-1.5 border border-gray-200/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-400 text-xs bg-white/80"
-                  />
-                </div>
+              {/* Right: Actions and Dropdown Filters */}
+              <div ref={filterDropdownRef} className="flex flex-wrap items-center justify-start lg:justify-end gap-2">
+                {/* History / Live Toggle */}
+                <button
+                  onClick={() => {
+                    setShowHistory(!showHistory);
+                    setSearchTerm("");
+                    setStartDate("");
+                    setEndDate("");
+                  }}
+                  className={`h-9 px-3.5 text-xs font-semibold rounded-xl border transition-all shadow-2xs flex items-center gap-1.5 active:scale-95 cursor-pointer ${
+                    showHistory 
+                      ? 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100' 
+                      : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50 hover:text-red-600'
+                  }`}
+                  title={showHistory ? "Switch to Live tasks" : "View Completed History"}
+                >
+                  {showHistory ? (
+                    <><ArrowLeft className="h-3.5 w-3.5" /><span>Live Tasks</span></>
+                  ) : (
+                    <><History className="h-3.5 w-3.5" /><span>History</span></>
+                  )}
+                </button>
 
-                <div className="flex flex-wrap items-center justify-start sm:justify-end gap-2 w-full xl:w-auto">
+                {/* User Filter */}
+                <div className="relative">
                   <button
-                    onClick={() => {
-                      setShowHistory(!showHistory);
-                      setSearchTerm("");
-                      setStartDate("");
-                      setEndDate("");
-                    }}
-                    className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-gray-600 bg-white border border-gray-200/80 rounded-xl hover:bg-gray-50 hover:text-red-600 transition-all shadow-sm"
+                    onClick={() => setDropdownOpen(prev => ({ ...prev, userFilter: !prev.userFilter, givenByFilter: false, dateFilter: false }))}
+                    className={`h-9 px-3.5 text-xs font-semibold rounded-xl border transition-all shadow-2xs flex items-center gap-2 active:scale-95 cursor-pointer ${
+                      userFilter !== 'all' ? 'bg-red-600 text-white border-red-600' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                    }`}
                   >
-                    {showHistory ? (
-                      <><ArrowLeft className="h-4 w-4" /><span>Live</span></>
-                    ) : (
-                      <><History className="h-4 w-4" /><span>History</span></>
-                    )}
+                    <Users className="h-3.5 w-3.5" />
+                    <span className="capitalize">{userFilter === 'all' ? 'All Users' : userFilter}</span>
+                    <ChevronDown size={14} className={`transition-transform duration-200 ${dropdownOpen?.userFilter ? 'rotate-180' : ''}`} />
                   </button>
-
-                  {/* User Filter */}
-                  <div className="relative">
-                    <button
-                      onClick={() => setDropdownOpen(prev => ({ ...prev, userFilter: !prev.userFilter }))}
-                      className={`flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-xl border transition-all shadow-sm ${userFilter !== 'all' ? 'bg-red-600 text-white border-red-600' : 'bg-white text-gray-600 border-gray-200'}`}
-                    >
-                      <Users className="h-3.5 w-3.5" />
-                      <span className="capitalize">{userFilter === 'all' ? 'All Users' : userFilter}</span>
-                      <ChevronDown size={14} className={`transition-transform ${dropdownOpen?.userFilter ? 'rotate-180' : ''}`} />
-                    </button>
-                    {dropdownOpen?.userFilter && (
-                      <div className="absolute z-50 mt-2 w-48 left-0 sm:left-auto sm:right-0 rounded-xl bg-white shadow-xl border border-gray-100 py-1 overflow-y-auto max-h-60 animate-in fade-in slide-in-from-top-2 duration-200">
+                  {dropdownOpen?.userFilter && (
+                    <div className="absolute z-50 mt-1.5 w-52 right-0 rounded-xl bg-white shadow-xl border border-gray-100 py-1 overflow-y-auto max-h-60 animate-in fade-in slide-in-from-top-2 duration-150">
+                      <button
+                        onClick={() => {
+                          setUserFilter("all");
+                          setSelectedItems(new Set());
+                          setDropdownOpen(prev => ({ ...prev, userFilter: false }));
+                        }}
+                        className={`block w-full text-left px-4 py-2 text-xs font-semibold transition-colors ${userFilter === "all" ? 'bg-red-50 text-red-700 border-l-2 border-red-500 font-bold' : 'text-gray-600 hover:bg-gray-50'}`}
+                      >
+                        All Users
+                      </button>
+                      {allUsers.map((name) => (
                         <button
+                          key={name}
                           onClick={() => {
-                            setUserFilter("all");
+                            setUserFilter(name);
                             setSelectedItems(new Set());
                             setDropdownOpen(prev => ({ ...prev, userFilter: false }));
                           }}
-                          className={`block w-full text-left px-4 py-2 text-xs font-bold transition-colors ${userFilter === "all" ? 'bg-red-50 text-red-700 border-l-2 border-red-500' : 'text-gray-600 hover:bg-gray-50'}`}
+                          className={`block w-full text-left px-4 py-2 text-xs font-semibold transition-colors ${userFilter === name ? 'bg-red-50 text-red-700 border-l-2 border-red-500 font-bold' : 'text-gray-600 hover:bg-gray-50'}`}
                         >
-                          All Users
+                          {name}
                         </button>
-                        {allUsers.map((name) => (
-                          <button
-                            key={name}
-                            onClick={() => {
-                              setUserFilter(name);
-                              setSelectedItems(new Set());
-                              setDropdownOpen(prev => ({ ...prev, userFilter: false }));
-                            }}
-                            className={`block w-full text-left px-4 py-2 text-xs font-bold transition-colors ${userFilter === name ? 'bg-red-50 text-red-700 border-l-2 border-red-500' : 'text-gray-600 hover:bg-gray-50'}`}
-                          >
-                            {name}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
-                  {/* Given By Filter */}
-                  <div className="relative">
-                    <button
-                      onClick={() => setDropdownOpen(prev => ({ ...prev, givenByFilter: !prev.givenByFilter }))}
-                      className={`flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-xl border transition-all shadow-sm ${givenByFilter !== 'all' ? 'bg-red-600 text-white border-red-600' : 'bg-white text-gray-600 border-gray-200'}`}
-                    >
-                      <Users className="h-3.5 w-3.5" />
-                      <span className="capitalize">{givenByFilter === 'all' ? 'Given By' : givenByFilter}</span>
-                      <ChevronDown size={14} className={`transition-transform ${dropdownOpen?.givenByFilter ? 'rotate-180' : ''}`} />
-                    </button>
-                    {dropdownOpen?.givenByFilter && (
-                      <div className="absolute z-50 mt-2 w-48 left-0 sm:left-auto sm:right-0 rounded-xl bg-white shadow-xl border border-gray-100 py-1 overflow-y-auto max-h-60 animate-in fade-in slide-in-from-top-2 duration-200">
+                {/* Given By Filter */}
+                <div className="relative">
+                  <button
+                    onClick={() => setDropdownOpen(prev => ({ ...prev, givenByFilter: !prev.givenByFilter, userFilter: false, dateFilter: false }))}
+                    className={`h-9 px-3.5 text-xs font-semibold rounded-xl border transition-all shadow-2xs flex items-center gap-2 active:scale-95 cursor-pointer ${
+                      givenByFilter !== 'all' ? 'bg-red-600 text-white border-red-600' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Users className="h-3.5 w-3.5" />
+                    <span className="capitalize">{givenByFilter === 'all' ? 'Given By' : givenByFilter}</span>
+                    <ChevronDown size={14} className={`transition-transform duration-200 ${dropdownOpen?.givenByFilter ? 'rotate-180' : ''}`} />
+                  </button>
+                  {dropdownOpen?.givenByFilter && (
+                    <div className="absolute z-50 mt-1.5 w-52 right-0 rounded-xl bg-white shadow-xl border border-gray-100 py-1 overflow-y-auto max-h-60 animate-in fade-in slide-in-from-top-2 duration-150">
+                      <button
+                        onClick={() => {
+                          setGivenByFilter("all");
+                          setSelectedItems(new Set());
+                          setDropdownOpen(prev => ({ ...prev, givenByFilter: false }));
+                        }}
+                        className={`block w-full text-left px-4 py-2 text-xs font-semibold transition-colors ${givenByFilter === "all" ? 'bg-red-50 text-red-700 border-l-2 border-red-500 font-bold' : 'text-gray-600 hover:bg-gray-50'}`}
+                      >
+                        All Given By
+                      </button>
+                      {uniqueGivenBy.map((name) => (
                         <button
+                          key={name}
                           onClick={() => {
-                            setGivenByFilter("all");
+                            setGivenByFilter(name);
                             setSelectedItems(new Set());
                             setDropdownOpen(prev => ({ ...prev, givenByFilter: false }));
                           }}
-                          className={`block w-full text-left px-4 py-2 text-xs font-bold transition-colors ${givenByFilter === "all" ? 'bg-red-50 text-red-700 border-l-2 border-red-500' : 'text-gray-600 hover:bg-gray-50'}`}
+                          className={`block w-full text-left px-4 py-2 text-xs font-semibold transition-colors ${givenByFilter === name ? 'bg-red-50 text-red-700 border-l-2 border-red-500 font-bold' : 'text-gray-600 hover:bg-gray-50'}`}
                         >
-                          All Given By
+                          {name}
                         </button>
-                        {uniqueGivenBy.map((name) => (
-                          <button
-                            key={name}
-                            onClick={() => {
-                              setGivenByFilter(name);
-                              setSelectedItems(new Set());
-                              setDropdownOpen(prev => ({ ...prev, givenByFilter: false }));
-                            }}
-                            className={`block w-full text-left px-4 py-2 text-xs font-bold transition-colors ${givenByFilter === name ? 'bg-red-50 text-red-700 border-l-2 border-red-500' : 'text-gray-600 hover:bg-gray-50'}`}
-                          >
-                            {name}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {!showHistory && (
-                    <>
-                      <div className="relative">
-                        <button
-                          onClick={() => setDropdownOpen(prev => ({ ...prev, dateFilter: !prev.dateFilter }))}
-                          className={`flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-xl border transition-all shadow-sm ${dateFilter !== 'all' ? 'bg-red-600 text-white border-red-600' : 'bg-white text-gray-600 border-gray-200'}`}
-                        >
-                          <Filter className="h-3 w-3" />
-                          <span className="capitalize">{dateFilter}</span>
-                          <ChevronDown size={14} className={`transition-transform ${dropdownOpen?.dateFilter ? 'rotate-180' : ''}`} />
-                        </button>
-                        {dropdownOpen?.dateFilter && (
-                          <div className="absolute z-50 mt-2 w-40 left-0 sm:left-auto sm:right-0 rounded-xl bg-white shadow-xl border border-gray-100 py-1 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                            {[
-                              { id: 'all', label: 'All Tasks' },
-                              { id: 'overdue', label: 'Overdue' },
-                              { id: 'today', label: 'Today' },
-                              { id: 'upcoming', label: 'Upcoming' }
-                            ].map((filter) => (
-                              <button
-                                key={filter.id}
-                                onClick={() => {
-                                  setDateFilter(filter.id);
-                                  setSelectedItems(new Set());
-                                  setDropdownOpen(prev => ({ ...prev, dateFilter: false }));
-                                }}
-                                className={`block w-full text-left px-4 py-2 text-xs font-bold transition-colors ${dateFilter === filter.id ? 'bg-red-50 text-red-700 border-l-2 border-red-500' : 'text-gray-600 hover:bg-gray-50'}`}
-                              >
-                                {filter.label}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      <button
-                        onClick={handleSendUrgentWhatsApp}
-                        disabled={selectedItems.size === 0 || isSubmitting}
-                        className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-white bg-green-600 rounded-xl hover:bg-green-700 disabled:opacity-40 shadow-md shadow-green-600/10 transition-all"
-                      >
-                        <BellRing className="h-4 w-4" />
-                        <span className="hidden md:inline">Urgent</span>
-                      </button>
-
-                      {activeTab !== "repair" && (
-                        <button
-                          onClick={handleSubmit}
-                          disabled={selectedItems.size === 0 || isSubmitting}
-                          className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-white bg-red-600 rounded-xl hover:bg-red-700 disabled:opacity-40 shadow-md shadow-red-600/10 transition-all"
-                        >
-                          {isSubmitting ? "..." : `Submit (${selectedItems.size})`}
-                        </button>
-                      )}
-                    </>
+                      ))}
+                    </div>
                   )}
                 </div>
+
+                {!showHistory && (
+                  <>
+                    {/* Date Filter */}
+                    <div className="relative">
+                      <button
+                        onClick={() => setDropdownOpen(prev => ({ ...prev, dateFilter: !prev.dateFilter, userFilter: false, givenByFilter: false }))}
+                        className={`h-9 px-3.5 text-xs font-semibold rounded-xl border transition-all shadow-2xs flex items-center gap-2 active:scale-95 cursor-pointer ${
+                          dateFilter !== 'all' ? 'bg-red-600 text-white border-red-600' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                        }`}
+                      >
+                        <Filter className="h-3 w-3" />
+                        <span className="capitalize">{dateFilter}</span>
+                        <ChevronDown size={14} className={`transition-transform duration-200 ${dropdownOpen?.dateFilter ? 'rotate-180' : ''}`} />
+                      </button>
+                      {dropdownOpen?.dateFilter && (
+                        <div className="absolute z-50 mt-1.5 w-44 right-0 rounded-xl bg-white shadow-xl border border-gray-100 py-1 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+                          {[
+                            { id: 'all', label: 'All Tasks' },
+                            { id: 'overdue', label: 'Overdue' },
+                            { id: 'today', label: 'Today' },
+                            { id: 'upcoming', label: 'Upcoming' }
+                          ].map((filter) => (
+                            <button
+                              key={filter.id}
+                              onClick={() => {
+                                setDateFilter(filter.id);
+                                setSelectedItems(new Set());
+                                setDropdownOpen(prev => ({ ...prev, dateFilter: false }));
+                              }}
+                              className={`block w-full text-left px-4 py-2 text-xs font-semibold transition-colors ${dateFilter === filter.id ? 'bg-red-50 text-red-700 border-l-2 border-red-500 font-bold' : 'text-gray-600 hover:bg-gray-50'}`}
+                            >
+                              {filter.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Urgent WhatsApp button */}
+                    <button
+                      onClick={handleSendUrgentWhatsApp}
+                      disabled={selectedItems.size === 0 || isSubmitting}
+                      className="h-9 px-3.5 text-xs font-semibold text-white bg-green-600 hover:bg-green-700 disabled:opacity-40 rounded-xl shadow-2xs shadow-green-600/20 transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer disabled:cursor-not-allowed"
+                      title="Send Urgent WhatsApp"
+                    >
+                      <BellRing className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">Urgent</span>
+                    </button>
+
+                    {/* Submit button */}
+                    {activeTab !== "repair" && (
+                      <button
+                        onClick={handleSubmit}
+                        disabled={selectedItems.size === 0 || isSubmitting}
+                        className="h-9 px-4 text-xs font-bold text-white bg-red-600 hover:bg-red-700 disabled:opacity-40 rounded-xl shadow-xs shadow-red-600/25 transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer disabled:cursor-not-allowed"
+                      >
+                        {isSubmitting ? "..." : `Submit (${selectedItems.size})`}
+                      </button>
+                    )}
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -1356,12 +1393,12 @@ const MyTasks = () => {
             ) : (
               <>
                 {/* Desktop view */}
-                <div className="hidden md:block overflow-x-auto">
+                <div className="desktop-table-view md:block overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50 sticky top-0 z-20 shadow-sm transition-all duration-300">
+                    <thead className="bg-slate-50/90 backdrop-blur-sm sticky top-0 z-20 shadow-2xs border-b border-gray-200">
                       <tr>
                         {!showHistory && (
-                          <th className="px-3 sm:px-6 py-3 sm:py-4 text-left font-bold text-gray-900">
+                          <th className="px-3.5 py-3 text-left font-bold text-gray-900 w-10">
                             <input
                               type="checkbox"
                               checked={(() => {
@@ -1370,28 +1407,28 @@ const MyTasks = () => {
                                 return submittableTasks.length > 0 && submittableTasks.every(t => selectedItems.has(t.id));
                               })()}
                               onChange={handleSelectAll}
-                              className="h-4 w-4 text-red-600 border-gray-300 rounded focus:ring-red-500 disabled:opacity-30"
+                              className="h-4 w-4 text-red-600 border-gray-300 rounded focus:ring-red-500 disabled:opacity-30 cursor-pointer"
                             />
                           </th>
                         )}
                         {tableHeaders.map((header) => (
-                          <th key={header.id} className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                          <th key={header.id} className="px-3.5 py-3 text-left text-[11px] font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap">
                             {header.label}
                           </th>
                         ))}
                         {!showHistory && activeTab === "ea" && (
-                          <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Extended Date</th>
+                          <th className="px-3.5 py-3 text-left text-[11px] font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap">Extended Date</th>
                         )}
                         {!showHistory && activeTab !== "repair" && (
                           <>
-                            <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Remarks</th>
-                            <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Image</th>
+                            <th className="px-3.5 py-3 text-left text-[11px] font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap">Remarks</th>
+                            <th className="px-3.5 py-3 text-left text-[11px] font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap">Image</th>
                           </>
                         )}
                         {showHistory && (
                           <>
-                            <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Remarks</th>
-                            <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Attachment</th>
+                            <th className="px-3.5 py-3 text-left text-[11px] font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap">Remarks</th>
+                            <th className="px-3.5 py-3 text-left text-[11px] font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap">Attachment</th>
                           </>
                         )}
                       </tr>

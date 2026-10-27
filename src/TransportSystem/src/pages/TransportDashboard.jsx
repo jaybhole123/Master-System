@@ -1296,7 +1296,7 @@ export default function TransportDashboard() {
             {/* Modal Body / Table Content */}
             <div className="p-4 overflow-y-auto flex-1 max-h-[60vh] space-y-3">
               {/* Desktop Table View */}
-              <div className="hidden sm:block overflow-x-auto rounded-2xl border border-slate-200 shadow-2xs">
+              <div className="table-responsive-desktop overflow-x-auto rounded-2xl border border-slate-200 shadow-2xs" style={{ display: 'block' }}>
                 <table className="w-full text-left border-collapse text-xs">
                   <thead className="bg-slate-50 sticky top-0 z-10 border-b border-slate-200 font-bold text-slate-500 uppercase tracking-wider">
                     <tr>
@@ -1388,8 +1388,8 @@ export default function TransportDashboard() {
                 </table>
               </div>
 
-              {/* Mobile Cards View for Vehicle Trips */}
-              <div className="block sm:hidden space-y-2.5">
+              {/* Mobile Cards View for Vehicle Trips (< 640px) */}
+              <div className="sm:hidden space-y-2.5">
                 {vehicleHistoryModal.trips.map((trip, tIdx) => {
                   const dieselVal = Number(trip.diesel) || parseFloat(String(trip.diesel || '').replace(/[^0-9.]/g, '')) || 0;
                   const dieselPriceVal = parseFloat(trip.diesel_price) || 0;

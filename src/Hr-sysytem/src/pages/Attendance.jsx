@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, X, Save, Loader, Download, FileSpreadsheet, MapPin, Navigation, Clock, CheckCircle2, User, RefreshCw, LogOut, LogIn, Camera, UserPlus, Copy, Bot, Sparkles, UserCheck, Search, Check, AlertCircle, Edit2, Trash2 } from 'lucide-react';
+import { Plus, X, Save, Loader, Download, FileSpreadsheet, MapPin, Navigation, Clock, CheckCircle2, User, RefreshCw, LogOut, LogIn, Camera, UserPlus, Copy, Bot, Sparkles, UserCheck, Search, Check, AlertCircle, Edit2, Trash2, Eye } from 'lucide-react';
 import { useEmployees } from '../hooks/useEmployees';
 import { useCurrentLocation } from '../hooks/useCurrentLocation';
 import { supabase } from '../lib/supabase';
@@ -349,6 +349,9 @@ export default function Attendance() {
     const now = new Date();
     return { month: String(now.getMonth() + 1).padStart(2, '0'), year: String(now.getFullYear()), file: null };
   });
+
+  // View Single Employee Attendance Detail Modal State
+  const [viewEmployeeModal, setViewEmployeeModal] = useState(null);
 
   // Add Employee Modal States
   const [showAddEmployeeModal, setShowAddEmployeeModal] = useState(false);
@@ -1166,26 +1169,31 @@ Instructions:
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              width: '42px',
-              height: '42px',
-              borderRadius: '12px',
+              gap: '6px',
+              height: '38px',
+              padding: '0 13px',
+              fontSize: '12.5px',
+              fontWeight: '600',
+              borderRadius: '10px',
               background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
               color: 'white',
               border: 'none',
               cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(2, 132, 199, 0.28)',
+              whiteSpace: 'nowrap',
+              boxShadow: '0 3px 10px rgba(2, 132, 199, 0.25)',
               transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.transform = 'translateY(-2px) scale(1.05)';
-              e.currentTarget.style.boxShadow = '0 6px 18px rgba(2, 132, 199, 0.42)';
+              e.currentTarget.style.transform = 'translateY(-1px) scale(1.02)';
+              e.currentTarget.style.boxShadow = '0 5px 14px rgba(2, 132, 199, 0.35)';
             }}
             onMouseLeave={e => {
               e.currentTarget.style.transform = 'translateY(0) scale(1)';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(2, 132, 199, 0.28)';
+              e.currentTarget.style.boxShadow = '0 3px 10px rgba(2, 132, 199, 0.25)';
             }}
           >
-            <FileSpreadsheet size={20} strokeWidth={2.2} />
+            <FileSpreadsheet size={16} strokeWidth={2.2} />
+            <span>Export Excel</span>
           </button>
 
           {/* Export PDF */}
@@ -1197,26 +1205,31 @@ Instructions:
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              width: '42px',
-              height: '42px',
-              borderRadius: '12px',
+              gap: '6px',
+              height: '38px',
+              padding: '0 13px',
+              fontSize: '12.5px',
+              fontWeight: '600',
+              borderRadius: '10px',
               background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
               color: 'white',
               border: 'none',
               cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(16, 185, 129, 0.28)',
+              whiteSpace: 'nowrap',
+              boxShadow: '0 3px 10px rgba(16, 185, 129, 0.25)',
               transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.transform = 'translateY(-2px) scale(1.05)';
-              e.currentTarget.style.boxShadow = '0 6px 18px rgba(16, 185, 129, 0.42)';
+              e.currentTarget.style.transform = 'translateY(-1px) scale(1.02)';
+              e.currentTarget.style.boxShadow = '0 5px 14px rgba(16, 185, 129, 0.35)';
             }}
             onMouseLeave={e => {
               e.currentTarget.style.transform = 'translateY(0) scale(1)';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.28)';
+              e.currentTarget.style.boxShadow = '0 3px 10px rgba(16, 185, 129, 0.25)';
             }}
           >
-            <Download size={20} strokeWidth={2.2} />
+            <Download size={16} strokeWidth={2.2} />
+            <span>Export PDF</span>
           </button>
 
           {/* Upload CSV */}
@@ -1228,26 +1241,31 @@ Instructions:
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              width: '42px',
-              height: '42px',
-              borderRadius: '12px',
+              gap: '6px',
+              height: '38px',
+              padding: '0 13px',
+              fontSize: '12.5px',
+              fontWeight: '600',
+              borderRadius: '10px',
               background: 'linear-gradient(135deg, #64748b 0%, #475569 100%)',
               color: 'white',
               border: 'none',
               cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(71, 85, 105, 0.28)',
+              whiteSpace: 'nowrap',
+              boxShadow: '0 3px 10px rgba(71, 85, 105, 0.25)',
               transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.transform = 'translateY(-2px) scale(1.05)';
-              e.currentTarget.style.boxShadow = '0 6px 18px rgba(71, 85, 105, 0.42)';
+              e.currentTarget.style.transform = 'translateY(-1px) scale(1.02)';
+              e.currentTarget.style.boxShadow = '0 5px 14px rgba(71, 85, 105, 0.35)';
             }}
             onMouseLeave={e => {
               e.currentTarget.style.transform = 'translateY(0) scale(1)';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(71, 85, 105, 0.28)';
+              e.currentTarget.style.boxShadow = '0 3px 10px rgba(71, 85, 105, 0.25)';
             }}
           >
-            <Plus size={22} strokeWidth={2.4} />
+            <Plus size={18} strokeWidth={2.4} />
+            <span>Upload CSV</span>
           </button>
 
           {/* Staff Verify */}
@@ -1259,29 +1277,34 @@ Instructions:
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              width: '42px',
-              height: '42px',
-              borderRadius: '12px',
+              gap: '6px',
+              height: '38px',
+              padding: '0 13px',
+              fontSize: '12.5px',
+              fontWeight: '600',
+              borderRadius: '10px',
               background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
               color: 'white',
               border: 'none',
               cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(245, 158, 11, 0.32)',
+              whiteSpace: 'nowrap',
+              boxShadow: '0 3px 10px rgba(245, 158, 11, 0.28)',
               transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.transform = 'translateY(-2px) scale(1.05)';
-              e.currentTarget.style.boxShadow = '0 6px 18px rgba(245, 158, 11, 0.48)';
+              e.currentTarget.style.transform = 'translateY(-1px) scale(1.02)';
+              e.currentTarget.style.boxShadow = '0 5px 14px rgba(245, 158, 11, 0.4)';
             }}
             onMouseLeave={e => {
               e.currentTarget.style.transform = 'translateY(0) scale(1)';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(245, 158, 11, 0.32)';
+              e.currentTarget.style.boxShadow = '0 3px 10px rgba(245, 158, 11, 0.28)';
             }}
           >
-            <UserCheck size={20} strokeWidth={2.2} />
+            <UserCheck size={16} strokeWidth={2.2} />
+            <span>Staff Verify</span>
           </button>
 
-          <div style={{ width: '1px', height: '26px', backgroundColor: '#e2e8f0', margin: '0 2px' }} />
+          <div style={{ width: '1px', height: '24px', backgroundColor: '#e2e8f0', margin: '0 2px' }} />
 
           {/* Save Changes */}
           <button
@@ -1293,9 +1316,12 @@ Instructions:
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              width: '42px',
-              height: '42px',
-              borderRadius: '12px',
+              gap: '6px',
+              height: '38px',
+              padding: '0 15px',
+              fontSize: '12.5px',
+              fontWeight: '600',
+              borderRadius: '10px',
               background: saving
                 ? '#94a3b8'
                 : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
@@ -1303,21 +1329,23 @@ Instructions:
               border: 'none',
               cursor: saving ? 'not-allowed' : 'pointer',
               opacity: saving ? 0.7 : 1,
-              boxShadow: '0 4px 12px rgba(220, 38, 38, 0.32)',
+              whiteSpace: 'nowrap',
+              boxShadow: '0 3px 10px rgba(220, 38, 38, 0.28)',
               transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
             }}
             onMouseEnter={e => {
               if (!saving) {
-                e.currentTarget.style.transform = 'translateY(-2px) scale(1.05)';
-                e.currentTarget.style.boxShadow = '0 6px 18px rgba(220, 38, 38, 0.48)';
+                e.currentTarget.style.transform = 'translateY(-1px) scale(1.02)';
+                e.currentTarget.style.boxShadow = '0 5px 14px rgba(220, 38, 38, 0.4)';
               }
             }}
             onMouseLeave={e => {
               e.currentTarget.style.transform = 'translateY(0) scale(1)';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(220, 38, 38, 0.32)';
+              e.currentTarget.style.boxShadow = '0 3px 10px rgba(220, 38, 38, 0.28)';
             }}
           >
-            {saving ? <Loader size={20} className="spin" /> : <Save size={20} strokeWidth={2.2} />}
+            {saving ? <Loader size={16} className="spin" /> : <Save size={16} strokeWidth={2.2} />}
+            <span>{saving ? 'Saving...' : 'Save Changes'}</span>
           </button>
         </div>
       </div>
@@ -1420,8 +1448,9 @@ Instructions:
             <table style={{ borderCollapse: 'collapse', margin: '0' }}>
               <thead style={{ position: 'sticky', top: 0, zIndex: 10 }}>
                 <tr>
-                  <th style={{...thStyle, width: '50px', position: 'sticky', top: 0, left: 0, zIndex: 20, backgroundColor: 'var(--bg-main)'}}>Sr.<br/>No.</th>
-                  <th style={{...thStyle, minWidth: '200px', position: 'sticky', top: 0, left: '50px', zIndex: 20, backgroundColor: 'var(--bg-main)'}}>Employee Name</th>
+                  <th style={{...thStyle, width: '45px', position: 'sticky', top: 0, left: 0, zIndex: 20, backgroundColor: 'var(--bg-main)'}}>Sr.<br/>No.</th>
+                  <th style={{...thStyle, width: '45px', position: 'sticky', top: 0, left: '45px', zIndex: 20, backgroundColor: 'var(--bg-main)'}}>View</th>
+                  <th style={{...thStyle, minWidth: '200px', position: 'sticky', top: 0, left: '90px', zIndex: 20, backgroundColor: 'var(--bg-main)'}}>Employee Name</th>
                   {daysArray.map(day => {
                     const isInvalidDay = day > daysCount;
                     const isSunday = !isInvalidDay && new Date(yearNum, monthNum, day).getDay() === 0;
@@ -1444,7 +1473,37 @@ Instructions:
                     return (
                       <tr key={emp.id} style={{ backgroundColor: idx % 2 === 0 ? 'var(--bg-card)' : 'rgba(0,0,0,0.02)' }}>
                         <td style={{...tdStyle, color: 'var(--text-secondary)', position: 'sticky', left: 0, zIndex: 5, backgroundColor: idx % 2 === 0 ? 'var(--bg-card)' : '#f8fafc'}}>{idx + 1}</td>
-                        <td style={{...tdStyle, textAlign: 'left', fontWeight: 600, paddingLeft: '8px', minWidth: '200px', position: 'sticky', left: '50px', zIndex: 5, backgroundColor: idx % 2 === 0 ? 'var(--bg-card)' : '#f8fafc'}}>
+                        <td style={{...tdStyle, width: '45px', position: 'sticky', left: '45px', zIndex: 5, backgroundColor: idx % 2 === 0 ? 'var(--bg-card)' : '#f8fafc', textAlign: 'center'}}>
+                          <button
+                            type="button"
+                            onClick={() => setViewEmployeeModal({ emp, stats })}
+                            title="View Month Attendance"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: '28px',
+                              height: '28px',
+                              borderRadius: '6px',
+                              border: '1px solid #fed7aa',
+                              backgroundColor: '#fff7ed',
+                              color: '#ea580c',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease'
+                            }}
+                            onMouseEnter={e => {
+                              e.currentTarget.style.backgroundColor = '#ea580c';
+                              e.currentTarget.style.color = '#ffffff';
+                            }}
+                            onMouseLeave={e => {
+                              e.currentTarget.style.backgroundColor = '#fff7ed';
+                              e.currentTarget.style.color = '#ea580c';
+                            }}
+                          >
+                            <Eye size={15} />
+                          </button>
+                        </td>
+                        <td style={{...tdStyle, textAlign: 'left', fontWeight: 600, paddingLeft: '8px', minWidth: '200px', position: 'sticky', left: '90px', zIndex: 5, backgroundColor: idx % 2 === 0 ? 'var(--bg-card)' : '#f8fafc'}}>
                           {editingEmpId === emp.id ? (
                             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                               <input
@@ -1534,7 +1593,7 @@ Instructions:
                     );
                   })
                 ) : (
-                  <tr><td colSpan={38} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-secondary)' }}>No employees found. Please add employees first.</td></tr>
+                  <tr><td colSpan={39} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-secondary)' }}>No employees found. Please add employees first.</td></tr>
                 )}
               </tbody>
             </table>
@@ -1549,7 +1608,16 @@ Instructions:
                   <div key={emp.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col gap-3">
                     <div className="flex justify-between items-center border-b pb-2 border-gray-100">
                       <div>
-                        <span className="text-xs font-black text-gray-400 uppercase tracking-widest">#{idx + 1}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-black text-gray-400 uppercase tracking-widest">#{idx + 1}</span>
+                          <button
+                            type="button"
+                            onClick={() => setViewEmployeeModal({ emp, stats })}
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-200"
+                          >
+                            <Eye size={12} /> View
+                          </button>
+                        </div>
                         <p className="font-bold text-gray-900 text-sm mt-1">{emp.name}</p>
                       </div>
                       <div className="text-right">
@@ -3110,6 +3178,382 @@ Instructions:
           </div>
         </div>
       )}
+      {/* View Single Employee Attendance Detail Modal */}
+      {viewEmployeeModal && (
+        <div 
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.65)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '16px',
+            backdropFilter: 'blur(3px)'
+          }}
+          onClick={() => setViewEmployeeModal(null)}
+        >
+          <div 
+            style={{
+              backgroundColor: 'var(--bg-card, #ffffff)',
+              color: 'var(--text-primary, #1e293b)',
+              borderRadius: '16px',
+              maxWidth: '850px',
+              width: '100%',
+              maxHeight: '90vh',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)',
+              border: '1px solid var(--border-color, #e2e8f0)',
+              animation: 'fadeIn 0.2s ease-out'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div style={{
+              background: 'linear-gradient(135deg, #b91c1c 0%, #dc2626 100%)',
+              color: 'white',
+              padding: '18px 24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '10px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Eye size={22} color="#ffffff" />
+                </div>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, letterSpacing: '0.3px', color: '#ffffff' }}>
+                    {viewEmployeeModal.emp.name}
+                  </h2>
+                  <p style={{ margin: '2px 0 0 0', fontSize: '0.82rem', opacity: 0.9, color: '#fecaca', fontWeight: 500 }}>
+                    Monthly Attendance Detail • {getFormattedMonth(selectedMonth)} (ID: #{viewEmployeeModal.emp.id})
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setViewEmployeeModal(null)}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.15)',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '6px',
+                  cursor: 'pointer',
+                  color: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'background 0.2s'
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)'}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{ padding: '24px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              
+              {/* Summary Stats Row */}
+              <div>
+                <h4 style={{ margin: '0 0 10px 0', fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-secondary, #64748b)' }}>
+                  Monthly Summary ({getFormattedMonth(selectedMonth)})
+                </h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '10px' }}>
+                  
+                  {/* Present */}
+                  <div style={{
+                    backgroundColor: '#f0fdf4',
+                    border: '1px solid #bbf7d0',
+                    borderRadius: '10px',
+                    padding: '12px 14px',
+                    textAlign: 'center'
+                  }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#166534', textTransform: 'uppercase', display: 'block' }}>
+                      P • Present
+                    </span>
+                    <span style={{ fontSize: '1.6rem', fontWeight: 800, color: '#15803d', lineHeight: '1.2', display: 'block', marginTop: '2px' }}>
+                      {viewEmployeeModal.stats.p}
+                    </span>
+                    <span style={{ fontSize: '0.7rem', color: '#16a34a', fontWeight: 600 }}>Days</span>
+                  </div>
+
+                  {/* Absent */}
+                  <div style={{
+                    backgroundColor: '#fef2f2',
+                    border: '1px solid #fecaca',
+                    borderRadius: '10px',
+                    padding: '12px 14px',
+                    textAlign: 'center'
+                  }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#991b1b', textTransform: 'uppercase', display: 'block' }}>
+                      A • Absent
+                    </span>
+                    <span style={{ fontSize: '1.6rem', fontWeight: 800, color: '#dc2626', lineHeight: '1.2', display: 'block', marginTop: '2px' }}>
+                      {viewEmployeeModal.stats.a}
+                    </span>
+                    <span style={{ fontSize: '0.7rem', color: '#ef4444', fontWeight: 600 }}>Days</span>
+                  </div>
+
+                  {/* Leave */}
+                  <div style={{
+                    backgroundColor: '#fefce8',
+                    border: '1px solid #fef08a',
+                    borderRadius: '10px',
+                    padding: '12px 14px',
+                    textAlign: 'center'
+                  }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#854d0e', textTransform: 'uppercase', display: 'block' }}>
+                      L • Leave
+                    </span>
+                    <span style={{ fontSize: '1.6rem', fontWeight: 800, color: '#ca8a04', lineHeight: '1.2', display: 'block', marginTop: '2px' }}>
+                      {viewEmployeeModal.stats.l}
+                    </span>
+                    <span style={{ fontSize: '0.7rem', color: '#eab308', fontWeight: 600 }}>Days</span>
+                  </div>
+
+                  {/* Half Day */}
+                  <div style={{
+                    backgroundColor: '#eff6ff',
+                    border: '1px solid #bfdbfe',
+                    borderRadius: '10px',
+                    padding: '12px 14px',
+                    textAlign: 'center'
+                  }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#1e40af', textTransform: 'uppercase', display: 'block' }}>
+                      HD • Half Day
+                    </span>
+                    <span style={{ fontSize: '1.6rem', fontWeight: 800, color: '#2563eb', lineHeight: '1.2', display: 'block', marginTop: '2px' }}>
+                      {viewEmployeeModal.stats.hd}
+                    </span>
+                    <span style={{ fontSize: '0.7rem', color: '#3b82f6', fontWeight: 600 }}>Days</span>
+                  </div>
+
+                  {/* Holiday */}
+                  <div style={{
+                    backgroundColor: '#faf5ff',
+                    border: '1px solid #e9d5ff',
+                    borderRadius: '10px',
+                    padding: '12px 14px',
+                    textAlign: 'center'
+                  }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#6b21a8', textTransform: 'uppercase', display: 'block' }}>
+                      H • Holiday
+                    </span>
+                    <span style={{ fontSize: '1.6rem', fontWeight: 800, color: '#9333ea', lineHeight: '1.2', display: 'block', marginTop: '2px' }}>
+                      {viewEmployeeModal.stats.h}
+                    </span>
+                    <span style={{ fontSize: '0.7rem', color: '#a855f7', fontWeight: 600 }}>Days</span>
+                  </div>
+
+                  {/* Attendance % */}
+                  <div style={{
+                    backgroundColor: viewEmployeeModal.stats.attPercent < 75 ? '#fff1f2' : '#f0fdf4',
+                    border: `1px solid ${viewEmployeeModal.stats.attPercent < 75 ? '#fecdd3' : '#bbf7d0'}`,
+                    borderRadius: '10px',
+                    padding: '12px 14px',
+                    textAlign: 'center'
+                  }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: viewEmployeeModal.stats.attPercent < 75 ? '#9f1239' : '#166534', textTransform: 'uppercase', display: 'block' }}>
+                      Attendance %
+                    </span>
+                    <span style={{ fontSize: '1.6rem', fontWeight: 800, color: viewEmployeeModal.stats.attPercent < 75 ? '#e11d48' : '#15803d', lineHeight: '1.2', display: 'block', marginTop: '2px' }}>
+                      {viewEmployeeModal.stats.attPercent.toFixed(1)}%
+                    </span>
+                    <span style={{ fontSize: '0.7rem', color: viewEmployeeModal.stats.attPercent < 75 ? '#f43f5e' : '#16a34a', fontWeight: 600 }}>
+                      {viewEmployeeModal.stats.attPercent >= 75 ? 'Good Standing' : 'Low Attendance'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Day-by-Day Calendar Breakdown */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                  <h4 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-secondary, #64748b)' }}>
+                    Daily Attendance Grid (1 to {daysCount})
+                  </h4>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary, #64748b)' }}>
+                    Total Month Days: <b>{daysCount}</b>
+                  </span>
+                </div>
+
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(78px, 1fr))',
+                  gap: '8px'
+                }}>
+                  {Array.from({ length: daysCount }, (_, i) => i + 1).map(day => {
+                    const val = currentMonthData[viewEmployeeModal.emp.id]?.[day] || '';
+                    const dateObj = new Date(yearNum, monthNum, day);
+                    const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
+                    const isSunday = dateObj.getDay() === 0;
+
+                    let badgeBg = '#f1f5f9';
+                    let badgeColor = '#64748b';
+                    let badgeBorder = '#e2e8f0';
+                    let statusLabel = 'Not Marked';
+
+                    if (val === 'P') {
+                      badgeBg = '#dcfce7';
+                      badgeColor = '#15803d';
+                      badgeBorder = '#86efac';
+                      statusLabel = 'Present';
+                    } else if (val === 'A') {
+                      badgeBg = '#fee2e2';
+                      badgeColor = '#b91c1c';
+                      badgeBorder = '#fca5a5';
+                      statusLabel = 'Absent';
+                    } else if (val === 'L') {
+                      badgeBg = '#fef9c3';
+                      badgeColor = '#a16207';
+                      badgeBorder = '#fde047';
+                      statusLabel = 'Leave';
+                    } else if (val === 'HD') {
+                      badgeBg = '#dbeafe';
+                      badgeColor = '#1d4ed8';
+                      badgeBorder = '#93c5fd';
+                      statusLabel = 'Half Day';
+                    } else if (val === 'H') {
+                      badgeBg = '#f3e8ff';
+                      badgeColor = '#7e22ce';
+                      badgeBorder = '#d8b4fe';
+                      statusLabel = 'Holiday';
+                    } else if (isSunday) {
+                      badgeBg = '#fef08a';
+                      badgeColor = '#854d0e';
+                      badgeBorder = '#facc15';
+                      statusLabel = 'Sunday (P)';
+                    }
+
+                    return (
+                      <div
+                        key={day}
+                        style={{
+                          backgroundColor: badgeBg,
+                          border: `1px solid ${badgeBorder}`,
+                          borderRadius: '8px',
+                          padding: '8px 4px',
+                          textAlign: 'center',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '2px',
+                          transition: 'transform 0.15s ease'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
+                          <span style={{ fontSize: '0.85rem', fontWeight: 800, color: badgeColor }}>
+                            {day}
+                          </span>
+                          <span style={{ fontSize: '0.65rem', fontWeight: 600, color: badgeColor, opacity: 0.85 }}>
+                            {dayName}
+                          </span>
+                        </div>
+                        <span style={{
+                          fontSize: '1rem',
+                          fontWeight: 900,
+                          color: badgeColor,
+                          lineHeight: '1.1'
+                        }}>
+                          {val || (isSunday ? 'P' : '-')}
+                        </span>
+                        <span style={{ fontSize: '0.62rem', fontWeight: 600, color: badgeColor, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>
+                          {statusLabel}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Legend guide */}
+              <div style={{
+                backgroundColor: 'var(--bg-main, #f8fafc)',
+                border: '1px solid var(--border-color, #e2e8f0)',
+                borderRadius: '10px',
+                padding: '12px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexWrap: 'wrap',
+                gap: '16px',
+                fontSize: '0.8rem'
+              }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ width: '12px', height: '12px', borderRadius: '3px', backgroundColor: '#15803d', display: 'inline-block' }}></span>
+                  <b>P</b> = Present
+                </span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ width: '12px', height: '12px', borderRadius: '3px', backgroundColor: '#dc2626', display: 'inline-block' }}></span>
+                  <b>A</b> = Absent
+                </span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ width: '12px', height: '12px', borderRadius: '3px', backgroundColor: '#ca8a04', display: 'inline-block' }}></span>
+                  <b>L</b> = Leave
+                </span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ width: '12px', height: '12px', borderRadius: '3px', backgroundColor: '#2563eb', display: 'inline-block' }}></span>
+                  <b>HD</b> = Half Day
+                </span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ width: '12px', height: '12px', borderRadius: '3px', backgroundColor: '#9333ea', display: 'inline-block' }}></span>
+                  <b>H</b> = Holiday
+                </span>
+              </div>
+
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{
+              padding: '12px 24px',
+              borderTop: '1px solid var(--border-color, #e5e7eb)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              backgroundColor: 'var(--bg-main, #f8fafc)'
+            }}>
+              <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary, #64748b)' }}>
+                Viewing details for <b>{viewEmployeeModal.emp.name}</b>
+              </span>
+              <button
+                type="button"
+                onClick={() => setViewEmployeeModal(null)}
+                style={{
+                  backgroundColor: '#dc2626',
+                  color: 'white',
+                  border: 'none',
+                  padding: '8px 20px',
+                  borderRadius: '8px',
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  transition: 'background 0.2s'
+                }}
+                onMouseEnter={e => e.currentTarget.style.backgroundColor = '#b91c1c'}
+                onMouseLeave={e => e.currentTarget.style.backgroundColor = '#dc2626'}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

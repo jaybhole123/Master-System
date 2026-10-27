@@ -122,8 +122,8 @@ const MODULES = [
     pages: ['System Flow', 'Dashboard', 'Purchase Truck', 'Fastag', 'Challan', 'Truck Reports']
   },
   {
-    id: 'Plant (Hindustan Datthu)',
-    name: 'Plant (Hindustan Datthu)',
+    id: 'Plant ( HDS )',
+    name: 'Plant ( HDS )',
     pages: ['Stock Management', 'Item Transfer', 'Production', 'Production 2', 'Sauda Scale', 'Sauda Purchase', 'MIS Report']
   },
   {
@@ -665,7 +665,7 @@ export default function GlobalSettings() {
             </div>
 
             {/* Desktop Table View (>= 768px) */}
-            <div className="hidden md:block overflow-x-auto overflow-y-auto max-h-[calc(100vh-320px)] custom-sidebar-scroll">
+            <div className="desktop-table-view md:block overflow-x-auto overflow-y-auto max-h-[calc(100vh-320px)] custom-sidebar-scroll">
               <table className="w-full text-left border-collapse">
                 <thead className="sticky top-0 z-20 bg-slate-50/95 backdrop-blur-md border-b border-slate-200">
                   <tr className="text-[11px] font-black text-slate-500 uppercase tracking-wider">

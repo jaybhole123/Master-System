@@ -52,7 +52,9 @@ import {
   Users,
   Building2,
   Truck,
-  GitFork
+  GitFork,
+  Package,
+  Factory
 } from "lucide-react";
 
 // Helper: get module & page title from current pathname
@@ -85,6 +87,19 @@ const getHeaderTitle = (pathname, routes) => {
     const flat = routes.flatMap(r => r.subItems ? r.subItems : [r]);
     const match = flat.find(r => r.href && pathname === r.href);
     return { module: "Daily Scheduler", page: match?.label || "Daily Scheduler" };
+  }
+  // Check Plant routes
+  if (pathname.startsWith("/plant")) {
+    const plantRoutes = [
+      { href: "/plant/stock", label: "Stock Management" },
+      { href: "/plant/transfer", label: "Incoming & Outgoing" },
+      { href: "/plant/production2", label: "Production 2" },
+      { href: "/plant/sauda-scale", label: "Sauda Scale" },
+      { href: "/plant/sauda-purchase", label: "Sauda Purchase" },
+      { href: "/plant/mis-report", label: "MIS Report" },
+    ];
+    const match = plantRoutes.find(r => pathname === r.href);
+    return { module: "Plant ( HDS )", page: match?.label || "Plant System" };
   }
   // Check Coal System routes
   if (pathname.startsWith("/coal-system")) {
@@ -552,6 +567,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       "Document & Substruction": path.includes("/document") || path.includes("/doc-dashboard") || path.includes("/resource-manager") || path.includes("/loan") || path.includes("/subscription") || path.includes("/bg") || path.startsWith("/document-vault") || path === "/",
       "Rent Management Tracker": path.includes("/dashboard/rent-tracker"),
       "Coal System": path.startsWith("/coal-system"),
+      "Plant ( HDS )": path.startsWith("/plant"),
       "Transport Reporting": path.startsWith("/transport-system"),
       "Letter": path.startsWith("/letter")
     };
@@ -1378,6 +1394,55 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       module: "Transport Reporting",
     },
 
+    // --- Plant ( HDS ) Module Routes ---
+    {
+      label: "Stock Management",
+      href: "/plant/stock",
+      icon: Database,
+      active: location.pathname === "/plant/stock" || location.pathname === "/plant",
+      badge: null,
+      module: "Plant ( HDS )",
+    },
+    {
+      label: "Incoming & Outgoing",
+      href: "/plant/transfer",
+      icon: FileText,
+      active: location.pathname === "/plant/transfer",
+      badge: null,
+      module: "Plant ( HDS )",
+    },
+    {
+      label: "Production 2",
+      href: "/plant/production2",
+      icon: Database,
+      active: location.pathname === "/plant/production2",
+      badge: null,
+      module: "Plant ( HDS )",
+    },
+    {
+      label: "Sauda Scale",
+      href: "/plant/sauda-scale",
+      icon: Database,
+      active: location.pathname === "/plant/sauda-scale",
+      badge: null,
+      module: "Plant ( HDS )",
+    },
+    {
+      label: "Sauda Purchase",
+      href: "/plant/sauda-purchase",
+      icon: Package,
+      active: location.pathname === "/plant/sauda-purchase",
+      badge: null,
+      module: "Plant ( HDS )",
+    },
+    {
+      label: "MIS Report",
+      href: "/plant/mis-report",
+      icon: FileText,
+      active: location.pathname === "/plant/mis-report",
+      badge: null,
+      module: "Plant ( HDS )",
+    },
     // --- Coal System Module Routes ---
     {
       href: "/coal-system/system-flow",
@@ -1580,7 +1645,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       className={`flex h-screen overflow-hidden bg-gradient-to-br from-blue-50 to-purple-50`}
     >
       {/* Sidebar for desktop */}
-      <aside className={`hidden ${isCollapsed ? 'w-20' : 'w-[242px]'} flex-shrink-0 border-r border-slate-200/80 bg-white/95 backdrop-blur-md shadow-[4px_0_24px_rgba(0,0,0,0.03)] md:flex md:flex-col z-40 relative transition-all duration-300`}>
+      <aside className={`max-md:hidden flex flex-col ${isCollapsed ? 'w-20' : 'w-[242px]'} flex-shrink-0 border-r border-slate-200/80 bg-white/95 backdrop-blur-md shadow-[4px_0_24px_rgba(0,0,0,0.03)] z-40 relative transition-all duration-300`}>
         {/* Floating Toggle Button */}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
@@ -1684,6 +1749,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                         {moduleName === "Daily Scheduler" && <CalendarCheck className="h-4 w-4" />}
                         {moduleName === "Rent Management Tracker" && <Banknote className="h-4 w-4" />}
                         {moduleName === "Coal System" && <Database className="h-4 w-4" />}
+                        {moduleName === "Plant ( HDS )" && <Factory className="h-4 w-4" />}
                         {moduleName === "Letter" && <FileText className="h-4 w-4" />}
                         {moduleName === "Transport Reporting" && <Truck className="h-4 w-4" />}
                         {moduleName === "Help Slip" && <HelpCircle className="h-4 w-4" />}
@@ -1953,6 +2019,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                             {moduleName === "Daily Scheduler" && <CalendarCheck className="h-4 w-4" />}
                             {moduleName === "Rent Management Tracker" && <Banknote className="h-4 w-4" />}
                             {moduleName === "Coal System" && <Database className="h-4 w-4" />}
+                            {moduleName === "Plant ( HDS )" && <Factory className="h-4 w-4" />}
                             {moduleName === "Letter" && <FileText className="h-4 w-4" />}
                             {moduleName === "Transport Reporting" && <Truck className="h-4 w-4" />}
                             {moduleName === "Help Slip" && <HelpCircle className="h-4 w-4" />}
@@ -2120,8 +2187,21 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       {/* Main content */}
       <div className="flex flex-1 flex-col overflow-hidden">
         <header className="flex h-16 items-center justify-between border-b border-slate-200/80 bg-white/95 backdrop-blur-md px-4 md:px-6 shadow-2xs z-30">
-          <div className="flex md:hidden w-8"></div>
-          <div className="flex flex-col items-center">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                if (window.innerWidth < 768) {
+                  setIsMobileMenuOpen(!isMobileMenuOpen);
+                } else {
+                  setIsCollapsed(!isCollapsed);
+                }
+              }}
+              className="flex items-center justify-center h-9 w-9 rounded-xl border border-slate-200/90 bg-white text-slate-600 hover:text-red-600 hover:bg-red-50 hover:border-red-200 active:scale-95 transition-all cursor-pointer shadow-2xs shrink-0"
+              title="Toggle Sidebar"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            <div className="flex flex-col">
             {(() => {
               const { module: activeModule, page: activePage } = getHeaderTitle(location.pathname, routes);
               return (
@@ -2129,12 +2209,13 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                   <h1 className="text-lg font-bold bg-gradient-to-r from-red-600 to-red-800 bg-clip-text text-transparent">
                     {activePage}
                   </h1>
-                  <p className="text-[10px] text-gray-400 font-medium uppercase tracking-[0.2em] -mt-1 hidden xs:block">
+                  <p className="text-[10px] text-gray-400 font-medium uppercase tracking-[0.2em] -mt-1 hidden sm:block">
                     {activeModule}
                   </p>
                 </>
               );
             })()}
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <div className="hidden sm:flex flex-col items-end mr-1">

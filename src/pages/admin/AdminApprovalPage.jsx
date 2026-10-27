@@ -676,7 +676,7 @@ export default function AdminApprovalPage() {
 
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                     {/* Desktop Table View */}
-                    <div className="hidden md:block overflow-x-auto">
+                    <div className="desktop-table-view md:block overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
                                 <tr>

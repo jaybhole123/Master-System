@@ -666,17 +666,17 @@ const MonthlyTracker = () => {
           {/* 1. TOTAL TENANTS TRACKED */}
           <div className="bg-white rounded-xl p-2.5 sm:py-2.5 sm:px-3 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group min-w-0">
             <div className="flex items-center justify-between mb-1.5 gap-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 truncate" title="Total Units">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 whitespace-normal break-words" title="Total Units">
                 Total Units
               </span>
               <div className="p-1 rounded-lg shrink-0 bg-blue-50 text-blue-600">
                 <Building2 className="h-3.5 w-3.5" />
               </div>
             </div>
-            <div className="text-base sm:text-lg font-black text-blue-700 tracking-tight leading-tight group-hover:text-red-600 transition-colors truncate">
+            <div className="text-base sm:text-lg font-black text-blue-700 tracking-tight leading-tight group-hover:text-red-600 transition-colors whitespace-normal break-words">
               {stats.total} Units
             </div>
-            <div className="text-[10px] text-emerald-600 mt-0.5 font-bold truncate">
+            <div className="text-[10px] text-emerald-600 mt-0.5 font-bold whitespace-normal break-words">
               {filterMonth || 'All Cycles'}
             </div>
           </div>
@@ -684,17 +684,17 @@ const MonthlyTracker = () => {
           {/* 2. PROJECTED MONTHLY RENT */}
           <div className="bg-white rounded-xl p-2.5 sm:py-2.5 sm:px-3 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group min-w-0">
             <div className="flex items-center justify-between mb-1.5 gap-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 truncate" title="Projected Rent">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 whitespace-normal break-words" title="Projected Rent">
                 Monthly Target
               </span>
               <div className="p-1 rounded-lg shrink-0 bg-emerald-50 text-emerald-600">
                 <TrendingUp className="h-3.5 w-3.5" />
               </div>
             </div>
-            <div className="text-base sm:text-lg font-black text-emerald-700 tracking-tight leading-tight group-hover:text-red-600 transition-colors truncate">
+            <div className="text-base sm:text-lg font-black text-emerald-700 tracking-tight leading-tight group-hover:text-red-600 transition-colors whitespace-normal break-words">
               ₹ {stats.totalRent.toLocaleString('en-IN')}
             </div>
-            <div className="text-[10px] text-slate-400 mt-0.5 font-medium truncate">
+            <div className="text-[10px] text-slate-400 mt-0.5 font-medium whitespace-normal break-words">
               Total Expected Rent
             </div>
           </div>
@@ -702,17 +702,17 @@ const MonthlyTracker = () => {
           {/* 3. COLLECTED RENT */}
           <div className="bg-white rounded-xl p-2.5 sm:py-2.5 sm:px-3 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group min-w-0">
             <div className="flex items-center justify-between mb-1.5 gap-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 truncate" title="Rent Received">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 whitespace-normal break-words" title="Rent Received">
                 Rent Received
               </span>
               <div className="p-1 rounded-lg shrink-0 bg-teal-50 text-teal-600">
                 <CheckCircle2 className="h-3.5 w-3.5" />
               </div>
             </div>
-            <div className="text-base sm:text-lg font-black text-teal-700 tracking-tight leading-tight group-hover:text-red-600 transition-colors truncate">
+            <div className="text-base sm:text-lg font-black text-teal-700 tracking-tight leading-tight group-hover:text-red-600 transition-colors whitespace-normal break-words">
               ₹ {stats.collectedRent.toLocaleString('en-IN')}
             </div>
-            <div className="text-[10px] text-teal-600 mt-0.5 font-bold truncate">
+            <div className="text-[10px] text-teal-600 mt-0.5 font-bold whitespace-normal break-words">
               {stats.collectionRate}% ({stats.done} Paid)
             </div>
           </div>
@@ -720,17 +720,17 @@ const MonthlyTracker = () => {
           {/* 4. PENDING RENT */}
           <div className="bg-white rounded-xl p-2.5 sm:py-2.5 sm:px-3 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group min-w-0">
             <div className="flex items-center justify-between mb-1.5 gap-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 truncate" title="Pending Rent">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 whitespace-normal break-words" title="Pending Rent">
                 Pending Rent
               </span>
               <div className="p-1 rounded-lg shrink-0 bg-amber-50 text-amber-600">
                 <Clock className="h-3.5 w-3.5" />
               </div>
             </div>
-            <div className="text-base sm:text-lg font-black text-amber-700 tracking-tight leading-tight group-hover:text-red-600 transition-colors truncate">
+            <div className="text-base sm:text-lg font-black text-amber-700 tracking-tight leading-tight group-hover:text-red-600 transition-colors whitespace-normal break-words">
               ₹ {stats.pendingRent.toLocaleString('en-IN')}
             </div>
-            <div className="text-[10px] text-amber-600 mt-0.5 font-bold truncate">
+            <div className="text-[10px] text-amber-600 mt-0.5 font-bold whitespace-normal break-words">
               {stats.totalPendingWithDelay} Pending Tenants
             </div>
           </div>
@@ -738,17 +738,17 @@ const MonthlyTracker = () => {
           {/* 5. DELAYED / OVERDUE */}
           <div className="bg-white rounded-xl p-2.5 sm:py-2.5 sm:px-3 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group min-w-0">
             <div className="flex items-center justify-between mb-1.5 gap-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 truncate" title="Overdue Rent">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 whitespace-normal break-words" title="Overdue Rent">
                 Overdue / Delay
               </span>
               <div className="p-1 rounded-lg shrink-0 bg-rose-50 text-rose-600">
                 <AlertTriangle className="h-3.5 w-3.5" />
               </div>
             </div>
-            <div className="text-base sm:text-lg font-black text-rose-600 tracking-tight leading-tight group-hover:text-red-600 transition-colors truncate">
+            <div className="text-base sm:text-lg font-black text-rose-600 tracking-tight leading-tight group-hover:text-red-600 transition-colors whitespace-normal break-words">
               ₹ {stats.delayRent.toLocaleString('en-IN')}
             </div>
-            <div className="text-[10px] text-rose-600 mt-0.5 font-bold truncate">
+            <div className="text-[10px] text-rose-600 mt-0.5 font-bold whitespace-normal break-words">
               {stats.delay} Delayed Tenants
             </div>
           </div>
@@ -756,17 +756,17 @@ const MonthlyTracker = () => {
           {/* 6. ON-TIME RATE */}
           <div className="bg-white rounded-xl p-2.5 sm:py-2.5 sm:px-3 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group min-w-0">
             <div className="flex items-center justify-between mb-1.5 gap-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 truncate" title="On-Time Rate">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 whitespace-normal break-words" title="On-Time Rate">
                 On-Time Rate
               </span>
               <div className="p-1 rounded-lg shrink-0 bg-violet-50 text-violet-600">
                 <ShieldCheck className="h-3.5 w-3.5" />
               </div>
             </div>
-            <div className="text-base sm:text-lg font-black text-violet-700 tracking-tight leading-tight group-hover:text-red-600 transition-colors truncate">
+            <div className="text-base sm:text-lg font-black text-violet-700 tracking-tight leading-tight group-hover:text-red-600 transition-colors whitespace-normal break-words">
               {stats.onTimeRate}%
             </div>
-            <div className="text-[10px] text-slate-400 mt-0.5 font-medium truncate">
+            <div className="text-[10px] text-slate-400 mt-0.5 font-medium whitespace-normal break-words">
               {stats.onTime} Paid On Time
             </div>
           </div>
@@ -862,7 +862,7 @@ const MonthlyTracker = () => {
         </div>
 
         {/* ═══════════ DESKTOP TABLE VIEW ═══════════ */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden hidden md:block">
+        <div className="desktop-table-view bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden md:block">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -915,7 +915,7 @@ const MonthlyTracker = () => {
                         <td className="py-3 px-3">
                           <div className="font-extrabold text-slate-900 flex items-center gap-1.5">
                             <Building2 className="h-3.5 w-3.5 text-red-500 shrink-0" />
-                            <span className="truncate max-w-[200px]" title={record.property}>{record.property}</span>
+                            <span className="whitespace-normal break-words" title={record.property}>{record.property}</span>
                           </div>
                         </td>
 
@@ -954,7 +954,7 @@ const MonthlyTracker = () => {
                               {record.paymentMode || 'Cash'}
                             </span>
                             {record.bankDetails && (
-                              <span className="text-[10px] text-slate-400 truncate max-w-[120px]" title={record.bankDetails}>
+                              <span className="text-[10px] text-slate-400 whitespace-normal break-words" title={record.bankDetails}>
                                 {record.bankDetails}
                               </span>
                             )}
@@ -995,7 +995,7 @@ const MonthlyTracker = () => {
                         </td>
 
                         {/* Remarks */}
-                        <td className="py-3 px-3 text-slate-500 text-[11px] truncate max-w-[130px]" title={record.remarks || ''}>
+                        <td className="py-3 px-3 text-slate-500 text-[11px] whitespace-normal break-words" title={record.remarks || ''}>
                           {record.remarks || '-'}
                         </td>
 
@@ -1058,7 +1058,7 @@ const MonthlyTracker = () => {
         </div>
 
         {/* ═══════════ MOBILE CARDS VIEW ═══════════ */}
-        <div className="md:hidden flex flex-col gap-3">
+        <div className="mobile-cards-view md:hidden flex flex-col gap-3">
           {filteredData.length === 0 ? (
             <div className="text-center py-8 text-sm text-slate-500 bg-white rounded-2xl border border-slate-200">
               No tracker records found
@@ -1382,3 +1382,4 @@ const MonthlyTracker = () => {
 };
 
 export default MonthlyTracker;
+

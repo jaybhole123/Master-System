@@ -199,11 +199,11 @@ export default function Summary() {
     <div className="p-0 sm:p-2 md:p-6 space-y-2 md:space-y-4 flex flex-col h-full min-h-0 bg-slate-50/50">
       
       {/* Header with Filters */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-2 lg:gap-4 w-full pb-2 border-b border-gray-100">
-        <div className="flex flex-col lg:flex-row w-full gap-2 items-center">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 md:gap-4 w-full pb-2 border-b border-gray-100">
+        <div className="flex flex-col md:flex-row w-full gap-2 items-center flex-wrap">
             {/* Day Navigation Control */}
-            <div className="w-full lg:w-[320px] flex-shrink-0">
-              <div className="flex items-center justify-between bg-white border border-gray-300 rounded-lg lg:rounded p-1 text-gray-700 h-[32px] md:h-[38px] relative w-full shadow-sm overflow-hidden">
+            <div className="w-full md:w-[320px] flex-shrink-0">
+              <div className="flex items-center justify-between bg-white border border-gray-300 rounded-lg md:rounded p-1 text-gray-700 h-[32px] md:h-[38px] relative w-full shadow-sm overflow-hidden">
                 <div className="flex items-center gap-1 flex-shrink-0">
                   <button
                     type="button"
@@ -262,7 +262,7 @@ export default function Summary() {
                 />
               </div>
             </div>
-             <div className="w-full lg:w-56">
+             <div className="w-full md:w-56">
                {user?.role === 'ADMIN' ? (
                  <SearchableSelect
                    value={filters.personName}
@@ -274,17 +274,17 @@ export default function Summary() {
                    ]}
                  />
                ) : (
-                 <div className="w-full border border-gray-200 bg-gray-50 rounded-lg lg:rounded px-2 py-1.5 text-[11px] md:text-sm text-gray-600 font-medium text-center h-[32px] md:h-[38px] flex items-center justify-center">
+                 <div className="w-full border border-gray-200 bg-gray-50 rounded-lg md:rounded px-2 py-1.5 text-[11px] md:text-sm text-gray-600 font-medium text-center h-[32px] md:h-[38px] flex items-center justify-center">
                    {user?.name}
                  </div>
                )}
              </div>
         </div>
 
-        <div className="flex gap-2 w-full lg:w-auto">
+        <div className="flex gap-2 w-full md:w-auto flex-shrink-0">
           <button
              onClick={handleDownloadPDF}
-             className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 h-[32px] md:h-[38px] rounded-lg font-semibold flex items-center justify-center gap-2 transition shadow-sm flex-1 lg:flex-none"
+             className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 h-[32px] md:h-[38px] rounded-lg font-semibold flex items-center justify-center gap-2 transition shadow-sm flex-1 md:flex-none whitespace-nowrap"
           >
             <FileText size={16} /> PDF
           </button>
@@ -344,7 +344,7 @@ export default function Summary() {
       </div>
 
       {/* Summary Table */}
-      <div className="hidden md:flex bg-white rounded-lg shadow-sm border border-gray-200 flex-1 min-h-0 overflow-hidden flex-col relative mt-2">
+      <div className="desktop-table-view md:flex bg-white rounded-lg shadow-sm border border-gray-200 flex-1 min-h-0 overflow-hidden flex-col relative mt-2">
         <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-270px)] flex-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           <div className="min-w-[850px] w-full">
             {/* Table Headers (Sticky) */}

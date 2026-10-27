@@ -771,7 +771,7 @@ const RentManagement = () => {
             ) : (
               <>
             {/* Mobile Card View */}
-            <div className="md:hidden flex flex-col gap-4">
+            <div className="mobile-cards-view md:hidden flex flex-col gap-4">
               {filteredData.length > 0 ? (
                 filteredData.map((record) => (
                   <div key={record.id} className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-3">
@@ -850,7 +850,7 @@ const RentManagement = () => {
             </div>
 
             {/* Desktop Table Container */}
-            <div className="hidden md:block bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="desktop-table-view md:block bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
               <div className="overflow-x-auto pb-32">
                 <table className="w-full text-left border-collapse">
                   <thead>

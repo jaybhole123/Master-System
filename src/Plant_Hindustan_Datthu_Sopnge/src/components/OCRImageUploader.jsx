@@ -1,0 +1,317 @@
+import React, { useState, useRef } from 'react'
+import Tesseract from 'tesseract.js'
+import { extractFromImage } from '../utils/aiOcr'
+import AiResultModal from './AiResultModal'
+
+/**
+ * Reusable OCR Image Uploader Component.
+ * 
+ * Props:
+ * - onTextExtracted(rawText): Called with the raw OCR text string.
+ * - buttonLabel: (optional) Label for the button.
+ * - className: (optional) Additional classes for the trigger button.
+ */
+const OCRImageUploader = ({ onTextExtracted, aiPage, onAiResult, buttonLabel = 'OCR Scan', className = '' }) => {
+  const [aiResult, setAiResult] = useState(null)
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [progress, setProgress] = useState(0)
+  const [previewUrl, setPreviewUrl] = useState(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const fileInputRef = useRef(null)
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file (JPG, PNG, etc.)')
+      return
+    }
+
+    setPreviewUrl(URL.createObjectURL(file))
+    processImage(file)
+  }
+
+  const processImage = async (file) => {
+    setIsProcessing(true)
+    setProgress(0)
+
+    if (aiPage) {
+      try {
+        setAiResult(await extractFromImage(file, aiPage))
+        setIsProcessing(false)
+        return
+      } catch (error) {
+        console.error('[AI read] Error:', error)
+        // If server 404 (no backend deployed or server offline), fallback to client-side Tesseract OCR
+        if (error.message && (error.message.includes('404') || error.message.includes('Failed to fetch'))) {
+          console.warn('[AI read] Server endpoint /api/ocr not available (404). Falling back to client-side OCR...')
+        } else {
+          alert(error.message || 'Failed to read the image.')
+          setIsProcessing(false)
+          return
+        }
+      }
+    }
+
+    try {
+      const { data: { text } } = await Tesseract.recognize(file, 'eng', {
+        logger: (m) => {
+          if (m.status === 'recognizing text') {
+            setProgress(Math.round(m.progress * 100))
+          }
+        }
+      })
+
+      console.log('[OCR] Extracted Text:', text)
+      
+      if (onTextExtracted) {
+        onTextExtracted(text)
+      }
+    } catch (error) {
+      console.error('[OCR] Error:', error)
+      alert('OCR processing failed. Please try again with a clearer image.')
+    } finally {
+      setIsProcessing(false)
+      setProgress(0)
+    }
+  }
+
+  const handleDrop = (e) => {
+    e.preventDefault()
+    const file = e.dataTransfer.files[0]
+    if (file && file.type.startsWith('image/')) {
+      setPreviewUrl(URL.createObjectURL(file))
+      processImage(file)
+    }
+  }
+
+  const handleDragOver = (e) => {
+    e.preventDefault()
+  }
+
+  const closeModal = () => {
+    setIsModalOpen(false)
+    setPreviewUrl(null)
+    setProgress(0)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  const [isBtnDragging, setIsBtnDragging] = useState(false)
+
+  // Direct drag and drop on trigger button
+  const handleBtnDragOver = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!isProcessing) setIsBtnDragging(true)
+  }
+
+  const handleBtnDragLeave = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsBtnDragging(false)
+  }
+
+  const handleBtnDrop = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsBtnDragging(false)
+    if (isProcessing) return
+
+    const file = e.dataTransfer.files?.[0]
+    if (file && file.type.startsWith('image/')) {
+      setPreviewUrl(URL.createObjectURL(file))
+      processImage(file)
+    }
+  }
+
+  // Support global clipboard paste (Ctrl+V)
+  React.useEffect(() => {
+    const handleGlobalPaste = (e) => {
+      if (isProcessing) return
+      const activeTag = document.activeElement?.tagName?.toLowerCase()
+      if ((activeTag === 'input' || activeTag === 'textarea') && !e.clipboardData?.files?.length) {
+        return
+      }
+
+      const items = e.clipboardData?.items
+      if (!items) return
+
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) {
+          const file = items[i].getAsFile()
+          if (file) {
+            e.preventDefault()
+            setPreviewUrl(URL.createObjectURL(file))
+            processImage(file)
+            break
+          }
+        }
+      }
+    }
+
+    window.addEventListener('paste', handleGlobalPaste)
+    return () => window.removeEventListener('paste', handleGlobalPaste)
+  }, [isProcessing])
+
+  return (
+    <>
+      {/* Trigger Button */}
+      <button
+        type="button"
+        onClick={() => setIsModalOpen(true)}
+        onDragOver={handleBtnDragOver}
+        onDragLeave={handleBtnDragLeave}
+        onDrop={handleBtnDrop}
+        disabled={isProcessing}
+        className={`px-4 py-2.5 bg-violet-50 text-violet-600 border border-violet-200 hover:bg-violet-100 hover:border-violet-300 font-medium rounded-md transition-all shadow-sm flex items-center gap-2 active:scale-[0.98] ${
+          isBtnDragging ? 'border-dashed !border-violet-500 !bg-violet-100 !text-violet-800 scale-105 ring-2 ring-violet-400' : ''
+        } ${isProcessing ? 'opacity-60 cursor-wait' : ''} ${className}`}
+        title="Click to scan, Drag & Drop image, or press Ctrl+V to paste"
+      >
+        {isProcessing ? (
+          <>
+            <span className="animate-spin h-4 w-4 border-2 border-violet-500 border-t-transparent rounded-full"></span>
+            <span className="hidden sm:inline">{aiPage ? 'Reading & verifying…' : `Processing ${progress}%`}</span>
+          </>
+        ) : isBtnDragging ? (
+          <span className="font-bold whitespace-nowrap">Drop Image Here</span>
+        ) : (
+          <>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <span className="hidden sm:inline">{buttonLabel}</span>
+          </>
+        )}
+      </button>
+
+      {/* Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={closeModal}></div>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto transform transition-all relative z-10 border border-slate-100 flex flex-col">
+            
+            {/* Header */}
+            <div className="px-6 py-4 border-b flex justify-between items-center bg-gradient-to-r from-red-600 to-rose-600 text-white">
+              <h3 className="font-bold text-lg flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                OCR Image Scanner
+              </h3>
+              <button onClick={closeModal} className="text-white/70 hover:text-white transition-colors p-1 hover:bg-white/10 rounded-full">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-6">
+              {/* Drop Zone */}
+              <div
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                onClick={() => fileInputRef.current?.click()}
+                className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all duration-200 group
+                  ${isProcessing ? 'border-red-400 bg-red-50/50' : 'border-slate-300 hover:border-red-400 hover:bg-red-50/30'}
+                `}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handleFileSelect}
+                  hidden
+                />
+                
+                {previewUrl ? (
+                  <div className="space-y-4">
+                    <img src={previewUrl} alt="Uploaded preview" className="max-h-[250px] mx-auto rounded-lg shadow-md object-contain" />
+                    
+                    {isProcessing && (
+                      <div className="space-y-2">
+                        <div className="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+                          <div 
+                            className="bg-gradient-to-r from-red-500 to-rose-500 h-2.5 rounded-full transition-all duration-300 ease-out"
+                            style={{ width: `${progress}%` }}
+                          ></div>
+                        </div>
+                        <p className="text-sm font-medium text-red-600 animate-pulse">
+                          {aiPage ? 'Reading image and verifying values…' : `Reading image... ${progress}%`}
+                        </p>
+                      </div>
+                    )}
+
+                    {!isProcessing && (
+                      <p className="text-sm text-emerald-600 font-semibold flex items-center justify-center gap-1.5">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                        Text extracted successfully! Check the form fields.
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="mx-auto w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-base font-semibold text-slate-700">Upload Receipt / Table Image</p>
+                      <p className="text-sm text-slate-500 mt-1">Drag & drop, click to browse, or use camera</p>
+                    </div>
+                    <p className="text-xs text-slate-400">Supports JPG, PNG, WEBP</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Tip */}
+              <div className="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p className="text-xs text-amber-800">
+                  <strong>Tip:</strong> For best results, use a clear, well-lit photo of the document or table. The extracted text will automatically fill the form fields. You can review and edit the values before saving.
+                </p>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 border-t bg-slate-50 flex justify-end gap-2">
+              {previewUrl && !isProcessing && (
+                <button 
+                  onClick={() => {
+                    setPreviewUrl(null)
+                    if (fileInputRef.current) fileInputRef.current.value = ''
+                  }} 
+                  className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium transition-colors text-sm"
+                >
+                  Upload Another
+                </button>
+              )}
+              <button onClick={closeModal} className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium transition-colors text-sm">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {aiResult && (
+        <AiResultModal
+          result={aiResult}
+          imageUrl={previewUrl}
+          onClose={() => setAiResult(null)}
+          onApply={(data) => { setAiResult(null); onAiResult?.(data); closeModal() }}
+        />
+      )}
+    </>
+  )
+}
+
+export default OCRImageUploader

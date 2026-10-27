@@ -61,7 +61,8 @@ export default function AddCase() {
   const [filters, setFilters] = useState({
     personName: '',
     mode: '',
-    searchQuery: ''
+    searchQuery: '',
+    remarks: ''
   });
 
   const [visibleCount, setVisibleCount] = useState(50);
@@ -153,6 +154,7 @@ export default function AddCase() {
     if (selectedDateStr && credit.date !== selectedDateStr) return false;
     if (filters.personName && personName !== filters.personName) return false;
     if (filters.mode && paymentMode !== filters.mode) return false;
+    if (filters.remarks && (!credit.remarks || !credit.remarks.toLowerCase().includes(filters.remarks.toLowerCase()))) return false;
 
     if (filters.searchQuery) {
       const q = filters.searchQuery.toLowerCase();
@@ -357,38 +359,38 @@ export default function AddCase() {
         <div className="flex flex-col lg:flex-row w-full gap-2 lg:gap-3 items-center">
 
           {/* Search + Add Filter Button Row (Mobile grouping) */}
-          <div className="flex items-center gap-2 w-full lg:w-auto lg:flex-[1.5]">
+          <div className="flex items-center gap-2 w-full md:w-auto md:flex-[1.5]">
             <div className="flex-1 w-full relative">
-              <Search className="absolute left-2.5 top-[9px] lg:top-[11px] text-gray-400" size={14} />
+              <Search className="absolute left-2.5 top-[9px] md:top-[11px] text-gray-400" size={14} />
               <input
                 type="text"
                 placeholder="Search all fields..."
                 value={filters.searchQuery}
                 onChange={(e) => setFilters({ ...filters, searchQuery: e.target.value })}
-                className="w-full bg-white border border-gray-300 rounded-lg lg:rounded pl-8 pr-2 py-1.5 focus:outline-none focus:border-sky-500 text-xs md:text-sm h-[32px] md:h-[38px]"
+                className="w-full bg-white border border-gray-300 rounded-lg md:rounded pl-8 pr-2 py-1.5 focus:outline-none focus:border-sky-500 text-xs md:text-sm h-[32px] md:h-[38px]"
               />
             </div>
             {/* Mobile Filter Button */}
             <button
                onClick={() => setShowMobileFilters(!showMobileFilters)}
-               className={`lg:hidden flex items-center justify-center rounded-lg shadow-sm h-[32px] w-[32px] flex-shrink-0 transition ${showMobileFilters ? 'bg-indigo-100 text-indigo-700 border-indigo-200' : 'bg-white border border-gray-300 text-gray-600 hover:bg-gray-50'}`}
+               className={`md:hidden flex items-center justify-center rounded-lg shadow-sm h-[32px] w-[32px] flex-shrink-0 transition ${showMobileFilters ? 'bg-indigo-100 text-indigo-700 border-indigo-200' : 'bg-white border border-gray-300 text-gray-600 hover:bg-gray-50'}`}
             >
               <Filter size={14} />
             </button>
             {/* Mobile Add Button */}
             <button
               onClick={handleOpenAddModal}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg flex items-center justify-center lg:hidden h-[32px] w-[32px] flex-shrink-0 shadow-sm transition"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg flex items-center justify-center md:hidden h-[32px] w-[32px] flex-shrink-0 shadow-sm transition"
             >
               <Plus size={16} />
             </button>
           </div>
 
           {/* Filters */}
-          <div className={`${showMobileFilters ? 'grid' : 'hidden'} lg:flex grid-cols-2 md:grid-cols-4 lg:flex-row gap-2 w-full lg:w-auto lg:flex-[4] items-center`}>
+          <div className={`${showMobileFilters ? 'grid' : 'max-md:hidden'} flex flex-col md:flex md:flex-row md:flex-wrap gap-2 w-full md:w-auto md:flex-[5] items-center`}>
             {/* Day Navigation Control */}
-            <div className="col-span-2 lg:flex-1 w-full lg:min-w-[320px] flex-shrink-0">
-              <div className="flex items-center justify-between bg-white border border-gray-300 rounded-lg lg:rounded p-1 text-gray-700 h-[32px] md:h-[38px] relative w-full shadow-sm overflow-hidden">
+            <div className="col-span-2 md:flex-1 w-full md:min-w-[320px] flex-shrink-0">
+              <div className="flex items-center justify-between bg-white border border-gray-300 rounded-lg md:rounded p-1 text-gray-700 h-[32px] md:h-[38px] relative w-full shadow-sm overflow-hidden">
                 <div className="flex items-center gap-1 flex-shrink-0">
                   <button
                     type="button"
@@ -450,28 +452,44 @@ export default function AddCase() {
              <SearchableSelect
                value={filters.personName}
                onChange={(val) => setFilters({ ...filters, personName: val })}
-               className="w-full"
+               className="w-full md:min-w-[130px] md:flex-1"
                options={[
                  { value: '', label: 'All Persons' },
-                 ...Array.from(new Set(credits.map(c => c.person_name || c.personName))).map(person => ({ value: person, label: person }))
+                 ...Array.from(new Set(credits.map(c => c.person_name || c.personName))).filter(Boolean).map(person => ({ value: person, label: person }))
                ]}
              />
              <SearchableSelect
                value={filters.mode}
                onChange={(val) => setFilters({ ...filters, mode: val })}
-               className="w-full"
+               className="w-full md:min-w-[120px] md:flex-1"
                options={[
                  { value: '', label: 'All Modes' },
                  ...paymentModes.map(pm => ({ value: pm.payment_mode, label: pm.payment_mode }))
                ]}
              />
+             <div className="w-full md:min-w-[130px] md:flex-1 relative">
+               <div className="flex items-center bg-white border border-gray-300 rounded-lg md:rounded px-2 min-h-[32px] md:min-h-[38px] transition-shadow focus-within:border-sky-500 focus-within:ring-1 focus-within:ring-sky-500">
+                 <input
+                   type="text"
+                   placeholder="Search Remarks..."
+                   value={filters.remarks || ''}
+                   onChange={(e) => setFilters({ ...filters, remarks: e.target.value })}
+                   className="w-full bg-transparent outline-none text-[11px] md:text-sm text-gray-800 placeholder-gray-400"
+                 />
+                 {filters.remarks && (
+                   <button onClick={() => setFilters({ ...filters, remarks: '' })} className="text-gray-400 hover:text-gray-600">
+                     <X size={14} />
+                   </button>
+                 )}
+               </div>
+             </div>
           </div>
         </div>
 
         {/* Desktop Add Button */}
         <button
           onClick={handleOpenAddModal}
-          className="hidden lg:flex bg-red-600 hover:bg-red-700 text-white px-4 py-2 h-[38px] rounded-lg font-semibold items-center justify-center gap-2 transition shadow-sm w-full lg:w-auto flex-shrink-0 mt-2 lg:mt-0"
+          className="hidden md:flex bg-red-600 hover:bg-red-700 text-white px-4 py-2 h-[38px] rounded-lg font-semibold items-center justify-center gap-2 transition shadow-sm w-full md:w-auto flex-shrink-0 mt-2 md:mt-0 whitespace-nowrap"
         >
           <Plus size={16} /> Add Cash
         </button>
@@ -706,7 +724,7 @@ export default function AddCase() {
         </div>
 
         {/* Desktop View: Table */}
-        <div onScroll={handleScroll} className="hidden md:block overflow-x-auto overflow-y-auto flex-1 min-h-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <div onScroll={handleScroll} className="desktop-table-view md:block overflow-x-auto overflow-y-auto flex-1 min-h-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           <div className="bg-red-600 border-b-2 border-red-700 p-2 text-center shadow-sm sticky top-0 z-20">
             <h1 className="text-white font-bold text-lg md:text-2xl tracking-wider uppercase">JAI BHOLE GROUPS OF COMPANIES</h1>
           </div>
