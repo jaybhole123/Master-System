@@ -1,8 +1,17 @@
 {
+  "functions": {
+    "api/ocr.js": {
+      "maxDuration": 60
+    }
+  },
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/api/ocr",
+      "destination": "/api/ocr.js"
+    },
+    {
+      "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ]
-}
+}
