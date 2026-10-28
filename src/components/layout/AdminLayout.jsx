@@ -14,6 +14,7 @@ import ganeshLogo from "../../assets/ganesh.jpg";
 import askLogo from "../../assets/ASK.png";
 import jaiLogostic from "../../assets/jai.logostic.png";
 import useDataStore from "../../modules/document/store/dataStore";
+import BirthdayToastSlide from "../BirthdayToastSlide";
 import {
   CheckSquare,
   ClipboardList,
@@ -2403,6 +2404,9 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
             </div>
           </div>
         )}
+
+        {/* Global Birthday Slide Toast (Right Slide on Login/Dashboard) */}
+        <BirthdayToastSlide />
       </div>
     </div>
   );

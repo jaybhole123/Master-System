@@ -87,6 +87,45 @@ const getDesignationSortOrder = (desg) => {
   return 8; // empty or any other unlisted at the end
 };
 
+// Returns total experience in months (number) for accurate numeric sorting (highest experience on top)
+const getEmployeeExperienceMonths = (emp) => {
+  if (emp?.joining_date) {
+    const joinDate = new Date(emp.joining_date);
+    if (!isNaN(joinDate.getTime())) {
+      const today = new Date();
+      let months = (today.getFullYear() - joinDate.getFullYear()) * 12;
+      months -= joinDate.getMonth();
+      months += today.getMonth();
+      if (months > 0) return months;
+    }
+  }
+
+  // Fallback: parse string experience like "11 Years 6 Months", "5 Years", "8 Months", "2.5 Years", etc.
+  const expStr = String(emp?.experience || '').toLowerCase().trim();
+  if (!expStr || expStr === '-' || expStr === 'fresher') return 0;
+
+  let totalMonths = 0;
+  const yearMatch = expStr.match(/(\d+(?:\.\d+)?)\s*(?:year|yr|y)/i);
+  const monthMatch = expStr.match(/(\d+)\s*(?:month|mo|m)/i);
+
+  if (yearMatch) {
+    totalMonths += Math.round(parseFloat(yearMatch[1]) * 12);
+  }
+  if (monthMatch) {
+    totalMonths += parseInt(monthMatch[1], 10);
+  }
+
+  // If just a raw number was stored e.g. "5" (assume years)
+  if (!yearMatch && !monthMatch) {
+    const rawNum = parseFloat(expStr);
+    if (!isNaN(rawNum)) {
+      totalMonths += Math.round(rawNum * 12);
+    }
+  }
+
+  return totalMonths;
+};
+
 const getEmployeePhotoUrl = (emp) => {
   const photo = emp?.photo || emp?.profile_image || '';
   if (!photo) return null;
@@ -863,7 +902,13 @@ export default function EmployeeMaster() {
                     const orderA = getDesignationSortOrder(a.designation || a.Designation);
                     const orderB = getDesignationSortOrder(b.designation || b.Designation);
                     if (orderA !== orderB) return orderA - orderB;
-                    // Secondary sort by name
+                    
+                    // Inside same Designation / Firm: Highest experience on top (descending)
+                    const expA = getEmployeeExperienceMonths(a);
+                    const expB = getEmployeeExperienceMonths(b);
+                    if (expB !== expA) return expB - expA;
+
+                    // Tertiary sort by name
                     return (a.user_name || '').localeCompare(b.user_name || '');
                   });
 
@@ -981,6 +1026,12 @@ export default function EmployeeMaster() {
               const orderA = getDesignationSortOrder(a.designation || a.Designation);
               const orderB = getDesignationSortOrder(b.designation || b.Designation);
               if (orderA !== orderB) return orderA - orderB;
+              
+              // Inside same Designation / Firm: Highest experience on top (descending)
+              const expA = getEmployeeExperienceMonths(a);
+              const expB = getEmployeeExperienceMonths(b);
+              if (expB !== expA) return expB - expA;
+
               return (a.user_name || '').localeCompare(b.user_name || '');
             });
 
