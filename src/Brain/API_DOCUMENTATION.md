@@ -372,7 +372,7 @@ const { data } = await supabase.from('invoices')
   .select('*').order('created_at', { ascending: false });
 ```
 
-### Sauda Scale
+### Sauda sale
 ```javascript
 // Sauda Sale
 const { data } = await supabase.from('sauda_sale')
@@ -382,7 +382,7 @@ const { data } = await supabase.from('sauda_sale')
 const { data } = await supabase.from('sauda_purchase')
   .select('*').order('date', { ascending: false });
 
-// Sauda Scale 2
+// Sauda sale 2
 const { data } = await supabase.from('sauda_scale_2')
   .select('*').order('created_at', { ascending: false });
 ```

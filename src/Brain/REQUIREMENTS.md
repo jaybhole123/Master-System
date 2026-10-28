@@ -120,7 +120,7 @@
 | CS-07 | Invoice management — full GST invoice (IRN, E-way bill, CGST/SGST/IGST) | ✅ Done |
 | CS-08 | Transport payment tracking | ✅ Done |
 | CS-09 | Refund/Lapse management | ✅ Done |
-| CS-10 | Sauda Scale — buy/sell deal tracking with broker, delivery terms, payment conditions | ✅ Done |
+| CS-10 | Sauda sale — buy/sell deal tracking with broker, delivery terms, payment conditions | ✅ Done |
 | CS-11 | Sauda Purchase — order quantity, rate per MT, quantity received, balance pending | ✅ Done |
 | CS-12 | Raw material stock tracking (opening, inward, consumption, crushing, fines, closing) | ✅ Done |
 | CS-13 | Coal stock tracking (FC, moisture loss, landed cost) | ✅ Done |

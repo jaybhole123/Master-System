@@ -93,7 +93,7 @@ create table public.sponge_production (
 
 
 
-(SAUDA SCALE )
+(Sauda sale )
 
 create table public.sauda_sale (
   id uuid not null default extensions.uuid_generate_v4 (),

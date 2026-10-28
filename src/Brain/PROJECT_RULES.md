@@ -258,7 +258,7 @@ import "./CoalSystem/src/App.css"       // Coal
 1. **Never commit `.env`** — it contains API keys and secrets
 2. **Never commit `node_modules/`** or `dist/`
 3. **Write meaningful commit messages:**
-   - `feat: add sauda scale page to coal system`
+   - `feat: add Sauda sale page to coal system`
    - `fix: resolve payslip calculation error`
    - `refactor: extract WhatsApp template logic`
 4. **Branch naming:** `feature/feature-name`, `fix/bug-description`, `hotfix/critical-fix`

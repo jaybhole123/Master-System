@@ -32,7 +32,7 @@ Jay Bhole Master System is a **multi-module enterprise web application** built t
 
 - **Task Management** — Quick tasks, checklist, delegation, maintenance, repair & EA tasks with WhatsApp notifications
 - **HR System** — Employee master, attendance, leave tracker, payroll processing, salary slips, offer letters, work orders & inventory
-- **Coal Trading System** — Auctions, SECL intimation & payment, sales orders, dispatch, invoicing, transport payments, refund/lapse & sauda scale
+- **Coal Trading System** — Auctions, SECL intimation & payment, sales orders, dispatch, invoicing, transport payments, refund/lapse & Sauda sale
 - **Petty Cash Management** — Cash credits, expenses, ledger, summary & group heads
 - **Daily Scheduler** — Task scheduling with calendar view, waiting list, someday tasks & reports
 - **Document & Subscription Management** — Document renewals, insurance, loans, bank guarantees (BG), subscriptions & vehicle reports
@@ -232,7 +232,7 @@ End-to-end coal trading operations management.
 - Invoice management (GST, E-way bill)
 - Transport Payment
 - Refund/Lapse tracking
-- Sauda Scale (buy/sell deal tracker)
+- Sauda sale (buy/sell deal tracker)
 - Raw material stock, coal stock, sponge production
 
 ### 4. 💰 Petty Cash (`/petty-cash/*`)

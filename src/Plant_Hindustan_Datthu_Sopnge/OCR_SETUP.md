@@ -1,6 +1,6 @@
 # AI image reader: setup and testing
 
-Image upload on Stock, Incoming/Outgoing, Production, Production 2, Sauda Scale and Sauda Purchase goes to
+Image upload on Stock, Incoming/Outgoing, Production, Production 2, Sauda sale and Sauda Purchase goes to
 `POST /api/ocr` (`server/ocrHandler.js`), which calls OpenAI with a per-page JSON schema (`server/schemas.js`).
 The OpenAI key is only ever on the server.
 

@@ -94,7 +94,7 @@ const getHeaderTitle = (pathname, routes) => {
       { href: "/plant/stock", label: "Stock Management" },
       { href: "/plant/transfer", label: "Incoming & Outgoing" },
       { href: "/plant/production2", label: "Production 2" },
-      { href: "/plant/sauda-scale", label: "Sauda Scale" },
+      { href: "/plant/sauda-scale", label: "Sauda sale" },
       { href: "/plant/sauda-purchase", label: "Sauda Purchase" },
       { href: "/plant/mis-report", label: "MIS Report" },
     ];
@@ -1423,7 +1423,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       module: "Hindustan Dhaatu Ltd (Sponge) Report",
     },
     {
-      label: "Sauda Scale",
+      label: "Sauda sale",
       href: "/plant/sauda-scale",
       icon: Database,
       active: location.pathname === "/plant/sauda-scale",
@@ -1597,6 +1597,18 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
            }
            if (route.label === "Coal Supply Offer Letter") {
                mappedLabel = "Offer Letter";
+           }
+           if (route.module === "Hindustan Dhaatu Ltd (Sponge) Report") {
+               if (route.label === "Incoming & Outgoing") {
+                   const key1 = `${mappedModule}::Incoming & Outgoing`;
+                   const key2 = `${mappedModule}::Item Transfer`;
+                   return pageAccess && (pageAccess.includes(key1) || pageAccess.includes(key2));
+               }
+               if (route.label === "Sauda sale") {
+                   const key1 = `${mappedModule}::Sauda sale`;
+                   const key2 = `${mappedModule}::Sauda Scale`;
+                   return pageAccess && (pageAccess.includes(key1) || pageAccess.includes(key2));
+               }
            }
 
            const pageKey = `${mappedModule}::${mappedLabel}`;

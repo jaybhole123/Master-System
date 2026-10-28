@@ -838,7 +838,7 @@ const Stock = () => {
           onClick={() => setActiveTab('raw_material')}
           className={`pb-3 px-1 text-[15px] font-semibold border-b-2 transition-colors ${activeTab === 'raw_material' ? 'border-red-600 text-red-600' : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'}`}
         >
-          Raw Material Stock (NSPL)
+          Raw Material Stock
         </button>
         <button 
           onClick={() => setActiveTab('coal_detail')}

@@ -20,7 +20,7 @@ This is a **multi-module React SPA** that manages the day-to-day operations of a
 
 1. **Task Management** — 6 task types (Quick, Checklist, Delegation, Maintenance, Repair, EA) with admin approval, WhatsApp notifications, voice notes, and image proofs
 2. **HR System** — Employee master, attendance (day-wise grid), leave tracker, salary structure, payroll processing, payslips (PDF), bank transfers, indents, inventory, offer letters, work orders
-3. **Coal Trading** — Auctions, SECL intimation/payment, sales orders, dispatch, invoices (GST), transport payments, refund/lapse, sauda scale (buy/sell deals), raw material stock, coal stock, sponge production
+3. **Coal Trading** — Auctions, SECL intimation/payment, sales orders, dispatch, invoices (GST), transport payments, refund/lapse, Sauda sale (buy/sell deals), raw material stock, coal stock, sponge production
 4. **Petty Cash** — Cash credits, expenses with approval workflow, ledger, summary
 5. **Daily Scheduler** — Task scheduling with calendar, waiting list, someday tasks, reports
 6. **Document Management** — Document/subscription renewals, insurance, loans, bank guarantees, vehicle reports

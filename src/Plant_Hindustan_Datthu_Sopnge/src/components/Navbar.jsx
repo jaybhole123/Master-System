@@ -8,7 +8,7 @@ const pageTitles = {
   '/transfer': 'Incoming & Outgoing',
   '/production': 'Production',
   '/production2': 'Production 2',
-  '/sauda-scale': 'Sauda Scale',
+  '/sauda-scale': 'Sauda sale',
   '/sauda-purchase': 'Sauda Purchase',
   '/mis-report': 'MIS Report',
 }

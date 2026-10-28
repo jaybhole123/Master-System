@@ -36,7 +36,7 @@ The application needs to eliminate manual data entry. Operators in the plant hav
 
 Each module has a different physical slip format. Here is the detailed logic on how the parameters are analyzed and extracted for each specific page.
 
-### 3.1. Sauda Scale (`SaudaScale.jsx`)
+### 3.1. Sauda sale (`SaudaScale.jsx`)
 **Target Document:** Weighbridge Slips (Dharam Kanta Parchi)
 - **Parameters to Extract:**
   - `partyName`: The name of the buyer/seller.

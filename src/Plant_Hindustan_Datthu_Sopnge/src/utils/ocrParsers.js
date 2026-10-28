@@ -52,7 +52,7 @@ const extractValueAfterKeyword = (text, keyword) => {
 }
 
 // ==========================================
-// 1. SAUDA SCALE (Sale) Parser
+// 1. Sauda sale (Sale) Parser
 // ==========================================
 export const parseSaudaScaleOCR = (rawText) => {
   const lines = rawText.split('\n').map(l => l.trim()).filter(l => l)
