@@ -348,23 +348,114 @@ const MisReport = () => {
 
     setIsDownloading(true)
     try {
-      const canvas = await html2canvas(element, { 
-        scale: 3, 
-        useCORS: true, 
+      // Create an isolated hidden iframe with vanilla CSS only (no Tailwind v4 OKLCH)
+      const iframe = document.createElement('iframe')
+      iframe.style.position = 'fixed'
+      iframe.style.right = '0'
+      iframe.style.bottom = '0'
+      iframe.style.width = '1000px'
+      iframe.style.height = '1400px'
+      iframe.style.border = '0'
+      iframe.style.zIndex = '-9999'
+      iframe.style.visibility = 'hidden'
+      document.body.appendChild(iframe)
+
+      const iframeDoc = iframe.contentDocument || iframe.contentWindow.document
+      
+      // Clone table and sanitize any classes to avoid Tailwind v4 OKLCH styling
+      let tableHtml = element.innerHTML
+        // Strip out hide buttons
+        .replace(/<button[^>]*>.*?<\/button>/gis, '')
+        // Replace oklch hex/class color references
+        .replace(/class="[^"]*"/gi, (match) => {
+          let extra = ''
+          if (match.includes('bg-[#1e495f]')) extra += ' style="background-color: #1e495f !important; color: #ffffff !important;"'
+          else if (match.includes('bg-[#bfe5f7]')) extra += ' style="background-color: #bfe5f7 !important; color: #000000 !important;"'
+          else if (match.includes('bg-slate-300')) extra += ' style="background-color: #cbd5e1 !important;"'
+          else if (match.includes('bg-slate-100')) extra += ' style="background-color: #f1f5f9 !important;"'
+          return extra
+        })
+      
+      iframeDoc.open()
+      iframeDoc.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            * {
+              box-sizing: border-box;
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+              -webkit-font-smoothing: antialiased;
+            }
+            body {
+              margin: 0;
+              padding: 16px;
+              background-color: #ffffff !important;
+              color: #1e293b !important;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              border: 0.8px solid #94a3b8 !important;
+              background-color: #ffffff !important;
+              color: #000000 !important;
+              font-size: 13.5px;
+              font-weight: bold !important;
+            }
+            th, td {
+              border: 0.8px solid #94a3b8 !important;
+              padding: 6px 10px;
+              line-height: 1.4;
+              font-weight: 700 !important;
+              color: #000000 !important;
+            }
+            th {
+              background-color: #1e495f !important;
+              color: #ffffff !important;
+              font-weight: 800 !important;
+              letter-spacing: 0.5px;
+            }
+            th.header-main {
+              font-size: 14.5px;
+            }
+            th.header-date {
+              font-size: 13.5px;
+            }
+            .text-right { text-align: right !important; }
+            .text-center { text-align: center !important; }
+            .font-bold { font-weight: 700 !important; }
+            .font-normal { font-weight: 700 !important; color: #000000 !important; }
+          </style>
+        </head>
+        <body>
+          <div id="print-content" style="background:#ffffff; color:#000000; width: 1000px;">
+            ${tableHtml}
+          </div>
+        </body>
+        </html>
+      `)
+      iframeDoc.close()
+
+      // Give iframe DOM time to render
+      await new Promise(resolve => setTimeout(resolve, 300))
+
+      const targetEl = iframeDoc.getElementById('print-content')
+      
+      const canvas = await html2canvas(targetEl, {
+        scale: 3,
+        useCORS: true,
         logging: false,
         backgroundColor: '#ffffff'
       })
-      
+
       const imgData = canvas.toDataURL('image/png', 1.0)
-      
       const pdf = new jsPDF('p', 'mm', 'a4')
       const pdfWidth = pdf.internal.pageSize.getWidth()
       const pdfHeight = pdf.internal.pageSize.getHeight()
       
       const imgProps = pdf.getImageProperties(imgData)
-      const margin = 10
+      const margin = 8
       const availableWidth = pdfWidth - (margin * 2)
-      
       const imgHeight = (imgProps.height * availableWidth) / imgProps.width
       const availableHeight = pdfHeight - (margin * 2)
       
@@ -377,16 +468,104 @@ const MisReport = () => {
       }
       
       const xOffset = margin + (availableWidth - finalWidth) / 2
-      
       pdf.addImage(imgData, 'PNG', xOffset, margin, finalWidth, finalHeight)
       pdf.save(`Hindustan_Dhaatu_Sponge_Report_${formattedDate}.pdf`)
-      
+
+      document.body.removeChild(iframe)
     } catch (error) {
       console.error("Error generating PDF:", error)
-      alert("Failed to generate PDF.")
+      alert("Failed to generate PDF: " + (error?.message || error))
     } finally {
       setIsDownloading(false)
     }
+  }
+
+  const handlePrint = () => {
+    const element = reportRef.current
+    if (!element) return
+
+    // Clone table HTML and strip interactive buttons
+    let tableHtml = element.innerHTML
+      .replace(/<button[^>]*>.*?<\/button>/gis, '')
+      .replace(/class="[^"]*"/gi, (match) => {
+        let extra = ''
+        if (match.includes('bg-[#1e495f]')) extra += ' style="background-color: #1e495f !important; color: #ffffff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"'
+        else if (match.includes('bg-[#bfe5f7]')) extra += ' style="background-color: #bfe5f7 !important; color: #000000 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"'
+        else if (match.includes('bg-slate-100')) extra += ' style="background-color: #f1f5f9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"'
+        return extra
+      })
+
+    const printWindow = window.open('', '_blank', 'width=1000,height=800')
+    if (!printWindow) {
+      window.print()
+      return
+    }
+
+    printWindow.document.open()
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Hindustan Dhaatu Sponge Report - ${formattedDate}</title>
+        <style>
+          @page {
+            size: A4 portrait;
+            margin: 8mm 10mm;
+          }
+          * {
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          body {
+            margin: 0;
+            padding: 0;
+            background: #ffffff !important;
+            color: #000000 !important;
+          }
+          table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            border: 0.8px solid #94a3b8 !important;
+            background-color: #ffffff !important;
+            color: #000000 !important;
+            font-size: 13.5px !important;
+            font-weight: 700 !important;
+          }
+          th, td {
+            border: 0.8px solid #94a3b8 !important;
+            padding: 6px 10px !important;
+            font-weight: 700 !important;
+            color: #000000 !important;
+            line-height: 1.4 !important;
+          }
+          th {
+            background-color: #1e495f !important;
+            color: #ffffff !important;
+            font-weight: 800 !important;
+          }
+          .text-right { text-align: right !important; }
+          .text-center { text-align: center !important; }
+          .font-bold, .font-normal { font-weight: 700 !important; }
+        </style>
+      </head>
+      <body>
+        <div style="width: 100%;">
+          ${tableHtml}
+        </div>
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+              window.close();
+            }, 250);
+          };
+        </script>
+      </body>
+      </html>
+    `)
+    printWindow.document.close()
   }
 
   // UI based on image provided
@@ -428,7 +607,7 @@ const MisReport = () => {
           </button>
           
           <button 
-            onClick={() => window.print()} 
+            onClick={handlePrint} 
             className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white border border-white/30 font-semibold rounded-lg shadow-sm transition-all flex items-center gap-2 active:scale-95 text-sm h-[42px] backdrop-blur-sm"
             title="Print this sheet"
           >
@@ -462,14 +641,14 @@ const MisReport = () => {
 
       {/* The Report (Printable Sheet Canvas) */}
       <div className="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden print:border-none print:shadow-none p-3 sm:p-6">
-        <div className="overflow-x-auto w-full" ref={reportRef}>
+        <div className="overflow-x-auto w-full" ref={reportRef} data-report-container="true">
         <table className="w-full min-w-[700px] border-collapse border border-black text-[15px] font-bold text-black bg-white" style={{ borderSpacing: 0 }}>
           
           {/* Main Header */}
           <thead>
             <tr>
               <th contentEditable suppressContentEditableWarning colSpan="2" className="bg-[#1e495f] text-white py-2.5 px-3 text-center font-extrabold text-[17px] border border-black uppercase tracking-wide">
-                HINDUSTAN DHAATU REPORT (SPONGE)
+                HINDUSTAN DHAATU Ltd (SPONGE) REPORT 
               </th>
               <th contentEditable suppressContentEditableWarning className="bg-[#1e495f] text-white py-2.5 px-3 text-right font-extrabold text-[16px] border border-black w-[160px]">
                 {formattedDate}
@@ -525,10 +704,6 @@ const MisReport = () => {
               </tr>
             )}
 
-            {/* SEPARATOR */}
-            <tr>
-              <td colSpan="3" className="border border-black bg-slate-300 h-[6px]"></td>
-            </tr>
 
             {/* YESTERDAY INCOMING MATERIALS */}
             <tr>
@@ -556,10 +731,6 @@ const MisReport = () => {
               </tr>
             )}
 
-            {/* SEPARATOR */}
-            <tr>
-              <td colSpan="3" className="border border-black bg-slate-300 h-[6px]"></td>
-            </tr>
 
             {/* YESTERDAY OUTGOING MATERIALS */}
             <tr>
@@ -587,10 +758,6 @@ const MisReport = () => {
               </tr>
             )}
 
-            {/* SEPARATOR */}
-            <tr>
-              <td colSpan="3" className="border border-black bg-slate-300 h-[6px]"></td>
-            </tr>
 
             {/* TOTAL PRODUCTION IN 24HR */}
             <tr>
@@ -639,10 +806,6 @@ const MisReport = () => {
               </td>
             </tr>
 
-            {/* SEPARATOR */}
-            <tr>
-              <td colSpan="3" className="border border-black bg-slate-300 h-[6px]"></td>
-            </tr>
 
             {/* BALANCE PENDING OUTGOING (SAUDA SALE) */}
             <tr>
@@ -684,10 +847,6 @@ const MisReport = () => {
               </tr>
             )}
 
-            {/* SEPARATOR */}
-            <tr>
-              <td colSpan="3" className="border border-black bg-slate-300 h-[6px]"></td>
-            </tr>
 
             {/* BALANCE PENDING INCOMING (SAUDA PURCHASE) */}
             <tr>
