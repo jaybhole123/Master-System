@@ -234,6 +234,18 @@ const PlantSystemWrapper = ({ children }) => (
     </ProtectedRoute>
 );
 
+const BilletSystemWrapper = ({ children }) => (
+    <ProtectedRoute>
+        <AdminLayout noPadding={true}>
+            <div className="billet-system-root flex flex-col flex-1 w-full min-h-full bg-slate-50 overflow-x-hidden">
+                <div className="erp-content flex-1 p-4 sm:p-6 lg:p-8">
+                    {children}
+                </div>
+            </div>
+        </AdminLayout>
+    </ProtectedRoute>
+);
+
 // --- Plant (Hindustan Datthu) Fallback Placeholders ---
 const PlantPlaceholder = ({ name }) => (
     <div className="flex flex-col items-center justify-center p-12 text-center my-auto min-h-[60vh]">
@@ -254,6 +266,12 @@ import PlantProduction2 from './Plant_Hindustan_Datthu_Sopnge/src/pages/Producti
 import PlantSaudaScale from './Plant_Hindustan_Datthu_Sopnge/src/pages/SaudaScale';
 import PlantSaudaPurchase from './Plant_Hindustan_Datthu_Sopnge/src/pages/SaudaPurchase';
 import PlantMisReport from './Plant_Hindustan_Datthu_Sopnge/src/pages/MisReport';
+
+// --- Hindustan Billet Imports ---
+import BilletDashboard from './Hindustan_Billet/src/Dashboard';
+import BilletConsumption from './Hindustan_Billet/src/Consumption';
+import BilletReport from './Hindustan_Billet/src/Billet';
+import BilletMisReport from './Hindustan_Billet/src/MisReport';
 
 function App() {
     return (
@@ -680,6 +698,13 @@ function App() {
                     <Route path="/plant/sauda-scale" element={<PlantSystemWrapper><PlantSaudaScale /></PlantSystemWrapper>} />
                     <Route path="/plant/sauda-purchase" element={<PlantSystemWrapper><PlantSaudaPurchase /></PlantSystemWrapper>} />
                     <Route path="/plant/mis-report" element={<PlantSystemWrapper><PlantMisReport /></PlantSystemWrapper>} />
+
+                    {/* --- Hindustan Billet System Routes --- */}
+                    <Route path="/billet-system" element={<Navigate to="/billet-system/dashboard" replace />} />
+                    <Route path="/billet-system/dashboard" element={<BilletSystemWrapper><BilletDashboard /></BilletSystemWrapper>} />
+                    <Route path="/billet-system/consumption" element={<BilletSystemWrapper><BilletConsumption /></BilletSystemWrapper>} />
+                    <Route path="/billet-system/billet" element={<BilletSystemWrapper><BilletReport /></BilletSystemWrapper>} />
+                    <Route path="/billet-system/mis-report" element={<BilletSystemWrapper><BilletMisReport /></BilletSystemWrapper>} />
 
                     {/* --- Backward Compatibility Redirects (From Snippet 1) --- */}
                     {/* These catch old URLs and forward them to the new structure */}

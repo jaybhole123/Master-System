@@ -680,10 +680,10 @@ const MisReport = () => {
           {/* Main Header */}
           <thead>
             <tr>
-              <th contentEditable suppressContentEditableWarning colSpan="2" className="bg-[#1e495f] text-white py-2.5 px-3 text-center font-extrabold text-[17px] border border-black uppercase tracking-wide">
+              <th contentEditable suppressContentEditableWarning colSpan="2" className="bg-[#1e495f] text-white py-2.5 px-3 text-center font-extrabold text-[17px] border border-black uppercase tracking-wide" style={{ backgroundColor: '#1e495f', color: '#ffffff' }}>
                 HINDUSTAN DHAATU Ltd (SPONGE) REPORT 
               </th>
-              <th contentEditable suppressContentEditableWarning className="bg-[#1e495f] text-white py-2.5 px-3 text-right font-extrabold text-[16px] border border-black w-[160px]">
+              <th contentEditable suppressContentEditableWarning className="bg-[#1e495f] text-white py-2.5 px-3 text-right font-extrabold text-[16px] border border-black w-[160px]" style={{ backgroundColor: '#1e495f', color: '#ffffff' }}>
                 {formattedDate}
               </th>
             </tr>

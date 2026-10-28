@@ -101,6 +101,17 @@ const getHeaderTitle = (pathname, routes) => {
     const match = plantRoutes.find(r => pathname === r.href);
     return { module: "Hindustan Dhaatu Ltd (Sponge) Report", page: match?.label || "Plant System" };
   }
+  // Check Hindustan Billet routes
+  if (pathname.startsWith("/billet-system")) {
+    const billetRoutes = [
+      { href: "/billet-system/dashboard", label: "Dashboard" },
+      { href: "/billet-system/consumption", label: "Consumption Report" },
+      { href: "/billet-system/billet", label: "Billet Report" },
+      { href: "/billet-system/mis-report", label: "MIS Report" },
+    ];
+    const match = billetRoutes.find(r => pathname === r.href);
+    return { module: "Hindustan Dhaatu Ltd (Billet) Report", page: match?.label || "Hindustan Dhaatu Ltd (Billet) Report" };
+  }
   // Check Coal System routes
   if (pathname.startsWith("/coal-system")) {
     const flat = routes.flatMap(r => r.subItems ? r.subItems : [r]);
@@ -568,6 +579,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       "Rent Management Tracker": path.includes("/dashboard/rent-tracker"),
       "Coal System": path.startsWith("/coal-system"),
       "Hindustan Dhaatu Ltd (Sponge) Report": path.startsWith("/plant"),
+      "Hindustan Dhaatu Ltd (Billet) Report": path.startsWith("/billet-system"),
       "Transport Reporting": path.startsWith("/transport-system"),
       "Letter": path.startsWith("/letter")
     };
@@ -1449,6 +1461,43 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       showFor: ["admin", "user", "HOD"],
       module: "Hindustan Dhaatu Ltd (Sponge) Report",
     },
+    // --- Hindustan Billet Module Routes ---
+    {
+      label: "Dashboard",
+      href: "/billet-system/dashboard",
+      icon: LayoutDashboard,
+      active: location.pathname === "/billet-system/dashboard" || location.pathname === "/billet-system",
+      badge: null,
+      showFor: ["admin", "user", "HOD"],
+      module: "Hindustan Dhaatu Ltd (Billet) Report",
+    },
+    {
+      label: "Consumption Report",
+      href: "/billet-system/consumption",
+      icon: Database,
+      active: location.pathname === "/billet-system/consumption",
+      badge: null,
+      showFor: ["admin", "user", "HOD"],
+      module: "Hindustan Dhaatu Ltd (Billet) Report",
+    },
+    {
+      label: "Billet Report",
+      href: "/billet-system/billet",
+      icon: Package,
+      active: location.pathname === "/billet-system/billet",
+      badge: null,
+      showFor: ["admin", "user", "HOD"],
+      module: "Hindustan Dhaatu Ltd (Billet) Report",
+    },
+    {
+      label: "MIS Report",
+      href: "/billet-system/mis-report",
+      icon: FileText,
+      active: location.pathname === "/billet-system/mis-report",
+      badge: null,
+      showFor: ["admin", "user", "HOD"],
+      module: "Hindustan Dhaatu Ltd (Billet) Report",
+    },
     // --- Coal System Module Routes ---
     {
       href: "/coal-system/system-flow",
@@ -1777,6 +1826,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                         {moduleName === "Rent Management Tracker" && <Banknote className="h-4 w-4" />}
                         {moduleName === "Coal System" && <Database className="h-4 w-4" />}
                         {moduleName === "Hindustan Dhaatu Ltd (Sponge) Report" && <Factory className="h-4 w-4" />}
+                        {moduleName === "Hindustan Dhaatu Ltd (Billet) Report" && <Package className="h-4 w-4" />}
                         {moduleName === "Letter" && <FileText className="h-4 w-4" />}
                         {moduleName === "Transport Reporting" && <Truck className="h-4 w-4" />}
                         {moduleName === "Help Slip" && <HelpCircle className="h-4 w-4" />}
@@ -2047,6 +2097,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                             {moduleName === "Rent Management Tracker" && <Banknote className="h-4 w-4" />}
                             {moduleName === "Coal System" && <Database className="h-4 w-4" />}
                             {moduleName === "Hindustan Dhaatu Ltd (Sponge) Report" && <Factory className="h-4 w-4" />}
+                            {moduleName === "Hindustan Dhaatu Ltd (Billet) Report" && <Package className="h-4 w-4" />}
                             {moduleName === "Letter" && <FileText className="h-4 w-4" />}
                             {moduleName === "Transport Reporting" && <Truck className="h-4 w-4" />}
                             {moduleName === "Help Slip" && <HelpCircle className="h-4 w-4" />}

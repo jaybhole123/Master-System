@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
-import { Plus, X, Pencil, Trash2, Loader, Filter } from 'lucide-react';
+import { Plus, X, Pencil, Trash2, Loader, Filter, Users, UserCheck, Briefcase, Building, Search, Cake, Sparkles, Phone, Calendar, RefreshCw, Eye, Mail, MapPin, CreditCard, Shield, FileText } from 'lucide-react';
 import Cropper from 'react-easy-crop';
 import getCroppedImg from '../utils/cropImage';
 import { sendBirthdayWishes } from '../../../services/whatsappService';
@@ -48,6 +48,17 @@ const calculateDynamicExperience = (joiningDate, fallbackExperience) => {
   return expStr.trim();
 };
 
+const formatDisplayDate = (dateVal) => {
+  if (!dateVal) return '-';
+  try {
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return String(dateVal);
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  } catch {
+    return String(dateVal);
+  }
+};
+
 const getDesignationStyle = (desg) => {
   if (!desg) return { color: 'var(--text-secondary)' };
   const d = desg.toUpperCase().trim();
@@ -63,6 +74,19 @@ const getDesignationStyle = (desg) => {
   }
 };
 
+const getDesignationSortOrder = (desg) => {
+  if (!desg) return 8; // empty or undefined at the bottom
+  const d = desg.toUpperCase().trim();
+  if (d === 'JAI BHOLE') return 1;
+  if (d.includes('JAI BHOLE ENTERPRISE')) return 2; // matches ENTERPRISE or ENTERPRISES
+  if (d.includes('JAI BHOLE LOGISTIC')) return 3;
+  if (d.includes('JAI BHOLE TRADER')) return 4;
+  if (d.includes('ASAK COAL PVT') || (d.includes('ASAK') && !d.includes('LOGISTIC'))) return 5;
+  if (d.includes('ASAK COAL LOGISTIC') || d.includes('ASAK LOGISTIC')) return 6;
+  if (d.includes('HELPING HAND')) return 7;
+  return 8; // empty or any other unlisted at the end
+};
+
 const getEmployeePhotoUrl = (emp) => {
   const photo = emp?.photo || emp?.profile_image || '';
   if (!photo) return null;
@@ -74,10 +98,20 @@ export default function EmployeeMaster() {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [nameFilter, setNameFilter] = useState('');
   const [designationFilter, setDesignationFilter] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('');
   const [todaysBirthdays, setTodaysBirthdays] = useState([]);
   const [showBirthdayModal, setShowBirthdayModal] = useState(false);
+
+  const uniqueNames = useMemo(() => {
+    const names = new Set();
+    employees.forEach(emp => {
+      const n = emp.user_name;
+      if (n) names.add(n);
+    });
+    return Array.from(names).sort((a, b) => a.localeCompare(b));
+  }, [employees]);
 
   const uniqueDesignations = useMemo(() => {
     const desgs = new Set();
@@ -180,9 +214,32 @@ export default function EmployeeMaster() {
   // Image Preview Modal State
   const [previewModalImg, setPreviewModalImg] = useState(null);
 
+  // Employee Detail View Modal State
+  const [viewEmployeeModal, setViewEmployeeModal] = useState(null);
+  const [isViewingLoading, setIsViewingLoading] = useState(false);
+
   const handleEmployeePhotoClick = (emp) => {
     const photoUrl = getEmployeePhotoUrl(emp);
     if (photoUrl) setPreviewModalImg(photoUrl);
+  };
+
+  const handleViewEmployee = async (emp) => {
+    setIsViewingLoading(true);
+    setViewEmployeeModal(emp); // show initial info immediately
+    try {
+      const { data: fullEmp, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', emp.id)
+        .single();
+      if (!error && fullEmp) {
+        setViewEmployeeModal(fullEmp);
+      }
+    } catch (e) {
+      console.warn("Could not fetch full details, showing available info:", e);
+    } finally {
+      setIsViewingLoading(false);
+    }
   };
 
   // Crop Modal State
@@ -595,13 +652,14 @@ export default function EmployeeMaster() {
         </div>
       )}
 
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
-          <h1 className="page-title">Employees</h1>
-          <p className="page-subtitle">View and manage all employee records.</p>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight">Employee Master</h1>
+          <p className="text-sm text-slate-500 mt-1">View, onboard, and manage all employee records and profiles.</p>
         </div>
         <button 
-          className="btn-primary" 
+          className="btn-primary shadow-md hover:shadow-lg transition-all" 
           onClick={() => {
             setEditingId(null);
             setFormData(initialFormData);
@@ -619,19 +677,118 @@ export default function EmployeeMaster() {
         </button>
       </div>
 
-      <div className="card">
+      {/* Modern KPI Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {/* Total Employees */}
+        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition-all flex items-center justify-between">
+          <div>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Employees</p>
+            <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-800 mt-1">
+              {loading ? '...' : employees.length}
+            </h3>
+            <p className="text-[11px] font-medium text-emerald-600 mt-1 flex items-center gap-1">
+              <span className="inline-block w-2 h-2 rounded-full bg-emerald-500"></span> Active on Payroll
+            </p>
+          </div>
+          <div className="w-13 h-13 rounded-2xl bg-gradient-to-tr from-red-50 to-rose-100 text-red-600 flex items-center justify-center shadow-inner">
+            <Users size={26} />
+          </div>
+        </div>
+
+        {/* Departments */}
+        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition-all flex items-center justify-between">
+          <div>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Departments</p>
+            <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-800 mt-1">
+              {loading ? '...' : uniqueDepartments.length}
+            </h3>
+            <p className="text-[11px] font-medium text-slate-500 mt-1">Functional Units</p>
+          </div>
+          <div className="w-13 h-13 rounded-2xl bg-gradient-to-tr from-blue-50 to-indigo-100 text-blue-600 flex items-center justify-center shadow-inner">
+            <Building size={26} />
+          </div>
+        </div>
+
+        {/* Designations / Firms */}
+        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition-all flex items-center justify-between">
+          <div>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Designations</p>
+            <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-800 mt-1">
+              {loading ? '...' : uniqueDesignations.length}
+            </h3>
+            <p className="text-[11px] font-medium text-slate-500 mt-1">Roles & Firms</p>
+          </div>
+          <div className="w-13 h-13 rounded-2xl bg-gradient-to-tr from-amber-50 to-orange-100 text-amber-600 flex items-center justify-center shadow-inner">
+            <Briefcase size={26} />
+          </div>
+        </div>
+
+        {/* Birthdays Today or Fresher/Exp */}
+        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition-all flex items-center justify-between">
+          <div>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              {todaysBirthdays.length > 0 ? "Today's Birthdays" : "Quick Action"}
+            </p>
+            <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-800 mt-1">
+              {todaysBirthdays.length > 0 ? `${todaysBirthdays.length} 🎂` : '100%'}
+            </h3>
+            <p className="text-[11px] font-medium text-slate-500 mt-1">
+              {todaysBirthdays.length > 0 ? 'Wishes sent automatically' : 'Verified records'}
+            </p>
+          </div>
+          <div className="w-13 h-13 rounded-2xl bg-gradient-to-tr from-purple-50 to-fuchsia-100 text-purple-600 flex items-center justify-center shadow-inner">
+            {todaysBirthdays.length > 0 ? <Cake size={26} /> : <UserCheck size={26} />}
+          </div>
+        </div>
+      </div>
+
+      <div className="card shadow-sm border border-slate-200/80 rounded-2xl">
         <div style={{ display: 'flex', gap: '16px', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap' }}>
-          <input 
-            type="text" 
-            placeholder="Search employees..." 
-            style={{ maxWidth: '280px', minWidth: '200px' }} 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+          <div style={{ position: 'relative', flex: '1 1 240px', minWidth: '220px', maxWidth: '340px' }}>
+            <Search 
+              size={17} 
+              style={{ 
+                position: 'absolute', 
+                left: '12px', 
+                top: '50%', 
+                transform: 'translateY(-50%)', 
+                color: '#94a3b8', 
+                pointerEvents: 'none',
+                zIndex: 1
+              }} 
+            />
+            <input 
+              type="text" 
+              placeholder="Search by name, ID, department..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '10px 14px 10px 38px',
+                fontSize: '0.875rem',
+                borderRadius: '10px',
+                border: '1px solid var(--border-color)',
+                backgroundColor: 'var(--bg-card)',
+                color: 'var(--text-primary)',
+                outline: 'none',
+                boxSizing: 'border-box'
+              }}
+            />
+          </div>
+          <select
+            value={nameFilter}
+            onChange={(e) => setNameFilter(e.target.value)}
+            style={{ maxWidth: '200px', minWidth: '160px', padding: '10px 12px', borderRadius: '10px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)' }}
+          >
+            <option value="">All Names</option>
+            {uniqueNames.map((name, idx) => (
+              <option key={idx} value={name}>{name}</option>
+            ))}
+          </select>
           <select
             value={designationFilter}
             onChange={(e) => setDesignationFilter(e.target.value)}
-            style={{ maxWidth: '200px', minWidth: '160px', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)' }}
+            style={{ maxWidth: '200px', minWidth: '160px', padding: '10px 12px', borderRadius: '10px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)' }}
           >
             <option value="">All Designations</option>
             {uniqueDesignations.map((desg, idx) => (
@@ -641,16 +798,16 @@ export default function EmployeeMaster() {
           <select
             value={departmentFilter}
             onChange={(e) => setDepartmentFilter(e.target.value)}
-            style={{ maxWidth: '200px', minWidth: '160px', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)' }}
+            style={{ maxWidth: '200px', minWidth: '160px', padding: '10px 12px', borderRadius: '10px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)' }}
           >
             <option value="">All Departments</option>
             {uniqueDepartments.map((dept, idx) => (
               <option key={idx} value={dept}>{dept}</option>
             ))}
           </select>
-          {(searchQuery || designationFilter || departmentFilter) && (
+          {(searchQuery || nameFilter || designationFilter || departmentFilter) && (
             <button
-              onClick={() => { setSearchQuery(''); setDesignationFilter(''); setDepartmentFilter(''); }}
+              onClick={() => { setSearchQuery(''); setNameFilter(''); setDesignationFilter(''); setDepartmentFilter(''); }}
               style={{ background: 'none', border: 'none', color: 'var(--primary-color)', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600 }}
             >
               Reset Filters
@@ -661,35 +818,30 @@ export default function EmployeeMaster() {
         {/* Desktop Table View */}
         <div className="hidden md:block">
           <div 
-            ref={tableRef}
-            onMouseDown={handleMouseDown}
-            onMouseLeave={handleMouseLeave}
-            onMouseUp={handleMouseUp}
-            onMouseMove={handleMouseMove}
             style={{ 
               overflowX: 'auto', 
               maxHeight: 'calc(100vh - 280px)',
               overflowY: 'auto',
-              cursor: isMouseDown ? 'grabbing' : 'grab',
-              userSelect: isMouseDown ? 'none' : 'auto'
+              userSelect: 'text',
+              WebkitUserSelect: 'text'
             }}
           >
-            <table style={{ whiteSpace: 'nowrap' }}>
+            <table className="w-full text-left border-collapse select-text table-auto" style={{ whiteSpace: 'nowrap', userSelect: 'text' }}>
               <thead>
-                <tr>
-                  <th>S.No</th>
-                  <th>Photo</th>
-                  <th>Name</th>
-                  <th>Phone Number</th>
-                  <th>Department</th>
-                  <th>Designation</th>
-                  <th>Experience</th>
-                  <th>Father's Name</th>
-                  <th>Status</th>
-                  <th>Actions</th>
+                <tr className="bg-slate-50/90 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  <th className="py-2.5 px-3 font-bold text-slate-600 w-16">S.No</th>
+                  <th className="py-2.5 px-2.5 font-bold text-slate-600 w-12 text-center">Photo</th>
+                  <th className="py-2.5 px-3 font-bold text-slate-600">Name</th>
+                  <th className="py-2.5 px-3 font-bold text-slate-600">Phone Number</th>
+                  <th className="py-2.5 px-3 font-bold text-slate-600">Department</th>
+                  <th className="py-2.5 px-3 font-bold text-slate-600">Designation / Firm</th>
+                  <th className="py-2.5 px-3 font-bold text-slate-600">Experience</th>
+                  <th className="py-2.5 px-3 font-bold text-slate-600">Father's Name</th>
+                  <th className="py-2.5 px-3 font-bold text-slate-600">Status</th>
+                  <th className="py-2.5 px-3 font-bold text-slate-600 text-right w-20">Actions</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="select-text" style={{ userSelect: 'text' }}>
                 {(() => {
                   const filteredEmployees = employees.filter(emp => {
                     const query = searchQuery.toLowerCase();
@@ -701,62 +853,90 @@ export default function EmployeeMaster() {
                       (emp.Designation && emp.Designation.toLowerCase().includes(query))
                     );
 
+                    const matchesName = !nameFilter || (emp.user_name && emp.user_name.toLowerCase() === nameFilter.toLowerCase());
                     const empDesg = emp.designation || emp.Designation || '';
                     const matchesDesignation = !designationFilter || empDesg.toLowerCase() === designationFilter.toLowerCase();
                     const matchesDepartment = !departmentFilter || (emp.department && emp.department.toLowerCase() === departmentFilter.toLowerCase());
 
-                    return matchesSearch && matchesDesignation && matchesDepartment;
+                    return matchesSearch && matchesName && matchesDesignation && matchesDepartment;
+                  }).sort((a, b) => {
+                    const orderA = getDesignationSortOrder(a.designation || a.Designation);
+                    const orderB = getDesignationSortOrder(b.designation || b.Designation);
+                    if (orderA !== orderB) return orderA - orderB;
+                    // Secondary sort by name
+                    return (a.user_name || '').localeCompare(b.user_name || '');
                   });
 
                   return filteredEmployees.length > 0 ? filteredEmployees.map((emp, idx) => (
-                  <tr key={emp.id}>
-                    <td style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>{idx + 1}</td>
-                    <td>
+                  <tr key={emp.id} className="border-b border-slate-100 hover:bg-slate-50/70 transition-colors select-text">
+                    <td className="py-2.5 px-3 text-xs font-bold text-slate-400">
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleViewEmployee(emp)}
+                          className="p-1 rounded-md text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
+                          title="View Employee Profile"
+                        >
+                          <Eye size={14} />
+                        </button>
+                        <span>{idx + 1}</span>
+                      </div>
+                    </td>
+                    <td className="py-2.5 px-2.5 text-center">
                       {getEmployeePhotoUrl(emp) ? (
                         <button
                           type="button"
                           onClick={() => handleEmployeePhotoClick(emp)}
-                          style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer' }}
+                          className="border-0 bg-transparent p-0 cursor-pointer inline-block transform hover:scale-110 transition-transform"
                           aria-label={`View profile for ${emp.user_name}`}
                         >
-                          <img src={getEmployeePhotoUrl(emp)} alt={emp.user_name} style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
+                          <img src={getEmployeePhotoUrl(emp)} alt={emp.user_name} className="w-8 h-8 rounded-full object-cover shadow-2xs border border-slate-200" />
                         </button>
                       ) : (
-                        <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'var(--bg-color, #f3f4f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: '14px', fontWeight: 'bold' }}>
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-slate-100 to-slate-200 text-slate-600 inline-flex items-center justify-center font-bold text-xs shadow-2xs border border-slate-200">
                           {emp.user_name ? emp.user_name.charAt(0).toUpperCase() : '?'}
                         </div>
                       )}
                     </td>
-                    <td style={{ fontWeight: 500 }}>{emp.user_name}</td>
-                    <td>{emp.number || '-'}</td>
-                    <td>{emp.department}</td>
-                    <td>
+                    <td className="py-2.5 px-3 font-semibold text-slate-800 text-sm">{emp.user_name}</td>
+                    <td className="py-2.5 px-3 text-slate-600 text-sm font-medium">{emp.number || '-'}</td>
+                    <td className="py-2.5 px-3 text-slate-700 text-sm">{emp.department || '-'}</td>
+                    <td className="py-2.5 px-3">
                       <span style={getDesignationStyle(emp.designation)}>
                         {emp.designation || '-'}
                       </span>
                     </td>
-                    <td>{calculateDynamicExperience(emp.joining_date, emp.experience)}</td>
-                    <td>{emp.fathers_name || '-'}</td>
-                    <td>
-                      <span style={{
-                        padding: '4px 8px', 
-                        borderRadius: '12px', 
-                        fontSize: '0.75rem',
-                        backgroundColor: (!emp.status || emp.status.toLowerCase() === 'active') ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                        color: (!emp.status || emp.status.toLowerCase() === 'active') ? '#10b981' : '#ef4444',
-                        fontWeight: '600',
-                        textTransform: 'capitalize'
-                      }}>
+                    <td className="py-2.5 px-3 text-slate-600 text-sm font-medium">{calculateDynamicExperience(emp.joining_date, emp.experience)}</td>
+                    <td className="py-2.5 px-3 text-slate-500 text-sm">{emp.fathers_name || '-'}</td>
+                    <td className="py-2.5 px-3">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold capitalize ${
+                        (!emp.status || emp.status.toLowerCase() === 'active')
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60'
+                          : 'bg-rose-50 text-rose-700 border border-rose-200/60'
+                      }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full mr-1 ${
+                          (!emp.status || emp.status.toLowerCase() === 'active') ? 'bg-emerald-500' : 'bg-rose-500'
+                        }`}></span>
                         {emp.status || 'Active'}
                       </span>
                     </td>
-                    <td>
-                      <button onClick={() => handleEdit(emp)} style={{ background: 'none', border: 'none', color: 'var(--primary-color)', cursor: 'pointer', marginRight: '16px' }} title="Edit">
-                        <Pencil size={18} />
-                      </button>
-                      <button onClick={() => handleDelete(emp)} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer' }} title="Mark Inactive">
-                        <Trash2 size={18} />
-                      </button>
+                    <td className="py-2.5 px-3 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <button 
+                          onClick={() => handleEdit(emp)} 
+                          className="p-1 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors" 
+                          title="Edit Employee"
+                        >
+                          <Pencil size={15} />
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(emp)} 
+                          className="p-1 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors" 
+                          title="Mark Inactive"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 )) : (
@@ -791,11 +971,17 @@ export default function EmployeeMaster() {
                 (emp.Designation && emp.Designation.toLowerCase().includes(query))
               );
 
+              const matchesName = !nameFilter || (emp.user_name && emp.user_name.toLowerCase() === nameFilter.toLowerCase());
               const empDesg = emp.designation || emp.Designation || '';
               const matchesDesignation = !designationFilter || empDesg.toLowerCase() === designationFilter.toLowerCase();
               const matchesDepartment = !departmentFilter || (emp.department && emp.department.toLowerCase() === departmentFilter.toLowerCase());
 
-              return matchesSearch && matchesDesignation && matchesDepartment;
+              return matchesSearch && matchesName && matchesDesignation && matchesDepartment;
+            }).sort((a, b) => {
+              const orderA = getDesignationSortOrder(a.designation || a.Designation);
+              const orderB = getDesignationSortOrder(b.designation || b.Designation);
+              if (orderA !== orderB) return orderA - orderB;
+              return (a.user_name || '').localeCompare(b.user_name || '');
             });
 
             return filteredEmployees.length > 0 ? filteredEmployees.map((emp, idx) => (
@@ -834,8 +1020,9 @@ export default function EmployeeMaster() {
                     </div>
                   </div>
                   <div className="flex gap-2 bg-gray-50 p-1.5 rounded-lg border border-gray-100">
-                    <button onClick={() => handleEdit(emp)} className="text-blue-600 p-1.5 hover:bg-blue-50 rounded transition-colors"><Pencil size={16} /></button>
-                    <button onClick={() => handleDelete(emp)} className="text-red-500 p-1.5 hover:bg-red-50 rounded transition-colors"><Trash2 size={16} /></button>
+                    <button onClick={() => handleViewEmployee(emp)} className="text-gray-600 p-1.5 hover:bg-gray-100 rounded transition-colors" title="View Profile"><Eye size={16} /></button>
+                    <button onClick={() => handleEdit(emp)} className="text-blue-600 p-1.5 hover:bg-blue-50 rounded transition-colors" title="Edit"><Pencil size={16} /></button>
+                    <button onClick={() => handleDelete(emp)} className="text-red-500 p-1.5 hover:bg-red-50 rounded transition-colors" title="Delete"><Trash2 size={16} /></button>
                   </div>
                 </div>
                 
@@ -1169,6 +1356,357 @@ export default function EmployeeMaster() {
               style={{ maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain', borderRadius: '8px', boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }} 
               onClick={(e) => e.stopPropagation()}
             />
+          </div>
+        </div>
+      )}
+
+      {/* Employee Quick View Modal */}
+      {viewEmployeeModal && (
+        <div 
+          onClick={() => setViewEmployeeModal(null)}
+          style={{ 
+            position: 'fixed', 
+            top: 0, 
+            left: 0, 
+            right: 0, 
+            bottom: 0, 
+            backgroundColor: 'rgba(15, 23, 42, 0.7)', 
+            backdropFilter: 'blur(8px)', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            zIndex: 10000, 
+            padding: '20px' 
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="card fade-in" 
+            style={{ 
+              width: '100%', 
+              maxWidth: '680px', 
+              maxHeight: '92vh', 
+              overflowY: 'auto', 
+              borderRadius: '24px', 
+              padding: '0', 
+              boxShadow: '0 30px 60px -15px rgba(0, 0, 0, 0.35)', 
+              border: '1px solid rgba(255, 255, 255, 0.1)', 
+              background: '#ffffff',
+              position: 'relative'
+            }}
+          >
+            {/* Modal Header with Gradient & Overlay Pattern */}
+            <div style={{ 
+              background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #334155 100%)', 
+              padding: '28px 32px 24px', 
+              color: '#ffffff', 
+              position: 'relative', 
+              borderTopLeftRadius: '24px', 
+              borderTopRightRadius: '24px',
+              overflow: 'hidden'
+            }}>
+              {/* Decorative background glow circle */}
+              <div style={{ position: 'absolute', top: '-50px', right: '-50px', width: '160px', height: '160px', background: 'radial-gradient(circle, rgba(239, 68, 68, 0.25) 0%, rgba(239, 68, 68, 0) 70%)', borderRadius: '50%', pointerEvents: 'none' }}></div>
+              <div style={{ position: 'absolute', bottom: '-40px', left: '20%', width: '140px', height: '140px', background: 'radial-gradient(circle, rgba(59, 130, 246, 0.2) 0%, rgba(59, 130, 246, 0) 70%)', borderRadius: '50%', pointerEvents: 'none' }}></div>
+
+              <button 
+                onClick={() => setViewEmployeeModal(null)}
+                style={{ 
+                  position: 'absolute', 
+                  top: '18px', 
+                  right: '18px', 
+                  background: 'rgba(255,255,255,0.12)', 
+                  border: '1px solid rgba(255,255,255,0.2)', 
+                  color: '#ffffff', 
+                  borderRadius: '50%', 
+                  width: '34px', 
+                  height: '34px', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  cursor: 'pointer',
+                  transition: 'background 0.2s',
+                  zIndex: 2
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.25)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.12)'}
+                title="Close"
+              >
+                <X size={18} />
+              </button>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '22px', position: 'relative', zIndex: 1 }}>
+                <div style={{ position: 'relative' }}>
+                  {getEmployeePhotoUrl(viewEmployeeModal) ? (
+                    <img 
+                      src={getEmployeePhotoUrl(viewEmployeeModal)} 
+                      alt={viewEmployeeModal.user_name} 
+                      style={{ 
+                        width: '84px', 
+                        height: '84px', 
+                        borderRadius: '22px', 
+                        objectFit: 'cover', 
+                        border: '3px solid rgba(255, 255, 255, 0.9)', 
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.3)' 
+                      }} 
+                    />
+                  ) : (
+                    <div style={{ 
+                      width: '84px', 
+                      height: '84px', 
+                      borderRadius: '22px', 
+                      background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)', 
+                      color: '#ffffff', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      fontSize: '32px', 
+                      fontWeight: '800', 
+                      border: '3px solid rgba(255, 255, 255, 0.9)',
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.3)' 
+                    }}>
+                      {viewEmployeeModal.user_name ? viewEmployeeModal.user_name.charAt(0).toUpperCase() : '?'}
+                    </div>
+                  )}
+                  <span style={{ 
+                    position: 'absolute', 
+                    bottom: '-4px', 
+                    right: '-4px', 
+                    width: '16px', 
+                    height: '16px', 
+                    borderRadius: '50%', 
+                    border: '3px solid #0f172a',
+                    backgroundColor: (!viewEmployeeModal.status || viewEmployeeModal.status.toLowerCase() === 'active') ? '#10b981' : '#ef4444' 
+                  }}></span>
+                </div>
+
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                    <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '800', letterSpacing: '-0.02em', color: '#ffffff' }}>
+                      {viewEmployeeModal.user_name}
+                    </h2>
+                    <span style={{
+                      padding: '3px 10px',
+                      borderRadius: '20px',
+                      fontSize: '0.72rem',
+                      fontWeight: '700',
+                      letterSpacing: '0.04em',
+                      textTransform: 'uppercase',
+                      backgroundColor: (!viewEmployeeModal.status || viewEmployeeModal.status.toLowerCase() === 'active') ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                      border: `1px solid ${(!viewEmployeeModal.status || viewEmployeeModal.status.toLowerCase() === 'active') ? '#10b981' : '#ef4444'}`,
+                      color: (!viewEmployeeModal.status || viewEmployeeModal.status.toLowerCase() === 'active') ? '#34d399' : '#f87171'
+                    }}>
+                      {viewEmployeeModal.status || 'Active'}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '8px', flexWrap: 'wrap' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.82rem', color: '#cbd5e1', background: 'rgba(255,255,255,0.08)', padding: '3px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                      <Briefcase size={13} color="#94a3b8" /> {viewEmployeeModal.designation || 'Staff'}
+                    </span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.82rem', color: '#93c5fd', background: 'rgba(59, 130, 246, 0.12)', padding: '3px 10px', borderRadius: '8px', border: '1px solid rgba(59, 130, 246, 0.25)', fontWeight: '600' }}>
+                      <Building size={13} color="#60a5fa" /> {viewEmployeeModal.department || 'General'}
+                    </span>
+                    {viewEmployeeModal.employee_id && (
+                      <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+                        ID: <strong style={{ color: '#e2e8f0' }}>{viewEmployeeModal.employee_id}</strong>
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Profile Content Body */}
+            <div style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: '22px', background: '#f8fafc' }}>
+              
+              {/* Section 1: Contact Details */}
+              <div style={{ background: '#ffffff', borderRadius: '16px', padding: '18px 20px', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+                  <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb' }}>
+                    <Phone size={15} />
+                  </div>
+                  <h4 style={{ margin: 0, fontSize: '0.8rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#334155' }}>
+                    Contact & Personal Information
+                  </h4>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase' }}>Phone Number</span>
+                    <span style={{ fontSize: '0.92rem', fontWeight: '700', color: '#0f172a' }}>{viewEmployeeModal.number || '-'}</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase' }}>Email Address</span>
+                    <span style={{ fontSize: '0.92rem', fontWeight: '600', color: '#0f172a', wordBreak: 'break-all' }}>{viewEmployeeModal.email || '-'}</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase' }}>Father's Name</span>
+                    <span style={{ fontSize: '0.92rem', fontWeight: '700', color: '#0f172a' }}>{viewEmployeeModal.fathers_name || '-'}</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase' }}>Date of Birth</span>
+                    <span style={{ fontSize: '0.92rem', fontWeight: '700', color: '#0f172a' }}>{viewEmployeeModal.dob ? formatDisplayDate(viewEmployeeModal.dob) : '-'}</span>
+                  </div>
+                  {viewEmployeeModal.address && (
+                    <div style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', gap: '2px', paddingTop: '4px' }}>
+                      <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase' }}>Residential Address</span>
+                      <span style={{ fontSize: '0.88rem', fontWeight: '500', color: '#334155' }}>{viewEmployeeModal.address}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Section 2: Employment Info */}
+              <div style={{ background: '#ffffff', borderRadius: '16px', padding: '18px 20px', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+                  <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d97706' }}>
+                    <Briefcase size={15} />
+                  </div>
+                  <h4 style={{ margin: 0, fontSize: '0.8rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#334155' }}>
+                    Role & Employment Details
+                  </h4>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase' }}>Joining Date</span>
+                    <span style={{ fontSize: '0.92rem', fontWeight: '700', color: '#0f172a' }}>{viewEmployeeModal.joining_date ? formatDisplayDate(viewEmployeeModal.joining_date) : '-'}</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase' }}>Experience Duration</span>
+                    <span style={{ fontSize: '0.92rem', fontWeight: '700', color: '#2563eb' }}>{calculateDynamicExperience(viewEmployeeModal.joining_date, viewEmployeeModal.experience)}</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase' }}>Department</span>
+                    <span style={{ fontSize: '0.92rem', fontWeight: '700', color: '#0f172a' }}>{viewEmployeeModal.department || '-'}</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase' }}>Designation / Firm</span>
+                    <div>
+                      <span style={getDesignationStyle(viewEmployeeModal.designation)}>
+                        {viewEmployeeModal.designation || '-'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 3: Bank & Identity Verification */}
+              <div style={{ background: '#ffffff', borderRadius: '16px', padding: '18px 20px', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+                  <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#059669' }}>
+                    <CreditCard size={15} />
+                  </div>
+                  <h4 style={{ margin: 0, fontSize: '0.8rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#334155' }}>
+                    Bank & Identity Information
+                  </h4>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase' }}>Aadhar Card No</span>
+                    <span style={{ fontSize: '0.92rem', fontWeight: '700', color: '#0f172a', letterSpacing: '0.04em' }}>{viewEmployeeModal.aadhar_no || '-'}</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase' }}>Bank Account No</span>
+                    <span style={{ fontSize: '0.92rem', fontWeight: '700', color: '#0f172a', letterSpacing: '0.04em' }}>{viewEmployeeModal.account_no || '-'}</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase' }}>IFSC Code</span>
+                    <span style={{ fontSize: '0.92rem', fontWeight: '700', color: '#0f172a' }}>{viewEmployeeModal.ifsc_code || '-'}</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase' }}>Branch Name</span>
+                    <span style={{ fontSize: '0.92rem', fontWeight: '700', color: '#0f172a' }}>{viewEmployeeModal.branch_name || '-'}</span>
+                  </div>
+                </div>
+
+                {/* Uploaded Documents Quick Access if available */}
+                {(viewEmployeeModal.aadhar_doc || viewEmployeeModal.pan_doc || viewEmployeeModal.account_doc) && (
+                  <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px dashed #e2e8f0', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                    {viewEmployeeModal.aadhar_doc && (
+                      <button 
+                        type="button" 
+                        onClick={() => setPreviewModalImg(viewEmployeeModal.aadhar_doc)} 
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: '600', padding: '5px 12px', borderRadius: '8px', background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', cursor: 'pointer' }}
+                      >
+                        <FileText size={13} /> View Aadhar
+                      </button>
+                    )}
+                    {viewEmployeeModal.pan_doc && (
+                      <button 
+                        type="button" 
+                        onClick={() => setPreviewModalImg(viewEmployeeModal.pan_doc)} 
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: '600', padding: '5px 12px', borderRadius: '8px', background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', cursor: 'pointer' }}
+                      >
+                        <FileText size={13} /> View PAN
+                      </button>
+                    )}
+                    {viewEmployeeModal.account_doc && (
+                      <button 
+                        type="button" 
+                        onClick={() => setPreviewModalImg(viewEmployeeModal.account_doc)} 
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: '600', padding: '5px 12px', borderRadius: '8px', background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', cursor: 'pointer' }}
+                      >
+                        <FileText size={13} /> View Passbook
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons inside Modal */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', paddingTop: '8px' }}>
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    const emp = viewEmployeeModal;
+                    setViewEmployeeModal(null);
+                    handleEdit(emp);
+                  }}
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '8px', 
+                    padding: '10px 20px', 
+                    borderRadius: '12px', 
+                    border: '1px solid #cbd5e1', 
+                    background: '#ffffff', 
+                    color: '#334155', 
+                    fontWeight: '700', 
+                    cursor: 'pointer', 
+                    fontSize: '0.88rem',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.borderColor = '#94a3b8'}
+                  onMouseLeave={(e) => e.currentTarget.style.borderColor = '#cbd5e1'}
+                >
+                  <Pencil size={15} /> Edit Employee
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => setViewEmployeeModal(null)}
+                  style={{ 
+                    padding: '10px 24px', 
+                    borderRadius: '12px', 
+                    border: 'none', 
+                    background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', 
+                    color: '#ffffff', 
+                    fontWeight: '700', 
+                    cursor: 'pointer', 
+                    fontSize: '0.88rem',
+                    boxShadow: '0 4px 12px rgba(220, 38, 38, 0.25)',
+                    transition: 'opacity 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+                  onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

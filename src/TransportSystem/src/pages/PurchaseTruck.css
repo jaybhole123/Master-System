@@ -22,7 +22,7 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0f172a;
+    /* --bg: #0f172a; */
     --card: #1e293b;
     --tx: #f8fafc;
     --mut: #94a3b8;

@@ -127,6 +127,11 @@ const MODULES = [
     pages: ['Stock Management', 'Incoming & Outgoing', 'Production', 'Sauda sale', 'Sauda Purchase', 'MIS Report']
   },
   {
+    id: 'Hindustan Dhaatu Ltd (Billet) Report',
+    name: 'Hindustan Dhaatu Ltd (Billet) Report',
+    pages: ['Dashboard', 'Consumption Report', 'Billet Report', 'MIS Report']
+  },
+  {
     id: 'Global Settings',
     name: 'Global Settings',
     pages: ['Global Settings']

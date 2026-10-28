@@ -20,9 +20,22 @@ export default defineConfig(({ mode }) => {
     ...process.env,
     ...loadEnv(mode, process.cwd(), ''),
     ...loadEnv(mode, './src/Plant_Hindustan_Datthu_Sopnge', ''),
+    ...loadEnv(mode, './src/Hindustan_Billet', ''),
   }
 
+  const openAiKey = env.OPENAI_API_KEY || env.VITE_OPENAI_API_KEY || ''
+  const ocrModel = env.OCR_MODEL || env.VITE_OCR_MODEL || 'gpt-5.6-sol'
+  const ocrVerifyModel = env.OCR_VERIFY_MODEL || env.VITE_OCR_VERIFY_MODEL || 'gpt-5.6-terra'
+
   return {
+    define: {
+      'import.meta.env.VITE_OPENAI_API_KEY': JSON.stringify(openAiKey),
+      'import.meta.env.OPENAI_API_KEY': JSON.stringify(openAiKey),
+      'import.meta.env.VITE_OCR_MODEL': JSON.stringify(ocrModel),
+      'import.meta.env.OCR_MODEL': JSON.stringify(ocrModel),
+      'import.meta.env.VITE_OCR_VERIFY_MODEL': JSON.stringify(ocrVerifyModel),
+      'import.meta.env.OCR_VERIFY_MODEL': JSON.stringify(ocrVerifyModel),
+    },
     plugins: [
       react(),
       tailwindcss(),

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useEmployees } from '../hooks/useEmployees';
 import { supabase } from '../lib/supabase';
-import { Loader } from 'lucide-react';
+import { Loader, User, Calendar, Clock, DollarSign, ArrowDownRight, ShieldAlert, CreditCard, CheckCircle2, ChevronRight, Save } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const MONTH_LIST = [
@@ -465,35 +465,65 @@ export default function SalaryStructure() {
   const isAlreadyEntered = selectedEmp && formData.salaryMonth && salaries[selectedEmp] && salaries[selectedEmp].salaryMonth === formData.salaryMonth;
 
   return (
-    <div className="fade-in">
-      <div className="page-header" style={{ marginBottom: '24px' }}>
-        <h1 className="page-title">Salary Structure</h1>
-        <p className="page-subtitle">Define base salary and allowances for employees.</p>
-      </div>
-
-      <div className="card fade-in">
-        <h3 style={{ marginBottom: '24px', fontSize: '1.25rem', color: '#1e293b' }}>Salary Structure Form</h3>
-        
-        {/* SECTION 1: Employee Details */}
-        {isAlreadyEntered && (
-          <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#047857', padding: '12px 16px', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.2)', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px', fontWeight: 600, fontSize: '0.95rem' }}>
-            <span style={{ fontSize: '1.2rem' }}>✓</span> Salary structure for {formData.salaryMonth} has already been saved for this employee.
+    <div className="fade-in space-y-6 max-w-7xl mx-auto pb-16">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-slate-200/80">
+        <div>
+          <h1 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
+            <DollarSign className="text-red-600 w-7 h-7" /> Salary Structure
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">
+            Define base salary, attendance variables, allowances, and statutory deductions for employees.
+          </p>
+        </div>
+        {selectedEmp && (
+          <div className="flex items-center gap-2 self-start sm:self-auto bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span className="text-xs font-bold text-slate-700">
+              Selected: <strong className="text-slate-900">{selectedEmpData.name || 'Employee'}</strong>
+            </span>
           </div>
         )}
-        <div style={{ backgroundColor: '#f8fafc', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '24px' }}>
-          <h4 style={{ margin: '0 0 16px 0', color: '#475569', fontSize: '1rem', borderBottom: '2px solid #e2e8f0', paddingBottom: '8px' }}>Employee Information</h4>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
-            <div className="form-group" style={{ gridColumn: 'span 1' }}>
-              <label>Employee Name</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+      </div>
+
+        {/* Main Structure Form Container */}
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 sm:p-8 space-y-7">
+
+        {/* SECTION 1: Employee Information */}
+        <div className="bg-slate-50/80 rounded-2xl p-5 sm:p-6 border border-slate-200/70 transition-all hover:border-slate-300">
+          <div className="flex items-center justify-between pb-3.5 mb-5 border-b border-slate-200/80">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
+                <User size={16} />
+              </div>
+              <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wider">
+                1. Employee & Period Details
+              </h3>
+            </div>
+            <span className="text-[11px] font-bold text-slate-400 bg-white px-2.5 py-1 rounded-lg border border-slate-200">
+              Step 1 of 5
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+            {/* Employee Name Selector */}
+            <div className="space-y-1.5 lg:col-span-1">
+              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1">
+                Employee Name <span className="text-red-500">*</span>
+              </label>
+              <div className="flex items-center gap-2.5 bg-white p-1.5 rounded-xl border border-slate-200 shadow-2xs focus-within:border-red-500 focus-within:ring-2 focus-within:ring-red-500/10 transition-all">
                 {selectedEmpPhoto ? (
-                  <img src={selectedEmpPhoto} alt={selectedEmpData.name || 'Employee'} style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--border-color)' }} />
+                  <img src={selectedEmpPhoto} alt="Employee" className="w-9 h-9 rounded-lg object-cover shrink-0 border border-slate-200" />
                 ) : (
-                  <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#475569' }}>
+                  <div className="w-9 h-9 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-sm shrink-0 border border-slate-200">
                     {selectedEmpData.name ? selectedEmpData.name.charAt(0).toUpperCase() : '?'}
                   </div>
                 )}
-                <select value={selectedEmp} onChange={handleSelectChange} style={{ flex: 1 }}>
+                <select 
+                  value={selectedEmp} 
+                  onChange={handleSelectChange} 
+                  className="w-full bg-transparent text-sm font-semibold text-slate-800 outline-none cursor-pointer py-1"
+                >
                   <option value="">-- Select Employee --</option>
                   {activeEmployees.map(emp => (
                     <option key={emp.id} value={emp.id}>{emp.name}</option>
@@ -501,23 +531,63 @@ export default function SalaryStructure() {
                 </select>
               </div>
             </div>
-            <div className="form-group">
-              <label>Department</label>
-              <input type="text" value={selectedEmp ? (selectedEmpData.department || 'N/A') : 'Select an employee'} disabled style={{ opacity: 0.7 }} />
+
+            {/* Department */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                Department
+              </label>
+              <input 
+                type="text" 
+                value={selectedEmp ? (selectedEmpData.department || 'General') : 'Select an employee'} 
+                disabled 
+                className="w-full bg-slate-100/90 text-slate-700 text-sm font-semibold rounded-xl border border-slate-200/90 py-2.5 px-3.5 outline-none cursor-not-allowed shadow-2xs" 
+              />
             </div>
-            <div className="form-group">
-              <label>Designation</label>
-              <div style={{ display: 'flex', alignItems: 'center', height: '42px', padding: '0 12px', border: '1px solid var(--border-color)', borderRadius: '6px', backgroundColor: 'var(--bg-main)', opacity: 0.8 }}>
-                {selectedEmp ? <span style={getDesignationStyle(selectedEmpData.designation)}>{selectedEmpData.designation || 'N/A'}</span> : <span style={{ color: 'var(--text-secondary)' }}>Select an employee</span>}
+
+            {/* Designation / Firm */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                Designation / Firm
+              </label>
+              <div className="w-full h-[42px] flex items-center px-3.5 rounded-xl border border-slate-200/90 bg-slate-100/90 shadow-2xs overflow-hidden">
+                {selectedEmp ? (
+                  <span style={getDesignationStyle(selectedEmpData.designation)} className="truncate font-semibold text-xs">
+                    {selectedEmpData.designation || 'General Staff'}
+                  </span>
+                ) : (
+                  <span className="text-slate-400 text-sm">Select an employee</span>
+                )}
               </div>
             </div>
-            <div className="form-group">
-              <label>Salary Date</label>
-              <input type="date" name="salaryDate" value={formData.salaryDate} onChange={handleChange} disabled={!selectedEmp} />
+
+            {/* Salary Date */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1">
+                <Calendar size={13} className="text-slate-400" /> Salary Date
+              </label>
+              <input 
+                type="date" 
+                name="salaryDate" 
+                value={formData.salaryDate} 
+                onChange={handleChange} 
+                disabled={!selectedEmp} 
+                className="w-full bg-white text-slate-800 text-sm font-medium rounded-xl border border-slate-200 py-2.5 px-3.5 outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/10 disabled:bg-slate-100 disabled:cursor-not-allowed shadow-2xs transition-all"
+              />
             </div>
-            <div className="form-group">
-              <label>Month</label>
-              <select name="salaryMonth" value={getMonthName(formData.salaryMonth)} onChange={handleChange} disabled={!selectedEmp}>
+
+            {/* Month Selector */}
+            <div className="space-y-1.5 lg:col-span-2">
+              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1">
+                <Clock size={13} className="text-slate-400" /> Salary Month
+              </label>
+              <select 
+                name="salaryMonth" 
+                value={getMonthName(formData.salaryMonth)} 
+                onChange={handleChange} 
+                disabled={!selectedEmp}
+                className="w-full bg-white text-slate-800 text-sm font-medium rounded-xl border border-slate-200 py-2.5 px-3.5 outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/10 disabled:bg-slate-100 disabled:cursor-not-allowed shadow-2xs transition-all cursor-pointer"
+              >
                 <option value="">-- Select Month --</option>
                 {MONTH_LIST.map(m => (
                   <option key={m} value={m}>{m}</option>
@@ -528,154 +598,427 @@ export default function SalaryStructure() {
         </div>
 
         {/* SECTION 2: Attendance & Leaves */}
-        <div style={{ backgroundColor: '#f8fafc', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '24px' }}>
-          <h4 style={{ margin: '0 0 16px 0', color: '#475569', fontSize: '1rem', borderBottom: '2px solid #e2e8f0', paddingBottom: '8px' }}>Attendance & Leaves</h4>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '20px' }}>
-            <div className="form-group">
-              <label>Total No. Of Days</label>
-              <input type="number" name="totalDays" value={formData.totalDays === 0 && formData.totalDays !== '' ? '' : formData.totalDays} onChange={handleChange} disabled={!selectedEmp} />
+        <div className="bg-slate-50/80 rounded-2xl p-5 sm:p-6 border border-slate-200/70 transition-all hover:border-slate-300">
+          <div className="flex items-center justify-between pb-3.5 mb-5 border-b border-slate-200/80">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold">
+                <Clock size={16} />
+              </div>
+              <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wider">
+                2. Attendance & Leaves Calculation
+              </h3>
             </div>
-            <div className="form-group">
-              <label>Present Days</label>
-              <input type="number" name="presentDays" value={formData.presentDays === 0 && formData.presentDays !== '' ? '' : formData.presentDays} onChange={handleChange} disabled={!selectedEmp} />
+            <span className="text-[11px] font-bold text-purple-700 bg-purple-50 px-2.5 py-1 rounded-lg border border-purple-200">
+              Auto-synced
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">Total Days</label>
+              <input 
+                type="number" 
+                name="totalDays" 
+                value={formData.totalDays === 0 && formData.totalDays !== '' ? '' : formData.totalDays} 
+                onChange={handleChange} 
+                disabled={!selectedEmp} 
+                placeholder="0"
+                className="w-full bg-white text-slate-800 text-sm font-bold rounded-xl border border-slate-200 py-2 px-3 text-center outline-none focus:border-purple-500 disabled:bg-slate-100 shadow-2xs transition-all"
+              />
             </div>
-            <div className="form-group">
-              <label>Half Days</label>
-              <input type="number" name="halfDays" value={formData.halfDays === 0 && formData.halfDays !== '' ? '' : formData.halfDays} onChange={handleChange} disabled={!selectedEmp} />
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Present Days</label>
+              <input 
+                type="number" 
+                name="presentDays" 
+                value={formData.presentDays === 0 && formData.presentDays !== '' ? '' : formData.presentDays} 
+                onChange={handleChange} 
+                disabled={!selectedEmp} 
+                placeholder="0"
+                className="w-full bg-emerald-50/60 text-emerald-800 text-sm font-black rounded-xl border border-emerald-200 py-2 px-3 text-center outline-none focus:border-emerald-500 disabled:bg-slate-100 shadow-2xs transition-all"
+              />
             </div>
-            <div className="form-group">
-              <label>Absent Days</label>
-              <input type="number" name="absent" value={formData.absent === 0 && formData.absent !== '' ? '' : formData.absent} onChange={handleChange} disabled={!selectedEmp} />
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-amber-700 uppercase tracking-wider">Half Days</label>
+              <input 
+                type="number" 
+                name="halfDays" 
+                value={formData.halfDays === 0 && formData.halfDays !== '' ? '' : formData.halfDays} 
+                onChange={handleChange} 
+                disabled={!selectedEmp} 
+                placeholder="0"
+                className="w-full bg-amber-50/60 text-amber-800 text-sm font-bold rounded-xl border border-amber-200 py-2 px-3 text-center outline-none focus:border-amber-500 disabled:bg-slate-100 shadow-2xs transition-all"
+              />
             </div>
-            <div className="form-group">
-              <label>Leaves</label>
-              <input type="number" name="leaves" value={formData.leaves === 0 && formData.leaves !== '' ? '' : formData.leaves} onChange={handleChange} disabled={!selectedEmp} />
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-rose-700 uppercase tracking-wider">Absent Days</label>
+              <input 
+                type="number" 
+                name="absent" 
+                value={formData.absent === 0 && formData.absent !== '' ? '' : formData.absent} 
+                onChange={handleChange} 
+                disabled={!selectedEmp} 
+                placeholder="0"
+                className="w-full bg-rose-50/60 text-rose-800 text-sm font-bold rounded-xl border border-rose-200 py-2 px-3 text-center outline-none focus:border-rose-500 disabled:bg-slate-100 shadow-2xs transition-all"
+              />
             </div>
-            <div className="form-group">
-              <label>Leave Deduction (₹)</label>
-              <input type="number" name="leaveDeduction" value={formData.leaveDeduction === 0 && formData.leaveDeduction !== '' ? '' : formData.leaveDeduction} onChange={handleChange} disabled={!selectedEmp} />
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-blue-700 uppercase tracking-wider">Leaves</label>
+              <input 
+                type="number" 
+                name="leaves" 
+                value={formData.leaves === 0 && formData.leaves !== '' ? '' : formData.leaves} 
+                onChange={handleChange} 
+                disabled={!selectedEmp} 
+                placeholder="0"
+                className="w-full bg-blue-50/60 text-blue-800 text-sm font-bold rounded-xl border border-blue-200 py-2 px-3 text-center outline-none focus:border-blue-500 disabled:bg-slate-100 shadow-2xs transition-all"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-red-700 uppercase tracking-wider">Leave Deduct. (₹)</label>
+              <input 
+                type="number" 
+                name="leaveDeduction" 
+                value={formData.leaveDeduction === 0 && formData.leaveDeduction !== '' ? '' : formData.leaveDeduction} 
+                onChange={handleChange} 
+                disabled={!selectedEmp} 
+                placeholder="0"
+                className="w-full bg-red-50/70 text-red-700 text-sm font-black rounded-xl border border-red-200 py-2 px-3 text-center outline-none focus:border-red-500 disabled:bg-slate-100 shadow-2xs transition-all"
+              />
             </div>
           </div>
         </div>
 
-        {/* SECTION 3: Earnings */}
-        <div style={{ backgroundColor: '#f0fdf4', padding: '20px', borderRadius: '8px', border: '1px solid #dcfce7', marginBottom: '24px' }}>
-          <h4 style={{ margin: '0 0 16px 0', color: '#166534', fontSize: '1rem', borderBottom: '2px solid #bbf7d0', paddingBottom: '8px' }}>Earnings & Allowances</h4>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
-            <div className="form-group">
-              <label>Basic Salary (₹)</label>
-              <input type="number" name="basic" value={formData.basic === 0 && formData.basic !== '' ? '' : formData.basic} onChange={handleChange} disabled={!selectedEmp} />
+        {/* SECTION 3: Earnings & Allowances */}
+        <div className="bg-emerald-50/40 rounded-2xl p-5 sm:p-6 border border-emerald-200/70 transition-all hover:border-emerald-300">
+          <div className="flex items-center justify-between pb-3.5 mb-5 border-b border-emerald-200/80">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
+                <DollarSign size={16} />
+              </div>
+              <h3 className="font-bold text-emerald-900 text-sm uppercase tracking-wider">
+                3. Earnings & Allowances
+              </h3>
             </div>
-            <div className="form-group">
-              <label>HRA (₹)</label>
-              <input type="number" name="hra" value={formData.hra === 0 && formData.hra !== '' ? '' : formData.hra} onChange={handleChange} disabled={!selectedEmp} />
+            <span className="text-[11px] font-bold text-emerald-800 bg-emerald-100/70 px-2.5 py-1 rounded-lg border border-emerald-300">
+              Gross Components
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Basic Salary (₹)</label>
+              <input 
+                type="number" 
+                name="basic" 
+                value={formData.basic === 0 && formData.basic !== '' ? '' : formData.basic} 
+                onChange={handleChange} 
+                disabled={!selectedEmp} 
+                placeholder="0.00"
+                className="w-full bg-white text-slate-800 text-sm font-semibold rounded-xl border border-emerald-200 py-2.5 px-3.5 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:bg-slate-100 shadow-2xs transition-all"
+              />
             </div>
-            <div className="form-group">
-              <label>Allowances (₹)</label>
-              <input type="number" name="allowances" value={formData.allowances === 0 && formData.allowances !== '' ? '' : formData.allowances} onChange={handleChange} disabled={!selectedEmp} />
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">HRA (₹)</label>
+              <input 
+                type="number" 
+                name="hra" 
+                value={formData.hra === 0 && formData.hra !== '' ? '' : formData.hra} 
+                onChange={handleChange} 
+                disabled={!selectedEmp} 
+                placeholder="0.00"
+                className="w-full bg-white text-slate-800 text-sm font-semibold rounded-xl border border-emerald-200 py-2.5 px-3.5 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:bg-slate-100 shadow-2xs transition-all"
+              />
             </div>
-            <div className="form-group">
-              <label>Gross Salary (₹)</label>
-              <input type="number" value={grossSalary.toFixed(2)} disabled style={{ opacity: 0.9, backgroundColor: '#dcfce7', fontWeight: 600, color: '#166534', borderColor: '#86efac' }} />
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Allowances (₹)</label>
+              <input 
+                type="number" 
+                name="allowances" 
+                value={formData.allowances === 0 && formData.allowances !== '' ? '' : formData.allowances} 
+                onChange={handleChange} 
+                disabled={!selectedEmp} 
+                placeholder="0.00"
+                className="w-full bg-white text-slate-800 text-sm font-semibold rounded-xl border border-emerald-200 py-2.5 px-3.5 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:bg-slate-100 shadow-2xs transition-all"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-emerald-900 uppercase tracking-wider">Gross Salary (₹)</label>
+              <div className="w-full bg-emerald-100/90 text-emerald-900 font-black text-base rounded-xl border border-emerald-300 py-2 px-3.5 flex items-center justify-between shadow-2xs h-[42px]">
+                <span className="text-xs font-bold text-emerald-700">TOTAL</span>
+                <span>₹{grossSalary.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
             </div>
           </div>
         </div>
 
         {/* SECTION 4: Advances & Recoveries */}
-        <div style={{ backgroundColor: '#fffbeb', padding: '20px', borderRadius: '8px', border: '1px solid #fef3c7', marginBottom: '24px' }}>
-          <h4 style={{ margin: '0 0 16px 0', color: '#92400e', fontSize: '1rem', borderBottom: '2px solid #fde68a', paddingBottom: '8px' }}>Advances & Recoveries</h4>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
-            <div className="form-group">
-              <label>Month Advance (₹)</label>
-              <input type="number" name="monthAdvance" value={formData.monthAdvance === 0 && formData.monthAdvance !== '' ? '' : formData.monthAdvance} onChange={handleChange} disabled={!selectedEmp} />
+        <div className="bg-amber-50/40 rounded-2xl p-5 sm:p-6 border border-amber-200/70 transition-all hover:border-amber-300">
+          <div className="flex items-center justify-between pb-3.5 mb-5 border-b border-amber-200/80">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold">
+                <ArrowDownRight size={16} />
+              </div>
+              <h3 className="font-bold text-amber-900 text-sm uppercase tracking-wider">
+                4. Advances & Recoveries
+              </h3>
             </div>
-            <div className="form-group">
-              <label>Month Recovery (₹)</label>
-              <input type="number" name="monthRecovery" value={formData.monthRecovery === 0 && formData.monthRecovery !== '' ? '' : formData.monthRecovery} onChange={handleChange} disabled={!selectedEmp} />
+            <span className="text-[11px] font-bold text-amber-800 bg-amber-100/70 px-2.5 py-1 rounded-lg border border-amber-300">
+              Variable Adjustments
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Month Advance (₹)</label>
+              <input 
+                type="number" 
+                name="monthAdvance" 
+                value={formData.monthAdvance === 0 && formData.monthAdvance !== '' ? '' : formData.monthAdvance} 
+                onChange={handleChange} 
+                disabled={!selectedEmp} 
+                placeholder="0.00"
+                className="w-full bg-white text-slate-800 text-sm font-semibold rounded-xl border border-amber-200 py-2.5 px-3.5 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 disabled:bg-slate-100 shadow-2xs transition-all"
+              />
             </div>
-            <div className="form-group">
-              <label>Prev Advance Deduction (₹)</label>
-              <input type="number" name="prevAdvanceDeduction" value={formData.prevAdvanceDeduction === 0 && formData.prevAdvanceDeduction !== '' ? '' : formData.prevAdvanceDeduction} onChange={handleChange} disabled={!selectedEmp} />
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Month Recovery (₹)</label>
+              <input 
+                type="number" 
+                name="monthRecovery" 
+                value={formData.monthRecovery === 0 && formData.monthRecovery !== '' ? '' : formData.monthRecovery} 
+                onChange={handleChange} 
+                disabled={!selectedEmp} 
+                placeholder="0.00"
+                className="w-full bg-white text-slate-800 text-sm font-semibold rounded-xl border border-amber-200 py-2.5 px-3.5 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 disabled:bg-slate-100 shadow-2xs transition-all"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Prev Advance Deduction (₹)</label>
+              <input 
+                type="number" 
+                name="prevAdvanceDeduction" 
+                value={formData.prevAdvanceDeduction === 0 && formData.prevAdvanceDeduction !== '' ? '' : formData.prevAdvanceDeduction} 
+                onChange={handleChange} 
+                disabled={!selectedEmp} 
+                placeholder="0.00"
+                className="w-full bg-white text-slate-800 text-sm font-semibold rounded-xl border border-amber-200 py-2.5 px-3.5 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 disabled:bg-slate-100 shadow-2xs transition-all"
+              />
             </div>
           </div>
         </div>
 
-        {/* SECTION 5: Deductions */}
-        <div style={{ backgroundColor: '#fef2f2', padding: '20px', borderRadius: '8px', border: '1px solid #fee2e2', marginBottom: '24px' }}>
-          <h4 style={{ margin: '0 0 16px 0', color: '#991b1b', fontSize: '1rem', borderBottom: '2px solid #fecaca', paddingBottom: '8px' }}>Statutory & Other Deductions</h4>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '20px' }}>
-            <div className="form-group">
-              <label>PF Option</label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: selectedEmp ? 'pointer' : 'not-allowed', userSelect: 'none', backgroundColor: formData.pfApplicable ? '#dbeafe' : '#fee2e2', padding: '10px 16px', borderRadius: '6px', border: '1px solid #bfdbfe', width: '100%', transition: 'all 0.3s', margin: 0 }}>
-                <input type="checkbox" name="pfApplicable" checked={formData.pfApplicable} onChange={handleChange} disabled={!selectedEmp} style={{ width: '16px', height: '16px', margin: 0 }} />
-                <span style={{ fontWeight: 600, color: formData.pfApplicable ? '#1e40af' : '#991b1b', fontSize: '0.85rem' }}>
-                  {formData.pfApplicable ? 'Deduct PF' : 'No PF'}
-                </span>
-              </label>
+        {/* SECTION 5: Statutory & Other Deductions */}
+        <div className="bg-rose-50/40 rounded-2xl p-5 sm:p-6 border border-rose-200/70 transition-all hover:border-rose-300">
+          <div className="flex items-center justify-between pb-3.5 mb-5 border-b border-rose-200/80">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-rose-100 text-rose-800 flex items-center justify-center font-bold">
+                <ShieldAlert size={16} />
+              </div>
+              <h3 className="font-bold text-rose-900 text-sm uppercase tracking-wider">
+                5. Statutory & Other Deductions
+              </h3>
             </div>
-            <div className="form-group">
-              <label>ESIC Option</label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: selectedEmp ? 'pointer' : 'not-allowed', userSelect: 'none', backgroundColor: formData.esicApplicable ? '#d1fae5' : '#fee2e2', padding: '10px 16px', borderRadius: '6px', border: '1px solid #a7f3d0', width: '100%', transition: 'all 0.3s', margin: 0 }}>
-                <input type="checkbox" name="esicApplicable" checked={formData.esicApplicable} onChange={handleChange} disabled={!selectedEmp} style={{ width: '16px', height: '16px', margin: 0 }} />
-                <span style={{ fontWeight: 600, color: formData.esicApplicable ? '#065f46' : '#991b1b', fontSize: '0.85rem' }}>
-                  {formData.esicApplicable ? 'Deduct ESIC' : 'No ESIC'}
-                </span>
-              </label>
-            </div>
-            <div className="form-group">
-              <label>PF (₹)</label>
-              <input type="number" value={pfAmount.toFixed(2)} disabled style={{ opacity: 0.7 }} />
-            </div>
-            <div className="form-group">
-              <label>ESIC (₹)</label>
-              <input type="number" value={esicAmount.toFixed(2)} disabled style={{ opacity: 0.7 }} />
-            </div>
+            <span className="text-[11px] font-bold text-rose-800 bg-rose-100/70 px-2.5 py-1 rounded-lg border border-rose-300">
+              Tax & PF/ESIC
+            </span>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
-            <div className="form-group">
-              <label>Prof. Tax (₹)</label>
-              <input type="number" name="profTax" value={formData.profTax === 0 && formData.profTax !== '' ? '' : formData.profTax} onChange={handleChange} disabled={!selectedEmp} />
+
+          {/* Direct uniform 5-column or responsive 2-row layout */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+            {/* PF Option */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">PF Option</label>
+                <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">12%</span>
+              </div>
+              <label className={`flex items-center justify-between h-[42px] px-3.5 rounded-xl border cursor-pointer select-none transition-all ${
+                formData.pfApplicable 
+                  ? 'bg-blue-50/80 border-blue-300 text-blue-900 ring-1 ring-blue-400/30' 
+                  : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+              } ${!selectedEmp ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                <input 
+                  type="checkbox" 
+                  name="pfApplicable" 
+                  checked={formData.pfApplicable} 
+                  onChange={handleChange} 
+                  disabled={!selectedEmp} 
+                  className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 cursor-pointer" 
+                />
+                <span className="text-xs font-bold truncate">
+                  {formData.pfApplicable ? 'PF Applicable' : 'No PF Deduction'}
+                </span>
+              </label>
             </div>
-            <div className="form-group">
-              <label>Other Deduct. (₹)</label>
-              <input type="number" name="otherDeductions" value={formData.otherDeductions === 0 && formData.otherDeductions !== '' ? '' : formData.otherDeductions} onChange={handleChange} disabled={!selectedEmp} />
+
+            {/* ESIC Option */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">ESIC Option</label>
+                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">0.75%</span>
+              </div>
+              <label className={`flex items-center justify-between h-[42px] px-3.5 rounded-xl border cursor-pointer select-none transition-all ${
+                formData.esicApplicable 
+                  ? 'bg-emerald-50/80 border-emerald-300 text-emerald-900 ring-1 ring-emerald-400/30' 
+                  : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+              } ${!selectedEmp ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                <input 
+                  type="checkbox" 
+                  name="esicApplicable" 
+                  checked={formData.esicApplicable} 
+                  onChange={handleChange} 
+                  disabled={!selectedEmp} 
+                  className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer" 
+                />
+                <span className="text-xs font-bold truncate">
+                  {formData.esicApplicable ? 'ESIC Applicable' : 'No ESIC Deduction'}
+                </span>
+              </label>
             </div>
-            <div className="form-group">
-              <label>Total Deduct. (₹)</label>
-              <input type="number" value={totalDeductions.toFixed(2)} disabled style={{ opacity: 0.9, backgroundColor: '#fecaca', fontWeight: 600, color: '#991b1b', borderColor: '#fca5a5' }} />
+
+            {/* PF Amount */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">PF Amount (₹)</label>
+              <div className="relative">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">₹</span>
+                <input 
+                  type="number" 
+                  value={pfAmount.toFixed(2)} 
+                  disabled 
+                  placeholder="0.00"
+                  className="w-full h-[42px] pl-7 pr-3 bg-slate-100/90 text-slate-800 text-sm font-bold rounded-xl border border-slate-200/90 outline-none cursor-not-allowed shadow-inner" 
+                />
+              </div>
+            </div>
+
+            {/* ESIC Amount */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">ESIC Amount (₹)</label>
+              <div className="relative">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">₹</span>
+                <input 
+                  type="number" 
+                  value={esicAmount.toFixed(2)} 
+                  disabled 
+                  placeholder="0.00"
+                  className="w-full h-[42px] pl-7 pr-3 bg-slate-100/90 text-slate-800 text-sm font-bold rounded-xl border border-slate-200/90 outline-none cursor-not-allowed shadow-inner" 
+                />
+              </div>
+            </div>
+
+            {/* Prof Tax */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Prof. Tax (₹)</label>
+              <input 
+                type="number" 
+                name="profTax" 
+                value={formData.profTax === 0 && formData.profTax !== '' ? '' : formData.profTax} 
+                onChange={handleChange} 
+                disabled={!selectedEmp} 
+                placeholder="200"
+                className="w-full h-[42px] bg-white text-slate-800 text-sm font-semibold rounded-xl border border-slate-200 px-3.5 outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 disabled:bg-slate-100 shadow-2xs transition-all"
+              />
+            </div>
+
+            {/* Other Deductions */}
+            <div className="space-y-1.5 lg:col-span-2">
+              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Other Deductions (₹)</label>
+              <input 
+                type="number" 
+                name="otherDeductions" 
+                value={formData.otherDeductions === 0 && formData.otherDeductions !== '' ? '' : formData.otherDeductions} 
+                onChange={handleChange} 
+                disabled={!selectedEmp} 
+                placeholder="0.00"
+                className="w-full h-[42px] bg-white text-slate-800 text-sm font-semibold rounded-xl border border-slate-200 px-3.5 outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 disabled:bg-slate-100 shadow-2xs transition-all"
+              />
+            </div>
+
+            {/* Total Deductions Highlight */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-rose-900 uppercase tracking-wider">Total Deductions (₹)</label>
+              <div className="w-full h-[42px] bg-rose-100/90 text-rose-950 font-black text-base rounded-xl border border-rose-300 px-3.5 flex items-center justify-between shadow-2xs">
+                <span className="text-xs font-bold text-rose-700">DEDUCT</span>
+                <span>₹{totalDeductions.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* SECTION 6: Payment Details & Net Salary */}
-        <div style={{ backgroundColor: '#f0f9ff', padding: '24px', borderRadius: '8px', border: '1px solid #bae6fd', marginBottom: '24px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
-          <h4 style={{ margin: '0 0 16px 0', color: '#0369a1', fontSize: '1rem', borderBottom: '2px solid #bae6fd', paddingBottom: '8px' }}>Final Salary & Payment Info</h4>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px', alignItems: 'end' }}>
-            <div className="form-group">
-              <label>Payment Status</label>
-              <select name="paymentStatus" value={formData.paymentStatus} onChange={handleChange} disabled={!selectedEmp}>
+        {/* SECTION 6: Payment Details & Net Payable Summary */}
+        <div className="bg-sky-50/50 rounded-2xl p-5 sm:p-6 border border-sky-200/80 transition-all hover:border-sky-300">
+          <div className="flex items-center justify-between pb-3.5 mb-5 border-b border-sky-200/80">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-sky-100 text-sky-800 flex items-center justify-center font-bold">
+                <CreditCard size={16} />
+              </div>
+              <h3 className="font-bold text-sky-950 text-sm uppercase tracking-wider">
+                6. Final Payment & Net Payable Salary
+              </h3>
+            </div>
+            <span className="text-[11px] font-bold text-sky-800 bg-sky-100/70 px-2.5 py-1 rounded-lg border border-sky-200">
+              Final Payout
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 items-center">
+            {/* Payment Status */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Payment Status</label>
+              <select 
+                name="paymentStatus" 
+                value={formData.paymentStatus} 
+                onChange={handleChange} 
+                disabled={!selectedEmp}
+                className="w-full bg-white text-slate-800 text-sm font-semibold rounded-xl border border-sky-200 py-2.5 px-3.5 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 disabled:bg-slate-100 cursor-pointer shadow-2xs transition-all"
+              >
                 <option value="Pending">Pending</option>
                 <option value="Processed">Processed</option>
                 <option value="On Hold">On Hold</option>
               </select>
             </div>
-            <div className="form-group">
-              <label>Bank A/c No.</label>
-              <input type="text" name="bankAccount" value={formData.bankAccount} onChange={handleChange} placeholder="Enter Account No." disabled={!selectedEmp} />
+
+            {/* Bank Account */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Bank Account Number</label>
+              <input 
+                type="text" 
+                name="bankAccount" 
+                value={formData.bankAccount} 
+                onChange={handleChange} 
+                placeholder="Enter Account No." 
+                disabled={!selectedEmp} 
+                className="w-full bg-white text-slate-800 text-sm font-semibold rounded-xl border border-sky-200 py-2.5 px-3.5 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 disabled:bg-slate-100 shadow-2xs transition-all"
+              />
             </div>
-            <div className="form-group">
-              <label>Net Payable Salary (₹)</label>
-              <input type="number" value={netSalary.toFixed(2)} disabled style={{ opacity: 1, backgroundColor: '#3b82f6', fontWeight: 800, color: 'white', borderColor: '#2563eb', fontSize: '1.1rem', padding: '12px' }} />
+
+            {/* Net Payable Highlight Card (Light Emerald Gradient) */}
+            <div className="bg-gradient-to-br from-emerald-50 to-teal-50/80 p-4 rounded-xl border-2 border-emerald-300 shadow-sm flex flex-col justify-center">
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-800">Net Payable Salary</span>
+              <div className="text-2xl sm:text-3xl font-black text-emerald-700 tracking-tight mt-0.5">
+                ₹{netSalary.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+              <span className="text-[10px] text-emerald-600 font-semibold mt-0.5">Gross - Deductions Total</span>
             </div>
           </div>
         </div>
 
-        <div style={{ paddingTop: '20px', borderTop: '1px solid #cbd5e1', display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
-          <button className="btn-primary" onClick={handleSaveStructure} disabled={!selectedEmp || savingStructure} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', fontSize: '1rem', borderRadius: '8px' }}>
-            {savingStructure ? <Loader size={18} className="spin" /> : null}
-            Save Salary Structure
+        {/* Submit Actions */}
+        <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-xs text-slate-400 font-medium">
+            * Ensure all salary & attendance figures are validated before submitting.
+          </p>
+          <button 
+            type="button"
+            className="w-full sm:w-auto flex items-center justify-center gap-2.5 px-8 py-3.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-lg shadow-red-600/30 hover:shadow-red-600/40 active:scale-[0.99] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={handleSaveStructure} 
+            disabled={!selectedEmp || savingStructure}
+          >
+            {savingStructure ? <Loader size={18} className="animate-spin" /> : <Save size={18} />}
+            <span>Save Salary Structure</span>
           </button>
         </div>
+
       </div>
     </div>
   );
