@@ -16,10 +16,15 @@ const formatNumber = (value) => {
   return Math.round(Number(value)).toFixed(3)
 }
 
+const formatExactNumber = (value) => {
+  if (value === undefined || value === null || isNaN(Number(value))) return '0.000'
+  return Number(value).toFixed(3)
+}
+
 const isZeroValue = (val) => {
   if (val === undefined || val === null || val === '') return true
   const num = Number(val)
-  return isNaN(num) || Math.round(num) === 0
+  return isNaN(num) || Math.abs(num) < 0.0001
 }
 
 const MisReport = () => {
@@ -196,7 +201,14 @@ const MisReport = () => {
   const outgoingSummary = useMemo(() => {
     const summary = {}
     outgoingList.forEach(item => {
-      const material = item.materialName?.toUpperCase().trim() || 'UNKNOWN'
+      let material = item.materialName?.toUpperCase().trim() || 'UNKNOWN'
+      const party = (item.partyName || '').toLowerCase().trim()
+      
+      // If party name is "Rolling mil sms", mention ( Internal SMS ) next to material
+      if (party.includes('rolling mil sms') || party.includes('rolling mill sms')) {
+        material = `${material} ( Internal SMS )`
+      }
+
       summary[material] = (summary[material] || 0) + (Number(item.qty) || 0)
     })
     return summary
@@ -369,8 +381,8 @@ const MisReport = () => {
         // Replace oklch hex/class color references
         .replace(/class="[^"]*"/gi, (match) => {
           let extra = ''
-          if (match.includes('bg-[#1e495f]')) extra += ' style="background-color: #1e495f !important; color: #ffffff !important;"'
-          else if (match.includes('bg-[#bfe5f7]')) extra += ' style="background-color: #bfe5f7 !important; color: #000000 !important;"'
+          if (match.includes('bg-[#1e495f]')) extra += ' style="background-color: #1e495f !important; color: #ffffff !important; text-align: center !important;"'
+          else if (match.includes('bg-[#bfe5f7]')) extra += ' style="background-color: #bfe5f7 !important; color: #000000 !important; text-align: center !important;"'
           else if (match.includes('bg-slate-300')) extra += ' style="background-color: #cbd5e1 !important;"'
           else if (match.includes('bg-slate-100')) extra += ' style="background-color: #f1f5f9 !important;"'
           return extra
@@ -414,12 +426,19 @@ const MisReport = () => {
               color: #ffffff !important;
               font-weight: 800 !important;
               letter-spacing: 0.5px;
+              text-align: center !important;
             }
             th.header-main {
               font-size: 14.5px;
+              text-align: center !important;
             }
             th.header-date {
               font-size: 13.5px;
+              text-align: right !important;
+            }
+            /* All section heading rows */
+            td[colspan="3"], td[colspan="2"] {
+              text-align: center;
             }
             .text-right { text-align: right !important; }
             .text-center { text-align: center !important; }
@@ -489,8 +508,8 @@ const MisReport = () => {
       .replace(/<button[^>]*>.*?<\/button>/gis, '')
       .replace(/class="[^"]*"/gi, (match) => {
         let extra = ''
-        if (match.includes('bg-[#1e495f]')) extra += ' style="background-color: #1e495f !important; color: #ffffff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"'
-        else if (match.includes('bg-[#bfe5f7]')) extra += ' style="background-color: #bfe5f7 !important; color: #000000 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"'
+        if (match.includes('bg-[#1e495f]')) extra += ' style="background-color: #1e495f !important; color: #ffffff !important; text-align: center !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"'
+        else if (match.includes('bg-[#bfe5f7]')) extra += ' style="background-color: #bfe5f7 !important; color: #000000 !important; text-align: center !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"'
         else if (match.includes('bg-slate-100')) extra += ' style="background-color: #f1f5f9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"'
         return extra
       })
@@ -510,7 +529,7 @@ const MisReport = () => {
         <style>
           @page {
             size: A4 portrait;
-            margin: 8mm 10mm;
+            margin: 5mm 6mm;
           }
           * {
             box-sizing: border-box;
@@ -518,32 +537,46 @@ const MisReport = () => {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
-          body {
+          html, body {
             margin: 0;
             padding: 0;
             background: #ffffff !important;
             color: #000000 !important;
+            width: 100%;
+            height: 100%;
+          }
+          .sheet-container {
+            width: 100%;
+            margin: 0 auto;
+            page-break-inside: avoid;
+            page-break-after: avoid;
           }
           table {
             width: 100% !important;
             border-collapse: collapse !important;
-            border: 0.8px solid #94a3b8 !important;
+            border: 1px solid #64748b !important;
             background-color: #ffffff !important;
             color: #000000 !important;
-            font-size: 13.5px !important;
+            font-size: 12.5px !important;
             font-weight: 700 !important;
+            table-layout: fixed;
           }
           th, td {
-            border: 0.8px solid #94a3b8 !important;
-            padding: 6px 10px !important;
+            border: 1px solid #64748b !important;
+            padding: 5px 8px !important;
             font-weight: 700 !important;
             color: #000000 !important;
-            line-height: 1.4 !important;
+            line-height: 1.35 !important;
+            word-wrap: break-word;
           }
           th {
             background-color: #1e495f !important;
             color: #ffffff !important;
             font-weight: 800 !important;
+            padding: 7px 8px !important;
+          }
+          tr {
+            page-break-inside: avoid;
           }
           .text-right { text-align: right !important; }
           .text-center { text-align: center !important; }
@@ -551,7 +584,7 @@ const MisReport = () => {
         </style>
       </head>
       <body>
-        <div style="width: 100%;">
+        <div class="sheet-container">
           ${tableHtml}
         </div>
         <script>
@@ -680,6 +713,10 @@ const MisReport = () => {
             {orderedCoalStock.map(([material, qty], idx) => {
               const isZero = isZeroValue(qty)
               const fontClass = isZero ? "font-normal" : "font-bold"
+              // COAL row is rounded off, but all subsequent rows (SPONGE PELLET, DOLOMITE, NON MAG, SPONGE IRON, etc.) use exact decimal without rounding off
+              const isCoalRow = material === 'COAL'
+              const formattedQty = isCoalRow ? formatNumber(qty) : formatExactNumber(qty)
+
               return (
                 <tr key={`coalstock-${material}`} className="group cursor-move" draggable onDragStart={(e) => handleDragStart(e, idx, 'coalstock')} onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, idx, 'coalstock', orderedCoalStock, setOrderedCoalStock)}>
                   {orderedRawStock.length === 0 && idx === 0 && (
@@ -691,7 +728,7 @@ const MisReport = () => {
                     <HideButton rowKey={`coalstock-${material}`} />
                     {material}
                   </td>
-                  <td contentEditable suppressContentEditableWarning className={`${fontClass} border border-black p-1 text-right`}>{formatNumber(qty)}</td>
+                  <td contentEditable suppressContentEditableWarning className={`${fontClass} border border-black p-1 text-right`}>{formattedQty}</td>
                 </tr>
               )
             })}
@@ -826,7 +863,7 @@ const MisReport = () => {
                     <HideButton rowKey={`sale-${item.itemName || idx}`} />
                     {item.itemName}
                   </td>
-                  <td contentEditable suppressContentEditableWarning className={`${fontClass} border border-black p-1 text-right`}>{formatNumber(item.balPending)}</td>
+                  <td contentEditable suppressContentEditableWarning className={`${fontClass} border border-black p-1 text-right`}>{formatExactNumber(item.balPending)}</td>
                 </tr>
               )
             })}
@@ -835,7 +872,7 @@ const MisReport = () => {
                 <td className="border border-black p-1"></td>
                 <td contentEditable suppressContentEditableWarning className="font-bold border border-black p-1 text-center uppercase">TOTAL</td>
                 <td contentEditable suppressContentEditableWarning className="bg-[#bfe5f7] border border-black font-bold p-1 text-right">
-                  {formatNumber(orderedSaudaSale.reduce((sum, item) => sum + Number(item.balPending), 0))}
+                  {formatExactNumber(orderedSaudaSale.reduce((sum, item) => sum + Number(item.balPending), 0))}
                 </td>
               </tr>
             )}
@@ -867,7 +904,7 @@ const MisReport = () => {
                     <HideButton rowKey={`pur-${item.itemName || idx}`} />
                     {item.itemName}
                   </td>
-                  <td contentEditable suppressContentEditableWarning className={`${fontClass} border border-black p-1 text-right`}>{formatNumber(item.balPending)}</td>
+                  <td contentEditable suppressContentEditableWarning className={`${fontClass} border border-black p-1 text-right`}>{formatExactNumber(item.balPending)}</td>
                 </tr>
               )
             })}
@@ -876,7 +913,7 @@ const MisReport = () => {
                 <td className="border border-black p-1"></td>
                 <td contentEditable suppressContentEditableWarning className="font-bold border border-black p-1 text-center uppercase">TOTAL</td>
                 <td contentEditable suppressContentEditableWarning className="bg-[#bfe5f7] border border-black font-bold p-1 text-right">
-                  {formatNumber(orderedSaudaPurchase.reduce((sum, item) => sum + Number(item.balPending), 0))}
+                  {formatExactNumber(orderedSaudaPurchase.reduce((sum, item) => sum + Number(item.balPending), 0))}
                 </td>
               </tr>
             )}

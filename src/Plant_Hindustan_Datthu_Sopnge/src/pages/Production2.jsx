@@ -723,7 +723,7 @@ export default function Production2Page() {
         
         <div className="z-10 text-center sm:text-left mb-3 sm:mb-0">
           <p className="text-red-100 text-[10px] font-semibold uppercase tracking-wider mb-0.5">Module</p>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Production 2</h1>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Production</h1>
         </div>
       </div>
 
@@ -747,7 +747,7 @@ export default function Production2Page() {
           <button
             onClick={() => setIsResetConfirmOpen(true)}
             className="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-semibold rounded-lg shadow-sm transition-all flex items-center gap-1.5 active:scale-95 text-sm h-[42px]"
-            title="Reset All Production 2 Data"
+            title="Reset All Production Data"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
             Reset Data
@@ -758,8 +758,8 @@ export default function Production2Page() {
       <ConfirmModal
         isOpen={isResetConfirmOpen}
         onClose={() => setIsResetConfirmOpen(false)}
-        title="Reset Production 2 Data"
-        message="Kya aap sach me Production 2 ka saara saved data delete (reset) karna chahte hain? Yeh action undo nahi kiya ja sakta."
+        title="Reset Production Data"
+        message="Kya aap sach me Production ka saara saved data delete (reset) karna chahte hain? Yeh action undo nahi kiya ja sakta."
         confirmText="Yes, Reset Production Data"
         onConfirm={() => {
           setFilesData([]);
@@ -786,7 +786,7 @@ export default function Production2Page() {
             onChange={(e) => { handleFiles(e.target.files); e.target.value = ""; }}
           />
           <div className="text-5xl mb-4 opacity-80 group-hover:scale-110 transition-transform duration-300">🏭</div>
-          <p className="text-lg font-semibold text-slate-700 mb-1">Upload Production PDF or Image (2)</p>
+          <p className="text-lg font-semibold text-slate-700 mb-1">Upload Production PDF or Image</p>
           <p className="text-sm text-slate-500">Drag & drop your PDF or Image files here, paste (Ctrl+V), or click to browse</p>
           
           {progressMsg && <p className="mt-4 text-sm font-medium text-blue-600 bg-blue-50 py-2 px-4 rounded-full inline-block">{progressMsg}</p>}

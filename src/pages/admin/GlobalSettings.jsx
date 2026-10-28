@@ -124,7 +124,7 @@ const MODULES = [
   {
     id: 'Hindustan Dhaatu Ltd (Sponge) Report',
     name: 'Hindustan Dhaatu Ltd (Sponge) Report',
-    pages: ['Stock Management', 'Incoming & Outgoing', 'Production 2', 'Sauda sale', 'Sauda Purchase', 'MIS Report']
+    pages: ['Stock Management', 'Incoming & Outgoing', 'Production', 'Sauda sale', 'Sauda Purchase', 'MIS Report']
   },
   {
     id: 'Global Settings',

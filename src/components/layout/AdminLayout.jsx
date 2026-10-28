@@ -93,7 +93,7 @@ const getHeaderTitle = (pathname, routes) => {
     const plantRoutes = [
       { href: "/plant/stock", label: "Stock Management" },
       { href: "/plant/transfer", label: "Incoming & Outgoing" },
-      { href: "/plant/production2", label: "Production 2" },
+      { href: "/plant/production2", label: "Production" },
       { href: "/plant/sauda-scale", label: "Sauda sale" },
       { href: "/plant/sauda-purchase", label: "Sauda Purchase" },
       { href: "/plant/mis-report", label: "MIS Report" },
@@ -1414,7 +1414,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       module: "Hindustan Dhaatu Ltd (Sponge) Report",
     },
     {
-      label: "Production 2",
+      label: "Production",
       href: "/plant/production2",
       icon: Database,
       active: location.pathname === "/plant/production2",
@@ -1607,6 +1607,11 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                if (route.label === "Sauda sale") {
                    const key1 = `${mappedModule}::Sauda sale`;
                    const key2 = `${mappedModule}::Sauda Scale`;
+                   return pageAccess && (pageAccess.includes(key1) || pageAccess.includes(key2));
+               }
+               if (route.label === "Production") {
+                   const key1 = `${mappedModule}::Production`;
+                   const key2 = `${mappedModule}::Production 2`;
                    return pageAccess && (pageAccess.includes(key1) || pageAccess.includes(key2));
                }
            }

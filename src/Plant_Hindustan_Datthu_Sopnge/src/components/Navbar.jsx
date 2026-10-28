@@ -7,7 +7,7 @@ const pageTitles = {
   '/': 'Stock Management',
   '/transfer': 'Incoming & Outgoing',
   '/production': 'Production',
-  '/production2': 'Production 2',
+  '/production2': 'Production',
   '/sauda-scale': 'Sauda sale',
   '/sauda-purchase': 'Sauda Purchase',
   '/mis-report': 'MIS Report',
