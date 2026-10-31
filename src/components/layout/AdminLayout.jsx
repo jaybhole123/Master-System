@@ -55,7 +55,8 @@ import {
   Truck,
   GitFork,
   Package,
-  Factory
+  Factory,
+  FolderKanban
 } from "lucide-react";
 
 // Helper: get module & page title from current pathname
@@ -101,6 +102,19 @@ const getHeaderTitle = (pathname, routes) => {
     ];
     const match = plantRoutes.find(r => pathname === r.href);
     return { module: "Hindustan Dhaatu Ltd (Sponge) Report", page: match?.label || "Plant System" };
+  }
+  // Check Nandan Smelters routes
+  if (pathname.startsWith("/nandan-smelter")) {
+    const nandanRoutes = [
+      { href: "/nandan-smelter/stock", label: "Stock Management" },
+      { href: "/nandan-smelter/transfer", label: "Incoming & Outgoing" },
+      { href: "/nandan-smelter/production2", label: "Production" },
+      { href: "/nandan-smelter/sauda-scale", label: "Sauda sale" },
+      { href: "/nandan-smelter/sauda-purchase", label: "Sauda Purchase" },
+      { href: "/nandan-smelter/mis-report", label: "MIS Report" },
+    ];
+    const match = nandanRoutes.find(r => pathname === r.href);
+    return { module: "Nandan Smelters Pvt Ltd Report", page: match?.label || "Nandan Smelters Report" };
   }
   // Check Hindustan Billet routes
   if (pathname.startsWith("/billet-system")) {
@@ -580,6 +594,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       "Rent Management Tracker": path.includes("/dashboard/rent-tracker"),
       "Coal System": path.startsWith("/coal-system"),
       "Hindustan Dhaatu Ltd (Sponge) Report": path.startsWith("/plant"),
+      "Nandan Smelters Pvt Ltd Report": path.startsWith("/nandan-smelter"),
       "Hindustan Dhaatu Ltd (Billet) Report": path.startsWith("/billet-system"),
       "Transport Reporting": path.startsWith("/transport-system"),
       "Letter": path.startsWith("/letter")
@@ -1462,6 +1477,61 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       showFor: ["admin", "user", "HOD"],
       module: "Hindustan Dhaatu Ltd (Sponge) Report",
     },
+    // --- Nandan Smelters Pvt Ltd Report Module Routes ---
+    {
+      label: "Stock Management",
+      href: "/nandan-smelter/stock",
+      icon: Database,
+      active: location.pathname === "/nandan-smelter/stock" || location.pathname === "/nandan-smelter",
+      badge: null,
+      showFor: ["admin", "user", "HOD"],
+      module: "Nandan Smelters Pvt Ltd Report",
+    },
+    {
+      label: "Incoming & Outgoing",
+      href: "/nandan-smelter/transfer",
+      icon: FileText,
+      active: location.pathname === "/nandan-smelter/transfer",
+      badge: null,
+      showFor: ["admin", "user", "HOD"],
+      module: "Nandan Smelters Pvt Ltd Report",
+    },
+    {
+      label: "Production",
+      href: "/nandan-smelter/production2",
+      icon: Database,
+      active: location.pathname === "/nandan-smelter/production2" || location.pathname === "/nandan-smelter/production",
+      badge: null,
+      showFor: ["admin", "user", "HOD"],
+      module: "Nandan Smelters Pvt Ltd Report",
+    },
+    {
+      label: "Sauda sale",
+      href: "/nandan-smelter/sauda-scale",
+      icon: Database,
+      active: location.pathname === "/nandan-smelter/sauda-scale" || location.pathname === "/nandan-smelter/sauda-sale",
+      badge: null,
+      showFor: ["admin", "user", "HOD"],
+      module: "Nandan Smelters Pvt Ltd Report",
+    },
+    {
+      label: "Sauda Purchase",
+      href: "/nandan-smelter/sauda-purchase",
+      icon: Package,
+      active: location.pathname === "/nandan-smelter/sauda-purchase",
+      badge: null,
+      showFor: ["admin", "user", "HOD"],
+      module: "Nandan Smelters Pvt Ltd Report",
+    },
+    {
+      label: "MIS Report",
+      href: "/nandan-smelter/mis-report",
+      icon: FileText,
+      active: location.pathname === "/nandan-smelter/mis-report",
+      badge: null,
+      showFor: ["admin", "user", "HOD"],
+      module: "Nandan Smelters Pvt Ltd Report",
+    },
     // --- Hindustan Billet Module Routes ---
     {
       label: "Dashboard",
@@ -1648,7 +1718,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
            if (route.label === "Coal Supply Offer Letter") {
                mappedLabel = "Offer Letter";
            }
-           if (route.module === "Hindustan Dhaatu Ltd (Sponge) Report") {
+           if (route.module === "Hindustan Dhaatu Ltd (Sponge) Report" || route.module === "Nandan Smelters Pvt Ltd Report") {
                if (route.label === "Incoming & Outgoing") {
                    const key1 = `${mappedModule}::Incoming & Outgoing`;
                    const key2 = `${mappedModule}::Item Transfer`;
@@ -1827,6 +1897,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                         {moduleName === "Rent Management Tracker" && <Banknote className="h-4 w-4" />}
                         {moduleName === "Coal System" && <Database className="h-4 w-4" />}
                         {moduleName === "Hindustan Dhaatu Ltd (Sponge) Report" && <Factory className="h-4 w-4" />}
+                        {moduleName === "Nandan Smelters Pvt Ltd Report" && <FolderKanban className="h-4 w-4" />}
                         {moduleName === "Hindustan Dhaatu Ltd (Billet) Report" && <Package className="h-4 w-4" />}
                         {moduleName === "Letter" && <FileText className="h-4 w-4" />}
                         {moduleName === "Transport Reporting" && <Truck className="h-4 w-4" />}
@@ -2098,6 +2169,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                             {moduleName === "Rent Management Tracker" && <Banknote className="h-4 w-4" />}
                             {moduleName === "Coal System" && <Database className="h-4 w-4" />}
                             {moduleName === "Hindustan Dhaatu Ltd (Sponge) Report" && <Factory className="h-4 w-4" />}
+                            {moduleName === "Nandan Smelters Pvt Ltd Report" && <FolderKanban className="h-4 w-4" />}
                             {moduleName === "Hindustan Dhaatu Ltd (Billet) Report" && <Package className="h-4 w-4" />}
                             {moduleName === "Letter" && <FileText className="h-4 w-4" />}
                             {moduleName === "Transport Reporting" && <Truck className="h-4 w-4" />}

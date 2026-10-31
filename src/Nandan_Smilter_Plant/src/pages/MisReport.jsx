@@ -1,0 +1,1021 @@
+import React, { useState, useMemo, useRef, useEffect } from 'react'
+import html2canvas from 'html2canvas'
+import jsPDF from 'jspdf'
+import {
+  useStockStore,
+  useProductionStore,
+  useProduction2Store
+} from '../store/useStore'
+import { localDb } from '../services/localDb'
+import DateFilter from '../components/DateFilter'
+
+const formatNumber = (value) => {
+  if (value === undefined || value === null || isNaN(value)) return '0.000'
+  return Number(value).toFixed(3)
+}
+
+const MisReport = () => {
+  const [reportDate, setReportDate] = useState(new Date().toISOString().split('T')[0])
+  const [isDownloading, setIsDownloading] = useState(false)
+  const reportRef = useRef(null)
+
+  const [hiddenRows, setHiddenRows] = useState(new Set())
+  const handleHideRow = (key) => setHiddenRows(prev => new Set([...prev, key]))
+
+  const HideButton = ({ rowKey }) => (
+    <button 
+      onClick={() => handleHideRow(rowKey)} 
+      className="absolute right-1 top-1/2 -translate-y-1/2 text-rose-500 bg-rose-50 hover:bg-rose-100 rounded w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity print:hidden cursor-pointer z-10"
+      title="Hide Row"
+      data-html2canvas-ignore="true"
+      contentEditable={false}
+    >
+      ✕
+    </button>
+  )
+
+  // Get data from all stores
+  const [stockItems, setStockItems] = useState([])
+  
+  const [incomingList, setIncomingList] = useState([])
+  const [outgoingList, setOutgoingList] = useState([])
+  const [saudaSaleEntries, setSaudaSaleEntries] = useState([])
+  const [saudaPurchaseEntries, setSaudaPurchaseEntries] = useState([])
+
+  const [productionList, setProductionList] = useState([])
+  const production2FilesData = useProduction2Store(state => state.filesData)
+
+  useEffect(() => {
+    const fetchData = () => {
+      // Helper to check if item matches the selected reportDate (e.g. "2026-10-31")
+      const matchesDate = (item) => {
+        // 1. Check explicit report_date
+        if (item.report_date && item.report_date === reportDate) return true
+
+        // 2. Check item.date (can be YYYY-MM-DD or DD/MM/YYYY or DD.MM.YYYY)
+        if (item.date) {
+          if (item.date === reportDate) return true
+          // Try converting DD/MM/YYYY or DD.MM.YYYY or DD-MM-YYYY to YYYY-MM-DD
+          const parts = String(item.date).split(/[.\-\/]/)
+          if (parts.length === 3) {
+            const d = parts[0].padStart(2, '0')
+            const m = parts[1].padStart(2, '0')
+            let y = parts[2]
+            if (y.length === 2) y = '20' + y
+            if (`${y}-${m}-${d}` === reportDate) return true
+          }
+        }
+
+        // 3. Check created_at (when the entry was saved to LocalStorage)
+        if (item.created_at) {
+          const isoDay = String(item.created_at).substring(0, 10)
+          if (isoDay === reportDate) return true
+          try {
+            const localDay = new Date(item.created_at).toLocaleDateString('en-CA')
+            if (localDay === reportDate) return true
+          } catch (e) {}
+        }
+
+        return false
+      }
+
+      // Fetch Raw Material Stock
+      const rawData = localDb.select('raw_material_stock', matchesDate)
+
+      // Fetch Coal Stock
+      const coalData = localDb.select('coal_stock', matchesDate)
+
+      let mappedStocks = []
+      if (rawData && rawData.length > 0) {
+        mappedStocks = [...mappedStocks, ...rawData.map(item => ({
+          type: 'raw_material',
+          category: item.category,
+          material: item.material,
+          closingStock: item.closing_stock
+        }))]
+      }
+      if (coalData && coalData.length > 0) {
+        mappedStocks = [...mappedStocks, ...coalData.map(item => ({
+          type: 'coal_detail',
+          category: item.category,
+          material: item.material,
+          closingStock: item.closing_stock
+        }))]
+      }
+      setStockItems(mappedStocks)
+
+      // Fetch item transfers
+      const transfers = localDb.select('item_transfers', matchesDate)
+
+      if (transfers && transfers.length > 0) {
+        const incoming = transfers.filter(d => d.entry_type === 'incoming').map(item => ({
+          id: item.id,
+          partyName: item.party_name,
+          materialName: item.material_name,
+          vehicleNo: item.vehicle_no,
+          qty: item.qty,
+          rate: item.rate
+        }))
+        const outgoing = transfers.filter(d => d.entry_type === 'outgoing').map(item => ({
+          id: item.id,
+          partyName: item.party_name,
+          materialName: item.material_name,
+          vehicleNo: item.vehicle_no,
+          qty: item.qty,
+          rate: item.rate
+        }))
+        setIncomingList(incoming)
+        setOutgoingList(outgoing)
+      } else {
+        setIncomingList([])
+        setOutgoingList([])
+      }
+
+      // Fetch Sauda Sale filtered by reportDate
+      const saleData = localDb.select('sauda_sale', matchesDate)
+      if (saleData && saleData.length > 0) {
+        setSaudaSaleEntries(saleData.map(item => ({
+          mainHeading: item.main_heading,
+          itemName: item.item_name,
+          balPending: item.bal_pending
+        })))
+      } else {
+        setSaudaSaleEntries([])
+      }
+
+      // Fetch Sauda Purchase filtered by reportDate
+      const purchaseData = localDb.select('sauda_purchase', matchesDate)
+      if (purchaseData && purchaseData.length > 0) {
+        setSaudaPurchaseEntries(purchaseData.map(item => ({
+          mainHeading: item.main_heading,
+          itemName: item.item_name,
+          balPending: item.bal_pending
+        })))
+      } else {
+        setSaudaPurchaseEntries([])
+      }
+
+      // Fetch Production 2 filtered by reportDate
+      const prodData = localDb.select('production2', matchesDate)
+      if (prodData && prodData.length > 0) {
+        setProductionList(prodData)
+      } else {
+        setProductionList([])
+      }
+    }
+    fetchData()
+  }, [reportDate])
+
+  // 1. STOCK AGGREGATION — split into Raw Material and Coal Detail
+  const rawMaterialSummary = useMemo(() => {
+    const summary = {}
+    const categoryLabels = {
+      '': 'RAW IRON ORE',
+      'rawPelletOre': 'RAW PELLET ORE',
+      'processedIronOre': 'PROCESSED IRON ORE (3-18)',
+      'ironFines': 'IRON FINES (0-3)'
+    }
+    stockItems.forEach(item => {
+      if (item.type === 'coal_detail') return // skip coal
+      let cat = item.category === undefined ? 'UNKNOWN' : item.category
+      if (categoryLabels[cat] !== undefined) cat = categoryLabels[cat]
+      let key = cat.toUpperCase().trim() || 'RAW IRON ORE'
+      if (key.includes('NMDC BACHELI')) {
+        key = 'IRON FINES (0-3)'
+      }
+      summary[key] = (summary[key] || 0) + (Number(item.closingStock) || 0)
+    })
+    return summary
+  }, [stockItems])
+
+  const coalStockSummary = useMemo(() => {
+    const summary = {}
+    stockItems.forEach(item => {
+      if (item.type !== 'coal_detail') return // only coal
+      const key = item.material?.toUpperCase().trim() || 'COAL MATERIAL'
+      summary[key] = (summary[key] || 0) + (Number(item.closingStock) || 0)
+    })
+
+    let coalTotal = 0
+    const finalSummary = {}
+    
+    const coalIdentifiers = [
+      'COAL',
+      'KOHINOOR',
+      'LOYAL TRADING',
+      'JBT(JAGANNATHPUR)',
+      'SUNSHINE ENTE'
+    ];
+
+    Object.entries(summary).forEach(([key, val]) => {
+      const isCoalType = coalIdentifiers.some(identifier => key.includes(identifier));
+      if (isCoalType) {
+        if (val > 0) {
+          coalTotal += val
+        }
+      } else {
+        finalSummary[key] = val
+      }
+    })
+    
+    const orderedSummary = {}
+    if (coalTotal > 0) {
+      orderedSummary['COAL'] = coalTotal
+    }
+    Object.assign(orderedSummary, finalSummary)
+
+    return orderedSummary
+  }, [stockItems])
+
+  // 2. INCOMING AGGREGATION
+  const incomingSummary = useMemo(() => {
+    const summary = {}
+    incomingList.forEach(item => {
+      const material = item.materialName?.toUpperCase().trim() || 'UNKNOWN'
+      summary[material] = (summary[material] || 0) + (Number(item.qty) || 0)
+    })
+    return summary
+  }, [incomingList])
+
+  // 3. OUTGOING AGGREGATION
+  const outgoingSummary = useMemo(() => {
+    const summary = {}
+    outgoingList.forEach(item => {
+      const material = item.materialName?.toUpperCase().trim() || 'UNKNOWN'
+      summary[material] = (summary[material] || 0) + (Number(item.qty) || 0)
+    })
+    return summary
+  }, [outgoingList])
+
+  // 4. PRODUCTION AGGREGATION
+  const productionSummary = useMemo(() => {
+    // Track raw totals and the most recent percent per grade key
+    const rawData = {
+      '"A" GRADE': { k1: 0, k2: 0, total: 0, percent: null },
+      '"B" GRADE': { k1: 0, k2: 0, total: 0, percent: null },
+    }
+
+    if (productionList && productionList.length > 0) {
+      productionList.forEach(item => {
+        const label = (item.item_grade || '').toUpperCase().trim()
+        let gradeKey = null
+        if (label.includes('"A" GRADE')) gradeKey = '"A" GRADE'
+        else if (label.includes('"B" GRADE')) gradeKey = '"B" GRADE'
+
+        if (gradeKey) {
+          rawData[gradeKey].k1 += Number(item.kiln1) || 0
+          rawData[gradeKey].k2 += Number(item.kiln2) || 0
+          rawData[gradeKey].total += Number(item.total) || 0
+          if (item.percent !== null && item.percent !== undefined) {
+            rawData[gradeKey].percent = item.percent
+          }
+        }
+      })
+    } else {
+      // Fallback to store only if date matches reportDate
+      const activeFiles = (production2FilesData || []).filter(f => !f.date || f.date === reportDate)
+      activeFiles.forEach(f => {
+        f.items.forEach(item => {
+          const label = item.label.toUpperCase().trim()
+          let gradeKey = null
+          if (label.includes('"A" GRADE')) gradeKey = '"A" GRADE'
+          else if (label.includes('"B" GRADE')) gradeKey = '"B" GRADE'
+
+          if (gradeKey) {
+            rawData[gradeKey].k1 += Number(item.kiln1) || 0
+            rawData[gradeKey].k2 += Number(item.kiln2) || 0
+            rawData[gradeKey].total += Number(item.total) || 0
+            if (item.percent !== null && item.percent !== undefined) {
+              rawData[gradeKey].percent = item.percent
+            }
+          }
+        })
+      })
+    }
+
+    // Build final summary with dynamic percentage label
+    const summary = {}
+    Object.entries(rawData).forEach(([gradeKey, val]) => {
+      if (val.total > 0 || val.k1 > 0 || val.k2 > 0) {
+        const pct = val.percent !== null ? `${val.percent}%` : ''
+        const finalLabel = pct ? `${gradeKey} (${pct})` : gradeKey
+        summary[finalLabel] = { k1: val.k1, k2: val.k2, total: val.total }
+      }
+    })
+
+    return summary
+  }, [productionList, production2FilesData, reportDate])
+
+  // Calculate totals for production
+  const prodTotalK1 = Object.values(productionSummary).reduce((sum, val) => sum + val.k1, 0)
+  const prodTotalK2 = Object.values(productionSummary).reduce((sum, val) => sum + val.k2, 0)
+  const prodTotalAll = Object.values(productionSummary).reduce((sum, val) => sum + val.total, 0)
+
+
+  // 5. SAUDA SALE AGGREGATION
+  const saudaSaleSummary = useMemo(() => {
+    const summary = {}
+    saudaSaleEntries.forEach(item => {
+      const material = (item.mainHeading || item.itemName)?.toUpperCase().trim() || 'UNKNOWN'
+      summary[material] = (summary[material] || 0) + (Number(item.balPending) || 0)
+    })
+    // Convert object to array for easier rendering
+    return Object.entries(summary).map(([itemName, balPending]) => ({
+      itemName,
+      balPending
+    }))
+  }, [saudaSaleEntries])
+
+  // 6. SAUDA PURCHASE AGGREGATION
+  const saudaPurchaseSummary = useMemo(() => {
+    const summary = {}
+    saudaPurchaseEntries.forEach(item => {
+      const material = (item.mainHeading || item.itemName)?.toUpperCase().trim() || 'UNKNOWN'
+      if (!summary[material]) summary[material] = 0
+      summary[material] += Number(item.balPending) || 0
+    })
+
+    // Merge all COAL variants into a single "COAL" row
+    let coalTotal = 0
+    const nonCoalSummary = {}
+    Object.entries(summary).forEach(([key, val]) => {
+      if (key.includes('COAL')) {
+        coalTotal += val
+      } else {
+        nonCoalSummary[key] = val
+      }
+    })
+    if (coalTotal > 0) {
+      nonCoalSummary['COAL'] = coalTotal
+    }
+    
+    // Convert object to array for easier rendering
+    return Object.entries(nonCoalSummary).map(([itemName, balPending]) => ({
+      itemName,
+      balPending
+    }))
+  }, [saudaPurchaseEntries])
+
+  // Filtered Lists for Hiding Rows
+  const filteredRawStock = Object.entries(rawMaterialSummary).filter(([m]) => !hiddenRows.has(`rawstock-${m}`))
+  const filteredCoalStock = Object.entries(coalStockSummary).filter(([m]) => !hiddenRows.has(`coalstock-${m}`))
+  const filteredIncoming = incomingList.filter((item, idx) => !hiddenRows.has(`inc-${item.id || idx}`))
+  const filteredOutgoing = outgoingList.filter((item, idx) => !hiddenRows.has(`out-${item.id || idx}`))
+  const filteredProduction = Object.entries(productionSummary).filter(([m]) => !hiddenRows.has(`prod-${m}`))
+  const prodTotalK1Filtered = filteredProduction.reduce((sum, [, val]) => sum + val.k1, 0)
+  const prodTotalK2Filtered = filteredProduction.reduce((sum, [, val]) => sum + val.k2, 0)
+  const prodTotalAllFiltered = filteredProduction.reduce((sum, [, val]) => sum + val.total, 0)
+  const filteredSaudaSale = saudaSaleSummary.filter((item, idx) => !hiddenRows.has(`sale-${item.itemName || idx}`))
+  const filteredSaudaPurchase = saudaPurchaseSummary.filter((item, idx) => !hiddenRows.has(`pur-${item.itemName || idx}`))
+
+  // Local ordered states
+  const [orderedRawStock, setOrderedRawStock] = useState(filteredRawStock)
+  const [orderedCoalStock, setOrderedCoalStock] = useState(filteredCoalStock)
+  const [orderedIncoming, setOrderedIncoming] = useState(filteredIncoming)
+  const [orderedOutgoing, setOrderedOutgoing] = useState(filteredOutgoing)
+  const [orderedProduction, setOrderedProduction] = useState(filteredProduction)
+  const [orderedSaudaSale, setOrderedSaudaSale] = useState(filteredSaudaSale)
+  const [orderedSaudaPurchase, setOrderedSaudaPurchase] = useState(filteredSaudaPurchase)
+
+  useEffect(() => setOrderedRawStock(filteredRawStock), [JSON.stringify(filteredRawStock)])
+  useEffect(() => setOrderedCoalStock(filteredCoalStock), [JSON.stringify(filteredCoalStock)])
+  useEffect(() => setOrderedIncoming(filteredIncoming), [JSON.stringify(filteredIncoming)])
+  useEffect(() => setOrderedOutgoing(filteredOutgoing), [JSON.stringify(filteredOutgoing)])
+  useEffect(() => setOrderedProduction(filteredProduction), [JSON.stringify(filteredProduction)])
+  useEffect(() => setOrderedSaudaSale(filteredSaudaSale), [JSON.stringify(filteredSaudaSale)])
+  useEffect(() => setOrderedSaudaPurchase(filteredSaudaPurchase), [JSON.stringify(filteredSaudaPurchase)])
+
+  const [draggedRow, setDraggedRow] = useState(null)
+
+  const handleDragStart = (e, index, listType) => {
+    setDraggedRow({ index, listType })
+    e.dataTransfer.effectAllowed = "move"
+  }
+
+  const handleDragOver = (e) => {
+    e.preventDefault()
+  }
+
+  const handleDrop = (e, targetIndex, listType, list, setList) => {
+    e.preventDefault()
+    if (!draggedRow || draggedRow.listType !== listType) return
+    if (draggedRow.index === targetIndex) return
+
+    const newList = [...list]
+    const item = newList[draggedRow.index]
+    newList.splice(draggedRow.index, 1)
+    newList.splice(targetIndex, 0, item)
+    
+    setList(newList)
+    setDraggedRow(null)
+  }
+
+  // Formatting date for header
+  const formattedDate = new Date(reportDate).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')
+
+  const downloadPDF = async () => {
+    const element = reportRef.current
+    if (!element) return
+
+    setIsDownloading(true)
+    try {
+      // Create an isolated hidden iframe with vanilla CSS only (no Tailwind v4 OKLCH)
+      const iframe = document.createElement('iframe')
+      iframe.style.position = 'fixed'
+      iframe.style.right = '0'
+      iframe.style.bottom = '0'
+      iframe.style.width = '1000px'
+      iframe.style.height = '1400px'
+      iframe.style.border = '0'
+      iframe.style.zIndex = '-9999'
+      iframe.style.visibility = 'hidden'
+      document.body.appendChild(iframe)
+
+      const iframeDoc = iframe.contentDocument || iframe.contentWindow.document
+      
+      // Clone table and sanitize any classes to avoid Tailwind v4 OKLCH styling
+      let tableHtml = element.innerHTML
+        // Strip out hide buttons
+        .replace(/<button[^>]*>.*?<\/button>/gis, '')
+        // Clean out classes that trigger oklch in html2canvas
+        .replace(/class="[^"]*"/gi, (match) => {
+          let extra = ''
+          if (match.includes('bg-[#1e3a8a]')) extra += ' style="background-color: #1e3a8a !important; color: #ffffff !important; text-align: center !important;"'
+          else if (match.includes('bg-[#e0e7ff]')) extra += ' style="background-color: #e0e7ff !important; color: #1e1b4b !important; text-align: center !important;"'
+          else if (match.includes('bg-[#cbd5e1]')) extra += ' style="background-color: #cbd5e1 !important; color: #020617 !important;"'
+          else if (match.includes('bg-slate-100')) extra += ' style="background-color: #f1f5f9 !important;"'
+          else if (match.includes('bg-slate-50')) extra += ' style="background-color: #f8fafc !important;"'
+          return extra
+        })
+      
+      iframeDoc.open()
+      iframeDoc.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            * {
+              box-sizing: border-box;
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+              -webkit-font-smoothing: antialiased;
+            }
+            body {
+              margin: 0;
+              padding: 16px;
+              background-color: #ffffff !important;
+              color: #0f172a !important;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              border: 1px solid #64748b !important;
+              background-color: #ffffff !important;
+              color: #020617 !important;
+              font-size: 13px;
+              font-weight: bold !important;
+            }
+            th, td {
+              border: 1px solid #64748b !important;
+              padding: 6px 10px;
+              line-height: 1.4;
+              font-weight: 700 !important;
+              color: #020617 !important;
+            }
+            th {
+              background-color: #1e3a8a !important;
+              color: #ffffff !important;
+              font-weight: 800 !important;
+              letter-spacing: 0.5px;
+              text-align: center !important;
+            }
+            .text-right { text-align: right !important; }
+            .text-center { text-align: center !important; }
+            .font-bold { font-weight: 700 !important; }
+            .font-extrabold { font-weight: 800 !important; }
+            .font-mono { font-family: monospace !important; }
+            .uppercase { text-transform: uppercase !important; }
+          </style>
+        </head>
+        <body>
+          <div id="print-content" style="background:#ffffff; color:#020617; width: 1000px;">
+            ${tableHtml}
+          </div>
+        </body>
+        </html>
+      `)
+      iframeDoc.close()
+
+      // Give iframe DOM time to render
+      await new Promise(resolve => setTimeout(resolve, 300))
+
+      const targetEl = iframeDoc.getElementById('print-content')
+      
+      const canvas = await html2canvas(targetEl, {
+        scale: 2.5,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      })
+
+      const imgData = canvas.toDataURL('image/png', 1.0)
+      const pdf = new jsPDF('p', 'mm', 'a4')
+      const pdfWidth = pdf.internal.pageSize.getWidth()
+      const pdfHeight = pdf.internal.pageSize.getHeight()
+      
+      const imgProps = pdf.getImageProperties(imgData)
+      const margin = 8
+      const availableWidth = pdfWidth - (margin * 2)
+      const imgHeight = (imgProps.height * availableWidth) / imgProps.width
+      const availableHeight = pdfHeight - (margin * 2)
+      
+      let finalWidth = availableWidth
+      let finalHeight = imgHeight
+      
+      if (imgHeight > availableHeight) {
+        finalHeight = availableHeight
+        finalWidth = (imgProps.width * availableHeight) / imgProps.height
+      }
+      
+      const xOffset = margin + (availableWidth - finalWidth) / 2
+      pdf.addImage(imgData, 'PNG', xOffset, margin, finalWidth, finalHeight)
+      pdf.save(`Nandan_Smelters_Report_${formattedDate}.pdf`)
+
+      document.body.removeChild(iframe)
+    } catch (error) {
+      console.error("Error generating PDF:", error)
+      alert("Failed to generate PDF: " + (error?.message || error))
+    } finally {
+      setIsDownloading(false)
+    }
+  }
+
+  // UI based on image provided
+  return (
+    <div className="space-y-6 pb-12 px-2 sm:px-4 max-w-[1200px] mx-auto text-slate-800">
+      <style>{`
+        @media print {
+          @page { 
+            margin: 2mm 3mm; 
+            size: A4 portrait; 
+          }
+          *, *::before, *::after {
+            box-sizing: border-box !important;
+          }
+          html, body { 
+            -webkit-print-color-adjust: exact !important; 
+            print-color-adjust: exact !important; 
+            background: #ffffff !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            height: auto !important;
+            width: 100% !important;
+          }
+          .print\\:hidden, .no-print {
+            display: none !important;
+          }
+          .print-container {
+            padding: 0 !important;
+            margin: 0 !important;
+            border: none !important;
+            box-shadow: none !important;
+            width: 100% !important;
+            transform: scale(0.85);
+            transform-origin: top center;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+          table { 
+            font-size: 8pt !important; 
+            line-height: 1.1 !important;
+            width: 100% !important;
+            font-weight: 700 !important;
+            border-collapse: collapse !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+          thead {
+            display: table-row-group !important; /* Prevents repeating header on accidental page 2 */
+          }
+          tr {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+          td, th { 
+            padding: 1.5px 3px !important; 
+            font-weight: 700 !important;
+          }
+          .print-header-title {
+            font-size: 13pt !important;
+            padding: 3px 6px !important;
+          }
+          .print-header-date {
+            font-size: 10pt !important;
+            padding: 3px 6px !important;
+          }
+          .print-notes-cell {
+            min-height: 25px !important;
+            height: 25px !important;
+            padding: 2px 4px !important;
+          }
+        }
+      `}</style>
+
+      {/* Top Banner (Executive Brand Header) */}
+      <div className="bg-gradient-to-r from-red-600 via-rose-600 to-red-700 rounded-2xl p-5 sm:p-6 mb-2 shadow-xl border border-red-500/30 relative overflow-hidden flex flex-col sm:flex-row items-center justify-between text-white print:hidden">
+        <div className="absolute top-0 right-0 -mt-10 -mr-10 w-48 h-48 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-48 h-48 bg-rose-400/20 rounded-full blur-3xl pointer-events-none"></div>
+        
+        <div className="z-10 text-center sm:text-left mb-3 sm:mb-0 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-white/15 flex items-center justify-center shadow-lg text-white font-black text-xl border border-white/20">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-bold uppercase tracking-widest text-red-100">Executive Management Information System</span>
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white/20 text-white border border-white/30">Auto Consolidated</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2">
+              MIS Daily Report & Settings
+            </h1>
+          </div>
+        </div>
+
+        <div className="z-10 flex flex-col sm:items-end text-xs text-red-100">
+          <span className="font-semibold text-white tracking-wide">NANDAN SMELTERS LTD.</span>
+          <span className="text-red-200">Consolidated Daily Operations Sheet</span>
+        </div>
+      </div>
+
+      {/* KPI Stats Quick Bar (Live summary indicators) */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 print:hidden">
+        <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-sm flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+          </div>
+          <div>
+            <div className="text-[11px] text-slate-500 font-medium">Raw Stock Items</div>
+            <div className="text-lg font-bold text-slate-800">{orderedRawStock.length} Items</div>
+          </div>
+        </div>
+
+        <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-sm flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" /></svg>
+          </div>
+          <div>
+            <div className="text-[11px] text-slate-500 font-medium">Daily Logistics</div>
+            <div className="text-lg font-bold text-slate-800">{orderedIncoming.length + orderedOutgoing.length} Trips</div>
+          </div>
+        </div>
+
+        <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-sm flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+          </div>
+          <div>
+            <div className="text-[11px] text-slate-500 font-medium">24h Production Total</div>
+            <div className="text-lg font-bold text-slate-800">{formatNumber(prodTotalAllFiltered)} <span className="text-xs text-slate-500 font-normal">MT</span></div>
+          </div>
+        </div>
+
+        <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-sm flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          </div>
+          <div>
+            <div className="text-[11px] text-slate-500 font-medium">Pending Sauda</div>
+            <div className="text-lg font-bold text-slate-800">{orderedSaudaSale.length + orderedSaudaPurchase.length} Deals</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Single Line Controls Bar: DateFilter + Actions */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-sm print:hidden">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button 
+            onClick={downloadPDF} 
+            disabled={isDownloading}
+            className="bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white px-5 h-10 rounded-lg shadow-sm shadow-red-600/20 flex items-center gap-2 font-semibold text-sm transition-all active:scale-[0.98] disabled:opacity-70 cursor-pointer"
+          >
+            {isDownloading ? (
+              <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+            )}
+            <span>Download PDF</span>
+          </button>
+
+          <button 
+            onClick={() => window.print()} 
+            className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 px-4 h-10 rounded-lg shadow-sm flex items-center gap-2 font-semibold text-sm transition-all active:scale-[0.98] cursor-pointer"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+            <span>Print Report</span>
+          </button>
+
+          {hiddenRows.size > 0 && (
+            <button 
+              onClick={() => setHiddenRows(new Set())} 
+              className="bg-rose-50 border border-rose-200 text-rose-600 px-3.5 h-10 rounded-lg hover:bg-rose-100 flex items-center gap-1.5 font-semibold transition-all text-xs cursor-pointer shadow-sm"
+            >
+              <span>Unhide All ({hiddenRows.size})</span>
+            </button>
+          )}
+
+          <div className="hidden lg:flex items-center text-xs text-slate-400 pl-2">
+            <span>Tip: Drag rows to reorder &bull; Click any cell to edit &bull; Hover to hide row</span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <DateFilter date={reportDate} onChange={setReportDate} />
+        </div>
+      </div>
+
+      {/* The Report (Printable Area Wrapper with Premium Executive Styling) */}
+      <div className="print-container bg-white rounded-2xl shadow-xl border border-slate-200 p-3 sm:p-8 print:p-0 print:border-none print:shadow-none" ref={reportRef}>
+        <table className="w-full border-collapse border border-slate-500 text-[13px] sm:text-xs print:text-[10px] text-slate-950 font-bold bg-white">
+          
+          {/* Main Header */}
+          <thead>
+            <tr>
+              <th contentEditable suppressContentEditableWarning colSpan="2" className="print-header-title bg-[#1e3a8a] text-white py-3.5 px-4 text-center font-black text-xl sm:text-2xl border border-slate-600 uppercase tracking-wider">
+                NANDAN SMELTERS REPORT
+              </th>
+              <th contentEditable suppressContentEditableWarning className="print-header-date bg-[#1e3a8a] text-white py-3.5 px-3 text-center font-bold text-base sm:text-lg border border-slate-600 w-[180px]">
+                {formattedDate}
+              </th>
+            </tr>
+          </thead>
+          
+          <tbody>
+            {/* RAW MATERIAL STOCK SECTION */}
+            {orderedRawStock.length > 0 ? (
+              <>
+                {orderedRawStock.map(([material, qty], idx) => (
+                  <tr key={`rawstock-${material}`} className="group cursor-move hover:bg-blue-50/40 transition-colors" draggable onDragStart={(e) => handleDragStart(e, idx, 'rawstock')} onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, idx, 'rawstock', orderedRawStock, setOrderedRawStock)}>
+                    {idx === 0 && (
+                      <td contentEditable suppressContentEditableWarning rowSpan={orderedRawStock.length} className="font-extrabold border border-slate-500 p-2 align-top w-[140px] bg-slate-50/70 text-slate-950 uppercase tracking-wide">
+                        RAW MATERIAL STOCK
+                      </td>
+                    )}
+                    <td contentEditable suppressContentEditableWarning className="font-bold border border-slate-500 p-2 relative text-slate-900 uppercase">
+                      <HideButton rowKey={`rawstock-${material}`} />
+                      {material}
+                    </td>
+                    <td contentEditable suppressContentEditableWarning className="font-extrabold border border-slate-500 p-2 text-right font-mono text-slate-950 text-sm">{formatNumber(qty)}</td>
+                  </tr>
+                ))}
+              </>
+            ) : (
+              <tr>
+                <td contentEditable suppressContentEditableWarning className="font-extrabold border border-slate-500 p-2 align-top w-[140px] bg-slate-50/70 uppercase">RAW MATERIAL STOCK</td>
+                <td contentEditable suppressContentEditableWarning className="border border-slate-500 p-2 text-center text-slate-400 italic">No raw material stock found.</td>
+                <td contentEditable suppressContentEditableWarning className="border border-slate-500 p-2"></td>
+              </tr>
+            )}
+
+            {/* COAL DETAIL STOCK SECTION */}
+            {orderedCoalStock.length > 0 ? (
+              <>
+                {orderedCoalStock.map(([material, qty], idx) => (
+                  <tr key={`coalstock-${material}`} className="group cursor-move hover:bg-blue-50/40 transition-colors" draggable onDragStart={(e) => handleDragStart(e, idx, 'coalstock')} onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, idx, 'coalstock', orderedCoalStock, setOrderedCoalStock)}>
+                    {idx === 0 && (
+                      <td contentEditable suppressContentEditableWarning rowSpan={orderedCoalStock.length} className="font-extrabold border border-slate-500 p-2 align-top w-[140px] bg-slate-50/70 text-slate-950 uppercase tracking-wide">
+                        COAL STOCK
+                      </td>
+                    )}
+                    <td contentEditable suppressContentEditableWarning className="font-bold border border-slate-500 p-2 relative text-slate-900 uppercase">
+                      <HideButton rowKey={`coalstock-${material}`} />
+                      {material}
+                    </td>
+                    <td contentEditable suppressContentEditableWarning className="font-extrabold border border-slate-500 p-2 text-right font-mono text-slate-950 text-sm">{formatNumber(qty)}</td>
+                  </tr>
+                ))}
+              </>
+            ) : (
+              <tr>
+                <td contentEditable suppressContentEditableWarning className="font-extrabold border border-slate-500 p-2 align-top w-[140px] bg-slate-50/70 uppercase">COAL STOCK</td>
+                <td contentEditable suppressContentEditableWarning className="border border-slate-500 p-2 text-center text-slate-400 italic">No coal stock found.</td>
+                <td contentEditable suppressContentEditableWarning className="border border-slate-500 p-2"></td>
+              </tr>
+            )}
+
+            {/* YESTERDAY INCOMING MATERIALS */}
+            <tr>
+              <td contentEditable suppressContentEditableWarning colSpan="3" className="bg-[#e0e7ff] text-[#1e1b4b] font-black text-center p-2 border border-slate-500 uppercase tracking-wider text-xs sm:text-sm">
+                YESTERDAY INCOMING MATERIALS
+              </td>
+            </tr>
+            {filteredIncoming.length > 0 ? (
+              <tr>
+                <td contentEditable suppressContentEditableWarning colSpan="3" className="p-0 border border-slate-500">
+                  <table className="w-full border-collapse table-fixed">
+                    <thead>
+                      <tr className="bg-slate-100">
+                        <th contentEditable suppressContentEditableWarning className="border-b-[2px] border-r border-slate-500 font-extrabold p-1.5 text-center text-slate-900 w-[55px]">S.No</th>
+                        <th contentEditable suppressContentEditableWarning className="border-b-[2px] border-r border-slate-500 font-extrabold p-1.5 text-left text-slate-900">Party Name</th>
+                        <th contentEditable suppressContentEditableWarning className="border-b-[2px] border-r border-slate-500 font-extrabold p-1.5 text-left text-slate-900">Material Name</th>
+                        <th contentEditable suppressContentEditableWarning className="border-b-[2px] border-r border-slate-500 font-extrabold p-1.5 text-center text-slate-900 w-[125px]">Vehicle No</th>
+                        <th contentEditable suppressContentEditableWarning className="border-b-[2px] border-r border-slate-500 font-extrabold p-1.5 text-center text-slate-900 w-[120px]">Qty.</th>
+                        <th contentEditable suppressContentEditableWarning className="border-b border-slate-500 font-extrabold p-1.5 text-center text-slate-900 w-[120px]">RATE 18 %</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {orderedIncoming.map((item, idx) => (
+                        <tr key={`inc-${item.id || idx}`} className="border-b border-slate-500 last:border-b-0 hover:bg-indigo-50/40 transition-colors group cursor-move" draggable onDragStart={(e) => handleDragStart(e, idx, 'incoming')} onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, idx, 'incoming', orderedIncoming, setOrderedIncoming)}>
+                          <td contentEditable suppressContentEditableWarning className="border-r border-slate-500 p-1.5 text-center font-extrabold relative text-slate-900">
+                            <HideButton rowKey={`inc-${item.id || idx}`} />
+                            {idx + 1}
+                          </td>
+                          <td contentEditable suppressContentEditableWarning className="border-r border-slate-500 p-1.5 font-bold text-slate-900 uppercase">{item.partyName}</td>
+                          <td contentEditable suppressContentEditableWarning className="border-r border-slate-500 p-1.5 font-bold text-slate-900 uppercase">{item.materialName}</td>
+                          <td contentEditable suppressContentEditableWarning className="border-r border-slate-500 p-1.5 text-center font-mono font-bold text-slate-900 uppercase">{item.vehicleNo}</td>
+                          <td contentEditable suppressContentEditableWarning className="border-r border-slate-500 p-1.5 text-center font-extrabold font-mono text-slate-950 text-sm">{formatNumber(item.qty)}</td>
+                          <td contentEditable suppressContentEditableWarning className="p-1.5 text-center font-mono font-extrabold text-slate-950 text-sm">{item.rate || '0'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </td>
+              </tr>
+            ) : (
+              <tr><td contentEditable suppressContentEditableWarning colSpan="3" className="border border-slate-500 p-2 text-center text-slate-400 italic">No incoming materials found.</td></tr>
+            )}
+
+            {/* YESTERDAY OUTGOING MATERIALS */}
+            <tr>
+              <td contentEditable suppressContentEditableWarning colSpan="3" className="bg-[#e0e7ff] text-[#1e1b4b] font-black text-center p-2 border border-slate-500 uppercase tracking-wider text-xs sm:text-sm">
+                YESTERDAY OUTGOING MATERIALS
+              </td>
+            </tr>
+            {filteredOutgoing.length > 0 ? (
+              <tr>
+                <td contentEditable suppressContentEditableWarning colSpan="3" className="p-0 border border-slate-500">
+                  <table className="w-full border-collapse table-fixed">
+                    <thead>
+                      <tr className="bg-slate-100">
+                        <th contentEditable suppressContentEditableWarning className="border-b-[2px] border-r border-slate-500 font-extrabold p-1.5 text-center text-slate-900 w-[55px]">S.No</th>
+                        <th contentEditable suppressContentEditableWarning className="border-b-[2px] border-r border-slate-500 font-extrabold p-1.5 text-left text-slate-900">Party Name</th>
+                        <th contentEditable suppressContentEditableWarning className="border-b-[2px] border-r border-slate-500 font-extrabold p-1.5 text-left text-slate-900">Material Name</th>
+                        <th contentEditable suppressContentEditableWarning className="border-b-[2px] border-r border-slate-500 font-extrabold p-1.5 text-center text-slate-900 w-[125px]">Vehicle No</th>
+                        <th contentEditable suppressContentEditableWarning className="border-b-[2px] border-r border-slate-500 font-extrabold p-1.5 text-center text-slate-900 w-[120px]">Qty.</th>
+                        <th contentEditable suppressContentEditableWarning className="border-b border-slate-500 font-extrabold p-1.5 text-center text-slate-900 w-[120px]">RATE 18 %</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {orderedOutgoing.map((item, idx) => (
+                        <tr key={`out-${item.id || idx}`} className="border-b border-slate-500 last:border-b-0 hover:bg-indigo-50/40 transition-colors group cursor-move" draggable onDragStart={(e) => handleDragStart(e, idx, 'outgoing')} onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, idx, 'outgoing', orderedOutgoing, setOrderedOutgoing)}>
+                          <td contentEditable suppressContentEditableWarning className="border-r border-slate-500 p-1.5 text-center font-extrabold relative text-slate-900">
+                            <HideButton rowKey={`out-${item.id || idx}`} />
+                            {idx + 1}
+                          </td>
+                          <td contentEditable suppressContentEditableWarning className="border-r border-slate-500 p-1.5 font-bold text-slate-900 uppercase">{item.partyName}</td>
+                          <td contentEditable suppressContentEditableWarning className="border-r border-slate-500 p-1.5 font-bold text-slate-900 uppercase">{item.materialName}</td>
+                          <td contentEditable suppressContentEditableWarning className="border-r border-slate-500 p-1.5 text-center font-mono font-bold text-slate-900 uppercase">{item.vehicleNo}</td>
+                          <td contentEditable suppressContentEditableWarning className="border-r border-slate-500 p-1.5 text-center font-extrabold font-mono text-slate-950 text-sm">{formatNumber(item.qty)}</td>
+                          <td contentEditable suppressContentEditableWarning className="p-1.5 text-center font-mono font-extrabold text-slate-950 text-sm">{item.rate || '0'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </td>
+              </tr>
+            ) : (
+              <tr><td contentEditable suppressContentEditableWarning colSpan="3" className="border border-slate-500 p-2 text-center text-slate-400 italic">No outgoing materials found.</td></tr>
+            )}
+
+            {/* TOTAL PRODUCTION IN 24HR */}
+            <tr>
+              <td contentEditable suppressContentEditableWarning colSpan="3" className="bg-[#e0e7ff] text-[#1e1b4b] font-black text-center p-2 border border-slate-500 uppercase tracking-wider text-xs sm:text-sm">
+                TOTAL PRODUCTION IN 24HR
+              </td>
+            </tr>
+            {filteredProduction.length > 0 ? (
+              <tr>
+                <td contentEditable suppressContentEditableWarning colSpan="3" className="p-0 border border-slate-500">
+                  <table className="w-full border-collapse table-fixed">
+                    <thead>
+                      <tr className="bg-slate-100">
+                        <th contentEditable suppressContentEditableWarning className="border-b-[2px] border-r border-slate-500 font-extrabold p-1.5 text-center text-slate-900">GRADE</th>
+                        <th contentEditable suppressContentEditableWarning className="border-b-[2px] border-r border-slate-500 font-extrabold p-1.5 text-center w-[120px] text-slate-900">KILN 1</th>
+                        <th contentEditable suppressContentEditableWarning className="border-b-[2px] border-r border-slate-500 font-extrabold p-1.5 text-center w-[120px] text-slate-900">KILN 2</th>
+                        <th contentEditable suppressContentEditableWarning className="border-b border-slate-500 font-extrabold p-1.5 text-center w-[120px] text-slate-900">TOTAL</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {orderedProduction.map(([metric, values], idx) => (
+                        <tr key={`prod-${metric}`} className="group cursor-move hover:bg-indigo-50/40 transition-colors" draggable onDragStart={(e) => handleDragStart(e, idx, 'production')} onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, idx, 'production', orderedProduction, setOrderedProduction)}>
+                          <td contentEditable suppressContentEditableWarning className="border-r border-slate-500 font-bold p-1.5 uppercase relative text-slate-900">
+                            <HideButton rowKey={`prod-${metric}`} />
+                            {metric}
+                          </td>
+                          <td contentEditable suppressContentEditableWarning className="border-r border-slate-500 font-extrabold p-1.5 text-center font-mono text-slate-950 text-sm">{formatNumber(values.k1)}</td>
+                          <td contentEditable suppressContentEditableWarning className="border-r border-slate-500 font-extrabold p-1.5 text-center font-mono text-slate-950 text-sm">{formatNumber(values.k2)}</td>
+                          <td contentEditable suppressContentEditableWarning className="font-extrabold p-1.5 text-center font-mono text-slate-950 text-sm">
+                            <div>{formatNumber(values.total)}</div>
+                            {metric.includes('"A" GRADE') && <div className="text-[9px] text-slate-600 font-bold uppercase mt-0.5">A GRADE TOTAL</div>}
+                            {metric.includes('"B" GRADE') && <div className="text-[9px] text-slate-600 font-bold uppercase mt-0.5">B GRADE TOTAL</div>}
+                          </td>
+                        </tr>
+                      ))}
+                      {/* Sub-total for production */}
+                      <tr className="bg-[#cbd5e1] font-bold" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                        <td contentEditable suppressContentEditableWarning className="border-t-[2px] border-r border-slate-500 font-black py-2.5 px-2 text-center uppercase text-slate-950 tracking-wider">SPONGE TOTAL</td>
+                        <td contentEditable suppressContentEditableWarning className="border-t-[2px] border-r border-slate-500 font-extrabold py-2.5 px-1 text-center font-mono text-slate-950">
+                          <div className="text-[9px] text-slate-700 font-black uppercase leading-tight">KILN-1 TOTAL</div>
+                          {formatNumber(prodTotalK1Filtered)}
+                        </td>
+                        <td contentEditable suppressContentEditableWarning className="border-t-[2px] border-r border-slate-500 font-extrabold py-2.5 px-1 text-center font-mono text-slate-950">
+                          <div className="text-[9px] text-slate-700 font-black uppercase leading-tight">KILN-2 TOTAL</div>
+                          {formatNumber(prodTotalK2Filtered)}
+                        </td>
+                        <td contentEditable suppressContentEditableWarning className="border-t-[2px] border-slate-500 font-black py-2.5 px-1 text-center font-mono text-base text-slate-950">
+                          {formatNumber(prodTotalAllFiltered)}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </td>
+              </tr>
+            ) : (
+              <tr><td contentEditable suppressContentEditableWarning colSpan="3" className="border border-slate-500 p-2 text-center text-slate-400 italic">No production entries found.</td></tr>
+            )}
+
+            {/* BALANCE PENDING OUTGOING (SAUDA SALE) */}
+            <tr>
+              <td contentEditable suppressContentEditableWarning colSpan="3" className="bg-[#e0e7ff] text-[#1e1b4b] font-black text-center p-2 border border-slate-500 uppercase tracking-wider text-xs sm:text-sm">
+                BALANCE PENDING OUTGOING (SAUDA SALE)
+              </td>
+            </tr>
+            <tr className="bg-slate-100">
+              <th contentEditable suppressContentEditableWarning className="text-slate-900 font-extrabold text-center p-1.5 border border-slate-500 uppercase tracking-wide w-[140px]">TYPE</th>
+              <th contentEditable suppressContentEditableWarning className="text-slate-900 font-extrabold text-center p-1.5 border border-slate-500 uppercase tracking-wide">ITEM'S</th>
+              <th contentEditable suppressContentEditableWarning className="text-slate-900 font-extrabold text-center p-1.5 border border-slate-500 uppercase tracking-wide w-[180px]">BAL. PENDING</th>
+            </tr>
+            {orderedSaudaSale.map((item, idx) => (
+              <tr key={`sale-${item.itemName || idx}`} className="group cursor-move hover:bg-indigo-50/40 transition-colors" draggable onDragStart={(e) => handleDragStart(e, idx, 'saudaSale')} onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, idx, 'saudaSale', orderedSaudaSale, setOrderedSaudaSale)}>
+                {idx === 0 && <td contentEditable suppressContentEditableWarning rowSpan={Math.max(1, orderedSaudaSale.length)} className="font-black border border-slate-500 p-2 align-top uppercase bg-slate-50/70 text-slate-950 tracking-wide">SALE</td>}
+                <td contentEditable suppressContentEditableWarning className="font-bold border border-slate-500 p-2 uppercase relative text-slate-900">
+                  <HideButton rowKey={`sale-${item.itemName || idx}`} />
+                  {item.itemName}
+                </td>
+                <td contentEditable suppressContentEditableWarning className="font-extrabold border border-slate-500 p-2 text-right font-mono text-slate-950 text-sm">{formatNumber(item.balPending)}</td>
+              </tr>
+            ))}
+            {filteredSaudaSale.length === 0 && (
+              <tr>
+                <td contentEditable suppressContentEditableWarning className="font-extrabold border border-slate-500 p-2 align-top w-[140px] uppercase bg-slate-50/70">SALE</td>
+                <td contentEditable suppressContentEditableWarning className="border border-slate-500 p-2 text-center text-slate-400 italic">No pending sales found.</td>
+                <td contentEditable suppressContentEditableWarning className="border border-slate-500 p-2"></td>
+              </tr>
+            )}
+
+            {/* BALANCE PENDING INCOMING (SAUDA PURCHASE) */}
+            <tr>
+              <td contentEditable suppressContentEditableWarning colSpan="3" className="bg-[#e0e7ff] text-[#1e1b4b] font-black text-center p-2 border border-slate-500 uppercase tracking-wider text-xs sm:text-sm">
+                BALANCE PENDING INCOMING (SAUDA PURCHASE)
+              </td>
+            </tr>
+            <tr className="bg-slate-100">
+              <th contentEditable suppressContentEditableWarning className="text-slate-900 font-extrabold text-center p-1.5 border border-slate-500 uppercase tracking-wide w-[140px]">TYPE</th>
+              <th contentEditable suppressContentEditableWarning className="text-slate-900 font-extrabold text-center p-1.5 border border-slate-500 uppercase tracking-wide">ITEM'S</th>
+              <th contentEditable suppressContentEditableWarning className="text-slate-900 font-extrabold text-center p-1.5 border border-slate-500 uppercase tracking-wide w-[180px]">BAL. PENDING</th>
+            </tr>
+            {orderedSaudaPurchase.map((item, idx) => (
+              <tr key={`pur-${item.itemName || idx}`} className="group cursor-move hover:bg-indigo-50/40 transition-colors" draggable onDragStart={(e) => handleDragStart(e, idx, 'saudaPurchase')} onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, idx, 'saudaPurchase', orderedSaudaPurchase, setOrderedSaudaPurchase)}>
+                {idx === 0 && <td contentEditable suppressContentEditableWarning rowSpan={Math.max(1, orderedSaudaPurchase.length)} className="font-black border border-slate-500 p-2 align-top uppercase bg-slate-50/70 text-slate-950 tracking-wide">PURCHASE</td>}
+                <td contentEditable suppressContentEditableWarning className="font-bold border border-slate-500 p-2 uppercase relative text-slate-900">
+                  <HideButton rowKey={`pur-${item.itemName || idx}`} />
+                  {item.itemName}
+                </td>
+                <td contentEditable suppressContentEditableWarning className="font-extrabold border border-slate-500 p-2 text-right font-mono text-slate-950 text-sm">{formatNumber(item.balPending)}</td>
+              </tr>
+            ))}
+            {filteredSaudaPurchase.length === 0 && (
+              <tr>
+                <td contentEditable suppressContentEditableWarning className="font-extrabold border border-slate-500 p-2 align-top w-[140px] uppercase bg-slate-50/70">PURCHASE</td>
+                <td contentEditable suppressContentEditableWarning className="border border-slate-500 p-2 text-center text-slate-400 italic">No pending purchases found.</td>
+                <td contentEditable suppressContentEditableWarning className="border border-slate-500 p-2"></td>
+              </tr>
+            )}
+
+            {/* NOTES SECTION */}
+            <tr>
+              <td contentEditable suppressContentEditableWarning className="bg-slate-100 text-slate-900 font-black p-2 border border-slate-500 uppercase tracking-wider align-top w-[140px]">
+                NOTES:
+              </td>
+              <td contentEditable suppressContentEditableWarning colSpan="2" className="print-notes-cell border border-slate-500 p-3 text-slate-900 font-bold text-sm min-h-[70px] align-top outline-none focus:bg-slate-50/80 transition-colors break-words whitespace-pre-wrap" placeholder="Click here to type additional management notes...">
+              </td>
+            </tr>
+
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+export default MisReport

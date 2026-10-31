@@ -1480,7 +1480,17 @@ const WorkOrder = () => {
                     />
                     {formData.signatureDataUrl ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', position: 'relative', zIndex: 10 }}>
-                        <img src={formData.signatureDataUrl} alt="Signature" style={{ height: '32px', objectFit: 'contain' }} />
+                        <img 
+                          src={formData.signatureDataUrl} 
+                          alt="Signature" 
+                          style={{ height: '32px', objectFit: 'contain' }} 
+                          onError={(e) => {
+                            const compSig = COMPANY_DETAILS[formData.companyName]?.signature;
+                            if (compSig && e.target.src !== compSig) {
+                              e.target.src = compSig;
+                            }
+                          }}
+                        />
                         <span
                           style={{ fontSize: '0.72rem', color: '#ef4444', cursor: 'pointer', fontWeight: 600 }}
                           onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFormData(prev => ({ ...prev, signatureDataUrl: '' })); }}>
@@ -2038,8 +2048,17 @@ const WorkOrder = () => {
                   <div style={{ marginTop: 'auto', lineHeight: '1.4' }}>
                     <p style={{ fontWeight: 'bold', margin: '0 0 4px 0' }}>For {previewData.companyName}</p>
                     <div style={{ minHeight: '85px', height: '85px', display: 'flex', alignItems: 'center', marginTop: '6px', marginBottom: '6px' }}>
-                      {previewData.signatureDataUrl && (
-                        <img src={previewData.signatureDataUrl} alt="Signature" style={{ height: '85px', maxWidth: '200px', objectFit: 'contain' }} />
+                      {(previewData.signatureDataUrl || activeFirm?.signature) && (
+                        <img 
+                          src={previewData.signatureDataUrl || activeFirm?.signature} 
+                          alt="Signature" 
+                          style={{ height: '85px', maxWidth: '200px', objectFit: 'contain' }}
+                          onError={(e) => {
+                            if (activeFirm?.signature && e.target.src !== activeFirm.signature) {
+                              e.target.src = activeFirm.signature;
+                            }
+                          }}
+                        />
                       )}
                     </div>
                     <p style={{ fontWeight: 'bold', margin: '0' }}>{previewData.signatoryName}</p>

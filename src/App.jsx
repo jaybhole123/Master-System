@@ -234,6 +234,16 @@ const PlantSystemWrapper = ({ children }) => (
     </ProtectedRoute>
 );
 
+const NandanSmelterWrapper = ({ children }) => (
+    <ProtectedRoute>
+        <AdminLayout noPadding={true}>
+            <div className="nandan-smelter-container flex flex-col flex-1 w-full min-h-full bg-slate-50 overflow-x-hidden">
+                {children}
+            </div>
+        </AdminLayout>
+    </ProtectedRoute>
+);
+
 const BilletSystemWrapper = ({ children }) => (
     <ProtectedRoute>
         <AdminLayout noPadding={true}>
@@ -266,6 +276,15 @@ import PlantProduction2 from './Plant_Hindustan_Datthu_Sopnge/src/pages/Producti
 import PlantSaudaScale from './Plant_Hindustan_Datthu_Sopnge/src/pages/SaudaScale';
 import PlantSaudaPurchase from './Plant_Hindustan_Datthu_Sopnge/src/pages/SaudaPurchase';
 import PlantMisReport from './Plant_Hindustan_Datthu_Sopnge/src/pages/MisReport';
+
+// --- Nandan Smelters Pvt Ltd Plant Imports ---
+import NandanStock from './Nandan_Smilter_Plant/src/pages/Stock';
+import NandanItemTransfer from './Nandan_Smilter_Plant/src/pages/ItemTransfer';
+import NandanProduction from './Nandan_Smilter_Plant/src/pages/Production';
+import NandanProduction2 from './Nandan_Smilter_Plant/src/pages/Production2';
+import NandanSaudaScale from './Nandan_Smilter_Plant/src/pages/SaudaScale';
+import NandanSaudaPurchase from './Nandan_Smilter_Plant/src/pages/SaudaPurchase';
+import NandanMisReport from './Nandan_Smilter_Plant/src/pages/MisReport';
 
 // --- Hindustan Billet Imports ---
 import BilletDashboard from './Hindustan_Billet/src/Dashboard';
@@ -698,6 +717,17 @@ function App() {
                     <Route path="/plant/sauda-scale" element={<PlantSystemWrapper><PlantSaudaScale /></PlantSystemWrapper>} />
                     <Route path="/plant/sauda-purchase" element={<PlantSystemWrapper><PlantSaudaPurchase /></PlantSystemWrapper>} />
                     <Route path="/plant/mis-report" element={<PlantSystemWrapper><PlantMisReport /></PlantSystemWrapper>} />
+
+                    {/* --- Nandan Smelters Pvt Ltd Report Routes --- */}
+                    <Route path="/nandan-smelter" element={<Navigate to="/nandan-smelter/stock" replace />} />
+                    <Route path="/nandan-smelter/stock" element={<NandanSmelterWrapper><NandanStock /></NandanSmelterWrapper>} />
+                    <Route path="/nandan-smelter/transfer" element={<NandanSmelterWrapper><NandanItemTransfer /></NandanSmelterWrapper>} />
+                    <Route path="/nandan-smelter/production" element={<NandanSmelterWrapper><NandanProduction /></NandanSmelterWrapper>} />
+                    <Route path="/nandan-smelter/production2" element={<NandanSmelterWrapper><NandanProduction2 /></NandanSmelterWrapper>} />
+                    <Route path="/nandan-smelter/sauda-scale" element={<NandanSmelterWrapper><NandanSaudaScale /></NandanSmelterWrapper>} />
+                    <Route path="/nandan-smelter/sauda-sale" element={<NandanSmelterWrapper><NandanSaudaScale /></NandanSmelterWrapper>} />
+                    <Route path="/nandan-smelter/sauda-purchase" element={<NandanSmelterWrapper><NandanSaudaPurchase /></NandanSmelterWrapper>} />
+                    <Route path="/nandan-smelter/mis-report" element={<NandanSmelterWrapper><NandanMisReport /></NandanSmelterWrapper>} />
 
                     {/* --- Hindustan Billet System Routes --- */}
                     <Route path="/billet-system" element={<Navigate to="/billet-system/dashboard" replace />} />

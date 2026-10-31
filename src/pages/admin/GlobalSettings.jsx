@@ -127,6 +127,11 @@ const MODULES = [
     pages: ['Stock Management', 'Incoming & Outgoing', 'Production', 'Sauda sale', 'Sauda Purchase', 'MIS Report']
   },
   {
+    id: 'Nandan Smelters Pvt Ltd Report',
+    name: 'Nandan Smelters Pvt Ltd Report',
+    pages: ['Stock Management', 'Incoming & Outgoing', 'Production', 'Sauda sale', 'Sauda Purchase', 'MIS Report']
+  },
+  {
     id: 'Hindustan Dhaatu Ltd (Billet) Report',
     name: 'Hindustan Dhaatu Ltd (Billet) Report',
     pages: ['Dashboard', 'Consumption Report', 'Billet Report', 'MIS Report']
@@ -597,45 +602,43 @@ export default function GlobalSettings() {
           <div className="bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-slate-200/90 overflow-hidden">
             
             {/* Action Bar & Search Filter */}
-            <div className="p-4 sm:p-5 border-b border-slate-100 bg-slate-50/60 flex flex-col lg:flex-row gap-3.5 items-stretch lg:items-center justify-between">
+            <div className="p-4 sm:p-5 border-b border-slate-100 bg-slate-50/60 flex flex-col md:flex-row gap-3.5 items-stretch md:items-center justify-between">
               
-              {/* Search + Live Count */}
-              <div className="flex items-center gap-2 flex-1 max-w-xl">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 h-4 w-4" />
-                  <input
-                    type="text"
-                    placeholder="Search by name, employee ID, email, department..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-9 py-2 sm:py-2.5 bg-white border border-slate-200/90 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-medium placeholder:text-slate-400 shadow-2xs"
-                  />
-                  {searchTerm && (
-                    <button
-                      onClick={() => setSearchTerm('')}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-full"
-                    >
-                      <X size={14} />
-                    </button>
-                  )}
-                </div>
-                
-                {/* Role Filter Pills */}
-                <div className="hidden sm:flex items-center bg-white p-1 rounded-xl border border-slate-200 shadow-2xs shrink-0 text-xs font-bold text-slate-600">
-                  {['all', 'superadmin', 'admin', 'user'].map((r) => (
-                    <button
-                      key={r}
-                      onClick={() => setRoleFilter(r)}
-                      className={`px-2.5 py-1 rounded-lg uppercase text-[10px] tracking-wider transition-all cursor-pointer ${
-                        roleFilter === r
-                          ? 'bg-red-600 text-white shadow-xs font-black'
-                          : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
-                      }`}
-                    >
-                      {r === 'all' ? 'All Roles' : r}
-                    </button>
-                  ))}
-                </div>
+              {/* Search */}
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 h-4 w-4" />
+                <input
+                  type="text"
+                  placeholder="Search by name, employee ID, email, department..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-9 py-2 sm:py-2.5 bg-white border border-slate-200/90 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-medium placeholder:text-slate-400 shadow-2xs"
+                />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-full"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+
+              {/* Role Filter Tabs (ALL ROLES, SUPERADMIN, ADMIN, USER) */}
+              <div className="flex items-center bg-white p-1 rounded-full border border-slate-200 shadow-2xs shrink-0 text-xs font-bold self-start md:self-auto">
+                {['all', 'superadmin', 'admin', 'user'].map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => setRoleFilter(r)}
+                    className={`px-3.5 py-1.5 rounded-full uppercase text-[11px] tracking-wider transition-all cursor-pointer font-bold ${
+                      roleFilter === r
+                        ? 'bg-red-600 text-white shadow-xs font-black'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                    }`}
+                  >
+                    {r === 'all' ? 'ALL ROLES' : r.toUpperCase()}
+                  </button>
+                ))}
               </div>
 
               {/* Action Buttons: Export + Create User */}

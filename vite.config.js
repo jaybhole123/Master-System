@@ -21,6 +21,7 @@ export default defineConfig(({ mode }) => {
     ...loadEnv(mode, process.cwd(), ''),
     ...loadEnv(mode, './src/Plant_Hindustan_Datthu_Sopnge', ''),
     ...loadEnv(mode, './src/Hindustan_Billet', ''),
+    ...loadEnv(mode, './src/Nandan_Smilter_Plant', ''),
   }
 
   const openAiKey = env.OPENAI_API_KEY || env.VITE_OPENAI_API_KEY || ''
