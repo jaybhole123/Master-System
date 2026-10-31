@@ -1438,18 +1438,19 @@ const OfferLetter = () => {
                   />
                 </div>
 
-                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                <div className="form-group">
                   <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>Signatory Title</label>
                   <input
                     type="text"
                     name="signatoryTitle"
                     value={formData.signatoryTitle}
                     onChange={handleChange}
+                    placeholder="e.g. Director/Authorized Signatory"
                     style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 12px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
                   />
                 </div>
 
-                <div className="form-group col-span-full" style={{ gridColumn: '1 / -1' }}>
+                <div className="form-group">
                   <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>
                     Signature Image (Click or Press Ctrl+V)
                   </label>
@@ -1459,15 +1460,15 @@ const OfferLetter = () => {
                     style={{
                       width: '100%',
                       border: '2px dashed #cbd5e1',
-                      borderRadius: '10px',
-                      padding: '12px',
+                      borderRadius: '8px',
+                      padding: '8px 12px',
                       textAlign: 'center',
                       color: '#64748b',
                       cursor: 'pointer',
                       position: 'relative',
                       outline: 'none',
                       backgroundColor: '#f8fafc',
-                      minHeight: '64px',
+                      minHeight: '42px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -1481,17 +1482,17 @@ const OfferLetter = () => {
                       style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', zIndex: 5 }}
                     />
                     {formData.signatureDataUrl ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', position: 'relative', zIndex: 10 }}>
-                        <img src={formData.signatureDataUrl} alt="Signature" style={{ height: '48px', objectFit: 'contain' }} />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', position: 'relative', zIndex: 10 }}>
+                        <img src={formData.signatureDataUrl} alt="Signature" style={{ height: '32px', objectFit: 'contain' }} />
                         <span
-                          style={{ fontSize: '0.75rem', color: '#ef4444', cursor: 'pointer', fontWeight: 600 }}
+                          style={{ fontSize: '0.72rem', color: '#ef4444', cursor: 'pointer', fontWeight: 600 }}
                           onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFormData(prev => ({ ...prev, signatureDataUrl: '' })); }}>
-                          Remove Signature
+                          Remove
                         </span>
                       </div>
                     ) : (
-                      <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
-                        Click to upload PNG/JPG or paste clipboard image directly (Ctrl+V)
+                      <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                        Click to upload or Ctrl+V
                       </span>
                     )}
                   </div>
@@ -2131,9 +2132,9 @@ const OfferLetter = () => {
                   <div style={{ marginTop: 'auto', lineHeight: '1.45' }}>
                     <p style={{ fontWeight: 'bold', marginBottom: '6px' }}>Thanks & Regards</p>
                     <p style={{ fontWeight: 'bold', margin: '0' }}>For {previewData.companyName}</p>
-                    <div style={{ height: '70px', display: 'flex', alignItems: 'center', marginTop: '6px', marginBottom: '6px' }}>
+                    <div style={{ minHeight: '85px', height: '85px', display: 'flex', alignItems: 'center', marginTop: '6px', marginBottom: '6px' }}>
                       {previewData.signatureDataUrl && (
-                        <img src={previewData.signatureDataUrl} alt="Signature" style={{ height: '100%', objectFit: 'contain' }} />
+                        <img src={previewData.signatureDataUrl} alt="Signature" style={{ height: '85px', maxWidth: '200px', objectFit: 'contain' }} />
                       )}
                     </div>
                     <p style={{ fontWeight: 'bold', margin: '0' }}>{previewData.signatoryName}</p>
