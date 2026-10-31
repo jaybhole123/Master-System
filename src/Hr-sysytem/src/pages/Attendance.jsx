@@ -3213,32 +3213,44 @@ Instructions:
           >
             {/* Modal Header */}
             <div style={{
-              background: 'linear-gradient(135deg, #b91c1c 0%, #dc2626 100%)',
+              background: 'linear-gradient(135deg, #991b1b 0%, #dc2626 100%)',
               color: 'white',
-              padding: '18px 24px',
+              padding: '12px 20px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+              boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <div style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '10px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                  width: '34px',
+                  height: '34px',
+                  borderRadius: '8px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.18)',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  backdropFilter: 'blur(4px)'
                 }}>
-                  <Eye size={22} color="#ffffff" />
+                  <Eye size={18} color="#ffffff" />
                 </div>
                 <div>
-                  <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, letterSpacing: '0.3px', color: '#ffffff' }}>
-                    {viewEmployeeModal.emp.name}
-                  </h2>
-                  <p style={{ margin: '2px 0 0 0', fontSize: '0.82rem', opacity: 0.9, color: '#fecaca', fontWeight: 500 }}>
-                    Monthly Attendance Detail • {getFormattedMonth(selectedMonth)} (ID: #{viewEmployeeModal.emp.id})
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <h2 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, letterSpacing: '0.2px', color: '#ffffff' }}>
+                      {viewEmployeeModal.emp.name}
+                    </h2>
+                    <span style={{
+                      fontSize: '0.7rem',
+                      background: 'rgba(255, 255, 255, 0.22)',
+                      padding: '1px 7px',
+                      borderRadius: '12px',
+                      fontWeight: 600
+                    }}>
+                      ID: #{viewEmployeeModal.emp.id}
+                    </span>
+                  </div>
+                  <p style={{ margin: '1px 0 0 0', fontSize: '0.76rem', opacity: 0.9, color: '#fecaca', fontWeight: 500 }}>
+                    Monthly Attendance Detail • {getFormattedMonth(selectedMonth)}
                   </p>
                 </div>
               </div>
@@ -3248,133 +3260,141 @@ Instructions:
                 style={{
                   background: 'rgba(255, 255, 255, 0.15)',
                   border: 'none',
-                  borderRadius: '8px',
-                  padding: '6px',
+                  borderRadius: '7px',
+                  padding: '5px',
                   cursor: 'pointer',
                   color: 'white',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  transition: 'background 0.2s'
+                  transition: 'background 0.15s'
                 }}
                 onMouseEnter={e => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)'}
               >
-                <X size={20} />
+                <X size={18} />
               </button>
             </div>
 
             {/* Modal Body */}
-            <div style={{ padding: '24px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ padding: '16px 20px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '14px' }}>
               
               {/* Summary Stats Row */}
               <div>
-                <h4 style={{ margin: '0 0 10px 0', fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-secondary, #64748b)' }}>
-                  Monthly Summary ({getFormattedMonth(selectedMonth)})
-                </h4>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'var(--text-secondary, #64748b)' }}>
+                    Monthly Summary ({getFormattedMonth(selectedMonth)})
+                  </span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '8px' }}>
                   
                   {/* Present */}
                   <div style={{
                     backgroundColor: '#f0fdf4',
                     border: '1px solid #bbf7d0',
-                    borderRadius: '10px',
-                    padding: '12px 14px',
-                    textAlign: 'center'
+                    borderRadius: '8px',
+                    padding: '8px 6px',
+                    textAlign: 'center',
+                    boxShadow: '0 1px 2px rgba(22, 163, 74, 0.05)'
                   }}>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#166534', textTransform: 'uppercase', display: 'block' }}>
-                      P • Present
+                    <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#166534', textTransform: 'uppercase', display: 'block', letterSpacing: '0.2px' }}>
+                      Present
                     </span>
-                    <span style={{ fontSize: '1.6rem', fontWeight: 800, color: '#15803d', lineHeight: '1.2', display: 'block', marginTop: '2px' }}>
+                    <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#15803d', lineHeight: '1.2', display: 'block', margin: '1px 0' }}>
                       {viewEmployeeModal.stats.p}
                     </span>
-                    <span style={{ fontSize: '0.7rem', color: '#16a34a', fontWeight: 600 }}>Days</span>
+                    <span style={{ fontSize: '0.62rem', color: '#16a34a', fontWeight: 600 }}>Days</span>
                   </div>
 
                   {/* Absent */}
                   <div style={{
                     backgroundColor: '#fef2f2',
                     border: '1px solid #fecaca',
-                    borderRadius: '10px',
-                    padding: '12px 14px',
-                    textAlign: 'center'
+                    borderRadius: '8px',
+                    padding: '8px 6px',
+                    textAlign: 'center',
+                    boxShadow: '0 1px 2px rgba(220, 38, 38, 0.05)'
                   }}>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#991b1b', textTransform: 'uppercase', display: 'block' }}>
-                      A • Absent
+                    <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#991b1b', textTransform: 'uppercase', display: 'block', letterSpacing: '0.2px' }}>
+                      Absent
                     </span>
-                    <span style={{ fontSize: '1.6rem', fontWeight: 800, color: '#dc2626', lineHeight: '1.2', display: 'block', marginTop: '2px' }}>
+                    <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#dc2626', lineHeight: '1.2', display: 'block', margin: '1px 0' }}>
                       {viewEmployeeModal.stats.a}
                     </span>
-                    <span style={{ fontSize: '0.7rem', color: '#ef4444', fontWeight: 600 }}>Days</span>
+                    <span style={{ fontSize: '0.62rem', color: '#ef4444', fontWeight: 600 }}>Days</span>
                   </div>
 
                   {/* Leave */}
                   <div style={{
                     backgroundColor: '#fefce8',
                     border: '1px solid #fef08a',
-                    borderRadius: '10px',
-                    padding: '12px 14px',
-                    textAlign: 'center'
+                    borderRadius: '8px',
+                    padding: '8px 6px',
+                    textAlign: 'center',
+                    boxShadow: '0 1px 2px rgba(202, 138, 4, 0.05)'
                   }}>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#854d0e', textTransform: 'uppercase', display: 'block' }}>
-                      L • Leave
+                    <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#854d0e', textTransform: 'uppercase', display: 'block', letterSpacing: '0.2px' }}>
+                      Leave
                     </span>
-                    <span style={{ fontSize: '1.6rem', fontWeight: 800, color: '#ca8a04', lineHeight: '1.2', display: 'block', marginTop: '2px' }}>
+                    <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#ca8a04', lineHeight: '1.2', display: 'block', margin: '1px 0' }}>
                       {viewEmployeeModal.stats.l}
                     </span>
-                    <span style={{ fontSize: '0.7rem', color: '#eab308', fontWeight: 600 }}>Days</span>
+                    <span style={{ fontSize: '0.62rem', color: '#eab308', fontWeight: 600 }}>Days</span>
                   </div>
 
                   {/* Half Day */}
                   <div style={{
                     backgroundColor: '#eff6ff',
                     border: '1px solid #bfdbfe',
-                    borderRadius: '10px',
-                    padding: '12px 14px',
-                    textAlign: 'center'
+                    borderRadius: '8px',
+                    padding: '8px 6px',
+                    textAlign: 'center',
+                    boxShadow: '0 1px 2px rgba(37, 99, 235, 0.05)'
                   }}>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#1e40af', textTransform: 'uppercase', display: 'block' }}>
-                      HD • Half Day
+                    <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#1e40af', textTransform: 'uppercase', display: 'block', letterSpacing: '0.2px' }}>
+                      Half Day
                     </span>
-                    <span style={{ fontSize: '1.6rem', fontWeight: 800, color: '#2563eb', lineHeight: '1.2', display: 'block', marginTop: '2px' }}>
+                    <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#2563eb', lineHeight: '1.2', display: 'block', margin: '1px 0' }}>
                       {viewEmployeeModal.stats.hd}
                     </span>
-                    <span style={{ fontSize: '0.7rem', color: '#3b82f6', fontWeight: 600 }}>Days</span>
+                    <span style={{ fontSize: '0.62rem', color: '#3b82f6', fontWeight: 600 }}>Days</span>
                   </div>
 
                   {/* Holiday */}
                   <div style={{
                     backgroundColor: '#faf5ff',
                     border: '1px solid #e9d5ff',
-                    borderRadius: '10px',
-                    padding: '12px 14px',
-                    textAlign: 'center'
+                    borderRadius: '8px',
+                    padding: '8px 6px',
+                    textAlign: 'center',
+                    boxShadow: '0 1px 2px rgba(147, 51, 234, 0.05)'
                   }}>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#6b21a8', textTransform: 'uppercase', display: 'block' }}>
-                      H • Holiday
+                    <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#6b21a8', textTransform: 'uppercase', display: 'block', letterSpacing: '0.2px' }}>
+                      Holiday
                     </span>
-                    <span style={{ fontSize: '1.6rem', fontWeight: 800, color: '#9333ea', lineHeight: '1.2', display: 'block', marginTop: '2px' }}>
+                    <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#9333ea', lineHeight: '1.2', display: 'block', margin: '1px 0' }}>
                       {viewEmployeeModal.stats.h}
                     </span>
-                    <span style={{ fontSize: '0.7rem', color: '#a855f7', fontWeight: 600 }}>Days</span>
+                    <span style={{ fontSize: '0.62rem', color: '#a855f7', fontWeight: 600 }}>Days</span>
                   </div>
 
                   {/* Attendance % */}
                   <div style={{
                     backgroundColor: viewEmployeeModal.stats.attPercent < 75 ? '#fff1f2' : '#f0fdf4',
                     border: `1px solid ${viewEmployeeModal.stats.attPercent < 75 ? '#fecdd3' : '#bbf7d0'}`,
-                    borderRadius: '10px',
-                    padding: '12px 14px',
-                    textAlign: 'center'
+                    borderRadius: '8px',
+                    padding: '8px 6px',
+                    textAlign: 'center',
+                    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
                   }}>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: viewEmployeeModal.stats.attPercent < 75 ? '#9f1239' : '#166534', textTransform: 'uppercase', display: 'block' }}>
-                      Attendance %
+                    <span style={{ fontSize: '0.65rem', fontWeight: 700, color: viewEmployeeModal.stats.attPercent < 75 ? '#9f1239' : '#166534', textTransform: 'uppercase', display: 'block', letterSpacing: '0.2px' }}>
+                      Attendance
                     </span>
-                    <span style={{ fontSize: '1.6rem', fontWeight: 800, color: viewEmployeeModal.stats.attPercent < 75 ? '#e11d48' : '#15803d', lineHeight: '1.2', display: 'block', marginTop: '2px' }}>
+                    <span style={{ fontSize: '1.25rem', fontWeight: 800, color: viewEmployeeModal.stats.attPercent < 75 ? '#e11d48' : '#15803d', lineHeight: '1.2', display: 'block', margin: '1px 0' }}>
                       {viewEmployeeModal.stats.attPercent.toFixed(1)}%
                     </span>
-                    <span style={{ fontSize: '0.7rem', color: viewEmployeeModal.stats.attPercent < 75 ? '#f43f5e' : '#16a34a', fontWeight: 600 }}>
-                      {viewEmployeeModal.stats.attPercent >= 75 ? 'Good Standing' : 'Low Attendance'}
+                    <span style={{ fontSize: '0.62rem', color: viewEmployeeModal.stats.attPercent < 75 ? '#f43f5e' : '#16a34a', fontWeight: 600 }}>
+                      {viewEmployeeModal.stats.attPercent >= 75 ? 'Good' : 'Low'}
                     </span>
                   </div>
                 </div>
@@ -3382,97 +3402,120 @@ Instructions:
 
               {/* Day-by-Day Calendar Breakdown */}
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-                  <h4 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-secondary, #64748b)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'var(--text-secondary, #64748b)' }}>
                     Daily Attendance Grid (1 to {daysCount})
-                  </h4>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary, #64748b)' }}>
+                  </span>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary, #64748b)' }}>
                     Total Month Days: <b>{daysCount}</b>
                   </span>
                 </div>
 
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(78px, 1fr))',
-                  gap: '8px'
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(58px, 1fr))',
+                  gap: '6px'
                 }}>
                   {Array.from({ length: daysCount }, (_, i) => i + 1).map(day => {
                     const val = currentMonthData[viewEmployeeModal.emp.id]?.[day] || '';
                     const dateObj = new Date(yearNum, monthNum, day);
-                    const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
+                    const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'narrow' });
+                    const dayShort = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
                     const isSunday = dateObj.getDay() === 0;
 
-                    let badgeBg = '#f1f5f9';
+                    let badgeBg = '#f8fafc';
                     let badgeColor = '#64748b';
                     let badgeBorder = '#e2e8f0';
                     let statusLabel = 'Not Marked';
 
                     if (val === 'P') {
-                      badgeBg = '#dcfce7';
+                      badgeBg = '#ecfdf5';
                       badgeColor = '#15803d';
-                      badgeBorder = '#86efac';
+                      badgeBorder = '#a7f3d0';
                       statusLabel = 'Present';
                     } else if (val === 'A') {
-                      badgeBg = '#fee2e2';
-                      badgeColor = '#b91c1c';
-                      badgeBorder = '#fca5a5';
+                      badgeBg = '#fef2f2';
+                      badgeColor = '#dc2626';
+                      badgeBorder = '#fecaca';
                       statusLabel = 'Absent';
                     } else if (val === 'L') {
-                      badgeBg = '#fef9c3';
-                      badgeColor = '#a16207';
-                      badgeBorder = '#fde047';
+                      badgeBg = '#fefce8';
+                      badgeColor = '#ca8a04';
+                      badgeBorder = '#fef08a';
                       statusLabel = 'Leave';
                     } else if (val === 'HD') {
-                      badgeBg = '#dbeafe';
-                      badgeColor = '#1d4ed8';
-                      badgeBorder = '#93c5fd';
+                      badgeBg = '#eff6ff';
+                      badgeColor = '#2563eb';
+                      badgeBorder = '#bfdbfe';
                       statusLabel = 'Half Day';
                     } else if (val === 'H') {
-                      badgeBg = '#f3e8ff';
-                      badgeColor = '#7e22ce';
-                      badgeBorder = '#d8b4fe';
+                      badgeBg = '#faf5ff';
+                      badgeColor = '#9333ea';
+                      badgeBorder = '#e9d5ff';
                       statusLabel = 'Holiday';
                     } else if (isSunday) {
-                      badgeBg = '#fef08a';
+                      badgeBg = '#fef9c3';
                       badgeColor = '#854d0e';
-                      badgeBorder = '#facc15';
+                      badgeBorder = '#fde047';
                       statusLabel = 'Sunday (P)';
                     }
 
                     return (
                       <div
                         key={day}
+                        title={`Day ${day} (${dayShort}): ${statusLabel}`}
                         style={{
                           backgroundColor: badgeBg,
                           border: `1px solid ${badgeBorder}`,
-                          borderRadius: '8px',
-                          padding: '8px 4px',
+                          borderRadius: '6px',
+                          padding: '4px 2px',
                           textAlign: 'center',
                           display: 'flex',
                           flexDirection: 'column',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          gap: '2px',
-                          transition: 'transform 0.15s ease'
+                          gap: '1px',
+                          cursor: 'default',
+                          transition: 'all 0.15s ease',
+                          minHeight: '48px',
+                          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.02)'
+                        }}
+                        onMouseEnter={e => {
+                          e.currentTarget.style.transform = 'translateY(-2px)';
+                          e.currentTarget.style.boxShadow = '0 3px 6px rgba(0,0,0,0.08)';
+                        }}
+                        onMouseLeave={e => {
+                          e.currentTarget.style.transform = 'translateY(0)';
+                          e.currentTarget.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.02)';
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
-                          <span style={{ fontSize: '0.85rem', fontWeight: 800, color: badgeColor }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px', lineHeight: 1 }}>
+                          <span style={{ fontSize: '0.72rem', fontWeight: 800, color: badgeColor }}>
                             {day}
                           </span>
-                          <span style={{ fontSize: '0.65rem', fontWeight: 600, color: badgeColor, opacity: 0.85 }}>
+                          <span style={{ fontSize: '0.58rem', fontWeight: 600, color: badgeColor, opacity: 0.75 }}>
                             {dayName}
                           </span>
                         </div>
                         <span style={{
-                          fontSize: '1rem',
+                          fontSize: '0.85rem',
                           fontWeight: 900,
                           color: badgeColor,
                           lineHeight: '1.1'
                         }}>
                           {val || (isSunday ? 'P' : '-')}
                         </span>
-                        <span style={{ fontSize: '0.62rem', fontWeight: 600, color: badgeColor, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>
+                        <span style={{
+                          fontSize: '0.55rem',
+                          fontWeight: 600,
+                          color: badgeColor,
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          maxWidth: '96%',
+                          opacity: 0.9,
+                          lineHeight: 1
+                        }}>
                           {statusLabel}
                         </span>
                       </div>
@@ -3485,34 +3528,38 @@ Instructions:
               <div style={{
                 backgroundColor: 'var(--bg-main, #f8fafc)',
                 border: '1px solid var(--border-color, #e2e8f0)',
-                borderRadius: '10px',
-                padding: '12px 16px',
+                borderRadius: '8px',
+                padding: '7px 12px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexWrap: 'wrap',
-                gap: '16px',
-                fontSize: '0.8rem'
+                gap: '12px',
+                fontSize: '0.72rem'
               }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ width: '12px', height: '12px', borderRadius: '3px', backgroundColor: '#15803d', display: 'inline-block' }}></span>
-                  <b>P</b> = Present
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '2px', backgroundColor: '#15803d', display: 'inline-block' }}></span>
+                  <b>P</b> Present
                 </span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ width: '12px', height: '12px', borderRadius: '3px', backgroundColor: '#dc2626', display: 'inline-block' }}></span>
-                  <b>A</b> = Absent
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '2px', backgroundColor: '#dc2626', display: 'inline-block' }}></span>
+                  <b>A</b> Absent
                 </span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ width: '12px', height: '12px', borderRadius: '3px', backgroundColor: '#ca8a04', display: 'inline-block' }}></span>
-                  <b>L</b> = Leave
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '2px', backgroundColor: '#ca8a04', display: 'inline-block' }}></span>
+                  <b>L</b> Leave
                 </span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ width: '12px', height: '12px', borderRadius: '3px', backgroundColor: '#2563eb', display: 'inline-block' }}></span>
-                  <b>HD</b> = Half Day
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '2px', backgroundColor: '#2563eb', display: 'inline-block' }}></span>
+                  <b>HD</b> Half Day
                 </span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ width: '12px', height: '12px', borderRadius: '3px', backgroundColor: '#9333ea', display: 'inline-block' }}></span>
-                  <b>H</b> = Holiday
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '2px', backgroundColor: '#9333ea', display: 'inline-block' }}></span>
+                  <b>H</b> Holiday
+                </span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '2px', backgroundColor: '#854d0e', display: 'inline-block' }}></span>
+                  <b>Sun</b> Sunday (P)
                 </span>
               </div>
 
@@ -3520,15 +3567,15 @@ Instructions:
 
             {/* Modal Footer */}
             <div style={{
-              padding: '12px 24px',
+              padding: '10px 20px',
               borderTop: '1px solid var(--border-color, #e5e7eb)',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
               backgroundColor: 'var(--bg-main, #f8fafc)'
             }}>
-              <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary, #64748b)' }}>
-                Viewing details for <b>{viewEmployeeModal.emp.name}</b>
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary, #64748b)' }}>
+                Viewing details for <b style={{ color: 'var(--text-primary, #0f172a)' }}>{viewEmployeeModal.emp.name}</b>
               </span>
               <button
                 type="button"
@@ -3537,12 +3584,13 @@ Instructions:
                   backgroundColor: '#dc2626',
                   color: 'white',
                   border: 'none',
-                  padding: '8px 20px',
-                  borderRadius: '8px',
+                  padding: '6px 18px',
+                  borderRadius: '7px',
                   fontWeight: 600,
-                  fontSize: '0.85rem',
+                  fontSize: '0.8rem',
                   cursor: 'pointer',
-                  transition: 'background 0.2s'
+                  transition: 'background 0.15s',
+                  boxShadow: '0 1px 3px rgba(220, 38, 38, 0.2)'
                 }}
                 onMouseEnter={e => e.currentTarget.style.backgroundColor = '#b91c1c'}
                 onMouseLeave={e => e.currentTarget.style.backgroundColor = '#dc2626'}
