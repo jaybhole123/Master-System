@@ -169,7 +169,13 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
   const [userEmail, setUserEmail] = useState(() => localStorage.getItem("email_id") || "");
   const [isSuperAdmin, setIsSuperAdmin] = useState(() => (localStorage.getItem("user-name") || "").toLowerCase() === "admin");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
-  const [profileImage, setProfileImage] = useState(() => localStorage.getItem("profile_image") || "");
+  const [profileImage, setProfileImage] = useState(() => {
+    const img = localStorage.getItem("profile_image") || sessionStorage.getItem("profile_image") || "";
+    if (!img) return "";
+    if (img.startsWith("data:") || img.startsWith("http://") || img.startsWith("https://")) return img;
+    if (img.startsWith("image/")) return `data:${img}`;
+    return `data:image/jpeg;base64,${img}`;
+  });
   const [systemAccess, setSystemAccess] = useState(() => {
     try {
       const data = localStorage.getItem("system_access");
@@ -702,7 +708,9 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
 
     // Initial load from localStorage
     const cachedImage = localStorage.getItem("profile_image");
-    setProfileImage(cachedImage || "");
+    if (cachedImage) {
+      setProfileImage(normalizeProfileImage(cachedImage));
+    }
 
       // Fetch reporting users for HOD role check
       let reportingUsers = [storedUsername?.toLowerCase()];
@@ -720,19 +728,42 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
           fetchReportingUsers();
       }
 
+    // Helper to normalize data URL or plain base64 image
+    const normalizeProfileImage = (img) => {
+      if (!img) return "";
+      if (img.startsWith("data:") || img.startsWith("http://") || img.startsWith("https://")) return img;
+      if (img.startsWith("image/")) return `data:${img}`;
+      return `data:image/jpeg;base64,${img}`;
+    };
+
     // Sync with database to get the latest image and access rights
     const syncProfileImage = async () => {
       try {
+        // Use exact match to avoid matching other staff names (e.g. admin matching admin123 or partial names)
         const { data } = await supabase
           .from("users")
           .select("profile_image, system_access, page_access")
           .eq("user_name", storedUsername)
-          .single();
+          .maybeSingle();
 
         if (data) {
           if (data.profile_image) {
-            setProfileImage(data.profile_image);
-            localStorage.setItem("profile_image", data.profile_image);
+            const normalized = normalizeProfileImage(data.profile_image);
+            setProfileImage(normalized);
+            try {
+              if (normalized.length < 500000) {
+                localStorage.setItem("profile_image", normalized);
+              } else {
+                sessionStorage.setItem("profile_image", normalized);
+              }
+            } catch(e) {
+              try { sessionStorage.setItem("profile_image", normalized); } catch(err) {}
+            }
+          } else {
+            // Current user has NO image in DB - clear out any previous user's cached image!
+            setProfileImage("");
+            localStorage.removeItem("profile_image");
+            sessionStorage.removeItem("profile_image");
           }
           try {
              let sysAccess = [];
@@ -851,12 +882,16 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
   // Handle logout
   const handleLogout = () => {
     localStorage.removeItem("user-name");
+    localStorage.removeItem("user-id");
     localStorage.removeItem("role");
     localStorage.removeItem("email_id");
     localStorage.removeItem("token");
     localStorage.removeItem("profile_image");
     localStorage.removeItem("system_access");
     localStorage.removeItem("page_access");
+    localStorage.removeItem("user_access");
+    localStorage.removeItem("designation");
+    sessionStorage.removeItem("profile_image");
     window.location.href = "/login";
   };
 
@@ -939,6 +974,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/dashboard/notifications",
       showFor: ["admin", "user", "hod"],
       badge: notifications.filter(n => !n.isRead).length || null,
+      module: "Checklist & Delegation",
     },
     {
       href: "/dashboard/quick-task",
@@ -947,6 +983,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/dashboard/quick-task",
       // Show for super admin OR anyone with 'admin' role
       showFor: (isSuperAdmin || userRole.toLowerCase() === "admin") ? ["admin"] : [],
+      module: "Checklist & Delegation",
     },
     {
       href: "/dashboard/my-task",
@@ -962,6 +999,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       icon: CheckSquare,
       active: location.pathname === "/dashboard/assign-task",
       showFor: ["admin", "HOD"],
+      module: "Checklist & Delegation",
     },
     {
       href: "/dashboard/delegation",
@@ -970,6 +1008,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/dashboard/delegation",
       showFor: ["admin", "user", "HOD"],
       badge: pageCounts.delegation,
+      module: "Checklist & Delegation",
     },
     {
       href: "/dashboard/task",
@@ -978,6 +1017,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/dashboard/task",
       showFor: ["admin", "HOD", "user"],
       badge: pageCounts.checklist,
+      module: "Checklist & Delegation",
     },
     {
       href: "/dashboard/calendar",
@@ -985,6 +1025,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       icon: CalendarIcon,
       active: location.pathname === "/dashboard/calendar",
       showFor: ["admin", "user", "HOD"],
+      module: "Checklist & Delegation",
     },
     {
       label: "Holiday",
@@ -994,6 +1035,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       isOpen: isHolidaySubmenuOpen,
       setIsOpen: setIsHolidaySubmenuOpen,
       active: location.pathname.includes("/dashboard/holiday") || location.pathname.includes("/dashboard/working-day"),
+      module: "Checklist & Delegation",
       subItems: [
         {
           href: "/dashboard/holiday-list",
@@ -1016,6 +1058,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/dashboard/admin-approval",
       showFor: ["admin", "HOD"],
       badge: pageCounts.adminApproval,
+      module: "Checklist & Delegation",
     },
     {
       href: "/dashboard/training-video",
@@ -1690,7 +1733,33 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
     const userRole = localStorage.getItem("role") || "user";
     const username = localStorage.getItem("user-name");
     const isSuperAdminUser = (username || "").toLowerCase() === "admin" || (userRole || "").toLowerCase() === "superadmin";
-    const hasCustomPermissions = systemAccess && systemAccess.length > 0;
+
+    // Read latest from localStorage or state
+    let sysList = [];
+    const rawSys = localStorage.getItem("system_access");
+    if (rawSys) {
+      if (rawSys.trim().startsWith('[')) {
+        try { sysList = JSON.parse(rawSys); } catch(e) {}
+      } else {
+        sysList = rawSys.split(',').map(s => s.trim()).filter(Boolean);
+      }
+    }
+    if (sysList.length === 0 && Array.isArray(systemAccess)) {
+      sysList = systemAccess;
+    }
+
+    let pgList = [];
+    const rawPg = localStorage.getItem("page_access");
+    if (rawPg) {
+      if (rawPg.trim().startsWith('[')) {
+        try { pgList = JSON.parse(rawPg); } catch(e) {}
+      } else {
+        pgList = rawPg.split(',').map(s => s.trim()).filter(Boolean);
+      }
+    }
+    if (pgList.length === 0 && Array.isArray(pageAccess)) {
+      pgList = pageAccess;
+    }
     
     return routes
       .filter((route) => {
@@ -1705,9 +1774,28 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
             return false;
         }
 
-        if (hasCustomPermissions) {
-           if (route.module === "Profile") return true; 
-           if (route.isSubmenu && route.subItems) return true; 
+        if (route.module === "Profile") return true; 
+
+        // Strict security rule:
+        // Any staff user (role !== admin/superadmin):
+        // 1. Must match permitted system_access
+        if (sysList.length > 0) {
+            const currentModule = route.module || "Checklist & Delegation";
+            if (!sysList.includes(currentModule)) {
+                return false;
+            }
+        }
+
+        // 2. Must match permitted page_access
+        if (pgList.length > 0) {
+           if (route.isSubmenu && route.subItems) {
+               return route.subItems.some(sub => {
+                   let mappedLabel = sub.label;
+                   if (sub.label === "Holiday List" || sub.label === "Working Day Calendar") mappedLabel = "Holiday";
+                   const pageKey = `${route.module}::${mappedLabel}`;
+                   return pgList.includes(pageKey);
+               });
+           } 
 
            let mappedLabel = route.label;
            let mappedModule = route.module || "Checklist & Delegation";
@@ -1722,25 +1810,30 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                if (route.label === "Incoming & Outgoing") {
                    const key1 = `${mappedModule}::Incoming & Outgoing`;
                    const key2 = `${mappedModule}::Item Transfer`;
-                   return pageAccess && (pageAccess.includes(key1) || pageAccess.includes(key2));
+                   return pgList.includes(key1) || pgList.includes(key2);
                }
                if (route.label === "Sauda sale") {
                    const key1 = `${mappedModule}::Sauda sale`;
                    const key2 = `${mappedModule}::Sauda Scale`;
-                   return pageAccess && (pageAccess.includes(key1) || pageAccess.includes(key2));
+                   return pgList.includes(key1) || pgList.includes(key2);
                }
                if (route.label === "Production") {
                    const key1 = `${mappedModule}::Production`;
                    const key2 = `${mappedModule}::Production 2`;
-                   return pageAccess && (pageAccess.includes(key1) || pageAccess.includes(key2));
+                   return pgList.includes(key1) || pgList.includes(key2);
                }
            }
 
            const pageKey = `${mappedModule}::${mappedLabel}`;
-           return pageAccess && pageAccess.includes(pageKey);
+           return pgList.includes(pageKey);
         }
 
-        // Fallback to old behavior
+        // If user is a normal staff member and permissions list exists, hide other pages
+        if (sysList.length > 0 || pgList.length > 0) {
+           return false;
+        }
+
+        // Fallback to role-based behavior ONLY when user has no system/page permissions defined in DB
         if (route.label === "Settings" || route.label === "Global Settings") {
           return userRoleNormalized === "admin";
         }
@@ -1760,14 +1853,14 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
             ...route,
             subItems: route.subItems.filter(sub => {
                 if (isSuperAdminUser) return true;
-                if (hasCustomPermissions) {
+                if (pgList.length > 0) {
                     let mappedLabel = sub.label;
-                    // We only map Holiday to match the Global Settings page name
                     if (sub.label === "Holiday List" || sub.label === "Working Day Calendar") mappedLabel = "Holiday";
 
                     const pageKey = `${route.module}::${mappedLabel}`;
-                    return pageAccess && pageAccess.includes(pageKey);
+                    return pgList.includes(pageKey);
                 }
+                if (sysList.length > 0) return false;
                 if (!sub.showFor || !Array.isArray(sub.showFor)) return true;
                 return sub.showFor.some(role => role.toLowerCase() === userRoleNormalized);
             })

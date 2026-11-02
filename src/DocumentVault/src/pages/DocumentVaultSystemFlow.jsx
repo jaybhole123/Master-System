@@ -218,43 +218,44 @@ export default function DocumentVaultSystemFlow() {
   return (
     <div className="w-full space-y-6 pb-12 max-w-7xl mx-auto">
       {/* ═══════════ TOP HEADER SECTION ═══════════ */}
-      <div className="bg-white border border-gray-200/90 rounded-2xl p-5 shadow-xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 bg-gradient-to-tr from-red-600 to-rose-500 text-white rounded-2xl flex items-center justify-center shadow-md shadow-red-500/25 shrink-0">
-              <Shield className="w-5 h-5" />
+      <div className="bg-white border border-gray-200/90 rounded-2xl p-5 sm:p-6 shadow-xs">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+          {/* Left: Icon & Text content */}
+          <div className="flex items-start sm:items-center gap-3.5 sm:gap-4 min-w-0">
+            <div className="w-12 h-12 bg-gradient-to-tr from-red-600 to-rose-500 text-white rounded-2xl flex items-center justify-center shadow-md shadow-red-500/25 shrink-0 mt-0.5 sm:mt-0">
+              <Shield className="w-6 h-6" />
             </div>
-            <div>
+            <div className="min-w-0 space-y-1">
               <div className="flex items-center gap-2.5 flex-wrap">
-                <h1 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">
+                <h1 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight leading-tight">
                   Document Vault <span className="text-red-600">Enterprise Flow</span>
                 </h1>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                   Multi-Entity Vault Active
                 </span>
               </div>
-              <p className="text-xs text-gray-500 mt-0.5">
+              <p className="text-xs sm:text-sm text-gray-500 leading-relaxed max-w-3xl">
                 5-Stage Document Lifecycle: Person Onboarding, Encrypted Ingestion, Predictive Expiry Radar, Renewal Engine &amp; Version History
               </p>
             </div>
           </div>
 
-          {/* Action buttons */}
-          <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+          {/* Right: Action Buttons */}
+          <div className="flex items-center gap-2.5 shrink-0 w-full sm:w-auto">
             <button
               onClick={() => navigate("/document-vault/company")}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all shadow-2xs active:scale-95"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all shadow-2xs active:scale-95 flex-1 sm:flex-initial"
             >
-              <Building2 className="w-3.5 h-3.5 text-blue-600" />
+              <Building2 className="w-4 h-4 text-blue-600" />
               <span>Company Vault</span>
             </button>
             <button
               onClick={() => navigate("/document-vault")}
-              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-sm shadow-red-500/20 transition-all active:scale-95"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-sm shadow-red-500/20 transition-all active:scale-95 flex-1 sm:flex-initial"
             >
               <span>Open Document Vault</span>
-              <ExternalLink className="w-3.5 h-3.5" />
+              <ExternalLink className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -373,46 +374,46 @@ export default function DocumentVaultSystemFlow() {
       </div>
 
       {/* ═══════════ NAVIGATION TABS (PIPELINE / CORPORATE SECTIONS / SUPPORTED TYPES) ═══════════ */}
-      <div className="flex items-center justify-between border-b border-gray-200 pb-2">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-200 pb-2">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 w-full sm:w-auto scrollbar-none">
           <button
             onClick={() => setActiveTab('pipeline')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+            className={`px-3.5 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
               activeTab === 'pipeline'
                 ? 'bg-red-600 text-white shadow-md shadow-red-500/25'
                 : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
             }`}
           >
-            <Workflow className="w-4 h-4" />
-            <span>5-Phase Governance Workflow</span>
+            <Workflow className="w-4 h-4 shrink-0" />
+            <span className="whitespace-nowrap">5-Phase Governance Workflow</span>
           </button>
 
           <button
             onClick={() => setActiveTab('sections')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+            className={`px-3.5 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
               activeTab === 'sections'
                 ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25'
                 : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
             }`}
           >
-            <Building2 className="w-4 h-4" />
-            <span>Corporate Checklist (Sections A–E)</span>
+            <Building2 className="w-4 h-4 shrink-0" />
+            <span className="whitespace-nowrap">Corporate Checklist (Sections A–E)</span>
           </button>
 
           <button
             onClick={() => setActiveTab('expiry_radar')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+            className={`px-3.5 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
               activeTab === 'expiry_radar'
                 ? 'bg-amber-600 text-white shadow-md shadow-amber-500/25'
                 : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
             }`}
           >
-            <FileCheck2 className="w-4 h-4" />
-            <span>12 Core Document Categories</span>
+            <FileCheck2 className="w-4 h-4 shrink-0" />
+            <span className="whitespace-nowrap">12 Core Categories</span>
           </button>
         </div>
 
-        <span className="hidden sm:inline-flex text-[11px] font-bold text-gray-400">
+        <span className="hidden lg:inline-flex text-[11px] font-bold text-gray-400 shrink-0">
           Click any phase card for deep operational &amp; audit inspection
         </span>
       </div>
@@ -583,36 +584,40 @@ export default function DocumentVaultSystemFlow() {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3.5">
-            {COMPANY_CHECKLIST_SECTIONS.map((sec) => (
-              <div key={sec.id} className="p-4 rounded-2xl bg-slate-50/70 border border-slate-200 space-y-3 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 uppercase">
-                      Section {sec.id}
-                    </span>
-                    <span className="text-[10px] font-bold text-gray-400">
-                      {sec.types.length} Slots
-                    </span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5">
+            {COMPANY_CHECKLIST_SECTIONS.map((sec, idx) => {
+              const items = sec.items || sec.types || [];
+              const sectionCode = sec.code || sec.id || String.fromCharCode(65 + idx);
+              return (
+                <div key={sectionCode || idx} className="p-4 rounded-2xl bg-slate-50/70 border border-slate-200 space-y-3 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 uppercase">
+                        Section {sectionCode}
+                      </span>
+                      <span className="text-[10px] font-bold text-gray-400">
+                        {items.length} Slots
+                      </span>
+                    </div>
+                    <h3 className="font-extrabold text-gray-900 text-sm mt-2">
+                      {sec.title}
+                    </h3>
+                    <div className="space-y-1.5 mt-3">
+                      {items.map((type, tIdx) => (
+                        <div key={tIdx} className="flex items-start gap-1.5 text-[11px] text-slate-700 font-medium">
+                          <CheckSquare className="w-3.5 h-3.5 text-blue-600 shrink-0 mt-0.5" />
+                          <span className="break-words line-clamp-2" title={type}>{type}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <h3 className="font-extrabold text-gray-900 text-sm mt-2">
-                    {sec.title}
-                  </h3>
-                  <div className="space-y-1.5 mt-3">
-                    {sec.types.map((type, tIdx) => (
-                      <div key={tIdx} className="flex items-start gap-1.5 text-[11px] text-slate-700 font-medium">
-                        <CheckSquare className="w-3.5 h-3.5 text-blue-600 shrink-0 mt-0.5" />
-                        <span className="truncate" title={type}>{type}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
 
-                <div className="pt-2 border-t border-slate-200/80 text-[10px] text-gray-500 font-medium">
-                  Tracks completion progress (%)
+                  <div className="pt-2 border-t border-slate-200/80 text-[10px] text-gray-500 font-medium">
+                    Tracks completion progress (%)
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

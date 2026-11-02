@@ -57,34 +57,53 @@ const LoginPage = () => {
       if (isLoggedIn && userData) {
         let designation = userData.designation || userData.Designation || "";
 
-        if (!designation && (userData.user_name || userData.username)) {
+        let freshUser = { ...userData };
+        const uname = userData.user_name || userData.username;
+        if (uname) {
           try {
             const { data } = await supabase
               .from('users')
-              .select('designation')
-              .eq('user_name', userData.user_name || userData.username)
+              .select('designation, system_access, page_access, profile_image, role, email_id, id')
+              .eq('user_name', uname)
               .maybeSingle();
             if (data) {
-              designation = data.designation || "";
+              if (data.designation) designation = data.designation;
+              freshUser = { ...freshUser, ...data };
             }
           } catch (err) {
-            // designation lookup is optional, ignore fallback errors
+            console.error("User lookup error on login:", err);
           }
         }
 
-        // Store all user data in localStorage
-        localStorage.setItem('user-name', userData.user_name || userData.username || "");
-        localStorage.setItem('user-id', userData.id || "");
-        localStorage.setItem('role', userData.role || "");
-        localStorage.setItem('email_id', userData.email_id || userData.email || "");
-        localStorage.setItem('user_access', userData.user_access || "");
-        localStorage.setItem('profile_image', userData.profile_image || "");
-        localStorage.setItem('can_self_assign', userData.can_self_assign === true ? "true" : "false");
-        localStorage.setItem('designation', designation);
-        localStorage.setItem('system_access', userData.system_access || "");
-        localStorage.setItem('page_access', userData.page_access || "");
+        // Always clear previous session's profile_image first
+        localStorage.removeItem('profile_image');
+        sessionStorage.removeItem('profile_image');
 
-        showToast(`Welcome back, ${userData.user_name || userData.username}!`, "success");
+        // Store all user data in localStorage
+        localStorage.setItem('user-name', uname || "");
+        localStorage.setItem('user-id', freshUser.id || "");
+        localStorage.setItem('role', freshUser.role || "");
+        localStorage.setItem('email_id', freshUser.email_id || freshUser.email || "");
+        localStorage.setItem('user_access', freshUser.user_access || "");
+        
+        // Safely set profile_image (prevent QuotaExceededError if base64 is large)
+        try {
+          const imgStr = freshUser.profile_image || "";
+          if (imgStr.length < 500000) {
+            localStorage.setItem('profile_image', imgStr);
+          } else {
+            sessionStorage.setItem('profile_image', imgStr);
+          }
+        } catch (e) {
+          try { sessionStorage.setItem('profile_image', freshUser.profile_image || ""); } catch(err) {}
+        }
+
+        localStorage.setItem('can_self_assign', freshUser.can_self_assign === true ? "true" : "false");
+        localStorage.setItem('designation', designation);
+        localStorage.setItem('system_access', Array.isArray(freshUser.system_access) ? freshUser.system_access.join(',') : (freshUser.system_access || ""));
+        localStorage.setItem('page_access', Array.isArray(freshUser.page_access) ? freshUser.page_access.join(',') : (freshUser.page_access || ""));
+
+        showToast(`Welcome back, ${uname}!`, "success");
         
         const isSuperAdminUser = (userData.user_name || userData.username || "").toLowerCase() === "admin" || (userData.role || "").toLowerCase() === "superadmin";
         if (isSuperAdminUser) {

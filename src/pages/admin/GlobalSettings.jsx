@@ -3,7 +3,8 @@ import {
   Settings2, Users, Layout, Search, Plus, Edit2, Trash2, Shield, Settings, 
   ChevronRight, X, Save, LayoutDashboard, Download, FileSpreadsheet,
   ShieldCheck, UserCheck, Building2, CheckCircle2, Lock, Mail, Phone,
-  User, Check, Sparkles, Filter, RefreshCw, KeyRound, ExternalLink, SlidersHorizontal
+  User, Check, Sparkles, Filter, RefreshCw, KeyRound, ExternalLink, SlidersHorizontal,
+  ChevronDown, ChevronUp
 } from 'lucide-react';
 import AdminLayout from '../../components/layout/AdminLayout';
 import supabase from '../../SupabaseClient';
@@ -19,7 +20,8 @@ const getDesignationStyle = (desg) => {
     case 'HELPING HANDS': 
       return { backgroundColor: '#eff6ff', color: '#1d4ed8', borderColor: '#bfdbfe' };
     case 'JAI BHOLE ENTERPRISE': 
-      return { backgroundColor: '#fffbeb', color: '#b45309', borderColor: '#fde68a' };
+    case 'JAI BHOLE ENTERPRISES':
+      return { backgroundColor: '#d9ed92', color: '#3f6212', borderColor: '#c7e574' };
     case 'ASAK COAL PVT.LTD.': 
       return { backgroundColor: '#ecfdf5', color: '#047857', borderColor: '#a7f3d0' };
     case 'JAI BHOLE LOGISTICS': 
@@ -33,6 +35,178 @@ const getDesignationStyle = (desg) => {
     default: 
       return { backgroundColor: '#f8fafc', color: '#475569', borderColor: '#e2e8f0' };
   }
+};
+
+const getDesignationSortOrder = (desg) => {
+  if (!desg) return 99; // empty at the bottom
+  const d = desg.toUpperCase().trim();
+  if (d === 'JAI BHOLE') return 1;
+  if (d === 'JAI BHOLE ENTERPRISES' || d === 'JAI BHOLE ENTERPRISE' || d.includes('ENTERPRISE')) return 2;
+  if (d.includes('LOGISTIC')) return 3; // JAI BHOLE LOGISTICS
+  if (d.includes('TRADER')) return 4; // JAI BHOLE TRADERS
+  if (d.includes('ASAK')) return 5; // ASAK COAL PVT.LTD.
+  if (d.includes('HELPING HAND')) return 6; // HELPING HANDS
+  if (d.includes('BOTIVATE')) return 7; // BOTIVATE
+  return 90; // any other designation
+};
+
+// Premium Custom Searchable Dropdown with clean light theme, badges & quick select
+const CustomSearchableSelect = ({ 
+  value, 
+  onChange, 
+  options = [], 
+  placeholder = "Select or type...", 
+  isDesignation = false 
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const containerRef = React.useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const filteredOptions = useMemo(() => {
+    if (!search.trim()) return options;
+    return options.filter(opt => opt.toLowerCase().includes(search.toLowerCase().trim()));
+  }, [options, search]);
+
+  const isCustomValue = value && !options.some(opt => opt.toLowerCase() === value.toLowerCase());
+
+  return (
+    <div ref={containerRef} className="relative w-full">
+      <div 
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full px-3.5 py-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-sm font-medium focus-within:ring-2 focus-within:ring-red-500/20 focus-within:border-red-500 transition-all shadow-2xs flex items-center justify-between cursor-pointer group"
+      >
+        <div className="flex-1 min-w-0 pr-2">
+          {value ? (
+            isDesignation ? (
+              <span 
+                className="inline-block px-2.5 py-0.5 rounded-md text-xs font-bold border truncate max-w-full"
+                style={getDesignationStyle(value)}
+              >
+                {value}
+              </span>
+            ) : (
+              <span className="font-semibold text-slate-800 text-sm truncate block">
+                {value}
+              </span>
+            )
+          ) : (
+            <span className="text-slate-400 text-sm font-normal">
+              {placeholder}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-1 shrink-0 text-slate-400 group-hover:text-slate-600">
+          {value && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onChange('');
+                setSearch('');
+              }}
+              className="p-1 hover:bg-slate-100 rounded-md text-slate-400 hover:text-slate-600 transition-colors"
+              title="Clear"
+            >
+              <X size={13} />
+            </button>
+          )}
+          {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        </div>
+      </div>
+
+      {isOpen && (
+        <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-slate-200/90 rounded-2xl shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+          {/* Quick Search inside Dropdown */}
+          <div className="p-2 border-b border-slate-100 bg-slate-50/70 flex items-center gap-2">
+            <Search size={14} className="text-slate-400 ml-1 shrink-0" />
+            <input 
+              type="text"
+              autoFocus
+              placeholder="Search or type new..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full bg-transparent border-none text-xs font-medium text-slate-700 outline-none placeholder:text-slate-400"
+            />
+            {search && (
+              <button 
+                type="button" 
+                onClick={(e) => { e.stopPropagation(); setSearch(''); }}
+                className="text-slate-400 hover:text-slate-600 p-0.5"
+              >
+                <X size={12} />
+              </button>
+            )}
+          </div>
+
+          {/* Options List */}
+          <div className="max-h-56 overflow-y-auto p-1.5 custom-sidebar-scroll space-y-0.5">
+            {search.trim() && !options.some(o => o.toLowerCase() === search.toLowerCase().trim()) && (
+              <div
+                onClick={() => {
+                  onChange(search.trim());
+                  setIsOpen(false);
+                  setSearch('');
+                }}
+                className="px-3 py-2 rounded-xl text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100/80 cursor-pointer flex items-center gap-2 transition-colors mb-1"
+              >
+                <Plus size={14} className="shrink-0" />
+                <span>Use &quot;{search.trim()}&quot; (Custom Value)</span>
+              </div>
+            )}
+
+            {filteredOptions.length === 0 && !search.trim() ? (
+              <div className="p-3 text-center text-xs text-slate-400 font-medium">
+                No items found
+              </div>
+            ) : (
+              filteredOptions.map((opt, idx) => {
+                const isSelected = value?.toLowerCase() === opt.toLowerCase();
+                return (
+                  <div
+                    key={`opt-${idx}`}
+                    onClick={() => {
+                      onChange(opt);
+                      setIsOpen(false);
+                      setSearch('');
+                    }}
+                    className={`px-3 py-2 rounded-xl text-xs font-semibold cursor-pointer flex items-center justify-between transition-all ${
+                      isSelected 
+                        ? 'bg-red-50 text-red-700 font-bold' 
+                        : 'text-slate-700 hover:bg-slate-100/80'
+                    }`}
+                  >
+                    {isDesignation ? (
+                      <span 
+                        className="px-2 py-0.5 rounded-md border tracking-tight text-[11px] font-bold"
+                        style={getDesignationStyle(opt)}
+                      >
+                        {opt}
+                      </span>
+                    ) : (
+                      <span className="truncate">{opt}</span>
+                    )}
+
+                    {isSelected && <Check size={14} className="text-red-600 shrink-0 ml-2" />}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };
 
 const parseAccessValue = (value) => {
@@ -204,6 +378,34 @@ export default function GlobalSettings() {
     const admins = users.filter(u => u.role?.toLowerCase() === 'admin').length;
     const regularUsers = users.filter(u => u.role?.toLowerCase() === 'user').length;
     return { total, active, superadmins, admins, regularUsers };
+  }, [users]);
+
+  // Dynamic suggestions fetched from existing database users
+  const availableDepartments = useMemo(() => {
+    const depts = new Set(['Accounts', 'HR', 'Logistics', 'Dispatch', 'Head', 'Production', 'Sales', 'Purchase', 'Security', 'Maintenance']);
+    users.forEach(u => {
+      const d = (u.department || '').trim();
+      if (d) depts.add(d);
+    });
+    return Array.from(depts).sort();
+  }, [users]);
+
+  const availableDesignations = useMemo(() => {
+    const desgs = new Set([
+      'JAI BHOLE',
+      'JAI BHOLE ENTERPRISES',
+      'JAI BHOLE LOGISTICS',
+      'JAI BHOLE TRADERS',
+      'ASAK COAL PVT.LTD.',
+      'ASAK COAL LOGISTICS',
+      'HELPING HANDS',
+      'BOTIVATE'
+    ]);
+    users.forEach(u => {
+      const des = (u.designation || u.Designation || '').trim();
+      if (des) desgs.add(des);
+    });
+    return Array.from(desgs).sort();
   }, [users]);
 
   const handleOpenModal = (user = null) => {
@@ -391,7 +593,7 @@ export default function GlobalSettings() {
 
   const filteredUsers = useMemo(() => {
     const query = searchTerm.toLowerCase().trim();
-    return users.filter((u) => {
+    const result = users.filter((u) => {
       const matchesQuery = 
         !query ||
         u.user_name?.toLowerCase().includes(query) ||
@@ -405,6 +607,30 @@ export default function GlobalSettings() {
         u.role?.toLowerCase() === roleFilter.toLowerCase();
       
       return matchesQuery && matchesRole;
+    });
+
+    // Alignment / Sorting by Designation / Firm:
+    // 1. JAI BHOLE
+    // 2. JAI BHOLE ENTERPRISES
+    // 3. JAI BHOLE LOGISTICS
+    // 4. JAI BHOLE TRADERS
+    // 5. ASAK COAL PVT.LTD.
+    // 6. HELPING HANDS
+    // 7. BOTIVATE
+    // 8. Other / empty at the bottom
+    return result.sort((a, b) => {
+      const desA = a.designation || a.Designation || '';
+      const desB = b.designation || b.Designation || '';
+      const orderA = getDesignationSortOrder(desA);
+      const orderB = getDesignationSortOrder(desB);
+
+      if (orderA !== orderB) {
+        return orderA - orderB;
+      }
+      // If same designation, sort alphabetically by name
+      const nameA = a.user_name || '';
+      const nameB = b.user_name || '';
+      return nameA.localeCompare(nameB);
     });
   }, [users, searchTerm, roleFilter]);
 
@@ -1259,28 +1485,30 @@ export default function GlobalSettings() {
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5">
-                        <Building2 size={13} className="text-slate-400" /> Department
+                      <label className="text-xs font-bold text-slate-500 uppercase flex items-center justify-between">
+                        <span className="flex items-center gap-1.5"><Building2 size={13} className="text-slate-400" /> Department</span>
+                        <span className="text-[10px] text-slate-400 font-semibold lowercase">dropdown & search</span>
                       </label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Accounts, HR, Logistics"
+                      <CustomSearchableSelect 
                         value={formData.department}
-                        onChange={(e) => setFormData({...formData, department: e.target.value})}
-                        className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all shadow-2xs"
+                        onChange={(val) => setFormData({...formData, department: val})}
+                        options={availableDepartments}
+                        placeholder="Select or search department..."
+                        isDesignation={false}
                       />
                     </div>
 
                     <div className="space-y-1.5 md:col-span-2">
-                      <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5">
-                        <Building2 size={13} className="text-slate-400" /> Firm / Designation
+                      <label className="text-xs font-bold text-slate-500 uppercase flex items-center justify-between">
+                        <span className="flex items-center gap-1.5"><Building2 size={13} className="text-slate-400" /> Firm / Designation</span>
+                        <span className="text-[10px] text-slate-400 font-semibold lowercase">dropdown & search</span>
                       </label>
-                      <input
-                        type="text"
-                        placeholder="e.g. JAI BHOLE TRADERS, Senior Accountant"
+                      <CustomSearchableSelect 
                         value={formData.designation}
-                        onChange={(e) => setFormData({...formData, designation: e.target.value})}
-                        className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all shadow-2xs"
+                        onChange={(val) => setFormData({...formData, designation: val})}
+                        options={availableDesignations}
+                        placeholder="Select or search firm / designation..."
+                        isDesignation={true}
                       />
                     </div>
 

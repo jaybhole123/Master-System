@@ -4,6 +4,13 @@ import AdminLayout from "../components/layout/AdminLayout";
 import { UserCircle, Mail, Briefcase, Shield, Phone, Camera, CheckSquare, BookmarkCheck, CalendarCheck, ClipboardList, ListTodo, Eye, EyeOff } from "lucide-react";
 import supabase from "../SupabaseClient";
 
+const normalizeProfileImg = (img) => {
+  if (!img) return "";
+  if (img.startsWith("data:") || img.startsWith("http://") || img.startsWith("https://")) return img;
+  if (img.startsWith("image/")) return `data:${img}`;
+  return `data:image/jpeg;base64,${img}`;
+};
+
 export default function ProfilePage() {
   const navigate = useNavigate();
   const [user, setUser] = useState({
@@ -12,7 +19,7 @@ export default function ProfilePage() {
     role: localStorage.getItem("role") || "N/A",
     designation: localStorage.getItem("designation") || "N/A",
     number: "Fetching...",
-    profile_image: localStorage.getItem("profile_image") || ""
+    profile_image: normalizeProfileImg(localStorage.getItem("profile_image"))
   });
   const [uploading, setUploading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -38,14 +45,15 @@ export default function ProfilePage() {
         .single();
 
       if (data && !error) {
+        const normalizedImg = normalizeProfileImg(data.profile_image);
         setUser(prev => ({
           ...prev,
           number: data.number || "Not Provided",
           designation: data.designation || prev.designation,
-          profile_image: data.profile_image || prev.profile_image
+          profile_image: normalizedImg || prev.profile_image
         }));
-        if (data.profile_image) {
-            localStorage.setItem("profile_image", data.profile_image);
+        if (normalizedImg) {
+            localStorage.setItem("profile_image", normalizedImg);
         }
         if (data.designation) {
             localStorage.setItem("designation", data.designation);
