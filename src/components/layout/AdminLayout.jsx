@@ -706,28 +706,6 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       }
     }
 
-    // Initial load from localStorage
-    const cachedImage = localStorage.getItem("profile_image");
-    if (cachedImage) {
-      setProfileImage(normalizeProfileImage(cachedImage));
-    }
-
-      // Fetch reporting users for HOD role check
-      let reportingUsers = [storedUsername?.toLowerCase()];
-      const currentUserRole = (localStorage.getItem("role") || "").toLowerCase();
-      if (currentUserRole === "hod") {
-          const fetchReportingUsers = async () => {
-              const { data: reports } = await supabase
-                  .from("users")
-                  .select("user_name")
-                  .eq("reported_by", storedUsername);
-              if (reports) {
-                  reportingUsers = [storedUsername.toLowerCase(), ...reports.map(r => (r.user_name || "").toLowerCase())];
-              }
-          };
-          fetchReportingUsers();
-      }
-
     // Helper to normalize data URL or plain base64 image
     const normalizeProfileImage = (img) => {
       if (!img) return "";
@@ -735,6 +713,28 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       if (img.startsWith("image/")) return `data:${img}`;
       return `data:image/jpeg;base64,${img}`;
     };
+
+    // Initial load from localStorage
+    const cachedImage = localStorage.getItem("profile_image") || sessionStorage.getItem("profile_image");
+    if (cachedImage) {
+      setProfileImage(normalizeProfileImage(cachedImage));
+    }
+
+    // Fetch reporting users for HOD role check
+    let reportingUsers = [storedUsername?.toLowerCase()];
+    const currentUserRole = (localStorage.getItem("role") || "").toLowerCase();
+    if (currentUserRole === "hod") {
+        const fetchReportingUsers = async () => {
+            const { data: reports } = await supabase
+                .from("users")
+                .select("user_name")
+                .eq("reported_by", storedUsername);
+            if (reports) {
+                reportingUsers = [storedUsername.toLowerCase(), ...reports.map(r => (r.user_name || "").toLowerCase())];
+            }
+        };
+        fetchReportingUsers();
+    }
 
     // Sync with database to get the latest image and access rights
     const syncProfileImage = async () => {
