@@ -74,19 +74,19 @@ const getHeaderTitle = (pathname, routes) => {
   if (pathname.includes("/dashboard/rent-management")) return { module: "Rent Management Tracker", page: "Rent Management" };
   // Check HR System routes
   if (pathname.startsWith("/hr")) {
-    const flat = routes.flatMap(r => r.subItems ? r.subItems : [r]);
+    const flat = (routes || []).flatMap(r => r.subItems ? r.subItems : [r]);
     const match = flat.find(r => r.href && pathname === r.href);
     return { module: "HR System", page: match?.label || "HR System" };
   }
   // Check Petty Cash routes
   if (pathname.startsWith("/petty-cash")) {
-    const flat = routes.flatMap(r => r.subItems ? r.subItems : [r]);
+    const flat = (routes || []).flatMap(r => r.subItems ? r.subItems : [r]);
     const match = flat.find(r => r.href && pathname === r.href);
     return { module: "Petty Cash", page: match?.label || "Petty Cash" };
   }
   // Check Daily Scheduler routes
   if (pathname.startsWith("/daily-scheduler")) {
-    const flat = routes.flatMap(r => r.subItems ? r.subItems : [r]);
+    const flat = (routes || []).flatMap(r => r.subItems ? r.subItems : [r]);
     const match = flat.find(r => r.href && pathname === r.href);
     return { module: "Daily Scheduler", page: match?.label || "Daily Scheduler" };
   }
@@ -129,7 +129,7 @@ const getHeaderTitle = (pathname, routes) => {
   }
   // Check Coal System routes
   if (pathname.startsWith("/coal-system")) {
-    const flat = routes.flatMap(r => r.subItems ? r.subItems : [r]);
+    const flat = (routes || []).flatMap(r => r.subItems ? r.subItems : [r]);
     const match = flat.find(r => r.href && pathname === r.href);
     return { module: "Coal System", page: match?.label || "Coal System" };
   }
@@ -144,12 +144,12 @@ const getHeaderTitle = (pathname, routes) => {
     pathname.startsWith("/document-vault")
   ) {
     // Find exact page label
-    const flat = routes.flatMap(r => r.subItems ? r.subItems : [r]);
+    const flat = (routes || []).flatMap(r => r.subItems ? r.subItems : [r]);
     const match = flat.find(r => r.href && pathname.startsWith(r.href));
     return { module: "Document & Substruction", page: match?.label || "Document & Substruction" };
   }
   // Checklist & Delegation — find specific page label
-  const flat = routes.flatMap(r => r.subItems ? r.subItems : [r]);
+  const flat = (routes || []).flatMap(r => r.subItems ? r.subItems : [r]);
   const match = flat.find(r => r.href && pathname === r.href);
   if (match) return { module: "Checklist & Delegation", page: match.label };
   return { module: "Checklist & Delegation", page: "Checklist & Delegation" };
@@ -2447,7 +2447,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
             </button>
             <div className="flex flex-col">
             {(() => {
-              const { module: activeModule, page: activePage } = getHeaderTitle(location.pathname, routes);
+              const { module: activeModule, page: activePage } = getHeaderTitle(location.pathname, accessibleRoutes || routes);
               return (
                 <>
                   <h1 className="text-lg font-bold bg-gradient-to-r from-red-600 to-red-800 bg-clip-text text-transparent">

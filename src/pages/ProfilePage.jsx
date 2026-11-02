@@ -53,10 +53,16 @@ export default function ProfilePage() {
           profile_image: normalizedImg || prev.profile_image
         }));
         if (normalizedImg) {
-            localStorage.setItem("profile_image", normalizedImg);
+          try {
+            if (normalizedImg.length < 500000) {
+              localStorage.setItem("profile_image", normalizedImg);
+            } else {
+              sessionStorage.setItem("profile_image", normalizedImg);
+            }
+          } catch(e) {}
         }
         if (data.designation) {
-            localStorage.setItem("designation", data.designation);
+          try { localStorage.setItem("designation", data.designation); } catch(e) {}
         }
       }
     };
