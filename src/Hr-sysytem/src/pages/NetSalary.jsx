@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useEmployees } from '../hooks/useEmployees';
 import { supabase } from '../lib/supabase';
-import { Loader, GripVertical, Download, CheckCircle2 } from 'lucide-react';
+import { Loader, GripVertical, Download, CheckCircle2, X, FileSpreadsheet, FileText } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 
 const getDesignationStyle = (desg) => {
   if (!desg) return { color: 'var(--text-secondary)' };
@@ -20,6 +21,19 @@ const getDesignationStyle = (desg) => {
     case 'ASAK COAL LOGISTICS': return { backgroundColor: '#ccfbf1', color: '#0f766e', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' };
     default: return { backgroundColor: '#f3f4f6', color: '#4b5563', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', display: 'inline-block', whiteSpace: 'nowrap', textAlign: 'center' };
   }
+};
+
+const getDesignationSortOrder = (desg) => {
+  if (!desg) return 99; // empty at the bottom
+  const d = desg.toUpperCase().trim();
+  if (d === 'JAI BHOLE') return 1;
+  if (d.includes('JAI BHOLE ENTERPRISE')) return 2; // matches ENTERPRISE or ENTERPRISES
+  if (d.includes('JAI BHOLE LOGISTIC')) return 3;
+  if (d.includes('JAI BHOLE TRADER')) return 4;
+  if (d.includes('ASAK COAL PVT') || (d.includes('ASAK') && !d.includes('LOGISTIC'))) return 5;
+  if (d.includes('HELPING HAND')) return 6;
+  if (d.includes('BOTIVATE')) return 7;
+  return 90; // other unlisted before empty
 };
 
 export default function NetSalary() {
@@ -45,6 +59,27 @@ export default function NetSalary() {
   });
   const [showColMenu, setShowColMenu] = useState(false);
   const colMenuRef = useRef(null);
+
+  // Export column selection modal state
+  const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [exportType, setExportType] = useState('excel'); // 'excel' or 'pdf'
+  const [exportCols, setExportCols] = useState({ ...visibleCols });
+
+  const openExportModal = (type) => {
+    setExportType(type);
+    setExportCols({ ...visibleCols });
+    setExportModalOpen(true);
+  };
+
+  const toggleExportCol = (col) => {
+    setExportCols(prev => ({ ...prev, [col]: !prev[col] }));
+  };
+
+  const selectAllExportCols = (select) => {
+    const updated = {};
+    Object.keys(exportCols).forEach(k => updated[k] = select);
+    setExportCols(updated);
+  };
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -158,7 +193,8 @@ export default function NetSalary() {
 
   const uniqueDesignations = useMemo(() => {
     const desgs = employees.map(emp => emp.designation).filter(Boolean);
-    return [...new Set(desgs)].sort();
+    const unique = [...new Set(desgs)];
+    return unique.sort((a, b) => getDesignationSortOrder(a) - getDesignationSortOrder(b));
   }, [employees]);
 
   const uniqueMonths = [
@@ -239,7 +275,14 @@ export default function NetSalary() {
       currentRecords = currentRecords.filter(r => r.breakdown.sal.salaryMonth === selectedMonth);
     }
 
-    return currentRecords;
+    return [...currentRecords].sort((a, b) => {
+      const orderA = getDesignationSortOrder(a.designation);
+      const orderB = getDesignationSortOrder(b.designation);
+      if (orderA !== orderB) return orderA - orderB;
+
+      // Secondary sort by name alphabetically
+      return (a.name || '').localeCompare(b.name || '');
+    });
   }, [baseRecords, selectedDepartment, selectedDesignation, selectedSalaryDate, selectedMonth]);
 
   const [markingDone, setMarkingDone] = useState(false);
@@ -420,61 +463,61 @@ export default function NetSalary() {
     doc.text(`Salary Sheet - ${selectedMonth === 'All' ? 'All Months' : selectedMonth}`, 40, 40);
     
     const headers = [['Sr. No.']];
-    if (visibleCols.empName) headers[0].push('Employee Name');
-    if (visibleCols.department) headers[0].push('Department');
-    if (visibleCols.designation) headers[0].push('Designation');
-    if (visibleCols.salaryDate) headers[0].push('Salary Date');
-    if (visibleCols.salaryMonth) headers[0].push('Salary Month');
-    if (visibleCols.basic) headers[0].push('Basic (Rs)');
-    if (visibleCols.hra) headers[0].push('HRA (Rs)');
-    if (visibleCols.allowances) headers[0].push('Allowances (Rs)');
-    if (visibleCols.monthAdvance) headers[0].push('Advance (Rs)');
-    if (visibleCols.gross) headers[0].push('Gross (Rs)');
-    if (visibleCols.totalDays) headers[0].push('Days');
-    if (visibleCols.present) headers[0].push('Present');
-    if (visibleCols.absent) headers[0].push('Absent');
-    if (visibleCols.leaves) headers[0].push('Leaves');
-    if (visibleCols.leaveDeduct) headers[0].push('Leave Ded (Rs)');
-    if (visibleCols.monthRecov) headers[0].push('Recovery (Rs)');
-    if (visibleCols.prevAdvDeduct) headers[0].push('Prev Adv (Rs)');
-    if (visibleCols.pf) headers[0].push('PF (Rs)');
-    if (visibleCols.esic) headers[0].push('ESIC (Rs)');
-    if (visibleCols.pTax) headers[0].push('PTax (Rs)');
-    if (visibleCols.otherDeduct) headers[0].push('Other (Rs)');
-    if (visibleCols.totalDeduct) headers[0].push('Total Ded (Rs)');
-    if (visibleCols.netSalary) headers[0].push('Net (Rs)');
-    if (visibleCols.paymentStatus) headers[0].push('Status');
-    if (visibleCols.bankAcc) headers[0].push('Bank A/c');
+    if (exportCols.empName) headers[0].push('Employee Name');
+    if (exportCols.department) headers[0].push('Department');
+    if (exportCols.designation) headers[0].push('Designation');
+    if (exportCols.salaryDate) headers[0].push('Salary Date');
+    if (exportCols.salaryMonth) headers[0].push('Salary Month');
+    if (exportCols.basic) headers[0].push('Basic (Rs)');
+    if (exportCols.hra) headers[0].push('HRA (Rs)');
+    if (exportCols.allowances) headers[0].push('Allowances (Rs)');
+    if (exportCols.monthAdvance) headers[0].push('Advance (Rs)');
+    if (exportCols.gross) headers[0].push('Gross (Rs)');
+    if (exportCols.totalDays) headers[0].push('Days');
+    if (exportCols.present) headers[0].push('Present');
+    if (exportCols.absent) headers[0].push('Absent');
+    if (exportCols.leaves) headers[0].push('Leaves');
+    if (exportCols.leaveDeduct) headers[0].push('Leave Ded (Rs)');
+    if (exportCols.monthRecov) headers[0].push('Recovery (Rs)');
+    if (exportCols.prevAdvDeduct) headers[0].push('Prev Adv (Rs)');
+    if (exportCols.pf) headers[0].push('PF (Rs)');
+    if (exportCols.esic) headers[0].push('ESIC (Rs)');
+    if (exportCols.pTax) headers[0].push('PTax (Rs)');
+    if (exportCols.otherDeduct) headers[0].push('Other (Rs)');
+    if (exportCols.totalDeduct) headers[0].push('Total Ded (Rs)');
+    if (exportCols.netSalary) headers[0].push('Net (Rs)');
+    if (exportCols.paymentStatus) headers[0].push('Status');
+    if (exportCols.bankAcc) headers[0].push('Bank A/c');
 
     const pdfRecords = selectedRows.length > 0 ? records.filter(r => selectedRows.includes(r.id)) : records;
     const data = pdfRecords.map((rec, idx) => {
       const emp = employees.find(e => e.id === rec.id) || {};
       const row = [idx + 1];
-      if (visibleCols.empName) row.push(rec.name);
-      if (visibleCols.department) row.push(emp.department || '-');
-      if (visibleCols.designation) row.push(emp.designation || '-');
-      if (visibleCols.salaryDate) row.push(rec.breakdown.sal.salaryDate ? new Date(rec.breakdown.sal.salaryDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-');
-      if (visibleCols.salaryMonth) row.push(rec.breakdown.sal.salaryMonth || '-');
-      if (visibleCols.basic) row.push(rec.breakdown.sal.basic.toLocaleString(undefined, {maximumFractionDigits:2}));
-      if (visibleCols.hra) row.push(rec.breakdown.sal.hra.toLocaleString(undefined, {maximumFractionDigits:2}));
-      if (visibleCols.allowances) row.push((rec.breakdown.sal.allowances || 0).toLocaleString(undefined, {maximumFractionDigits:2}));
-      if (visibleCols.monthAdvance) row.push(rec.breakdown.monthAdvance.toLocaleString(undefined, {maximumFractionDigits:2}));
-      if (visibleCols.gross) row.push(rec.gross.toLocaleString(undefined, {maximumFractionDigits:2}));
-      if (visibleCols.totalDays) row.push(rec.breakdown.sal.totalDays || 0);
-      if (visibleCols.present) row.push(rec.breakdown.sal.presentDays || 0);
-      if (visibleCols.absent) row.push(rec.breakdown.sal.absent || 0);
-      if (visibleCols.leaves) row.push(rec.breakdown.sal.leaves || 0);
-      if (visibleCols.leaveDeduct) row.push(rec.breakdown.leaveDeduct.toLocaleString(undefined, {maximumFractionDigits:2}));
-      if (visibleCols.monthRecov) row.push(rec.breakdown.monthRecov.toLocaleString(undefined, {maximumFractionDigits:2}));
-      if (visibleCols.prevAdvDeduct) row.push(rec.breakdown.prevAdvDeduct.toLocaleString(undefined, {maximumFractionDigits:2}));
-      if (visibleCols.pf) row.push(rec.breakdown.pfDeduction.toLocaleString(undefined, {maximumFractionDigits:2}));
-      if (visibleCols.esic) row.push(rec.breakdown.esicDeduction.toLocaleString(undefined, {maximumFractionDigits:2}));
-      if (visibleCols.pTax) row.push(rec.breakdown.ptax.toLocaleString(undefined, {maximumFractionDigits:2}));
-      if (visibleCols.otherDeduct) row.push((rec.breakdown.empOtherDeductions || 0).toLocaleString(undefined, {maximumFractionDigits:2}));
-      if (visibleCols.totalDeduct) row.push(rec.deductions.toLocaleString(undefined, {maximumFractionDigits:2}));
-      if (visibleCols.netSalary) row.push(rec.net.toLocaleString(undefined, {maximumFractionDigits:2}));
-      if (visibleCols.paymentStatus) row.push(rec.paymentStatus);
-      if (visibleCols.bankAcc) row.push(rec.bankAccount || '-');
+      if (exportCols.empName) row.push(rec.name);
+      if (exportCols.department) row.push(emp.department || '-');
+      if (exportCols.designation) row.push(emp.designation || '-');
+      if (exportCols.salaryDate) row.push(rec.breakdown.sal.salaryDate ? new Date(rec.breakdown.sal.salaryDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-');
+      if (exportCols.salaryMonth) row.push(rec.breakdown.sal.salaryMonth || '-');
+      if (exportCols.basic) row.push(rec.breakdown.sal.basic.toLocaleString(undefined, {maximumFractionDigits:2}));
+      if (exportCols.hra) row.push(rec.breakdown.sal.hra.toLocaleString(undefined, {maximumFractionDigits:2}));
+      if (exportCols.allowances) row.push((rec.breakdown.sal.allowances || 0).toLocaleString(undefined, {maximumFractionDigits:2}));
+      if (exportCols.monthAdvance) row.push(rec.breakdown.monthAdvance.toLocaleString(undefined, {maximumFractionDigits:2}));
+      if (exportCols.gross) row.push(rec.gross.toLocaleString(undefined, {maximumFractionDigits:2}));
+      if (exportCols.totalDays) row.push(rec.breakdown.sal.totalDays || 0);
+      if (exportCols.present) row.push(rec.breakdown.sal.presentDays || 0);
+      if (exportCols.absent) row.push(rec.breakdown.sal.absent || 0);
+      if (exportCols.leaves) row.push(rec.breakdown.sal.leaves || 0);
+      if (exportCols.leaveDeduct) row.push(rec.breakdown.leaveDeduct.toLocaleString(undefined, {maximumFractionDigits:2}));
+      if (exportCols.monthRecov) row.push(rec.breakdown.monthRecov.toLocaleString(undefined, {maximumFractionDigits:2}));
+      if (exportCols.prevAdvDeduct) row.push(rec.breakdown.prevAdvDeduct.toLocaleString(undefined, {maximumFractionDigits:2}));
+      if (exportCols.pf) row.push(rec.breakdown.pfDeduction.toLocaleString(undefined, {maximumFractionDigits:2}));
+      if (exportCols.esic) row.push(rec.breakdown.esicDeduction.toLocaleString(undefined, {maximumFractionDigits:2}));
+      if (exportCols.pTax) row.push(rec.breakdown.ptax.toLocaleString(undefined, {maximumFractionDigits:2}));
+      if (exportCols.otherDeduct) row.push((rec.breakdown.empOtherDeductions || 0).toLocaleString(undefined, {maximumFractionDigits:2}));
+      if (exportCols.totalDeduct) row.push(rec.deductions.toLocaleString(undefined, {maximumFractionDigits:2}));
+      if (exportCols.netSalary) row.push(rec.net.toLocaleString(undefined, {maximumFractionDigits:2}));
+      if (exportCols.paymentStatus) row.push(rec.paymentStatus);
+      if (exportCols.bankAcc) row.push(rec.bankAccount || '-');
       return row;
     });
 
@@ -518,6 +561,50 @@ export default function NetSalary() {
     });
 
     doc.save('Salary_Sheet.pdf');
+    setExportModalOpen(false);
+  };
+
+  const handleDownloadExcel = () => {
+    const exportRecords = selectedRows.length > 0 ? records.filter(r => selectedRows.includes(r.id)) : records;
+    
+    const rows = exportRecords.map((rec, idx) => {
+      const emp = employees.find(e => e.id === rec.id) || {};
+      const row = { 'Sr. No.': idx + 1 };
+      
+      if (exportCols.empName) row['Employee Name'] = rec.name;
+      if (exportCols.department) row['Department'] = emp.department || '-';
+      if (exportCols.designation) row['Firm / Designation'] = emp.designation || '-';
+      if (exportCols.salaryDate) row['Salary Date'] = rec.breakdown.sal.salaryDate ? new Date(rec.breakdown.sal.salaryDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
+      if (exportCols.salaryMonth) row['Salary Month'] = rec.breakdown.sal.salaryMonth || '-';
+      if (exportCols.basic) row['Basic (Rs)'] = rec.breakdown.sal.basic;
+      if (exportCols.hra) row['HRA (Rs)'] = rec.breakdown.sal.hra;
+      if (exportCols.allowances) row['Allowances (Rs)'] = rec.breakdown.sal.allowances || 0;
+      if (exportCols.monthAdvance) row['Advance (Rs)'] = rec.breakdown.monthAdvance;
+      if (exportCols.gross) row['Gross (Rs)'] = rec.gross;
+      if (exportCols.totalDays) row['Total Days'] = rec.breakdown.sal.totalDays || 0;
+      if (exportCols.present) row['Present Days'] = rec.breakdown.sal.presentDays || 0;
+      if (exportCols.absent) row['Absent Days'] = rec.breakdown.sal.absent || 0;
+      if (exportCols.leaves) row['Leaves'] = rec.breakdown.sal.leaves || 0;
+      if (exportCols.leaveDeduct) row['Leave Deduction (Rs)'] = rec.breakdown.leaveDeduct;
+      if (exportCols.monthRecov) row['Recovery (Rs)'] = rec.breakdown.monthRecov;
+      if (exportCols.prevAdvDeduct) row['Prev Advance Deduction (Rs)'] = rec.breakdown.prevAdvDeduct;
+      if (exportCols.pf) row['PF Deduction (Rs)'] = rec.breakdown.pfDeduction;
+      if (exportCols.esic) row['ESIC Deduction (Rs)'] = rec.breakdown.esicDeduction;
+      if (exportCols.pTax) row['PTax (Rs)'] = rec.breakdown.ptax;
+      if (exportCols.otherDeduct) row['Other Deductions (Rs)'] = rec.breakdown.empOtherDeductions || 0;
+      if (exportCols.totalDeduct) row['Total Deduction (Rs)'] = rec.deductions;
+      if (exportCols.netSalary) row['Net Salary (Rs)'] = rec.net;
+      if (exportCols.paymentStatus) row['Status'] = rec.paymentStatus;
+      if (exportCols.bankAcc) row['Bank Account'] = rec.bankAccount || '-';
+
+      return row;
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Salary Sheet');
+    XLSX.writeFile(workbook, `Salary_Sheet_${selectedMonth === 'All' ? 'All_Months' : selectedMonth}.xlsx`);
+    setExportModalOpen(false);
   };
 
   if (isDataLoading) {
@@ -691,8 +778,19 @@ export default function NetSalary() {
               )}
               
               <button
-                onClick={handleDownloadPDF}
-                className="w-full sm:w-auto px-3 py-1.5 border border-primary rounded-md bg-primary text-white font-medium flex items-center justify-center gap-1 text-sm whitespace-nowrap cursor-pointer hover:bg-red-700"
+                onClick={() => openExportModal('excel')}
+                className="w-full sm:w-auto px-3.5 py-1.5 rounded-lg text-white font-semibold flex items-center justify-center gap-1.5 text-sm whitespace-nowrap cursor-pointer transition-colors shadow-xs"
+                style={{ backgroundColor: '#059669', border: '1px solid #047857' }}
+                title="Download Excel Sheet"
+              >
+                <Download size={14} /> Excel
+              </button>
+
+              <button
+                onClick={() => openExportModal('pdf')}
+                className="w-full sm:w-auto px-3.5 py-1.5 rounded-lg text-white font-semibold flex items-center justify-center gap-1.5 text-sm whitespace-nowrap cursor-pointer transition-colors shadow-xs"
+                style={{ backgroundColor: '#dc2626', border: '1px solid #b91c1c' }}
+                title="Download PDF Sheet"
               >
                 <Download size={14} /> PDF
               </button>
@@ -1020,6 +1118,275 @@ export default function NetSalary() {
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Export Columns Selection Modal */}
+      {exportModalOpen && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '20px'
+          }}
+          onClick={() => setExportModalOpen(false)}
+        >
+          <div 
+            style={{
+              backgroundColor: '#ffffff',
+              borderRadius: '16px',
+              width: '100%',
+              maxWidth: '820px',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              display: 'flex',
+              flexDirection: 'column',
+              maxHeight: '85vh',
+              overflow: 'hidden',
+              border: '1px solid #e2e8f0'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div 
+              style={{
+                backgroundColor: exportType === 'excel' ? '#059669' : '#dc2626',
+                color: '#ffffff',
+                padding: '16px 24px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                {exportType === 'excel' ? <FileSpreadsheet size={22} color="#ffffff" /> : <FileText size={22} color="#ffffff" />}
+                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: '#ffffff', letterSpacing: '0.3px' }}>
+                  Select Columns to Export ({exportType === 'excel' ? 'Excel' : 'PDF'})
+                </h3>
+              </div>
+              <button 
+                onClick={() => setExportModalOpen(false)}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.15)',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: '#ffffff',
+                  transition: 'background 0.2s'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)'}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Quick Action Toolbar */}
+            <div 
+              style={{
+                padding: '12px 24px',
+                backgroundColor: '#f8fafc',
+                borderBottom: '1px solid #e2e8f0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}
+            >
+              <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>
+                {Object.values(exportCols).filter(Boolean).length} of {Object.keys(exportCols).length} columns selected
+              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <button 
+                  type="button"
+                  onClick={() => selectAllExportCols(true)} 
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#2563eb',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    padding: 0
+                  }}
+                >
+                  Select All
+                </button>
+                <span style={{ color: '#cbd5e1' }}>|</span>
+                <button 
+                  type="button"
+                  onClick={() => selectAllExportCols(false)} 
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#64748b',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    padding: 0
+                  }}
+                >
+                  Deselect All
+                </button>
+              </div>
+            </div>
+
+            {/* Checkboxes List */}
+            <div 
+              style={{
+                padding: '20px 24px',
+                overflowY: 'auto',
+                overflowX: 'hidden',
+                flex: 1
+              }}
+            >
+              <div 
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+                  gap: '12px'
+                }}
+              >
+                {Object.keys(exportCols).map(key => {
+                  const labelMap = {
+                    empName: 'Employee Name',
+                    department: 'Department',
+                    designation: 'Firm / Designation',
+                    salaryDate: 'Salary Date',
+                    salaryMonth: 'Salary Month',
+                    basic: 'Basic Salary (₹)',
+                    hra: 'HRA (₹)',
+                    allowances: 'Allowances (₹)',
+                    monthAdvance: 'Month Advance (₹)',
+                    gross: 'Gross Salary (₹)',
+                    totalDays: 'Total Days',
+                    present: 'Present Days',
+                    absent: 'Absent Days',
+                    leaves: 'Leaves Taken',
+                    leaveDeduct: 'Leave Deduction (₹)',
+                    monthRecov: 'Recovery (₹)',
+                    prevAdvDeduct: 'Prev Advance Ded. (₹)',
+                    pf: 'PF Deduction (₹)',
+                    esic: 'ESIC Deduction (₹)',
+                    pTax: 'Professional Tax (₹)',
+                    otherDeduct: 'Other Deductions (₹)',
+                    totalDeduct: 'Total Deductions (₹)',
+                    netSalary: 'Net Salary (₹)',
+                    paymentStatus: 'Payment Status',
+                    bankAcc: 'Bank Account'
+                  };
+                  const label = labelMap[key] || key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+                  const isChecked = !!exportCols[key];
+
+                  return (
+                    <label 
+                      key={key}
+                      onClick={() => toggleExportCol(key)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        padding: '10px 14px',
+                        borderRadius: '8px',
+                        border: isChecked ? '1px solid #3b82f6' : '1px solid #e2e8f0',
+                        backgroundColor: isChecked ? '#eff6ff' : '#ffffff',
+                        color: isChecked ? '#1e3a8a' : '#334155',
+                        fontWeight: isChecked ? 600 : 500,
+                        fontSize: '0.875rem',
+                        cursor: 'pointer',
+                        userSelect: 'none',
+                        transition: 'all 0.15s ease',
+                        boxShadow: isChecked ? '0 1px 2px rgba(59, 130, 246, 0.1)' : 'none'
+                      }}
+                    >
+                      <input 
+                        type="checkbox" 
+                        checked={isChecked}
+                        onChange={() => {}}
+                        style={{
+                          width: '16px',
+                          height: '16px',
+                          accentColor: '#2563eb',
+                          cursor: 'pointer',
+                          margin: 0,
+                          flexShrink: 0
+                        }}
+                      />
+                      <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {label}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div 
+              style={{
+                padding: '16px 24px',
+                backgroundColor: '#f8fafc',
+                borderTop: '1px solid #e2e8f0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'flex-end',
+                gap: '12px'
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setExportModalOpen(false)}
+                style={{
+                  padding: '9px 18px',
+                  borderRadius: '8px',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  color: '#475569',
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #cbd5e1',
+                  cursor: 'pointer',
+                  transition: 'background 0.2s'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={Object.values(exportCols).filter(Boolean).length === 0}
+                onClick={exportType === 'excel' ? handleDownloadExcel : handleDownloadPDF}
+                style={{
+                  padding: '9px 22px',
+                  borderRadius: '8px',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  color: '#ffffff',
+                  backgroundColor: exportType === 'excel' ? '#059669' : '#dc2626',
+                  border: `1px solid ${exportType === 'excel' ? '#047857' : '#b91c1c'}`,
+                  cursor: Object.values(exportCols).filter(Boolean).length === 0 ? 'not-allowed' : 'pointer',
+                  opacity: Object.values(exportCols).filter(Boolean).length === 0 ? 0.5 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                }}
+              >
+                <Download size={15} />
+                Download {exportType === 'excel' ? 'Excel' : 'PDF'}
+              </button>
             </div>
           </div>
         </div>

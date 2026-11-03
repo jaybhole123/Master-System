@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
-import { Plus, X, Pencil, Trash2, Loader, Filter, Users, UserCheck, Briefcase, Building, Search, Cake, Sparkles, Phone, Calendar, RefreshCw, Eye, Mail, MapPin, CreditCard, Shield, FileText, Download } from 'lucide-react';
+import { Plus, X, Pencil, Trash2, Loader, Filter, Users, UserCheck, Briefcase, Building, Search, Cake, Sparkles, Phone, Calendar, RefreshCw, Eye, Mail, MapPin, CreditCard, Shield, FileText, Download, FileSpreadsheet } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 import Cropper from 'react-easy-crop';
 import getCroppedImg from '../utils/cropImage';
 import { sendBirthdayWishes } from '../../../services/whatsappService';
@@ -770,6 +771,60 @@ export default function EmployeeMaster() {
     }
   };
 
+  const handleDownloadExcel = () => {
+    try {
+      const filtered = employees.filter(emp => {
+        const query = searchQuery.toLowerCase();
+        const matchesSearch = !query || (
+          (emp.employee_id && emp.employee_id.toLowerCase().includes(query)) ||
+          (emp.user_name && emp.user_name.toLowerCase().includes(query)) ||
+          (emp.department && emp.department.toLowerCase().includes(query)) ||
+          (emp.designation && emp.designation.toLowerCase().includes(query)) ||
+          (emp.Designation && emp.Designation.toLowerCase().includes(query))
+        );
+        const matchesName = !nameFilter || (emp.user_name && emp.user_name.toLowerCase() === nameFilter.toLowerCase());
+        const empDesg = emp.designation || emp.Designation || '';
+        const matchesDesignation = !designationFilter || empDesg.toLowerCase() === designationFilter.toLowerCase();
+        const matchesDepartment = !departmentFilter || (emp.department && emp.department.toLowerCase() === departmentFilter.toLowerCase());
+        return matchesSearch && matchesName && matchesDesignation && matchesDepartment;
+      }).sort((a, b) => {
+        const orderA = getDesignationSortOrder(a.designation || a.Designation);
+        const orderB = getDesignationSortOrder(b.designation || b.Designation);
+        if (orderA !== orderB) return orderA - orderB;
+        const expA = getEmployeeExperienceMonths(a);
+        const expB = getEmployeeExperienceMonths(b);
+        if (expB !== expA) return expB - expA;
+        return (a.user_name || '').localeCompare(b.user_name || '');
+      });
+
+      if (filtered.length === 0) {
+        toast.error('No employee records to export');
+        return;
+      }
+
+      const rows = filtered.map((emp, idx) => ({
+        'S.No': idx + 1,
+        'Emp ID': emp.employee_id || '-',
+        'Name': emp.user_name || '-',
+        'Phone Number': emp.number || '-',
+        'Department': emp.department || '-',
+        'Designation / Firm': emp.designation || emp.Designation || '-',
+        'Experience': calculateDynamicExperience(emp.joining_date, emp.experience),
+        "Father's Name": emp.fathers_name || '-',
+        'Status': emp.status || 'Active'
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(rows);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Employees');
+      XLSX.writeFile(workbook, `Employee_Master_${new Date().toISOString().slice(0, 10)}.xlsx`);
+      toast.success('Employee list Excel downloaded successfully');
+    } catch (err) {
+      console.error('Error generating Excel:', err);
+      toast.error('Failed to generate Excel: ' + err.message);
+    }
+  };
+
   return (
     <div className="fade-in">
       {/* Birthday Banner */}
@@ -798,11 +853,19 @@ export default function EmployeeMaster() {
         <div className="flex items-center gap-2.5">
           <button 
             type="button"
+            className="px-4 py-2 bg-emerald-600 text-white hover:bg-emerald-700 font-semibold rounded-xl shadow-xs transition-all flex items-center gap-2 text-sm cursor-pointer"
+            onClick={handleDownloadExcel}
+            title="Download Excel"
+          >
+            <FileSpreadsheet size={18} /> Export Excel
+          </button>
+          <button 
+            type="button"
             className="px-4 py-2 bg-white text-red-600 border border-red-300 hover:bg-red-50 hover:border-red-400 font-semibold rounded-xl shadow-xs transition-all flex items-center gap-2 text-sm cursor-pointer"
             onClick={handleDownloadPDF}
             title="Download PDF"
           >
-            <Download size={18} /> Export PDF
+            <FileText size={18} /> Export PDF
           </button>
           <button 
             className="btn-primary shadow-md hover:shadow-lg transition-all" 
@@ -961,14 +1024,22 @@ export default function EmployeeMaster() {
             </button>
           )}
 
-          <div style={{ marginLeft: 'auto' }}>
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              type="button"
+              onClick={handleDownloadExcel}
+              className="inline-flex items-center justify-center p-2 text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg transition-all cursor-pointer shadow-2xs hover:border-slate-300 hover:shadow-xs"
+              title="Download Excel"
+            >
+              <FileSpreadsheet size={18} className="text-emerald-600" />
+            </button>
             <button
               type="button"
               onClick={handleDownloadPDF}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300/80 rounded-lg transition-colors cursor-pointer shadow-2xs"
-              title="Download Data Table as PDF"
+              className="inline-flex items-center justify-center p-2 text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg transition-all cursor-pointer shadow-2xs hover:border-slate-300 hover:shadow-xs"
+              title="Download PDF"
             >
-              <Download size={14} className="text-red-600" /> Download PDF
+              <FileText size={18} className="text-red-600" />
             </button>
           </div>
         </div>
