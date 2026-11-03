@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
-import { Plus, X, Pencil, Trash2, Loader, Filter, Users, UserCheck, Briefcase, Building, Search, Cake, Sparkles, Phone, Calendar, RefreshCw, Eye, Mail, MapPin, CreditCard, Shield, FileText } from 'lucide-react';
+import { Plus, X, Pencil, Trash2, Loader, Filter, Users, UserCheck, Briefcase, Building, Search, Cake, Sparkles, Phone, Calendar, RefreshCw, Eye, Mail, MapPin, CreditCard, Shield, FileText, Download } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import Cropper from 'react-easy-crop';
 import getCroppedImg from '../utils/cropImage';
 import { sendBirthdayWishes } from '../../../services/whatsappService';
@@ -673,6 +675,101 @@ export default function EmployeeMaster() {
     }
   };
 
+  const handleDownloadPDF = () => {
+    try {
+      const filtered = employees.filter(emp => {
+        const query = searchQuery.toLowerCase();
+        const matchesSearch = !query || (
+          (emp.employee_id && emp.employee_id.toLowerCase().includes(query)) ||
+          (emp.user_name && emp.user_name.toLowerCase().includes(query)) ||
+          (emp.department && emp.department.toLowerCase().includes(query)) ||
+          (emp.designation && emp.designation.toLowerCase().includes(query)) ||
+          (emp.Designation && emp.Designation.toLowerCase().includes(query))
+        );
+        const matchesName = !nameFilter || (emp.user_name && emp.user_name.toLowerCase() === nameFilter.toLowerCase());
+        const empDesg = emp.designation || emp.Designation || '';
+        const matchesDesignation = !designationFilter || empDesg.toLowerCase() === designationFilter.toLowerCase();
+        const matchesDepartment = !departmentFilter || (emp.department && emp.department.toLowerCase() === departmentFilter.toLowerCase());
+        return matchesSearch && matchesName && matchesDesignation && matchesDepartment;
+      }).sort((a, b) => {
+        const orderA = getDesignationSortOrder(a.designation || a.Designation);
+        const orderB = getDesignationSortOrder(b.designation || b.Designation);
+        if (orderA !== orderB) return orderA - orderB;
+        const expA = getEmployeeExperienceMonths(a);
+        const expB = getEmployeeExperienceMonths(b);
+        if (expB !== expA) return expB - expA;
+        return (a.user_name || '').localeCompare(b.user_name || '');
+      });
+
+      if (filtered.length === 0) {
+        toast.error('No employee records to export');
+        return;
+      }
+
+      const doc = new jsPDF('landscape', 'pt', 'a4');
+
+      doc.setFontSize(16);
+      doc.setTextColor(30, 41, 59);
+      doc.text('Employee Master List', 40, 40);
+
+      doc.setFontSize(10);
+      doc.setTextColor(100, 116, 139);
+      const generatedDate = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+      doc.text(`Generated on: ${generatedDate} | Total Records: ${filtered.length}`, 40, 56);
+
+      const headers = [['S.No', 'Emp ID', 'Name', 'Phone Number', 'Department', 'Designation / Firm', 'Experience', "Father's Name", 'Status']];
+      const rows = filtered.map((emp, idx) => [
+        idx + 1,
+        emp.employee_id || '-',
+        emp.user_name || '-',
+        emp.number || '-',
+        emp.department || '-',
+        emp.designation || emp.Designation || '-',
+        calculateDynamicExperience(emp.joining_date, emp.experience),
+        emp.fathers_name || '-',
+        emp.status || 'Active'
+      ]);
+
+      autoTable(doc, {
+        startY: 70,
+        head: headers,
+        body: rows,
+        margin: { bottom: 30, left: 30, right: 30 },
+        styles: {
+          fontSize: 8,
+          cellPadding: 5,
+          valign: 'middle'
+        },
+        headStyles: {
+          fillColor: [220, 38, 38],
+          textColor: 255,
+          fontStyle: 'bold',
+          halign: 'center'
+        },
+        columnStyles: {
+          0: { halign: 'center', cellWidth: 35 },
+          1: { halign: 'center', cellWidth: 60 },
+          2: { halign: 'left', cellWidth: 110 },
+          3: { halign: 'center', cellWidth: 85 },
+          4: { halign: 'left', cellWidth: 100 },
+          5: { halign: 'left', cellWidth: 120 },
+          6: { halign: 'center', cellWidth: 95 },
+          7: { halign: 'left', cellWidth: 100 },
+          8: { halign: 'center', cellWidth: 55 }
+        },
+        alternateRowStyles: {
+          fillColor: [248, 250, 252]
+        }
+      });
+
+      doc.save(`Employee_Master_${new Date().toISOString().slice(0, 10)}.pdf`);
+      toast.success('Employee list PDF downloaded successfully');
+    } catch (err) {
+      console.error('Error generating PDF:', err);
+      toast.error('Failed to generate PDF: ' + err.message);
+    }
+  };
+
   return (
     <div className="fade-in">
       {/* Birthday Banner */}
@@ -698,23 +795,33 @@ export default function EmployeeMaster() {
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight">Employee Master</h1>
           <p className="text-sm text-slate-500 mt-1">View, onboard, and manage all employee records and profiles.</p>
         </div>
-        <button 
-          className="btn-primary shadow-md hover:shadow-lg transition-all" 
-          onClick={() => {
-            setEditingId(null);
-            setFormData(initialFormData);
-            setPhotoFile(null);
-            setPhotoPreview(null);
-            setAadharFile(null);
-            setPanFile(null);
-            setDlFile(null);
-            setAccountFile(null);
-            setIsAddModalOpen(true);
-          }}
-          style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-        >
-          <Plus size={18} /> Add New Employee
-        </button>
+        <div className="flex items-center gap-2.5">
+          <button 
+            type="button"
+            className="px-4 py-2 bg-white text-red-600 border border-red-300 hover:bg-red-50 hover:border-red-400 font-semibold rounded-xl shadow-xs transition-all flex items-center gap-2 text-sm cursor-pointer"
+            onClick={handleDownloadPDF}
+            title="Download PDF"
+          >
+            <Download size={18} /> Export PDF
+          </button>
+          <button 
+            className="btn-primary shadow-md hover:shadow-lg transition-all" 
+            onClick={() => {
+              setEditingId(null);
+              setFormData(initialFormData);
+              setPhotoFile(null);
+              setPhotoPreview(null);
+              setAadharFile(null);
+              setPanFile(null);
+              setDlFile(null);
+              setAccountFile(null);
+              setIsAddModalOpen(true);
+            }}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+          >
+            <Plus size={18} /> Add New Employee
+          </button>
+        </div>
       </div>
 
       {/* Modern KPI Summary Cards */}
@@ -853,6 +960,17 @@ export default function EmployeeMaster() {
               Reset Filters
             </button>
           )}
+
+          <div style={{ marginLeft: 'auto' }}>
+            <button
+              type="button"
+              onClick={handleDownloadPDF}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300/80 rounded-lg transition-colors cursor-pointer shadow-2xs"
+              title="Download Data Table as PDF"
+            >
+              <Download size={14} className="text-red-600" /> Download PDF
+            </button>
+          </div>
         </div>
         
         {/* Desktop Table View */}

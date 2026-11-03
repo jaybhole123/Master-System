@@ -623,7 +623,73 @@ export default function MisReport() {
                   HINDUSTAN IRON & SPONGE REPORT (BILLET)
                 </td>
                 <td style={{ background: '#1e3a8a', color: 'white', fontWeight: 'bold', fontSize: '14px', padding: '10px', textAlign: 'center', width: '120px', border: '0.5px solid #475569' }}>
-                  {consData.date || billetData.date}
+                  {(() => {
+                    const dateKey = `header-date-${selectedDate}`;
+                    const displayDate = nameConfig[dateKey] || consData.date || billetData.date || '';
+                    const isEditingThis = editingNameKey === dateKey;
+
+                    return isEditingThis ? (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', width: '100%' }}>
+                        <input
+                          autoFocus
+                          type="text"
+                          value={editingNameVal}
+                          onChange={e => setEditingNameVal(e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') handleSaveName(dateKey);
+                            if (e.key === 'Escape') handleCancelEditName();
+                          }}
+                          style={{
+                            width: '100px',
+                            padding: '3px 6px',
+                            fontSize: '13px',
+                            fontWeight: 'bold',
+                            color: '#1e293b',
+                            background: '#ffffff',
+                            border: '1px solid #38bdf8',
+                            borderRadius: '4px',
+                            textAlign: 'center'
+                          }}
+                        />
+                        <button
+                          onClick={() => handleSaveName(dateKey)}
+                          style={{ background: '#10b981', color: 'white', border: 'none', borderRadius: '3px', padding: '3px 6px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                          title="Save"
+                        >
+                          <Check size={13} />
+                        </button>
+                        <button
+                          onClick={handleCancelEditName}
+                          style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: '3px', padding: '3px 6px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                          title="Cancel"
+                        >
+                          <X size={13} />
+                        </button>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                        <span>{displayDate}</span>
+                        {editMode && (
+                          <button
+                            onClick={() => handleStartEditName(dateKey, displayDate)}
+                            style={{
+                              background: 'rgba(255, 255, 255, 0.2)',
+                              border: 'none',
+                              color: 'white',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              padding: '2px 5px',
+                              display: 'flex',
+                              alignItems: 'center'
+                            }}
+                            title="Edit Date"
+                          >
+                            <EditSquareIcon size={14} color="#ffffff" />
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </td>
               </tr>
             </tbody>
