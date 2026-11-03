@@ -345,12 +345,12 @@ export default function SalesOrderResults({
       )}
       
       {/* ── Action bar ── */}
-      <div className="results-bar" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px", paddingBottom: "16px", borderBottom: "1px solid var(--line)", marginBottom: "16px" }}>
+      <div className="results-bar" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "nowrap", gap: "10px", paddingBottom: "14px", borderBottom: "1px solid var(--line)", marginBottom: "16px", overflowX: "auto" }}>
         <div style={{ display: "none" }}>
           <div className="results-file">{fileName}</div>
           <div className="results-hint">Sales Order Extracted</div>
         </div>
-        <div className="results-actions" style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
+        <div className="results-actions" style={{ display: "flex", gap: "6px", alignItems: "center", flexShrink: 0 }}>
 
           <button 
             className="btn ghost" 
@@ -395,11 +395,11 @@ export default function SalesOrderResults({
           <button className="btn outline" onClick={onAddManual}>
             + ADD FORM
           </button>
-          <button className="btn" onClick={() => fileInputRef.current?.click()}>
+          <button className="btn" onClick={() => fileInputRef.current?.click()} title="Upload PDF or Image">
             UPLOAD FILE
           </button>
         </div>
-        <div className="toolbar-wrapper" style={{ display: "flex", gap: "16px", alignItems: "center", flexWrap: "wrap" }}>
+        <div className="toolbar-wrapper" style={{ display: "flex", gap: "10px", alignItems: "center", flexShrink: 0 }}>
           {/* SEARCH BAR */}
           <div style={{ position: "relative" }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)" }}>
@@ -411,7 +411,7 @@ export default function SalesOrderResults({
               placeholder="Search..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              style={{ padding: "6px 12px 6px 30px", border: "1px solid var(--line)", borderRadius: "6px", fontSize: "13px", width: "220px", outline: "none", color: "var(--text)", background: "transparent" }}
+              style={{ padding: "6px 10px 6px 28px", border: "1px solid var(--line)", borderRadius: "6px", fontSize: "12px", width: "150px", outline: "none", color: "var(--text)", background: "transparent" }}
             />
           </div>
 

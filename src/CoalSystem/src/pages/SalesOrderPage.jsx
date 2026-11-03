@@ -4,6 +4,7 @@ import Dropzone from "../components/Dropzone";
 import SalesOrderResults from "../components/SalesOrderResults";
 import EditModal from "../components/EditModal";
 import { extractTextFromFile, parseSalesOrder, toCSVSalesOrder, downloadBlob } from "../utils/salesOrderParser";
+import { extractSalesOrderFromImage } from "../utils/openaiOcr";
 import { supabase } from "../utils/supabase";
 
 /**
@@ -225,8 +226,47 @@ export default function SalesOrderPage({ state, setState }) {
       try {
         const settledResults = await Promise.allSettled(
           files.map(async (file) => {
-            const text = await extractTextFromFile(file);
-            const parsed = parseSalesOrder(text);
+            const isImg = file.type.startsWith('image/') || /\.(jpg|jpeg|png|webp|bmp|gif)$/i.test(file.name);
+            let parsed;
+
+            if (isImg) {
+              try {
+                parsed = await extractSalesOrderFromImage(file);
+                showToast(`Image scanned successfully with OpenAI (${file.name})`);
+              } catch (aiErr) {
+                console.error("OpenAI OCR failed:", aiErr);
+                showToast(`AI OCR failed: ${aiErr.message}. Trying local OCR fallback...`, "error");
+                const text = await extractTextFromFile(file);
+                parsed = parseSalesOrder(text);
+              }
+            } else {
+              // PDF file: first extract embedded text
+              const text = await extractTextFromFile(file);
+              const cleanText = (text || '').replace(/\s+/g, ' ').trim();
+              
+              // If PDF contains very little text (scanned PDF / image converted to PDF)
+              if (cleanText.length < 80) {
+                try {
+                  showToast(`Scanned PDF detected, processing with AI Vision OCR (${file.name})...`);
+                  parsed = await extractSalesOrderFromImage(file);
+                } catch (aiErr) {
+                  console.warn("AI OCR on scanned PDF failed, parsing raw text:", aiErr);
+                  parsed = parseSalesOrder(text);
+                }
+              } else {
+                parsed = parseSalesOrder(text);
+                
+                // If text parser couldn't find vital fields (scanned image inside PDF), fall back to AI Vision
+                if (!parsed.order_info?.sales_order_number && !parsed.sold_to_party?.name) {
+                  try {
+                    showToast(`Trying AI Vision OCR for PDF (${file.name})...`);
+                    parsed = await extractSalesOrderFromImage(file);
+                  } catch (e) {
+                    // keep original parsed
+                  }
+                }
+              }
+            }
             
             // Fallback to calculate quantity from amount and rate if missing or if it contains text (like "THREE THOUSAND")
             let qty = parsed.line_items?.[0]?.quantity || parsed.mine_info?.quantity_words;
