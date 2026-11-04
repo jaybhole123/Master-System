@@ -47,12 +47,12 @@ export default function Attendance() {
       const validUsers = (usersData || []).filter(u => u.user_name && u.user_name.trim());
       setStaffUsers(validUsers);
 
-      // Extract unique employee names from monthly_attendance
+      // Extract unique employee names from monthly_attendance (keep unique by exact case name)
       const uniqueAttMap = new Map();
       (attData || []).forEach(row => {
         const name = (row.employee_name || '').trim();
-        if (name && !uniqueAttMap.has(name.toLowerCase())) {
-          uniqueAttMap.set(name.toLowerCase(), {
+        if (name && !uniqueAttMap.has(name)) {
+          uniqueAttMap.set(name, {
             id: row.id,
             employee_name: name,
             employee_id: row.employee_id,
@@ -2396,12 +2396,57 @@ Instructions:
 
             {/* Quick Stats Bar & Search Filter */}
             {(() => {
-              const userNamesSet = new Set(staffUsers.map(u => (u.user_name || '').trim().toLowerCase()));
-              const attNamesSet = new Set(monthlyEmployees.map(e => (e.employee_name || '').trim().toLowerCase()));
+              const userExactMap = new Map();
+              staffUsers.forEach(u => {
+                const raw = (u.user_name || '').trim();
+                if (!raw) return;
+                const lower = raw.toLowerCase();
+                if (!userExactMap.has(lower)) userExactMap.set(lower, []);
+                userExactMap.get(lower).push(raw);
+              });
 
-              const matchedCount = staffUsers.filter(u => attNamesSet.has((u.user_name || '').trim().toLowerCase())).length;
-              const unmatchedUsersCount = staffUsers.length - matchedCount;
-              const unmatchedAttCount = monthlyEmployees.filter(e => !userNamesSet.has((e.employee_name || '').trim().toLowerCase())).length;
+              const attExactMap = new Map();
+              monthlyEmployees.forEach(e => {
+                const raw = (e.employee_name || '').trim();
+                if (!raw) return;
+                const lower = raw.toLowerCase();
+                if (!attExactMap.has(lower)) attExactMap.set(lower, []);
+                attExactMap.get(lower).push(raw);
+              });
+
+              // Classification helper for user
+              const getUserStatus = (rawName) => {
+                const trimmed = (rawName || '').trim();
+                const lower = trimmed.toLowerCase();
+                const matchingAttNames = attExactMap.get(lower);
+                if (!matchingAttNames || matchingAttNames.length === 0) {
+                  return { status: 'unmatched', matchingName: null };
+                }
+                // Check if exact case match exists
+                if (matchingAttNames.includes(trimmed)) {
+                  return { status: 'exact', matchingName: trimmed };
+                }
+                return { status: 'case_mismatch', matchingName: matchingAttNames[0] };
+              };
+
+              // Classification helper for attendance
+              const getAttStatus = (rawName) => {
+                const trimmed = (rawName || '').trim();
+                const lower = trimmed.toLowerCase();
+                const matchingUserNames = userExactMap.get(lower);
+                if (!matchingUserNames || matchingUserNames.length === 0) {
+                  return { status: 'unmatched', matchingName: null };
+                }
+                if (matchingUserNames.includes(trimmed)) {
+                  return { status: 'exact', matchingName: trimmed };
+                }
+                return { status: 'case_mismatch', matchingName: matchingUserNames[0] };
+              };
+
+              const exactMatchedUsersCount = staffUsers.filter(u => getUserStatus(u.user_name).status === 'exact').length;
+              const caseMismatchUsersCount = staffUsers.filter(u => getUserStatus(u.user_name).status === 'case_mismatch').length;
+              const unmatchedUsersCount = staffUsers.filter(u => getUserStatus(u.user_name).status === 'unmatched').length;
+              const unmatchedAttCount = monthlyEmployees.filter(e => getAttStatus(e.employee_name).status === 'unmatched').length;
 
               return (
                 <div style={{
@@ -2415,12 +2460,12 @@ Instructions:
                   justifyContent: 'space-between'
                 }}>
                   {/* Status Badges */}
-                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
                     <div
                       onClick={() => setVerifyFilter('all')}
                       style={{
                         cursor: 'pointer',
-                        padding: '6px 14px',
+                        padding: '6px 13px',
                         borderRadius: '20px',
                         fontSize: '0.82rem',
                         fontWeight: 600,
@@ -2435,7 +2480,7 @@ Instructions:
                       onClick={() => setVerifyFilter('matched')}
                       style={{
                         cursor: 'pointer',
-                        padding: '6px 14px',
+                        padding: '6px 13px',
                         borderRadius: '20px',
                         fontSize: '0.82rem',
                         fontWeight: 600,
@@ -2447,13 +2492,34 @@ Instructions:
                         transition: 'all 0.2s'
                       }}
                     >
-                      <Check size={14} /> Matched in Both: {matchedCount}
+                      <Check size={14} /> Exact Match: {exactMatchedUsersCount}
                     </div>
+                    {caseMismatchUsersCount > 0 && (
+                      <div
+                        onClick={() => setVerifyFilter('case_mismatch')}
+                        style={{
+                          cursor: 'pointer',
+                          padding: '6px 13px',
+                          borderRadius: '20px',
+                          fontSize: '0.82rem',
+                          fontWeight: 700,
+                          backgroundColor: verifyFilter === 'case_mismatch' ? '#ea580c' : '#ffedd5',
+                          color: verifyFilter === 'case_mismatch' ? '#ffffff' : '#c2410c',
+                          border: '1px solid #f97316',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        <AlertCircle size={14} /> Case Diff (Aa ≠ AA): {caseMismatchUsersCount}
+                      </div>
+                    )}
                     <div
                       onClick={() => setVerifyFilter('unmatched_users')}
                       style={{
                         cursor: 'pointer',
-                        padding: '6px 14px',
+                        padding: '6px 13px',
                         borderRadius: '20px',
                         fontSize: '0.82rem',
                         fontWeight: 600,
@@ -2465,13 +2531,13 @@ Instructions:
                         transition: 'all 0.2s'
                       }}
                     >
-                      <AlertCircle size={14} /> Users Not in Attendance: {unmatchedUsersCount}
+                      <AlertCircle size={14} /> Users Not in Att: {unmatchedUsersCount}
                     </div>
                     <div
                       onClick={() => setVerifyFilter('unmatched_attendance')}
                       style={{
                         cursor: 'pointer',
-                        padding: '6px 14px',
+                        padding: '6px 13px',
                         borderRadius: '20px',
                         fontSize: '0.82rem',
                         fontWeight: 600,
@@ -2483,7 +2549,7 @@ Instructions:
                         transition: 'all 0.2s'
                       }}
                     >
-                      <AlertCircle size={14} /> Attendance Not in Users: {unmatchedAttCount}
+                      <AlertCircle size={14} /> Att Not in Users: {unmatchedAttCount}
                     </div>
                   </div>
 
@@ -2531,31 +2597,74 @@ Instructions:
                 </div>
               ) : (
                 (() => {
-                  const userNamesSet = new Set(staffUsers.map(u => (u.user_name || '').trim().toLowerCase()));
-                  const attNamesSet = new Set(monthlyEmployees.map(e => (e.employee_name || '').trim().toLowerCase()));
+                  const userExactMap = new Map();
+                  staffUsers.forEach(u => {
+                    const raw = (u.user_name || '').trim();
+                    if (!raw) return;
+                    const lower = raw.toLowerCase();
+                    if (!userExactMap.has(lower)) userExactMap.set(lower, []);
+                    userExactMap.get(lower).push(raw);
+                  });
+
+                  const attExactMap = new Map();
+                  monthlyEmployees.forEach(e => {
+                    const raw = (e.employee_name || '').trim();
+                    if (!raw) return;
+                    const lower = raw.toLowerCase();
+                    if (!attExactMap.has(lower)) attExactMap.set(lower, []);
+                    attExactMap.get(lower).push(raw);
+                  });
+
+                  const getUserStatus = (rawName) => {
+                    const trimmed = (rawName || '').trim();
+                    const lower = trimmed.toLowerCase();
+                    const matchingAttNames = attExactMap.get(lower);
+                    if (!matchingAttNames || matchingAttNames.length === 0) {
+                      return { status: 'unmatched', matchingName: null };
+                    }
+                    if (matchingAttNames.includes(trimmed)) {
+                      return { status: 'exact', matchingName: trimmed };
+                    }
+                    return { status: 'case_mismatch', matchingName: matchingAttNames[0] };
+                  };
+
+                  const getAttStatus = (rawName) => {
+                    const trimmed = (rawName || '').trim();
+                    const lower = trimmed.toLowerCase();
+                    const matchingUserNames = userExactMap.get(lower);
+                    if (!matchingUserNames || matchingUserNames.length === 0) {
+                      return { status: 'unmatched', matchingName: null };
+                    }
+                    if (matchingUserNames.includes(trimmed)) {
+                      return { status: 'exact', matchingName: trimmed };
+                    }
+                    return { status: 'case_mismatch', matchingName: matchingUserNames[0] };
+                  };
 
                   // Filter users
                   const filteredUsers = staffUsers.filter(u => {
-                    const name = (u.user_name || '').trim().toLowerCase();
-                    const matchesSearch = !verifySearchQuery || name.includes(verifySearchQuery.toLowerCase());
-                    const isMatched = attNamesSet.has(name);
+                    const name = (u.user_name || '').trim();
+                    const matchesSearch = !verifySearchQuery || name.toLowerCase().includes(verifySearchQuery.toLowerCase());
+                    const userStatusObj = getUserStatus(name);
 
                     if (!matchesSearch) return false;
-                    if (verifyFilter === 'matched') return isMatched;
-                    if (verifyFilter === 'unmatched_users') return !isMatched;
-                    if (verifyFilter === 'unmatched_attendance') return false; // don't highlight left if filtering only att unmatched
+                    if (verifyFilter === 'matched') return userStatusObj.status === 'exact';
+                    if (verifyFilter === 'case_mismatch') return userStatusObj.status === 'case_mismatch';
+                    if (verifyFilter === 'unmatched_users') return userStatusObj.status === 'unmatched';
+                    if (verifyFilter === 'unmatched_attendance') return false;
                     return true;
                   });
 
                   // Filter attendance records
                   const filteredAtt = monthlyEmployees.filter(e => {
-                    const name = (e.employee_name || '').trim().toLowerCase();
-                    const matchesSearch = !verifySearchQuery || name.includes(verifySearchQuery.toLowerCase());
-                    const isMatched = userNamesSet.has(name);
+                    const name = (e.employee_name || '').trim();
+                    const matchesSearch = !verifySearchQuery || name.toLowerCase().includes(verifySearchQuery.toLowerCase());
+                    const attStatusObj = getAttStatus(name);
 
                     if (!matchesSearch) return false;
-                    if (verifyFilter === 'matched') return isMatched;
-                    if (verifyFilter === 'unmatched_attendance') return !isMatched;
+                    if (verifyFilter === 'matched') return attStatusObj.status === 'exact';
+                    if (verifyFilter === 'case_mismatch') return attStatusObj.status === 'case_mismatch';
+                    if (verifyFilter === 'unmatched_attendance') return attStatusObj.status === 'unmatched';
                     if (verifyFilter === 'unmatched_users') return false;
                     return true;
                   });
@@ -2709,7 +2818,20 @@ Instructions:
                           ) : (
                             filteredUsers.map((u, idx) => {
                               const name = (u.user_name || '').trim();
-                              const isMatched = attNamesSet.has(name.toLowerCase());
+                              const userStatusObj = getUserStatus(name);
+                              const isExact = userStatusObj.status === 'exact';
+                              const isCaseMismatch = userStatusObj.status === 'case_mismatch';
+
+                              const bgColor = isExact 
+                                ? 'rgba(16, 185, 129, 0.08)' 
+                                : isCaseMismatch 
+                                  ? 'rgba(249, 115, 22, 0.08)' 
+                                  : 'rgba(239, 68, 68, 0.06)';
+                              const borderColor = isExact 
+                                ? 'rgba(16, 185, 129, 0.3)' 
+                                : isCaseMismatch 
+                                  ? 'rgba(249, 115, 22, 0.4)' 
+                                  : 'rgba(239, 68, 68, 0.25)';
 
                               return (
                                 <div
@@ -2721,8 +2843,8 @@ Instructions:
                                     padding: '10px 14px',
                                     margin: '4px 0',
                                     borderRadius: '8px',
-                                    backgroundColor: isMatched ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.06)',
-                                    border: isMatched ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(239, 68, 68, 0.25)',
+                                    backgroundColor: bgColor,
+                                    border: `1px solid ${borderColor}`,
                                     transition: 'background-color 0.15s ease'
                                   }}
                                 >
@@ -2772,12 +2894,17 @@ Instructions:
                                         <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary, #6b7280)', marginTop: '2px' }}>
                                           {u.department ? `Dept: ${u.department}` : ''} {u.employee_id ? `• ID: ${u.employee_id}` : ''}
                                         </div>
+                                        {isCaseMismatch && (
+                                          <div style={{ fontSize: '0.72rem', color: '#c2410c', fontWeight: 600, marginTop: '3px' }}>
+                                            ⚠️ Attendance has: <span style={{ fontFamily: 'monospace', background: '#ffedd5', padding: '1px 5px', borderRadius: '3px' }}>{userStatusObj.matchingName}</span>
+                                          </div>
+                                        )}
                                       </div>
                                     )}
                                   </div>
 
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    {isMatched ? (
+                                    {isExact ? (
                                       <span style={{
                                         display: 'inline-flex',
                                         alignItems: 'center',
@@ -2790,6 +2917,21 @@ Instructions:
                                         color: '#ffffff'
                                       }}>
                                         <Check size={12} /> Matched
+                                      </span>
+                                    ) : isCaseMismatch ? (
+                                      <span style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        padding: '4px 8px',
+                                        borderRadius: '6px',
+                                        fontSize: '0.75rem',
+                                        fontWeight: 700,
+                                        backgroundColor: '#ea580c',
+                                        color: '#ffffff',
+                                        boxShadow: '0 1px 2px rgba(234, 88, 12, 0.2)'
+                                      }}>
+                                        <AlertCircle size={12} /> Case Diff
                                       </span>
                                     ) : (
                                       <span style={{
@@ -2989,8 +3131,21 @@ Instructions:
                           ) : (
                             filteredAtt.map((att, idx) => {
                               const name = (att.employee_name || '').trim();
-                              const isMatched = userNamesSet.has(name.toLowerCase());
+                              const attStatusObj = getAttStatus(name);
+                              const isExact = attStatusObj.status === 'exact';
+                              const isCaseMismatch = attStatusObj.status === 'case_mismatch';
                               const isEditingThis = editingVerifyTarget?.type === 'attendance' && (editingVerifyTarget.id === att.id || editingVerifyTarget.originalName === name);
+
+                              const bgColor = isExact 
+                                ? 'rgba(16, 185, 129, 0.08)' 
+                                : isCaseMismatch 
+                                  ? 'rgba(249, 115, 22, 0.08)' 
+                                  : 'rgba(245, 158, 11, 0.08)';
+                              const borderColor = isExact 
+                                ? 'rgba(16, 185, 129, 0.3)' 
+                                : isCaseMismatch 
+                                  ? 'rgba(249, 115, 22, 0.4)' 
+                                  : 'rgba(245, 158, 11, 0.3)';
 
                               return (
                                 <div
@@ -3002,8 +3157,8 @@ Instructions:
                                     padding: '10px 14px',
                                     margin: '4px 0',
                                     borderRadius: '8px',
-                                    backgroundColor: isMatched ? 'rgba(16, 185, 129, 0.08)' : 'rgba(245, 158, 11, 0.08)',
-                                    border: isMatched ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(245, 158, 11, 0.3)',
+                                    backgroundColor: bgColor,
+                                    border: `1px solid ${borderColor}`,
                                     transition: 'background-color 0.15s ease'
                                   }}
                                 >
@@ -3053,12 +3208,17 @@ Instructions:
                                         <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary, #6b7280)', marginTop: '2px' }}>
                                           {att.employee_id ? `ID: ${att.employee_id}` : ''} {att.month_year ? `• Month: ${att.month_year}` : ''}
                                         </div>
+                                        {isCaseMismatch && (
+                                          <div style={{ fontSize: '0.72rem', color: '#c2410c', fontWeight: 600, marginTop: '3px' }}>
+                                            ⚠️ Users table has: <span style={{ fontFamily: 'monospace', background: '#ffedd5', padding: '1px 5px', borderRadius: '3px' }}>{attStatusObj.matchingName}</span>
+                                          </div>
+                                        )}
                                       </div>
                                     )}
                                   </div>
 
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    {isMatched ? (
+                                    {isExact ? (
                                       <span style={{
                                         display: 'inline-flex',
                                         alignItems: 'center',
@@ -3071,6 +3231,21 @@ Instructions:
                                         color: '#ffffff'
                                       }}>
                                         <Check size={12} /> Verified
+                                      </span>
+                                    ) : isCaseMismatch ? (
+                                      <span style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        padding: '4px 8px',
+                                        borderRadius: '6px',
+                                        fontSize: '0.75rem',
+                                        fontWeight: 700,
+                                        backgroundColor: '#ea580c',
+                                        color: '#ffffff',
+                                        boxShadow: '0 1px 2px rgba(234, 88, 12, 0.2)'
+                                      }}>
+                                        <AlertCircle size={12} /> Case Diff
                                       </span>
                                     ) : (
                                       <span style={{
@@ -3151,12 +3326,15 @@ Instructions:
               alignItems: 'center',
               backgroundColor: 'var(--bg-card, #ffffff)'
             }}>
-              <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary, #6b7280)', display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary, #6b7280)', display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#10b981' }}></span> Green = Matched in Both Columns
+                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#10b981' }}></span> Green = Exact Matched
                 </span>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#ef4444' }}></span> Red/Yellow = Not Matched
+                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#ea580c' }}></span> Orange = Case Difference (Capital/Small)
+                </span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#ef4444' }}></span> Red/Yellow = Missing / Not in Table
                 </span>
               </div>
               <button
