@@ -7,8 +7,8 @@ import './App.css';
  */
 export default function BilletWrapper({ children }) {
   return (
-    <div className="billet-system-root min-h-full w-full">
-      <div className="erp-content min-h-full" style={{ padding: '24px 32px' }}>
+    <div className="billet-system-root min-h-full w-full max-w-full overflow-hidden">
+      <div className="erp-content min-h-full w-full max-w-full box-border" style={{ padding: '16px 20px' }}>
         {children}
       </div>
     </div>

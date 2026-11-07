@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Printer, X, Check, Download } from 'lucide-react';
-import * as XLSX from 'xlsx';
+import { Printer, X, Check } from 'lucide-react';
 import html2pdf from './html2pdf_shim';
 import DateFilter from './DateFilter';
 import { normalizeDate, getTodayIso, getHistory, getFromHistory } from './dateHistory';
@@ -88,8 +87,15 @@ export default function MisReport() {
     if (saved) try { return JSON.parse(saved); } catch (e) {}
     return {};
   });
+  const [remarkConfig, setRemarkConfig] = useState(() => {
+    const saved = localStorage.getItem('misRemarkConfig');
+    if (saved) try { return JSON.parse(saved); } catch (e) {}
+    return {};
+  });
   const [editingNameKey, setEditingNameKey] = useState(null);
   const [editingNameVal, setEditingNameVal] = useState('');
+  const [editingRemarkKey, setEditingRemarkKey] = useState(null);
+  const [editingRemarkVal, setEditingRemarkVal] = useState('');
   const [draggedItem, setDraggedItem] = useState(null);
   const [headingPresets, setHeadingPresets] = useState(() => {
     const saved = localStorage.getItem('misHeadingPresets');
@@ -175,6 +181,10 @@ export default function MisReport() {
   }, [nameConfig]);
 
   useEffect(() => {
+    localStorage.setItem('misRemarkConfig', JSON.stringify(remarkConfig));
+  }, [remarkConfig]);
+
+  useEffect(() => {
     localStorage.setItem('misHeadingPresets', JSON.stringify(headingPresets));
   }, [headingPresets]);
 
@@ -212,6 +222,30 @@ export default function MisReport() {
   const handleCancelEditName = () => {
     setEditingNameKey(null);
     setEditingNameVal('');
+  };
+
+  const handleStartEditRemark = (key, currentVal) => {
+    setEditingRemarkKey(key);
+    setEditingRemarkVal(currentVal || '');
+  };
+
+  const handleSaveRemark = (key) => {
+    setRemarkConfig(prev => {
+      const next = { ...prev };
+      if (editingRemarkVal.trim()) {
+        next[key] = editingRemarkVal.trim();
+      } else {
+        delete next[key];
+      }
+      return next;
+    });
+    setEditingRemarkKey(null);
+    setEditingRemarkVal('');
+  };
+
+  const handleCancelEditRemark = () => {
+    setEditingRemarkKey(null);
+    setEditingRemarkVal('');
   };
 
   const toggleRow = (sizeIdx, itemIdx) => {
@@ -434,80 +468,6 @@ export default function MisReport() {
     });
   };
 
-  const downloadRemarksExcel = (sizeIdx = null) => {
-    if (!billetData || !billetData.sizes) return;
-
-    const exportRows = [];
-
-    billetData.sizes.forEach((s, idx) => {
-      if (sizeIdx !== null && sizeIdx !== idx) return;
-
-      const mergedIndices = new Set();
-      const currentMerges = mergeConfig[idx] || [];
-      const renderList = [];
-
-      currentMerges.forEach((g, gIdx) => {
-        const items = g.indices.map(i => s.items[i]).filter(Boolean);
-        if (items.length === 0) return;
-        g.indices.forEach(i => mergedIndices.add(i));
-        const customName = nameConfig[`merge-${idx}-${gIdx}`];
-        const label = customName || g.label || items.map(x => x.name).join(' + ');
-
-        renderList.push({
-          id: `merged-${gIdx}`,
-          label,
-          remarks: items.map(x => x.remarks).filter(Boolean).join(', ')
-        });
-      });
-
-      s.items.forEach((item, i) => {
-        if (!mergedIndices.has(i)) {
-          const nameKey = `billet-${idx}-${i}`;
-          const defaultLabel = i === 0 ? `BILLETS ${s.size} (${item.name})` : item.name;
-          const effectiveLabel = nameConfig[nameKey] || defaultLabel;
-
-          renderList.push({
-            id: `item-${i}`,
-            label: effectiveLabel,
-            remarks: item.remarks || ''
-          });
-        }
-      });
-
-      const customOrder = orderConfig[idx];
-      if (customOrder && customOrder.length > 0) {
-        renderList.sort((a, b) => {
-          let ai = customOrder.indexOf(a.id);
-          let bi = customOrder.indexOf(b.id);
-          if (ai === -1) ai = 999;
-          if (bi === -1) bi = 999;
-          return ai - bi;
-        });
-      }
-
-      renderList.forEach(r => {
-        exportRows.push({
-          'Section / Size': `BILLETS ${s.size}`,
-          'Material': r.label,
-          'Remark': r.remarks || '-'
-        });
-      });
-    });
-
-    if (exportRows.length === 0) {
-      alert("No remarks found to export.");
-      return;
-    }
-
-    const ws = XLSX.utils.json_to_sheet(exportRows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Remarks");
-    const fileName = sizeIdx !== null 
-      ? `MIS_Remarks_${billetData.sizes[sizeIdx]?.size || 'Size'}_${selectedDate}.xlsx`
-      : `MIS_Remarks_All_${selectedDate}.xlsx`;
-    XLSX.writeFile(wb, fileName);
-  };
-
   const consDates = Object.keys(getHistory('consumptionHistory'));
   const billetDates = Object.keys(getHistory('billetHistory'));
   const availableDates = Array.from(new Set([...consDates, ...billetDates]));
@@ -679,25 +639,6 @@ export default function MisReport() {
               >
                 Unmerge All
               </button>
-              <button 
-                onClick={() => downloadRemarksExcel(null)} 
-                style={{ 
-                  whiteSpace: 'nowrap', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '6px', 
-                  background: '#059669', 
-                  color: 'white', 
-                  border: 'none', 
-                  padding: '8px 16px', 
-                  borderRadius: '6px', 
-                  cursor: 'pointer', 
-                  fontWeight: '600' 
-                }}
-                title="Download All Remarks to Excel"
-              >
-                <Download size={16} /> Download Remarks (Excel)
-              </button>
             </>
           )}
           <button onClick={downloadPDF} style={{ whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--acc)', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' }}>
@@ -706,8 +647,8 @@ export default function MisReport() {
         </div>
       </div>
 
-      <div className="scroll">
-        <div id="mis-report-content" style={{ background: 'white', width: '100%', minWidth: '900px', border: '1px solid #475569' }}>
+      <div className="scroll mis-sheet-scroll-container" style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+        <div id="mis-report-content" style={{ background: 'white', width: '100%', minWidth: '980px', border: '1px solid #475569' }}>
           
           {/* Header Table */}
           <table style={{ width: '100%', borderCollapse: 'collapse', borderBottom: 'none' }}>
@@ -1023,10 +964,14 @@ export default function MisReport() {
                   const firstIdx = Math.min(...group.indices);
                   const items = group.indices.map(i => s.items[i]).filter(Boolean);
                   const nameKey = `group-${idx}-${gi}`;
+                  const remarkKey = `remark-group-${idx}-${gi}`;
                   const effectiveLabel = nameConfig[nameKey] || group.label;
+                  const defaultRemark = items.map(x => x.remarks).filter(Boolean).join(', ');
+                  const effectiveRemark = remarkConfig[remarkKey] !== undefined ? remarkConfig[remarkKey] : defaultRemark;
                   renderList.push({
                     id: `group-${gi}`,
                     nameKey,
+                    remarkKey,
                     type: 'merged', position: firstIdx, groupIdx: gi,
                     label: effectiveLabel, color: group.color || '#ffffff',
                     opening: items.reduce((a, x) => a + num(x.opening), 0),
@@ -1035,7 +980,7 @@ export default function MisReport() {
                     returnBillet: items.reduce((a, x) => a + num(x.returnBillet), 0),
                     despatch: items.reduce((a, x) => a + num(x.despatch), 0),
                     closing: items.reduce((a, x) => a + num(x.closing), 0),
-                    remarks: items.map(x => x.remarks).filter(Boolean).join(', ')
+                    remarks: effectiveRemark
                   });
                 });
 
@@ -1043,16 +988,20 @@ export default function MisReport() {
                   if (!mergedIndices.has(i)) {
                     let bg = colorConfig[idx]?.[i] || '#ffffff';
                     const nameKey = `billet-${idx}-${i}`;
+                    const remarkKey = `remark-billet-${idx}-${i}`;
                     const defaultLabel = i === 0 ? `BILLETS ${s.size} (${item.name})` : item.name;
                     const effectiveLabel = nameConfig[nameKey] || defaultLabel;
+                    const defaultRemark = item.remarks || '';
+                    const effectiveRemark = remarkConfig[remarkKey] !== undefined ? remarkConfig[remarkKey] : defaultRemark;
                     renderList.push({
                       id: `item-${i}`,
                       nameKey,
+                      remarkKey,
                       type: 'individual', position: i, itemIdx: i,
                       label: effectiveLabel, color: bg,
                       opening: num(item.opening), production: num(item.production),
                       transfer: num(item.transfer), returnBillet: num(item.returnBillet), despatch: num(item.despatch),
-                      closing: num(item.closing), remarks: item.remarks || ''
+                      closing: num(item.closing), remarks: effectiveRemark
                     });
                   }
                 });
@@ -1082,30 +1031,7 @@ export default function MisReport() {
                       <th style={{ ...thStyle, borderTop: '0.5px solid #64748b' }}>DISPATCH</th>
                       <th style={{ ...thStyle, borderTop: '0.5px solid #64748b' }}>CLOSING</th>
                       <th style={{ ...thStyle, borderTop: '0.5px solid #64748b', width: '18%' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                          <span>REMARK</span>
-                          {editMode && (
-                            <button
-                              onClick={() => downloadRemarksExcel(idx)}
-                              style={{
-                                background: '#10b981',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '4px',
-                                padding: '2px 6px',
-                                fontSize: '10px',
-                                fontWeight: 'bold',
-                                cursor: 'pointer',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '3px'
-                              }}
-                              title="Download Remarks column for this section (Excel)"
-                            >
-                              <Download size={11} /> Excel
-                            </button>
-                          )}
-                        </div>
+                        REMARK
                       </th>
                     </tr>
                     {renderList.map((row, ri) => {
@@ -1203,7 +1129,51 @@ export default function MisReport() {
                         <td style={{ ...tdStyle }}>{fmt(row.returnBillet)}</td>
                         <td style={{ ...tdStyle }}>{fmt(row.despatch)}</td>
                         <td style={{ ...tdStyle }}>{fmt(row.closing)}</td>
-                        <td style={{ ...tdStyle, textAlign: 'left' }}>{row.remarks}</td>
+                        <td style={{ ...tdStyle, textAlign: 'left' }}>
+                          {editingRemarkKey === row.remarkKey ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', width: '100%' }}>
+                              <input
+                                autoFocus
+                                type="text"
+                                value={editingRemarkVal}
+                                onChange={e => setEditingRemarkVal(e.target.value)}
+                                onKeyDown={e => {
+                                  if (e.key === 'Enter') handleSaveRemark(row.remarkKey);
+                                  if (e.key === 'Escape') handleCancelEditRemark();
+                                }}
+                                placeholder="Enter remark..."
+                                style={{ flex: 1, padding: '2px 6px', fontSize: '11px', border: '1px solid #3b82f6', borderRadius: '4px' }}
+                              />
+                              <button
+                                onClick={() => handleSaveRemark(row.remarkKey)}
+                                style={{ background: '#10b981', color: 'white', border: 'none', borderRadius: '3px', padding: '2px 5px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                                title="Save"
+                              >
+                                <Check size={12} />
+                              </button>
+                              <button
+                                onClick={handleCancelEditRemark}
+                                style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: '3px', padding: '2px 5px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                                title="Cancel"
+                              >
+                                <X size={12} />
+                              </button>
+                            </div>
+                          ) : (
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
+                              <span>{row.remarks}</span>
+                              {editMode && (
+                                <button
+                                  onClick={() => handleStartEditRemark(row.remarkKey, row.remarks)}
+                                  style={{ background: 'none', border: 'none', color: '#1e293b', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center', flexShrink: 0 }}
+                                  title="Edit remark"
+                                >
+                                  <EditSquareIcon size={14} color="#0f172a" />
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </td>
                       </tr>
                       );
                     })}
