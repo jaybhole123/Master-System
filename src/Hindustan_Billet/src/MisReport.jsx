@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Printer, X, Check } from 'lucide-react';
+import { Printer, X, Check, Download } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import html2pdf from './html2pdf_shim';
 import DateFilter from './DateFilter';
 import { normalizeDate, getTodayIso, getHistory, getFromHistory } from './dateHistory';
@@ -433,6 +434,80 @@ export default function MisReport() {
     });
   };
 
+  const downloadRemarksExcel = (sizeIdx = null) => {
+    if (!billetData || !billetData.sizes) return;
+
+    const exportRows = [];
+
+    billetData.sizes.forEach((s, idx) => {
+      if (sizeIdx !== null && sizeIdx !== idx) return;
+
+      const mergedIndices = new Set();
+      const currentMerges = mergeConfig[idx] || [];
+      const renderList = [];
+
+      currentMerges.forEach((g, gIdx) => {
+        const items = g.indices.map(i => s.items[i]).filter(Boolean);
+        if (items.length === 0) return;
+        g.indices.forEach(i => mergedIndices.add(i));
+        const customName = nameConfig[`merge-${idx}-${gIdx}`];
+        const label = customName || g.label || items.map(x => x.name).join(' + ');
+
+        renderList.push({
+          id: `merged-${gIdx}`,
+          label,
+          remarks: items.map(x => x.remarks).filter(Boolean).join(', ')
+        });
+      });
+
+      s.items.forEach((item, i) => {
+        if (!mergedIndices.has(i)) {
+          const nameKey = `billet-${idx}-${i}`;
+          const defaultLabel = i === 0 ? `BILLETS ${s.size} (${item.name})` : item.name;
+          const effectiveLabel = nameConfig[nameKey] || defaultLabel;
+
+          renderList.push({
+            id: `item-${i}`,
+            label: effectiveLabel,
+            remarks: item.remarks || ''
+          });
+        }
+      });
+
+      const customOrder = orderConfig[idx];
+      if (customOrder && customOrder.length > 0) {
+        renderList.sort((a, b) => {
+          let ai = customOrder.indexOf(a.id);
+          let bi = customOrder.indexOf(b.id);
+          if (ai === -1) ai = 999;
+          if (bi === -1) bi = 999;
+          return ai - bi;
+        });
+      }
+
+      renderList.forEach(r => {
+        exportRows.push({
+          'Section / Size': `BILLETS ${s.size}`,
+          'Material': r.label,
+          'Remark': r.remarks || '-'
+        });
+      });
+    });
+
+    if (exportRows.length === 0) {
+      alert("No remarks found to export.");
+      return;
+    }
+
+    const ws = XLSX.utils.json_to_sheet(exportRows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Remarks");
+    const fileName = sizeIdx !== null 
+      ? `MIS_Remarks_${billetData.sizes[sizeIdx]?.size || 'Size'}_${selectedDate}.xlsx`
+      : `MIS_Remarks_All_${selectedDate}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+  };
+
   const consDates = Object.keys(getHistory('consumptionHistory'));
   const billetDates = Object.keys(getHistory('billetHistory'));
   const availableDates = Array.from(new Set([...consDates, ...billetDates]));
@@ -603,6 +678,25 @@ export default function MisReport() {
                 title="Reset all merged rows back to individual rows"
               >
                 Unmerge All
+              </button>
+              <button 
+                onClick={() => downloadRemarksExcel(null)} 
+                style={{ 
+                  whiteSpace: 'nowrap', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '6px', 
+                  background: '#059669', 
+                  color: 'white', 
+                  border: 'none', 
+                  padding: '8px 16px', 
+                  borderRadius: '6px', 
+                  cursor: 'pointer', 
+                  fontWeight: '600' 
+                }}
+                title="Download All Remarks to Excel"
+              >
+                <Download size={16} /> Download Remarks (Excel)
               </button>
             </>
           )}
@@ -831,7 +925,7 @@ export default function MisReport() {
 
                 return (
                   <tr key={i}>
-                    <td style={{ ...tdStyle, textAlign: 'left', fontWeight: 'bold', color: displayName.toLowerCase().includes('tested') ? '#dc2626' : '#000' }}>
+                    <td style={{ ...tdStyle, textAlign: 'left', fontWeight: 'bold' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
                         {isEditingThis ? (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '4px', width: '100%' }}>
@@ -877,13 +971,13 @@ export default function MisReport() {
                         )}
                       </div>
                     </td>
-                    <td style={{ ...tdStyle, color: displayName.toLowerCase().includes('tested') ? '#dc2626' : '#000' }}>{fmt(r.opening)}</td>
-                    <td style={{ ...tdStyle, color: displayName.toLowerCase().includes('tested') ? '#dc2626' : '#000' }}>{fmt(r.outside)}</td>
-                    <td style={{ ...tdStyle, color: displayName.toLowerCase().includes('tested') ? '#dc2626' : '#000' }}>{fmt(r.inhouse)}</td>
-                    <td style={{ ...tdStyle, color: displayName.toLowerCase().includes('tested') ? '#dc2626' : '#000' }}>{fmt(rec)}</td>
-                    <td style={{ ...tdStyle, color: displayName.toLowerCase().includes('tested') ? '#dc2626' : '#000' }}>{fmt(r.consumed)}</td>
-                    <td style={{ ...tdStyle, color: displayName.toLowerCase().includes('tested') ? '#dc2626' : '#000' }}>{fmt(r.closing)}</td>
-                    <td style={{ ...tdStyle, color: displayName.toLowerCase().includes('tested') ? '#dc2626' : '#000' }}>{fmt(r.metalPct, 2)}</td>
+                    <td style={{ ...tdStyle }}>{fmt(r.opening)}</td>
+                    <td style={{ ...tdStyle }}>{fmt(r.outside)}</td>
+                    <td style={{ ...tdStyle }}>{fmt(r.inhouse)}</td>
+                    <td style={{ ...tdStyle }}>{fmt(rec)}</td>
+                    <td style={{ ...tdStyle }}>{fmt(r.consumed)}</td>
+                    <td style={{ ...tdStyle }}>{fmt(r.closing)}</td>
+                    <td style={{ ...tdStyle }}>{fmt(r.metalPct, 2)}</td>
                   </tr>
                 );
               })}
@@ -987,7 +1081,32 @@ export default function MisReport() {
                       <th style={{ ...thStyle, borderTop: '0.5px solid #64748b' }}>RETURN BILLET</th>
                       <th style={{ ...thStyle, borderTop: '0.5px solid #64748b' }}>DISPATCH</th>
                       <th style={{ ...thStyle, borderTop: '0.5px solid #64748b' }}>CLOSING</th>
-                      <th style={{ ...thStyle, borderTop: '0.5px solid #64748b', width: '18%' }}>REMARK</th>
+                      <th style={{ ...thStyle, borderTop: '0.5px solid #64748b', width: '18%' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                          <span>REMARK</span>
+                          {editMode && (
+                            <button
+                              onClick={() => downloadRemarksExcel(idx)}
+                              style={{
+                                background: '#10b981',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                padding: '2px 6px',
+                                fontSize: '10px',
+                                fontWeight: 'bold',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px'
+                              }}
+                              title="Download Remarks column for this section (Excel)"
+                            >
+                              <Download size={11} /> Excel
+                            </button>
+                          )}
+                        </div>
+                      </th>
                     </tr>
                     {renderList.map((row, ri) => {
                       const isEditingThis = editingNameKey === row.nameKey;
