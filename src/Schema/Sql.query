@@ -909,6 +909,12 @@ CREATE TABLE public.truck_reports (
   diesel_price numeric DEFAULT 0,
   party_name text,
   do_party_name text,
+  departure_time timestamp with time zone,
+  arrival_time timestamp with time zone,
+  unloading_time timestamp with time zone,
+  turnaround_hours numeric DEFAULT 0,
+  turnaround_days numeric DEFAULT 0,
+  tat_status text DEFAULT 'Pending',
   CONSTRAINT truck_reports_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.secl_intimation_format_2 (

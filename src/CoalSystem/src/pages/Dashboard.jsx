@@ -253,42 +253,42 @@ export default function Dashboard({ onNavigate }) {
     <div className="w-full px-2.5 sm:px-5 lg:px-6 py-2 space-y-5 sm:space-y-8 animate-in fade-in duration-300">
       
       {/* ═══════════ HEADER ═══════════ */}
-      <div className="flex flex-col gap-3 sm:gap-4 pb-2 border-b border-slate-200/80">
+      <div className="flex flex-col gap-3 sm:gap-4 pb-4 border-b border-slate-200/80 bg-gradient-to-r from-red-500/5 via-slate-50 to-transparent p-4 rounded-3xl">
         {/* Title Row */}
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           <div>
-            <div className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-red-50 border border-red-200/80 text-xs font-bold text-red-600 mb-1.5 sm:mb-2 uppercase tracking-wider shadow-2xs">
-              <Flame className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-500 shrink-0" />
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-red-500 to-rose-600 text-white text-xs font-black uppercase tracking-wider shadow-sm mb-2">
+              <Flame className="h-3.5 w-3.5 shrink-0" />
               <span>Coal Intelligence &amp; Operations</span>
             </div>
-            <h1 className="text-xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">
               Dashboard Overview
             </h1>
-            <p className="text-xs sm:text-base text-slate-500 mt-1 sm:mt-1.5 flex items-center gap-1.5 sm:gap-2">
-              <span className="inline-block w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+            <p className="text-xs sm:text-base text-slate-500 mt-1 flex items-center gap-2">
+              <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 ring-4 ring-emerald-100 shrink-0"></span>
               Real-time analytics across all Coal System modules
             </p>
           </div>
 
-          {/* Top Metric Capsules */}
+          {/* Top Metric Capsules with Gradient Glow */}
           <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-3">
-            <div className="flex items-center gap-2 sm:gap-3.5 bg-white px-2.5 sm:px-4.5 py-2 sm:py-3 rounded-2xl border border-slate-200/80 shadow-xs min-w-0">
-              <div className="p-1.5 sm:p-2.5 bg-red-50 text-red-600 rounded-xl shrink-0">
-                <Database className="h-4 w-4 sm:h-5 sm:w-5" />
+            <div className="flex items-center gap-3 bg-white px-4 py-3 rounded-2xl border border-red-200/90 shadow-sm min-w-0 hover:shadow-md transition-shadow">
+              <div className="p-2.5 bg-gradient-to-br from-red-500 to-rose-600 text-white rounded-xl shrink-0 shadow-xs">
+                <Database className="h-5 w-5" />
               </div>
               <div className="min-w-0">
-                <div className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">Total Records</div>
-                <div className="text-base sm:text-xl font-black text-slate-900 leading-tight">{stats.totalDocs}</div>
+                <div className="text-[10px] sm:text-xs font-extrabold uppercase tracking-wider text-slate-400 whitespace-nowrap">Total Records</div>
+                <div className="text-base sm:text-xl font-black text-slate-900 leading-tight font-mono">{stats.totalDocs}</div>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 sm:gap-3.5 bg-white px-2.5 sm:px-4.5 py-2 sm:py-3 rounded-2xl border border-slate-200/80 shadow-xs min-w-0">
-              <div className="p-1.5 sm:p-2.5 bg-emerald-50 text-emerald-600 rounded-xl shrink-0">
-                <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />
+            <div className="flex items-center gap-3 bg-white px-4 py-3 rounded-2xl border border-emerald-200/90 shadow-sm min-w-0 hover:shadow-md transition-shadow">
+              <div className="p-2.5 bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-xl shrink-0 shadow-xs">
+                <TrendingUp className="h-5 w-5" />
               </div>
               <div className="min-w-0">
-                <div className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">Total Valuation</div>
-                <div className="text-base sm:text-xl font-black text-emerald-600 leading-tight">{fmtCurrency(stats.totalValue)}</div>
+                <div className="text-[10px] sm:text-xs font-extrabold uppercase tracking-wider text-slate-400 whitespace-nowrap">Total Valuation</div>
+                <div className="text-base sm:text-xl font-black text-emerald-600 leading-tight font-mono">{fmtCurrency(stats.totalValue)}</div>
               </div>
             </div>
           </div>
@@ -592,38 +592,93 @@ function SectionTitle({ title, icon: Icon, onNavigate }) {
 
 function MiniCard({ label, value, colorScheme = "blue", badge, icon: Icon, subtext }) {
   const schemeMap = {
-    blue: { bg: "bg-blue-50", border: "border-blue-200/60", text: "text-blue-600", badgeBg: "bg-blue-50 text-blue-700 border-blue-200" },
-    emerald: { bg: "bg-emerald-50", border: "border-emerald-200/60", text: "text-emerald-600", badgeBg: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-    amber: { bg: "bg-amber-50", border: "border-amber-200/60", text: "text-amber-600", badgeBg: "bg-amber-50 text-amber-700 border-amber-200" },
-    red: { bg: "bg-rose-50", border: "border-rose-200/60", text: "text-rose-600", badgeBg: "bg-rose-50 text-rose-700 border-rose-200" },
-    purple: { bg: "bg-purple-50", border: "border-purple-200/60", text: "text-purple-600", badgeBg: "bg-purple-50 text-purple-700 border-purple-200" },
-    slate: { bg: "bg-slate-100", border: "border-slate-200/60", text: "text-slate-600", badgeBg: "bg-slate-100 text-slate-700 border-slate-200" },
+    blue: {
+      gradient: "from-blue-500/10 via-blue-500/5 to-transparent",
+      border: "border-blue-200/80 hover:border-blue-400",
+      iconBg: "bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-blue-500/20 shadow-md",
+      accent: "text-blue-600",
+      badgeBg: "bg-blue-100/80 text-blue-800 border-blue-300 shadow-xs",
+      pill: "bg-blue-500"
+    },
+    emerald: {
+      gradient: "from-emerald-500/10 via-emerald-500/5 to-transparent",
+      border: "border-emerald-200/80 hover:border-emerald-400",
+      iconBg: "bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-emerald-500/20 shadow-md",
+      accent: "text-emerald-600",
+      badgeBg: "bg-emerald-100/80 text-emerald-800 border-emerald-300 shadow-xs",
+      pill: "bg-emerald-500"
+    },
+    amber: {
+      gradient: "from-amber-500/10 via-amber-500/5 to-transparent",
+      border: "border-amber-200/80 hover:border-amber-400",
+      iconBg: "bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-amber-500/20 shadow-md",
+      accent: "text-amber-600",
+      badgeBg: "bg-amber-100/80 text-amber-800 border-amber-300 shadow-xs",
+      pill: "bg-amber-500"
+    },
+    red: {
+      gradient: "from-rose-500/10 via-rose-500/5 to-transparent",
+      border: "border-rose-200/80 hover:border-rose-400",
+      iconBg: "bg-gradient-to-br from-rose-500 to-red-600 text-white shadow-rose-500/20 shadow-md",
+      accent: "text-rose-600",
+      badgeBg: "bg-rose-100/80 text-rose-800 border-rose-300 shadow-xs",
+      pill: "bg-rose-500"
+    },
+    purple: {
+      gradient: "from-purple-500/10 via-purple-500/5 to-transparent",
+      border: "border-purple-200/80 hover:border-purple-400",
+      iconBg: "bg-gradient-to-br from-purple-500 to-violet-600 text-white shadow-purple-500/20 shadow-md",
+      accent: "text-purple-600",
+      badgeBg: "bg-purple-100/80 text-purple-800 border-purple-300 shadow-xs",
+      pill: "bg-purple-500"
+    },
+    teal: {
+      gradient: "from-teal-500/10 via-teal-500/5 to-transparent",
+      border: "border-teal-200/80 hover:border-teal-400",
+      iconBg: "bg-gradient-to-br from-teal-500 to-cyan-600 text-white shadow-teal-500/20 shadow-md",
+      accent: "text-teal-600",
+      badgeBg: "bg-teal-100/80 text-teal-800 border-teal-300 shadow-xs",
+      pill: "bg-teal-500"
+    },
+    slate: {
+      gradient: "from-slate-500/10 via-slate-500/5 to-transparent",
+      border: "border-slate-200/80 hover:border-slate-400",
+      iconBg: "bg-gradient-to-br from-slate-600 to-slate-800 text-white shadow-slate-500/20 shadow-md",
+      accent: "text-slate-600",
+      badgeBg: "bg-slate-100 text-slate-800 border-slate-300 shadow-xs",
+      pill: "bg-slate-500"
+    }
   };
   const current = schemeMap[colorScheme] || schemeMap.blue;
 
   return (
-    <div className="bg-white rounded-xl p-2 sm:p-3.5 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group min-w-0">
-      <div className="flex items-start justify-between gap-1 mb-1.5 min-w-0">
-        <span className="text-[10px] min-[400px]:text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 leading-tight break-words flex-1 min-w-0" title={label}>
+    <div className={`relative overflow-hidden bg-white rounded-2xl p-3 sm:p-4 border ${current.border} shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-200 flex flex-col justify-between group min-w-0`}>
+      {/* Top subtle gradient highlight */}
+      <div className={`absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r ${current.gradient.replace('to-transparent', '')} opacity-90`}></div>
+      <div className={`absolute -right-8 -top-8 w-24 h-24 rounded-full bg-gradient-to-br ${current.gradient} pointer-events-none blur-xl`}></div>
+
+      <div className="flex items-start justify-between gap-1.5 mb-2.5 min-w-0">
+        <span className="text-[10px] min-[400px]:text-[11px] sm:text-xs font-extrabold uppercase tracking-wider text-slate-500 leading-tight break-words flex-1 min-w-0" title={label}>
           {label}
         </span>
         {badge ? (
-          <span className={`text-[8px] min-[400px]:text-[9px] sm:text-[10px] font-bold px-1 sm:px-1.5 py-0.5 rounded-full border shrink-0 whitespace-nowrap ml-1 ${current.badgeBg}`}>
+          <span className={`text-[9px] min-[400px]:text-[10px] sm:text-[11px] font-black px-2 py-0.5 rounded-full border shrink-0 whitespace-nowrap ml-1 ${current.badgeBg}`}>
             {badge}
           </span>
         ) : Icon ? (
-          <div className={`p-1 sm:p-1.5 rounded-lg shrink-0 ${current.bg} ${current.text} ml-1`}>
-            <Icon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+          <div className={`p-1.5 sm:p-2 rounded-xl shrink-0 ${current.iconBg} ml-1 group-hover:scale-110 transition-transform`}>
+            <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           </div>
         ) : null}
       </div>
 
-      <div>
-        <div className="text-xs min-[400px]:text-sm sm:text-lg lg:text-xl font-black text-slate-900 tracking-tight leading-tight group-hover:text-red-600 transition-colors break-words" title={String(value)}>
+      <div className="relative z-10">
+        <div className="text-sm min-[400px]:text-base sm:text-xl lg:text-2xl font-black text-slate-900 tracking-tight leading-tight group-hover:text-red-600 transition-colors break-words font-mono" title={String(value)}>
           {value}
         </div>
         {subtext && (
-          <div className="text-[9px] sm:text-xs text-slate-400 mt-0.5 font-medium break-words">
+          <div className="text-[9px] sm:text-xs text-slate-500 mt-1 font-semibold break-words flex items-center gap-1">
+            <span className={`w-1.5 h-1.5 rounded-full ${current.pill}`}></span>
             {subtext}
           </div>
         )}
@@ -638,34 +693,58 @@ function SubSection({ title, items, color = "blue" }) {
   const regularItems = items.filter(it => it.label.toLowerCase() !== 'pending' && it.label.toLowerCase() !== 'done');
 
   const colorStyles = {
-    blue: { dot: "bg-blue-500", tagBg: "bg-blue-50 text-blue-700 border-blue-200", border: "hover:border-blue-300" },
-    purple: { dot: "bg-purple-500", tagBg: "bg-purple-50 text-purple-700 border-purple-200", border: "hover:border-purple-300" },
-    teal: { dot: "bg-teal-500", tagBg: "bg-teal-50 text-teal-700 border-teal-200", border: "hover:border-teal-300" }
+    blue: {
+      gradient: "from-blue-600 to-indigo-700",
+      headerBg: "bg-gradient-to-r from-blue-50/80 to-indigo-50/50",
+      dot: "bg-blue-600",
+      tagBg: "bg-blue-100 text-blue-800 border-blue-200",
+      border: "border-blue-200/90 hover:border-blue-400 hover:shadow-blue-500/10",
+      activeText: "text-blue-700"
+    },
+    purple: {
+      gradient: "from-purple-600 to-fuchsia-700",
+      headerBg: "bg-gradient-to-r from-purple-50/80 to-fuchsia-50/50",
+      dot: "bg-purple-600",
+      tagBg: "bg-purple-100 text-purple-800 border-purple-200",
+      border: "border-purple-200/90 hover:border-purple-400 hover:shadow-purple-500/10",
+      activeText: "text-purple-700"
+    },
+    teal: {
+      gradient: "from-teal-600 to-emerald-700",
+      headerBg: "bg-gradient-to-r from-teal-50/80 to-emerald-50/50",
+      dot: "bg-teal-600",
+      tagBg: "bg-teal-100 text-teal-800 border-teal-200",
+      border: "border-teal-200/90 hover:border-teal-400 hover:shadow-teal-500/10",
+      activeText: "text-teal-700"
+    }
   };
   const theme = colorStyles[color] || colorStyles.blue;
 
   return (
-    <div className={`bg-white rounded-xl p-3 sm:p-4 border border-slate-200/80 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between min-w-0 ${theme.border}`}>
-      <div>
-        {/* Header */}
-        <div className="flex items-center justify-between pb-2 mb-2 sm:pb-2.5 sm:mb-2.5 border-b border-slate-100 gap-1.5">
+    <div className={`relative overflow-hidden bg-white rounded-2xl border ${theme.border} shadow-sm hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between min-w-0`}>
+      {/* Top Accent Line */}
+      <div className={`h-1.5 w-full bg-gradient-to-r ${theme.gradient}`}></div>
+
+      <div className="p-3.5 sm:p-4.5">
+        {/* Header with Styled Container */}
+        <div className={`flex items-center justify-between p-2.5 rounded-xl ${theme.headerBg} border border-slate-100 mb-3.5 gap-2`}>
           <div className="flex items-center gap-2 min-w-0">
-            <span className={`w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full shrink-0 ${theme.dot}`}></span>
-            <h4 className="text-xs sm:text-sm font-extrabold text-slate-800 tracking-wide uppercase break-words">
+            <span className={`w-2.5 h-2.5 rounded-full ring-4 ring-white shrink-0 ${theme.dot}`}></span>
+            <h4 className="text-xs sm:text-sm font-black text-slate-900 tracking-wide uppercase break-words">
               {title}
             </h4>
           </div>
-          <span className={`text-[9px] sm:text-[11px] font-bold px-1.5 sm:px-2 py-0.5 rounded border uppercase tracking-wider shrink-0 ${theme.tagBg}`}>
+          <span className={`text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded-md border uppercase tracking-wider shrink-0 ${theme.tagBg} shadow-2xs`}>
             Format
           </span>
         </div>
 
         {/* Regular Metric Rows */}
-        <div className="space-y-1 sm:space-y-1.5">
+        <div className="space-y-1.5">
           {regularItems.map((item, i) => (
-            <div key={i} className="flex items-center justify-between text-xs sm:text-[13px] py-0.5 sm:py-1 px-1 sm:px-1.5 rounded hover:bg-slate-50 transition-colors">
-              <span className="text-slate-600 font-semibold break-words">{item.label}</span>
-              <span className="font-extrabold text-slate-900 font-mono text-xs sm:text-sm shrink-0 ml-1">
+            <div key={i} className="flex items-center justify-between text-xs sm:text-[13px] py-1 px-2 rounded-lg hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100">
+              <span className="text-slate-600 font-bold break-words">{item.label}</span>
+              <span className="font-black text-slate-900 font-mono text-xs sm:text-sm shrink-0 ml-1">
                 {item.value}
               </span>
             </div>
@@ -673,18 +752,18 @@ function SubSection({ title, items, color = "blue" }) {
         </div>
       </div>
 
-      {/* Status Footer Pill */}
+      {/* Status Footer Pill with enhanced contrast */}
       {(pendingItem || doneItem) && (
-        <div className="mt-2.5 sm:mt-3 pt-2 sm:pt-2.5 border-t border-slate-100 flex items-center justify-between gap-1.5 sm:gap-2 text-[10px] sm:text-xs">
+        <div className="p-3 bg-slate-50/70 border-t border-slate-100 flex items-center justify-between gap-2 text-[10px] sm:text-xs">
           {pendingItem && (
-            <div className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-md bg-amber-50 text-amber-700 border border-amber-200/60 font-bold flex-1 justify-center">
-              <Clock className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-amber-600 shrink-0" />
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-900 border border-amber-300 font-extrabold flex-1 justify-center shadow-2xs">
+              <Clock className="h-3.5 w-3.5 text-amber-600 shrink-0" />
               <span>Pending: {pendingItem.value}</span>
             </div>
           )}
           {doneItem && (
-            <div className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/60 font-bold flex-1 justify-center">
-              <CheckCircle2 className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-emerald-600 shrink-0" />
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-900 border border-emerald-300 font-extrabold flex-1 justify-center shadow-2xs">
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
               <span>Done: {doneItem.value}</span>
             </div>
           )}

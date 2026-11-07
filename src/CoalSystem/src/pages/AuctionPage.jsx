@@ -27,31 +27,47 @@ export default function AuctionPage() {
 
   const defaultNewItem = () => ({
     id: Date.now() + Math.random(),
+    // Cluster summary / header fields (Table 1)
     cluster_name: "",
+    total_offer: "",
+    representative_grade: "",
+    representative_size: "",
+    cluster_modulated_price: "",
+    floor_price: "",
+    // Line item fields (Table 2 - Cluster Description)
     source: "",
+    loading_point: "",
     mode: "",
     feeding_collieries: "",
     mine: "",
     coal_grade: "",
-    representative_grade: "",
     size: "",
     quantity_offered: "",
     base_price: "",
     modulated_price: "",
-    floor_price: "",
+    modulated_price_rep_grade: "",
     supply_pattern: "",
     no_of_lots: ""
   });
   
-  // Form State - Clean initial values (No dummy/demo data)
+  // Form State - Clean initial values (No hardcoded values, completely dynamic)
   const [formData, setFormData] = useState({
     deal_id: "",
-    scheme_name: "",
-    coal_company: "",
-    service_provider: "",
     notice_ref_no: "",
     notification_date: "",
+    coal_company: "",
+    department: "",
+    registered_office: "",
+    scheme_name: "",
+    coal_type: "",
+    total_offered_tonnes: "",
+    auction_month_year: "",
     bid_date: "",
+    service_provider: "",
+    service_provider_hindi: "",
+    remarks_annexure: "",
+    rail_deposit_clause: "",
+    road_deposit_clause: "",
     bid_closing_date: "",
     bidder: "",
     auction_source: "",
@@ -68,11 +84,23 @@ export default function AuctionPage() {
     try {
       const { data: dbData, error } = await supabase
         .from('auctions')
-        .select('*')
+        .select(`
+          *,
+          auction_items (*)
+        `)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setData(dbData || []);
+      if (error) {
+        // Fallback without join if foreign relationship differs
+        const { data: simpleData, error: simpleErr } = await supabase
+          .from('auctions')
+          .select('*')
+          .order('created_at', { ascending: false });
+        if (simpleErr) throw simpleErr;
+        setData(simpleData || []);
+      } else {
+        setData(dbData || []);
+      }
     } catch (err) {
       console.error("Error fetching auctions:", err);
       showToast("Error loading data");
@@ -98,17 +126,35 @@ export default function AuctionPage() {
     setItems(items.map(item => {
       if (item.id === id) {
         const updated = { ...item, [field]: value };
-        // Sync mine <-> source
-        if (field === 'source' && !updated.mine) {
-          updated.mine = value;
-        } else if (field === 'mine' && !updated.source) {
+        // Sync mine <-> source <-> loading_point
+        if (field === 'loading_point') {
           updated.source = value;
+          updated.mine = value;
+        } else if (field === 'source') {
+          updated.loading_point = value;
+          if (!updated.mine) updated.mine = value;
+        } else if (field === 'mine') {
+          if (!updated.source) updated.source = value;
+          if (!updated.loading_point) updated.loading_point = value;
         }
         // Sync floor_price <-> base_price
         if (field === 'floor_price') {
           updated.base_price = value;
         } else if (field === 'base_price') {
           updated.floor_price = value;
+        }
+        // Auto sync total_offer <-> quantity_offered if total_offer is set
+        if (field === 'total_offer' && (!updated.quantity_offered || updated.quantity_offered === "")) {
+          updated.quantity_offered = value;
+        }
+        // Auto sync representative_size <-> size
+        if (field === 'representative_size' && (!updated.size || updated.size === "Sized Rom (-100mm)")) {
+          updated.size = value;
+        }
+        // Auto sync modulated_price <-> cluster_modulated_price
+        if (field === 'cluster_modulated_price' && (!updated.modulated_price || updated.modulated_price === "")) {
+          updated.modulated_price = value;
+          if (!updated.modulated_price_rep_grade) updated.modulated_price_rep_grade = value;
         }
         return updated;
       }
@@ -136,12 +182,21 @@ export default function AuctionPage() {
     setEditId(null);
     setFormData({
       deal_id: "",
-      scheme_name: "",
-      coal_company: "",
-      service_provider: "",
       notice_ref_no: "",
       notification_date: "",
+      coal_company: "",
+      department: "",
+      registered_office: "",
+      scheme_name: "",
+      coal_type: "",
+      total_offered_tonnes: "",
+      auction_month_year: "",
       bid_date: "",
+      service_provider: "",
+      service_provider_hindi: "",
+      remarks_annexure: "",
+      rail_deposit_clause: "",
+      road_deposit_clause: "",
       bid_closing_date: "",
       bidder: "",
       auction_source: "",
@@ -171,16 +226,25 @@ export default function AuctionPage() {
 
     setFormData({
       deal_id: row.deal_id || "",
-      scheme_name: meta.scheme_name || "Single Window Mode Agnostic E-Auction Scheme 2022",
-      coal_company: row.coal_company || "SECL (South Eastern Coalfields Limited)",
-      service_provider: meta.service_provider || "MSTC Limited",
+      scheme_name: meta.scheme_name || "",
+      coal_company: row.coal_company || "",
+      department: meta.department || "",
+      registered_office: meta.registered_office || "",
+      coal_type: meta.coal_type || "",
+      total_offered_tonnes: meta.total_offered_tonnes || "",
+      auction_month_year: meta.auction_month_year || "",
+      service_provider: meta.service_provider || "",
+      service_provider_hindi: meta.service_provider_hindi || "",
+      remarks_annexure: meta.remarks_annexure || "",
+      rail_deposit_clause: meta.rail_deposit_clause || "",
+      road_deposit_clause: meta.road_deposit_clause || "",
       notice_ref_no: meta.notice_ref_no || "",
       notification_date: row.notification_date || "",
       bid_date: row.bid_date || "",
       bid_closing_date: row.bid_closing_date || "",
       bidder: row.bidder || "",
-      auction_source: row.auction_source || "SECL Road/Rail Mode",
-      payment_timeline_clause: meta.payment_timeline_clause || "Within 3-5 working days from closing date (clause 5.3)",
+      auction_source: row.auction_source || "",
+      payment_timeline_clause: meta.payment_timeline_clause || "",
       remarks: parsedRemarks
     });
     setPdfFile(null);
@@ -202,17 +266,22 @@ export default function AuctionPage() {
           return {
             id: i.id || Date.now() + Math.random(),
             cluster_name: extra.cluster_name || "",
+            total_offer: extra.total_offer || i.quantity_offered || "",
+            representative_grade: extra.representative_grade || "",
+            representative_size: extra.representative_size || extra.size || "Sized Rom (-100mm)",
+            cluster_modulated_price: extra.cluster_modulated_price || extra.modulated_price || "",
+            floor_price: extra.floor_price || i.base_price || "",
             source: extra.source || i.mine || "",
+            loading_point: extra.loading_point || extra.source || i.mine || "",
             mode: extra.mode || "Road",
             feeding_collieries: extra.feeding_collieries || "",
             mine: i.mine || "",
             coal_grade: extra.grade || i.coal_grade || "",
-            representative_grade: extra.representative_grade || "",
             size: extra.size || "Sized Rom (-100mm)",
             quantity_offered: i.quantity_offered || "",
             base_price: i.base_price || "",
             modulated_price: extra.modulated_price || "",
-            floor_price: extra.floor_price || i.base_price || "",
+            modulated_price_rep_grade: extra.modulated_price_rep_grade || extra.modulated_price || "",
             supply_pattern: extra.supply_pattern || "100%",
             no_of_lots: extra.no_of_lots || "1"
           };
@@ -302,7 +371,16 @@ export default function AuctionPage() {
         __is_secl_pdf_meta: true,
         scheme_name: formData.scheme_name,
         service_provider: formData.service_provider,
+        service_provider_hindi: formData.service_provider_hindi,
         notice_ref_no: formData.notice_ref_no,
+        department: formData.department,
+        registered_office: formData.registered_office,
+        coal_type: formData.coal_type,
+        total_offered_tonnes: formData.total_offered_tonnes,
+        auction_month_year: formData.auction_month_year,
+        remarks_annexure: formData.remarks_annexure,
+        rail_deposit_clause: formData.rail_deposit_clause,
+        road_deposit_clause: formData.road_deposit_clause,
         payment_timeline_clause: formData.payment_timeline_clause,
         userRemarks: formData.remarks || ""
       };
@@ -357,13 +435,18 @@ export default function AuctionPage() {
           // Pack extra cluster/offer fields into coal_grade JSON envelope while keeping standard grade string
           const extraItemMeta = {
             cluster_name: i.cluster_name,
-            source: i.source || mineName,
+            total_offer: i.total_offer || i.quantity_offered,
+            representative_grade: i.representative_grade,
+            representative_size: i.representative_size || i.size,
+            cluster_modulated_price: i.cluster_modulated_price || i.modulated_price,
+            source: i.source || i.loading_point || mineName,
+            loading_point: i.loading_point || i.source || mineName,
             mode: i.mode,
             feeding_collieries: i.feeding_collieries,
             grade: gradeVal,
-            representative_grade: i.representative_grade,
             size: i.size,
             modulated_price: i.modulated_price,
+            modulated_price_rep_grade: i.modulated_price_rep_grade || i.modulated_price,
             floor_price: floorPriceVal,
             supply_pattern: i.supply_pattern,
             no_of_lots: i.no_of_lots
@@ -412,17 +495,53 @@ export default function AuctionPage() {
 
   // Filtered auctions
   const filteredData = useMemo(() => {
-    return data.filter(row => {
+    return data.map(row => {
+      const { meta } = parseRemarksExtra(row.remarks);
+      const itemsList = row.auction_items || [];
+      const firstItem = itemsList[0] || {};
+      let firstItemMeta = {};
+      if (firstItem.coal_grade && firstItem.coal_grade.startsWith("{")) {
+        try { firstItemMeta = JSON.parse(firstItem.coal_grade); } catch {}
+      }
+
+      const clusterNames = itemsList.map(it => {
+        try {
+          if (it.coal_grade && it.coal_grade.startsWith("{")) {
+            return JSON.parse(it.coal_grade).cluster_name || it.mine;
+          }
+        } catch {}
+        return it.mine;
+      }).filter(Boolean);
+
+      const totalQty = itemsList.reduce((acc, it) => acc + (Number(it.quantity_offered) || 0), 0);
+
+      return {
+        ...row,
+        meta,
+        firstItemMeta,
+        clusterCount: itemsList.length,
+        clusterNamesDisplay: clusterNames.length > 0 ? clusterNames.slice(0, 2).join(", ") + (clusterNames.length > 2 ? ` (+${clusterNames.length - 2})` : "") : "-",
+        totalQty: totalQty > 0 ? totalQty : (firstItem.quantity_offered || "-"),
+        representativeGrade: firstItemMeta.representative_grade || firstItem.coal_grade || "-",
+        representativeSize: firstItemMeta.representative_size || firstItemMeta.size || "-",
+        serviceProviderDisplay: meta.service_provider || meta.service_provider_hindi || row.coal_company || "CMPDIL",
+        modeDisplay: firstItemMeta.mode || row.auction_source || "Road"
+      };
+    }).filter(row => {
       const q = searchQuery.toLowerCase();
+      const meta = row.meta || {};
       const matchesSearch = !searchQuery || (
         (row.deal_id && row.deal_id.toLowerCase().includes(q)) ||
+        (meta.service_provider && meta.service_provider.toLowerCase().includes(q)) ||
+        (meta.service_provider_hindi && meta.service_provider_hindi.toLowerCase().includes(q)) ||
+        (row.clusterNamesDisplay && row.clusterNamesDisplay.toLowerCase().includes(q)) ||
         (row.coal_company && row.coal_company.toLowerCase().includes(q)) ||
-        (row.bidder && row.bidder.toLowerCase().includes(q)) ||
         (row.auction_source && row.auction_source.toLowerCase().includes(q))
       );
 
       const matchesSource = filterSource === "all" || (
-        row.auction_source && row.auction_source.toLowerCase().includes(filterSource.toLowerCase())
+        row.modeDisplay?.toLowerCase().includes(filterSource.toLowerCase()) ||
+        row.auction_source?.toLowerCase().includes(filterSource.toLowerCase())
       );
 
       return matchesSearch && matchesSource;
@@ -553,17 +672,16 @@ export default function AuctionPage() {
         </div>
 
         <div className="summary-table-wrap" style={{ overflowX: "auto" }}>
-          <table className="stable" style={{ width: "100%", borderCollapse: "collapse" }}>
+          <table className="stable" style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
             <thead>
               <tr style={{ background: "#f8fafc", borderBottom: "2px solid #e2e8f0" }}>
                 <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "center", width: "50px" }}>S.NO</th>
-                <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "left" }}>DEAL ID</th>
-                <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "left" }}>NOTICE REF & SCHEME</th>
-                <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "left" }}>BIDDER</th>
-                <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "left" }}>AUCTION SOURCE</th>
-                <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "left" }}>NOTIFICATION DATE</th>
-                <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "left" }}>BID DATE</th>
-                <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "left" }}>COAL COMPANY</th>
+                <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "left" }}>DATE (दिनांक)</th>
+                <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "left" }}>SERVICE PROVIDER (सेवा प्रदायकर्ता)</th>
+                <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "left" }}>REMARKS / ANNEXURE</th>
+                <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "left" }}>OFFERED CLUSTER(S)</th>
+                <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "center" }}>MODE</th>
+                <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "right" }}>OFFERED QTY (TES)</th>
                 <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "center" }}>PREVIEW</th>
                 <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "center" }}>ACTION</th>
               </tr>
@@ -571,14 +689,14 @@ export default function AuctionPage() {
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan="10" style={{ textAlign: "center", padding: "40px", color: "var(--muted)" }}>
+                  <td colSpan="9" style={{ textAlign: "center", padding: "40px", color: "var(--muted)" }}>
                     <div style={{ display: "inline-block", width: "24px", height: "24px", border: "3px solid #fecaca", borderTopColor: "#dc2626", borderRadius: "50%", animation: "spin 1s linear infinite" }}></div>
                     <div style={{ marginTop: "8px", fontWeight: "600", fontSize: "13px" }}>Loading auction records...</div>
                   </td>
                 </tr>
               ) : filteredData.length === 0 ? (
                 <tr>
-                  <td colSpan="10" style={{ textAlign: "center", padding: "48px", color: "#94a3b8" }}>
+                  <td colSpan="9" style={{ textAlign: "center", padding: "48px", color: "#94a3b8" }}>
                     <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="1.5" style={{ margin: "0 auto 8px" }}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
                     <div style={{ fontWeight: "700", color: "#64748b", fontSize: "14px" }}>No auction notifications found</div>
                     <div style={{ fontSize: "12px", marginTop: "4px" }}>Click "+ Add Auction" to create a new SECL / CIL e-auction record.</div>
@@ -586,38 +704,57 @@ export default function AuctionPage() {
                 </tr>
               ) : (
                 filteredData.map((row, i) => {
-                  const { meta } = parseRemarksExtra(row.remarks);
                   return (
                     <tr key={row.id} style={{ borderBottom: "1px solid #f1f5f9", transition: "background 0.15s" }}>
                       <td style={{ textAlign: "center", fontWeight: "700", color: "#94a3b8", fontSize: "12px" }}>
                         {String(i + 1).padStart(2, '0')}
                       </td>
-                      <td style={{ fontWeight: "700", color: "#0f172a", fontSize: "13px" }}>
-                        <span style={{ padding: "3px 8px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "6px", fontFamily: "monospace" }}>
-                          {row.deal_id || "-"}
-                        </span>
+                      <td style={{ fontSize: "12px", color: "#0f172a", fontWeight: "800" }}>
+                        <div>{formatDate(row.bid_date)}</div>
+                        {row.notification_date && row.notification_date !== row.bid_date && (
+                          <div style={{ fontSize: "10px", color: "#64748b", fontWeight: "500" }}>
+                            Notif: {formatDate(row.notification_date)}
+                          </div>
+                        )}
                       </td>
                       <td style={{ fontSize: "12px" }}>
-                        <div style={{ fontWeight: "700", color: "#dc2626" }}>
-                          {meta.notice_ref_no || "Notice Ref -"}
+                        <div style={{ fontWeight: "800", color: "#dc2626" }}>
+                          {row.meta?.service_provider_hindi || row.meta?.service_provider || row.coal_company || "CMPDIL"}
                         </div>
-                        <div style={{ color: "#64748b", fontSize: "11px", maxWidth: "180px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {meta.scheme_name || "SWMA E-Auction"}
+                        {row.meta?.service_provider && row.meta?.service_provider_hindi && (
+                          <div style={{ color: "#475569", fontSize: "11px", fontWeight: "600" }}>
+                            {row.meta.service_provider}
+                          </div>
+                        )}
+                      </td>
+                      <td style={{ fontSize: "11px", color: "#475569", maxWidth: "240px" }}>
+                        <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={row.meta?.remarks_annexure || row.remarks}>
+                          {row.meta?.remarks_annexure || (row.remarks && !row.remarks.startsWith("{") ? row.remarks : "Annexure A & B")}
                         </div>
                       </td>
-                      <td style={{ fontWeight: "600", color: "#334155", fontSize: "13px" }}>{row.bidder || "-"}</td>
                       <td style={{ fontSize: "12px" }}>
+                        <div style={{ fontWeight: "700", color: "#0f172a" }}>
+                          {row.clusterNamesDisplay}
+                        </div>
+                        {row.clusterCount > 0 && (
+                          <div style={{ fontSize: "10px", color: "#64748b" }}>
+                            {row.clusterCount} {row.clusterCount === 1 ? 'Cluster Offer' : 'Cluster Offers'}
+                          </div>
+                        )}
+                      </td>
+                      <td style={{ textAlign: "center" }}>
                         <span style={{ 
                           display: "inline-block", padding: "2px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: "700",
-                          background: row.auction_source?.toLowerCase().includes("rail") ? "#ecfeff" : "#fef3c7",
-                          color: row.auction_source?.toLowerCase().includes("rail") ? "#0891b2" : "#b45309"
+                          background: row.modeDisplay?.toLowerCase().includes("rail") ? "#ecfeff" : "#fef3c7",
+                          color: row.modeDisplay?.toLowerCase().includes("rail") ? "#0891b2" : "#b45309"
                         }}>
-                          {row.auction_source || "SECL"}
+                          {row.modeDisplay || "Road"}
                         </span>
                       </td>
-                      <td style={{ fontSize: "12px", color: "#475569", fontWeight: "600" }}>{formatDate(row.notification_date)}</td>
-                      <td style={{ fontSize: "12px", color: "#0f172a", fontWeight: "700" }}>{formatDate(row.bid_date)}</td>
-                      <td style={{ fontSize: "12px", color: "#334155", fontWeight: "600" }}>{row.coal_company || "SECL"}</td>
+                      <td style={{ textAlign: "right", fontWeight: "800", color: "#0f172a", fontSize: "13px" }}>
+                        {typeof row.totalQty === 'number' ? row.totalQty.toLocaleString() : (row.totalQty || "-")}
+                        <span style={{ fontSize: "10px", color: "#64748b", marginLeft: "3px" }}>Tes</span>
+                      </td>
                       <td style={{ textAlign: "center" }}>
                         {row.pdf_url ? (
                           <a href={row.pdf_url} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: "4px", padding: "4px 8px", background: "#fef2f2", color: "#dc2626", borderRadius: "6px", textDecoration: "none", fontWeight: 700, fontSize: "11px", border: "1px solid #fecaca" }}>
@@ -676,219 +813,381 @@ export default function AuctionPage() {
             </div>
 
             <div className="auction-modal-body" style={{ padding: "20px 24px" }}>
-              {/* Section 1: Notice Header & General Info */}
-              <div style={{ fontWeight: "800", fontSize: "12px", color: "#dc2626", letterSpacing: "0.5px", textTransform: "uppercase", marginBottom: "12px", display: "flex", alignItems: "center", gap: "6px" }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line></svg>
-                1. Notice Header & Scheme Parameters
+              {/* Section 1: Notice Conduction Schedule (Page 1 Table Structure) */}
+              <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: "12px", padding: "16px 20px", marginBottom: "20px", boxShadow: "0 2px 6px rgba(0,0,0,0.03)" }}>
+                
+                {/* Page 1 Service Provider Table (Date | Service Provider | Remarks) */}
+                <div>
+                  <div style={{ fontSize: "12px", fontWeight: "800", color: "#0f172a", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
+                    <span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", background: "#dc2626" }}></span>
+                    Service Provider & Conduction Schedule (Page 1 Table Structure)
+                  </div>
+                  <div style={{ overflowX: "auto", border: "1px solid #cbd5e1", borderRadius: "8px" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
+                      <thead>
+                        <tr style={{ background: "#f1f5f9", borderBottom: "1px solid #cbd5e1", textAlign: "left" }}>
+                          <th style={{ padding: "8px 12px", fontWeight: "800", color: "#0f172a", borderRight: "1px solid #cbd5e1", width: "25%" }}>
+                            Date (दिनांक)
+                          </th>
+                          <th style={{ padding: "8px 12px", fontWeight: "800", color: "#0f172a", borderRight: "1px solid #cbd5e1", width: "35%" }}>
+                            Service Provider (सेवा प्रदायकर्ता)
+                          </th>
+                          <th style={{ padding: "8px 12px", fontWeight: "800", color: "#0f172a", width: "40%" }}>
+                            Remarks (रिमार्क्स)
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr style={{ background: "#ffffff" }}>
+                          <td style={{ padding: "8px 12px", borderRight: "1px solid #cbd5e1", verticalAlign: "top" }}>
+                            <input 
+                              type="date" 
+                              name="bid_date" 
+                              className="auction-input" 
+                              style={{ margin: 0, padding: "6px 8px", fontSize: "12px", fontWeight: "700" }} 
+                              value={formData.bid_date} 
+                              onChange={handleInputChange} 
+                            />
+                            <div style={{ fontSize: "10px", color: "#64748b", marginTop: "4px" }}>
+                              Auction Conduction Date (Page 1 e-Auction Date)
+                            </div>
+                          </td>
+                          <td style={{ padding: "8px 12px", borderRight: "1px solid #cbd5e1", verticalAlign: "top" }}>
+                            <input 
+                              type="text" 
+                              name="service_provider_hindi" 
+                              className="auction-input" 
+                              style={{ margin: 0, padding: "4px 8px", fontSize: "12px", marginBottom: "4px", fontWeight: "700" }} 
+                              placeholder="सेवा प्रदायकर्ता (हिंदी) e.g. सीएमपीडीआईएल" 
+                              value={formData.service_provider_hindi} 
+                              onChange={handleInputChange} 
+                            />
+                            <input 
+                              type="text" 
+                              name="service_provider" 
+                              className="auction-input" 
+                              style={{ margin: 0, padding: "4px 8px", fontSize: "12px" }} 
+                              placeholder="Service Provider (English) e.g. CMPDIL / MSTC" 
+                              value={formData.service_provider} 
+                              onChange={handleInputChange} 
+                            />
+                          </td>
+                          <td style={{ padding: "8px 12px", verticalAlign: "top" }}>
+                            <textarea 
+                              name="remarks_annexure" 
+                              className="auction-textarea" 
+                              style={{ margin: 0, padding: "6px 8px", fontSize: "11px", minHeight: "56px" }} 
+                              placeholder="Enter remarks or annexure note..." 
+                              value={formData.remarks_annexure} 
+                              onChange={handleInputChange}
+                            ></textarea>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
               </div>
 
-              <div className="auction-grid-2" style={{ gap: "14px", marginBottom: "16px" }}>
-                <div className="auction-form-group">
-                  <label className="auction-label">DEAL ID / INTERNAL REF <span>*</span></label>
-                  <input type="text" name="deal_id" className="auction-input" placeholder="e.g. AUC-2026-774" value={formData.deal_id} onChange={handleInputChange} />
+              {/* Section 2: Cluster Offer & Cluster Description Tables (Per Page 2 of Notice PDF) */}
+              <div style={{ marginTop: "24px", marginBottom: "14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div>
+                  <div style={{ fontWeight: "800", fontSize: "13px", color: "#dc2626", letterSpacing: "0.5px", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "6px" }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+                    2. Cluster Offers & Cluster Description Tables (Page 2 Notice Format)
+                  </div>
+                  <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>
+                    Exact table structure per SECL CIL E-Auction Notice: Cluster Offer summary table + Cluster Description line items
+                  </div>
                 </div>
-                <div className="auction-form-group">
-                  <label className="auction-label">NOTICE REF NO. (e.g. SECL/BSP/H-774)</label>
-                  <input type="text" name="notice_ref_no" className="auction-input" placeholder="e.g. SECL/BSP/H-774" value={formData.notice_ref_no} onChange={handleInputChange} />
-                </div>
-
-                <div className="auction-form-group">
-                  <label className="auction-label">SCHEME NAME</label>
-                  <input type="text" name="scheme_name" className="auction-input" placeholder="Single Window Mode Agnostic E-Auction Scheme 2022" value={formData.scheme_name} onChange={handleInputChange} />
-                </div>
-                <div className="auction-form-group">
-                  <label className="auction-label">COAL COMPANY (SUBSIDIARY)</label>
-                  <input type="text" name="coal_company" className="auction-input" placeholder="South Eastern Coalfields Limited (SECL)" value={formData.coal_company} onChange={handleInputChange} />
-                </div>
-
-                <div className="auction-form-group">
-                  <label className="auction-label">SERVICE PROVIDER (e.g. MSTC / M-Junction)</label>
-                  <input type="text" name="service_provider" className="auction-input" placeholder="MSTC Limited" value={formData.service_provider} onChange={handleInputChange} />
-                </div>
-                <div className="auction-form-group">
-                  <label className="auction-label">AUCTION SOURCE / MODE CATEGORY</label>
-                  <select name="auction_source" className="auction-input" value={formData.auction_source} onChange={handleInputChange}>
-                    <option value="">-- Select Auction Source / Mode --</option>
-                    <option value="SECL Road/Rail Mode">SECL Road/Rail Mode (Aggregated)</option>
-                    <option value="SECL Road Mode">SECL Road Mode</option>
-                    <option value="SECL Rail Mode">SECL Rail Mode (4,150 T/rake)</option>
-                    <option value="MSTC E-Auction">MSTC E-Auction</option>
-                    <option value="M-Junction E-Auction">M-Junction E-Auction</option>
-                  </select>
-                </div>
-
-                <div className="auction-form-group">
-                  <label className="auction-label">NOTIFICATION DATE</label>
-                  <input type="date" name="notification_date" className="auction-input" value={formData.notification_date} onChange={handleInputChange} />
-                </div>
-                <div className="auction-form-group">
-                  <label className="auction-label">BID DATE (AUCTION CONDUCTION DATE)</label>
-                  <input type="date" name="bid_date" className="auction-input" value={formData.bid_date} onChange={handleInputChange} />
-                </div>
-
-                <div className="auction-form-group">
-                  <label className="auction-label">BID CLOSING / PAYMENT DUE DATE</label>
-                  <input type="date" name="bid_closing_date" className="auction-input" value={formData.bid_closing_date} onChange={handleInputChange} />
-                </div>
-                <div className="auction-form-group">
-                  <label className="auction-label">PARTICIPATING BIDDER / CUSTOMER CODE</label>
-                  <input type="text" name="bidder" className="auction-input" placeholder="Bidder name or customer code" value={formData.bidder} onChange={handleInputChange} />
-                </div>
-              </div>
-
-              {/* Section 2: Cluster Offer & Mine Details (Annexure A & B) */}
-              <div style={{ marginTop: "24px", marginBottom: "12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div style={{ fontWeight: "800", fontSize: "12px", color: "#dc2626", letterSpacing: "0.5px", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "6px" }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
-                  2. Cluster Offer Description (Annexure A & B Structure)
-                </div>
-                <span style={{ fontSize: "11px", color: "#64748b", fontWeight: "600" }}>
-                  {items.length} {items.length === 1 ? 'Cluster / Mine Item' : 'Cluster / Mine Items'}
+                <span style={{ fontSize: "11px", color: "#475569", fontWeight: "700", background: "#f1f5f9", padding: "4px 10px", borderRadius: "999px" }}>
+                  {items.length} {items.length === 1 ? 'Cluster Offer' : 'Cluster Offers'}
                 </span>
               </div>
-              
+
               {items.map((item, index) => (
-                <div key={item.id} className="auction-item-card" style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "16px", marginBottom: "14px", position: "relative" }}>
+                <div key={item.id} className="auction-item-card" style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: "12px", padding: "16px", marginBottom: "20px", boxShadow: "0 2px 6px rgba(0,0,0,0.03)" }}>
+                  
+                  {/* Cluster Offer Item Header */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: "12px", borderBottom: "1px solid #f1f5f9", paddingBottom: "8px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <span style={{ background: "#fee2e2", color: "#dc2626", fontSize: "11px", fontWeight: "800", padding: "2px 8px", borderRadius: "6px" }}>
-                        OFFER #{index + 1}
+                      <span style={{ background: "#dc2626", color: "#ffffff", fontSize: "11px", fontWeight: "800", padding: "3px 8px", borderRadius: "6px" }}>
+                        CLUSTER OFFER #{index + 1}
                       </span>
-                      <span style={{ fontSize: "12px", fontWeight: "700", color: "#0f172a" }}>
-                        {item.cluster_name ? `${item.cluster_name} Offer` : 'Cluster Details'}
+                      <span style={{ fontSize: "13px", fontWeight: "800", color: "#0f172a" }}>
+                        {item.cluster_name ? `${item.cluster_name} Cluster Offer` : 'New Cluster Offer'}
                       </span>
                     </div>
 
                     {items.length > 1 && (
                       <button 
+                        type="button"
                         onClick={() => handleRemoveItem(item.id)} 
-                        style={{ background: '#fef2f2', border: '1px solid #fee2e2', color: '#ef4444', cursor: 'pointer', fontSize: '11px', fontWeight: "700", padding: "4px 8px", borderRadius: "6px" }}
-                        title="Remove Offer Item"
+                        style={{ background: '#fef2f2', border: '1px solid #fee2e2', color: '#ef4444', cursor: 'pointer', fontSize: '11px', fontWeight: "700", padding: "4px 10px", borderRadius: "6px" }}
+                        title="Remove Cluster Offer"
                       >
-                        ✕ Remove
+                        ✕ Remove Cluster
                       </button>
                     )}
                   </div>
 
-                  {/* Row 1: Cluster Name, Source / Loading Point, Mode, Feeding Collieries */}
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "12px", marginBottom: "14px" }}>
-                    <div className="auction-form-group" style={{ display: "flex", flexDirection: "column" }}>
-                      <label className="auction-label" style={{ minHeight: "28px", display: "flex", alignItems: "flex-end", marginBottom: "4px" }}>
-                        CLUSTER NAME
-                      </label>
-                      <input type="text" className="auction-input" placeholder="e.g. Gevra OC / Gayatri Cluster" value={item.cluster_name} onChange={(e) => handleItemChange(item.id, 'cluster_name', e.target.value)} />
+                  {/* TABLE 1: [Cluster Name] Cluster Offer Header Table (Page 2 Table Format) */}
+                  <div style={{ marginBottom: "14px" }}>
+                    <div style={{ fontSize: "11px", fontWeight: "800", color: "#475569", letterSpacing: "0.5px", textTransform: "uppercase", marginBottom: "6px", display: "flex", alignItems: "center", gap: "5px" }}>
+                      <span style={{ display: "inline-block", width: "6px", height: "6px", borderRadius: "50%", background: "#dc2626" }}></span>
+                      Table 1: Cluster Offer Summary
+                    </div>
+                    
+                    <div style={{ overflowX: "auto", border: "1px solid #cbd5e1", borderRadius: "8px" }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
+                        <thead>
+                          <tr style={{ background: "#f1f5f9", borderBottom: "1px solid #cbd5e1", textAlign: "left" }}>
+                            <th style={{ padding: "8px 10px", fontWeight: "800", color: "#0f172a", borderRight: "1px solid #e2e8f0" }}>Cluster Name *</th>
+                            <th style={{ padding: "8px 10px", fontWeight: "800", color: "#0f172a", borderRight: "1px solid #e2e8f0" }}>Total Offer (Tes) *</th>
+                            <th style={{ padding: "8px 10px", fontWeight: "800", color: "#0f172a", borderRight: "1px solid #e2e8f0" }}>Representative Grade</th>
+                            <th style={{ padding: "8px 10px", fontWeight: "800", color: "#0f172a", borderRight: "1px solid #e2e8f0" }}>Representative Size</th>
+                            <th style={{ padding: "8px 10px", fontWeight: "800", color: "#0f172a", borderRight: "1px solid #e2e8f0" }}>Modulated Price (₹)</th>
+                            <th style={{ padding: "8px 10px", fontWeight: "800", color: "#0f172a" }}>Floor Price (₹) *</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr style={{ background: "#ffffff" }}>
+                            <td style={{ padding: "6px 8px", borderRight: "1px solid #e2e8f0", minWidth: "160px" }}>
+                              <input 
+                                type="text" 
+                                className="auction-input" 
+                                style={{ margin: 0, padding: "6px 8px", fontSize: "12px", fontWeight: "600" }} 
+                                placeholder="e.g. Saraipalli G10 / Gevra" 
+                                value={item.cluster_name} 
+                                onChange={(e) => handleItemChange(item.id, 'cluster_name', e.target.value)} 
+                              />
+                            </td>
+                            <td style={{ padding: "6px 8px", borderRight: "1px solid #e2e8f0", minWidth: "130px" }}>
+                              <input 
+                                type="number" 
+                                className="auction-input" 
+                                style={{ margin: 0, padding: "6px 8px", fontSize: "12px", fontWeight: "600" }} 
+                                placeholder="e.g. 50000" 
+                                value={item.total_offer} 
+                                onChange={(e) => handleItemChange(item.id, 'total_offer', e.target.value)} 
+                              />
+                            </td>
+                            <td style={{ padding: "6px 8px", borderRight: "1px solid #e2e8f0", minWidth: "120px" }}>
+                              <input 
+                                type="text" 
+                                className="auction-input" 
+                                style={{ margin: 0, padding: "6px 8px", fontSize: "12px", fontWeight: "600" }} 
+                                placeholder="e.g. G10, G11" 
+                                value={item.representative_grade} 
+                                onChange={(e) => handleItemChange(item.id, 'representative_grade', e.target.value)} 
+                              />
+                            </td>
+                            <td style={{ padding: "6px 8px", borderRight: "1px solid #e2e8f0", minWidth: "140px" }}>
+                              <input 
+                                type="text" 
+                                className="auction-input" 
+                                style={{ margin: 0, padding: "6px 8px", fontSize: "12px" }} 
+                                placeholder="Sized Rom (-100mm)" 
+                                value={item.representative_size} 
+                                onChange={(e) => handleItemChange(item.id, 'representative_size', e.target.value)} 
+                              />
+                            </td>
+                            <td style={{ padding: "6px 8px", borderRight: "1px solid #e2e8f0", minWidth: "120px" }}>
+                              <input 
+                                type="number" 
+                                className="auction-input" 
+                                style={{ margin: 0, padding: "6px 8px", fontSize: "12px" }} 
+                                placeholder="e.g. 1184" 
+                                value={item.cluster_modulated_price} 
+                                onChange={(e) => handleItemChange(item.id, 'cluster_modulated_price', e.target.value)} 
+                              />
+                            </td>
+                            <td style={{ padding: "6px 8px", minWidth: "120px" }}>
+                              <input 
+                                type="number" 
+                                className="auction-input" 
+                                style={{ margin: 0, padding: "6px 8px", fontSize: "12px", fontWeight: "700", color: "#16a34a" }} 
+                                placeholder="e.g. 1421" 
+                                value={item.floor_price} 
+                                onChange={(e) => handleItemChange(item.id, 'floor_price', e.target.value)} 
+                              />
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* TABLE 2: Cluster Description / Offer Description Table (Page 2 Sub-Table Format) */}
+                  <div>
+                    <div style={{ fontSize: "11px", fontWeight: "800", color: "#475569", letterSpacing: "0.5px", textTransform: "uppercase", marginBottom: "6px", display: "flex", alignItems: "center", gap: "5px" }}>
+                      <span style={{ display: "inline-block", width: "6px", height: "6px", borderRadius: "50%", background: "#0891b2" }}></span>
+                      Table 2: Cluster Description / Offer Line Items
                     </div>
 
-                    <div className="auction-form-group" style={{ display: "flex", flexDirection: "column" }}>
-                      <label className="auction-label" style={{ minHeight: "28px", display: "flex", alignItems: "flex-end", marginBottom: "4px" }}>
-                        SOURCE / MINE / LOADING POINT
-                      </label>
-                      <input type="text" className="auction-input" placeholder="e.g. Gevra OC / Jainagar Siding" value={item.source} onChange={(e) => handleItemChange(item.id, 'source', e.target.value)} />
-                    </div>
-
-                    <div className="auction-form-group" style={{ display: "flex", flexDirection: "column" }}>
-                      <label className="auction-label" style={{ minHeight: "28px", display: "flex", alignItems: "flex-end", marginBottom: "4px" }}>
-                        DISPATCH MODE
-                      </label>
-                      <select className="auction-input" style={{ height: "36px" }} value={item.mode} onChange={(e) => handleItemChange(item.id, 'mode', e.target.value)}>
-                        <option value="">-- Select Mode --</option>
-                        <option value="Road">Road</option>
-                        <option value="Rail">Rail (Rake - 4,150 T)</option>
-                      </select>
-                    </div>
-
-                    <div className="auction-form-group" style={{ display: "flex", flexDirection: "column" }}>
-                      <label className="auction-label" style={{ minHeight: "28px", display: "flex", alignItems: "flex-end", marginBottom: "4px" }}>
-                        FEEDING COLLIERIES
-                      </label>
-                      <input type="text" className="auction-input" placeholder="e.g. Gayatri UG, Amera OCP" value={item.feeding_collieries} onChange={(e) => handleItemChange(item.id, 'feeding_collieries', e.target.value)} />
+                    <div style={{ overflowX: "auto", border: "1px solid #cbd5e1", borderRadius: "8px" }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px", whiteSpace: "nowrap" }}>
+                        <thead>
+                          <tr style={{ background: "#f8fafc", borderBottom: "1px solid #cbd5e1", textAlign: "left" }}>
+                            <th style={{ padding: "8px 10px", fontWeight: "800", color: "#0f172a", borderRight: "1px solid #e2e8f0" }}>Source / Loading Points</th>
+                            <th style={{ padding: "8px 10px", fontWeight: "800", color: "#0f172a", borderRight: "1px solid #e2e8f0" }}>Mode</th>
+                            <th style={{ padding: "8px 10px", fontWeight: "800", color: "#0f172a", borderRight: "1px solid #e2e8f0" }}>Feeding Collieries</th>
+                            <th style={{ padding: "8px 10px", fontWeight: "800", color: "#0f172a", borderRight: "1px solid #e2e8f0" }}>Grade</th>
+                            <th style={{ padding: "8px 10px", fontWeight: "800", color: "#0f172a", borderRight: "1px solid #e2e8f0" }}>Size</th>
+                            <th style={{ padding: "8px 10px", fontWeight: "800", color: "#0f172a", borderRight: "1px solid #e2e8f0" }}>Evacuation Qty (Tes)</th>
+                            <th style={{ padding: "8px 10px", fontWeight: "800", color: "#0f172a", borderRight: "1px solid #e2e8f0" }}>Modulated Price (₹)</th>
+                            <th style={{ padding: "8px 10px", fontWeight: "800", color: "#0f172a", borderRight: "1px solid #e2e8f0" }}>Mod. Price of Rep. Grade (₹)</th>
+                            <th style={{ padding: "8px 10px", fontWeight: "800", color: "#0f172a", borderRight: "1px solid #e2e8f0" }}>Supply Pattern</th>
+                            <th style={{ padding: "8px 10px", fontWeight: "800", color: "#0f172a" }}>No of Lots</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr style={{ background: "#ffffff" }}>
+                            <td style={{ padding: "6px 8px", borderRight: "1px solid #e2e8f0", minWidth: "160px" }}>
+                              <input 
+                                type="text" 
+                                className="auction-input" 
+                                style={{ margin: 0, padding: "6px 8px", fontSize: "12px" }} 
+                                placeholder="e.g. Saraipalli Road / Gevra OC" 
+                                value={item.loading_point || item.source} 
+                                onChange={(e) => handleItemChange(item.id, 'loading_point', e.target.value)} 
+                              />
+                            </td>
+                            <td style={{ padding: "6px 8px", borderRight: "1px solid #e2e8f0", minWidth: "110px" }}>
+                              <select 
+                                className="auction-input" 
+                                style={{ margin: 0, padding: "4px 8px", fontSize: "12px", height: "32px" }} 
+                                value={item.mode} 
+                                onChange={(e) => handleItemChange(item.id, 'mode', e.target.value)}
+                              >
+                                <option value="Road">Road</option>
+                                <option value="Rail">Rail</option>
+                              </select>
+                            </td>
+                            <td style={{ padding: "6px 8px", borderRight: "1px solid #e2e8f0", minWidth: "150px" }}>
+                              <input 
+                                type="text" 
+                                className="auction-input" 
+                                style={{ margin: 0, padding: "6px 8px", fontSize: "12px" }} 
+                                placeholder="e.g. Amlai OC, Sharda HW" 
+                                value={item.feeding_collieries} 
+                                onChange={(e) => handleItemChange(item.id, 'feeding_collieries', e.target.value)} 
+                              />
+                            </td>
+                            <td style={{ padding: "6px 8px", borderRight: "1px solid #e2e8f0", minWidth: "90px" }}>
+                              <input 
+                                type="text" 
+                                className="auction-input" 
+                                style={{ margin: 0, padding: "6px 8px", fontSize: "12px", fontWeight: "600" }} 
+                                placeholder="G10" 
+                                value={item.coal_grade} 
+                                onChange={(e) => handleItemChange(item.id, 'coal_grade', e.target.value)} 
+                              />
+                            </td>
+                            <td style={{ padding: "6px 8px", borderRight: "1px solid #e2e8f0", minWidth: "130px" }}>
+                              <input 
+                                type="text" 
+                                className="auction-input" 
+                                style={{ margin: 0, padding: "6px 8px", fontSize: "12px" }} 
+                                placeholder="Sized Rom (-100mm)" 
+                                value={item.size} 
+                                onChange={(e) => handleItemChange(item.id, 'size', e.target.value)} 
+                              />
+                            </td>
+                            <td style={{ padding: "6px 8px", borderRight: "1px solid #e2e8f0", minWidth: "120px" }}>
+                              <input 
+                                type="number" 
+                                className="auction-input" 
+                                style={{ margin: 0, padding: "6px 8px", fontSize: "12px", fontWeight: "700" }} 
+                                placeholder="50000" 
+                                value={item.quantity_offered} 
+                                onChange={(e) => handleItemChange(item.id, 'quantity_offered', e.target.value)} 
+                              />
+                            </td>
+                            <td style={{ padding: "6px 8px", borderRight: "1px solid #e2e8f0", minWidth: "110px" }}>
+                              <input 
+                                type="number" 
+                                className="auction-input" 
+                                style={{ margin: 0, padding: "6px 8px", fontSize: "12px" }} 
+                                placeholder="1184" 
+                                value={item.modulated_price} 
+                                onChange={(e) => handleItemChange(item.id, 'modulated_price', e.target.value)} 
+                              />
+                            </td>
+                            <td style={{ padding: "6px 8px", borderRight: "1px solid #e2e8f0", minWidth: "120px" }}>
+                              <input 
+                                type="number" 
+                                className="auction-input" 
+                                style={{ margin: 0, padding: "6px 8px", fontSize: "12px" }} 
+                                placeholder="1184" 
+                                value={item.modulated_price_rep_grade} 
+                                onChange={(e) => handleItemChange(item.id, 'modulated_price_rep_grade', e.target.value)} 
+                              />
+                            </td>
+                            <td style={{ padding: "6px 8px", borderRight: "1px solid #e2e8f0", minWidth: "110px" }}>
+                              <input 
+                                type="text" 
+                                className="auction-input" 
+                                style={{ margin: 0, padding: "6px 8px", fontSize: "12px" }} 
+                                placeholder="100%" 
+                                value={item.supply_pattern} 
+                                onChange={(e) => handleItemChange(item.id, 'supply_pattern', e.target.value)} 
+                              />
+                            </td>
+                            <td style={{ padding: "6px 8px", minWidth: "80px" }}>
+                              <input 
+                                type="text" 
+                                className="auction-input" 
+                                style={{ margin: 0, padding: "6px 8px", fontSize: "12px" }} 
+                                placeholder="1" 
+                                value={item.no_of_lots} 
+                                onChange={(e) => handleItemChange(item.id, 'no_of_lots', e.target.value)} 
+                              />
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
                     </div>
                   </div>
 
-                  {/* Row 2: Grade, Representative Grade, Size, Quantity Offered */}
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "12px", marginBottom: "14px" }}>
-                    <div className="auction-form-group" style={{ display: "flex", flexDirection: "column" }}>
-                      <label className="auction-label" style={{ minHeight: "28px", display: "flex", alignItems: "flex-end", marginBottom: "4px" }}>
-                        GRADE (e.g. G6, G8, G11)
-                      </label>
-                      <input type="text" className="auction-input" placeholder="G11" value={item.coal_grade} onChange={(e) => handleItemChange(item.id, 'coal_grade', e.target.value)} />
-                    </div>
-
-                    <div className="auction-form-group" style={{ display: "flex", flexDirection: "column" }}>
-                      <label className="auction-label" style={{ minHeight: "28px", display: "flex", alignItems: "flex-end", marginBottom: "4px" }}>
-                        REPRESENTATIVE GRADE
-                      </label>
-                      <input type="text" className="auction-input" placeholder="G11" value={item.representative_grade} onChange={(e) => handleItemChange(item.id, 'representative_grade', e.target.value)} />
-                    </div>
-
-                    <div className="auction-form-group" style={{ display: "flex", flexDirection: "column" }}>
-                      <label className="auction-label" style={{ minHeight: "28px", display: "flex", alignItems: "flex-end", marginBottom: "4px" }}>
-                        COAL SIZE
-                      </label>
-                      <input type="text" className="auction-input" placeholder="Sized Rom (-100mm)" value={item.size} onChange={(e) => handleItemChange(item.id, 'size', e.target.value)} />
-                    </div>
-
-                    <div className="auction-form-group" style={{ display: "flex", flexDirection: "column" }}>
-                      <label className="auction-label" style={{ minHeight: "28px", display: "flex", alignItems: "flex-end", marginBottom: "4px" }}>
-                        OFFERED QTY (MT / TONNES)
-                      </label>
-                      <input type="number" className="auction-input" placeholder="e.g. 50000" value={item.quantity_offered} onChange={(e) => handleItemChange(item.id, 'quantity_offered', e.target.value)} />
-                    </div>
-                  </div>
-
-                  {/* Row 3: Modulated Price, Floor Price, Supply Pattern, No of Lots */}
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "12px" }}>
-                    <div className="auction-form-group" style={{ display: "flex", flexDirection: "column" }}>
-                      <label className="auction-label" style={{ minHeight: "28px", display: "flex", alignItems: "flex-end", marginBottom: "4px" }}>
-                        MODULATED PRICE (₹/MT)
-                      </label>
-                      <input type="number" className="auction-input" placeholder="e.g. 1184" value={item.modulated_price} onChange={(e) => handleItemChange(item.id, 'modulated_price', e.target.value)} />
-                    </div>
-
-                    <div className="auction-form-group" style={{ display: "flex", flexDirection: "column" }}>
-                      <label className="auction-label" style={{ minHeight: "28px", display: "flex", alignItems: "flex-end", marginBottom: "4px" }}>
-                        FLOOR PRICE / BASE PRICE (₹/MT)
-                      </label>
-                      <input type="number" className="auction-input" placeholder="e.g. 1421" value={item.floor_price} onChange={(e) => handleItemChange(item.id, 'floor_price', e.target.value)} />
-                    </div>
-
-                    <div className="auction-form-group" style={{ display: "flex", flexDirection: "column" }}>
-                      <label className="auction-label" style={{ minHeight: "28px", display: "flex", alignItems: "flex-end", marginBottom: "4px", lineHeight: "1.2" }}>
-                        SUPPLY PATTERN (e.g. 100% or Range)
-                      </label>
-                      <input type="text" className="auction-input" placeholder="100%" value={item.supply_pattern} onChange={(e) => handleItemChange(item.id, 'supply_pattern', e.target.value)} />
-                    </div>
-
-                    <div className="auction-form-group" style={{ display: "flex", flexDirection: "column" }}>
-                      <label className="auction-label" style={{ minHeight: "28px", display: "flex", alignItems: "flex-end", marginBottom: "4px" }}>
-                        NO. OF LOTS
-                      </label>
-                      <input type="text" className="auction-input" placeholder="1" value={item.no_of_lots} onChange={(e) => handleItemChange(item.id, 'no_of_lots', e.target.value)} />
-                    </div>
-                  </div>
                 </div>
               ))}
 
-              <button 
-                className="auction-add-btn" 
-                onClick={handleAddItem}
-                style={{ border: "2px dashed #fca5a5", color: "#dc2626", background: "#fef2f2", padding: "10px", borderRadius: "10px", fontWeight: "700" }}
-              >
-                <span>+</span> Add Another Cluster / Offer Item
-              </button>
-
-              {/* Section 3: Document & Additional Terms */}
-              <div style={{ marginTop: "24px", marginBottom: "12px", fontWeight: "800", fontSize: "12px", color: "#dc2626", letterSpacing: "0.5px", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "6px" }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-                3. Official Notice Document & Payment Clause
-              </div>
-
-              <div className="auction-grid-2" style={{ gap: "14px", marginBottom: "12px" }}>
-                <div className="auction-form-group">
-                  <label className="auction-label">PAYMENT TIMELINE CLAUSE (NOTE 1 & 4)</label>
-                  <input type="text" name="payment_timeline_clause" className="auction-input" value={formData.payment_timeline_clause} onChange={handleInputChange} />
+              {/* Page 2 Summary Box: Total Lots and Total Offered Qty */}
+              <div style={{ background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "10px", padding: "12px 18px", marginBottom: "16px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
+                  <div>
+                    <span style={{ fontSize: "11px", fontWeight: "800", color: "#64748b", textTransform: "uppercase" }}>TOTAL LOTS:</span>
+                    <span style={{ marginLeft: "8px", fontSize: "14px", fontWeight: "800", color: "#0f172a" }}>
+                      {items.reduce((sum, item) => sum + (parseInt(item.no_of_lots, 10) || 1), 0)}
+                    </span>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: "11px", fontWeight: "800", color: "#64748b", textTransform: "uppercase" }}>TOTAL OFFERED QTY (IN TES):</span>
+                    <span style={{ marginLeft: "8px", fontSize: "15px", fontWeight: "800", color: "#dc2626" }}>
+                      {items.reduce((sum, item) => sum + (parseFloat(item.quantity_offered || item.total_offer) || 0), 0).toLocaleString()} Tes
+                    </span>
+                  </div>
                 </div>
 
+                <button 
+                  type="button"
+                  className="auction-add-btn" 
+                  onClick={handleAddItem}
+                  style={{ border: "1px dashed #dc2626", color: "#dc2626", background: "#fef2f2", padding: "8px 14px", borderRadius: "8px", fontWeight: "700", fontSize: "12px", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "6px" }}
+                >
+                  <span style={{ fontSize: "14px" }}>+</span> Add Another Cluster Offer Table
+                </button>
+              </div>
+
+              {/* Section 3: Official Notice Document */}
+              <div style={{ marginTop: "24px", marginBottom: "12px", fontWeight: "800", fontSize: "12px", color: "#dc2626", letterSpacing: "0.5px", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "6px" }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                3. Official Notice Document
+              </div>
+
+              <div style={{ marginBottom: "12px" }}>
                 <div className="auction-form-group">
                   <label className="auction-label">UPLOAD OFFICIAL NOTIFICATION PDF</label>
                   <input 
@@ -901,7 +1200,7 @@ export default function AuctionPage() {
                   <div 
                     className="auction-upload-box" 
                     onClick={() => fileInputRef.current?.click()}
-                    style={{ background: "#f8fafc", border: "1px dashed #cbd5e1", borderRadius: "8px", padding: "9px 12px" }}
+                    style={{ background: "#f8fafc", border: "1px dashed #cbd5e1", borderRadius: "8px", padding: "12px 16px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}
                   >
                     <span style={{ color: pdfFile ? "#0f172a" : "#64748b", fontWeight: "600", fontSize: "13px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {pdfFile ? `📄 ${pdfFile.name}` : "Click to Upload Notice PDF"}
@@ -913,18 +1212,6 @@ export default function AuctionPage() {
                     </svg>
                   </div>
                 </div>
-              </div>
-
-              <div className="auction-form-group">
-                <label className="auction-label">ADDITIONAL REMARKS / SPECIAL INSTRUCTIONS</label>
-                <textarea 
-                  name="remarks" 
-                  className="auction-textarea" 
-                  placeholder="Notes on proforma invoice, EMD requirement, nodal officer, or compliance notes..." 
-                  value={formData.remarks} 
-                  onChange={handleInputChange}
-                  style={{ minHeight: "70px", borderRadius: "8px" }}
-                ></textarea>
               </div>
             </div>
 

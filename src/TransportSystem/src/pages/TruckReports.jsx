@@ -8,7 +8,8 @@ import Select, { components } from 'react-select';
 import { 
   Truck, Banknote, Fuel, Route, Search, Plus, Download, FileSpreadsheet, 
   Calendar, RotateCcw, Edit2, Trash2, X, ArrowRight, Shield, Sparkles, Filter,
-  Layers, MapPin, Gauge, IndianRupee, Hash, Check, Eye, Upload, FileUp, AlertCircle
+  Layers, MapPin, Gauge, IndianRupee, Hash, Check, Eye, Upload, FileUp, AlertCircle,
+  Clock, Timer, CheckCircle2, PlayCircle, StopCircle
 } from 'lucide-react';
 import './TruckReports.css';
 
@@ -86,15 +87,49 @@ export default function TruckReports() {
         totalTrips: item.total_trips,
         vehicleBalance: item.vehicle_balance,
         perMT: item.per_mt,
-        totalFreight: item.total_freight
+        totalFreight: item.total_freight,
+        // Turnaround Time (TAT) fields
+        departureTime: item.departure_time || '',
+        arrivalTime: item.arrival_time || '',
+        unloadingTime: item.unloading_time || '',
+        turnaroundHours: item.turnaround_hours !== undefined && item.turnaround_hours !== null ? item.turnaround_hours : '',
+        turnaroundDays: item.turnaround_days !== undefined && item.turnaround_days !== null ? item.turnaround_days : '',
+        tatStatus: item.tat_status || ''
       }));
       setReportsData(formattedData);
     }
     setLoading(false);
   };
 
+  // Helper to calculate Turnaround Duration
+  const calculateTurnaround = (departure, unloading, arrival) => {
+    if (!departure) return { hours: '', days: '', status: 'Pending' };
+
+    const start = new Date(departure).getTime();
+    if (isNaN(start)) return { hours: '', days: '', status: 'Pending' };
+
+    const endVal = unloading || arrival;
+    if (!endVal) {
+      return { hours: '', days: '', status: 'In Transit' };
+    }
+
+    const end = new Date(endVal).getTime();
+    if (isNaN(end) || end < start) {
+      return { hours: '', days: '', status: unloading ? 'Completed' : 'Arrived' };
+    }
+
+    const diffMs = end - start;
+    const diffHours = Math.round((diffMs / (1000 * 60 * 60)) * 10) / 10;
+    const diffDays = Math.round((diffHours / 24) * 10) / 10;
+    const status = unloading ? 'Completed' : (arrival ? 'Unloading' : 'In Transit');
+
+    return { hours: diffHours, days: diffDays, status };
+  };
+
   const [formData, setFormData] = useState({
-    date: '', vehicleNo: '', from: '', to: '', distance: '', partyName: '', doPartyName: '', diesel: '', dieselPrice: '', advance: '', doNo: '', totalTrips: '', vehicleBalance: '', perMT: '', tonnage: '', totalFreight: ''
+    date: '', vehicleNo: '', from: '', to: '', distance: '', partyName: '', doPartyName: '', diesel: '', dieselPrice: '', advance: '', doNo: '', totalTrips: '', vehicleBalance: '', perMT: '', tonnage: '', totalFreight: '',
+    // Turnaround Time fields
+    departureTime: '', arrivalTime: '', unloadingTime: '', turnaroundHours: '', turnaroundDays: '', tatStatus: ''
   });
 
   // Auto-fetch distance & Rate Per MT dynamically based on past data
@@ -192,13 +227,51 @@ export default function TruckReports() {
       }
     }
     
+    if (['departureTime', 'arrivalTime', 'unloadingTime'].includes(name)) {
+      const dep = name === 'departureTime' ? value : newFormData.departureTime;
+      const arr = name === 'arrivalTime' ? value : newFormData.arrivalTime;
+      const unl = name === 'unloadingTime' ? value : newFormData.unloadingTime;
+      const tatCalc = calculateTurnaround(dep, unl, arr);
+      newFormData.turnaroundHours = tatCalc.hours !== '' ? tatCalc.hours.toString() : '';
+      newFormData.turnaroundDays = tatCalc.days !== '' ? tatCalc.days.toString() : '';
+      newFormData.tatStatus = tatCalc.status;
+    }
+    
     setFormData(newFormData);
   };
 
   const handleAddReport = async (e) => {
     e.preventDefault();
     
+    // Calculate final TAT metrics before save
+    const tatCalc = calculateTurnaround(formData.departureTime, formData.unloadingTime, formData.arrivalTime);
+
     const reportData = {
+      date: formData.date,
+      vehicle_no: formData.vehicleNo,
+      from_location: formData.from,
+      to_location: formData.to,
+      distance: formData.distance,
+      party_name: formData.partyName,
+      do_party_name: formData.doPartyName,
+      diesel: formData.diesel,
+      diesel_price: Number(formData.dieselPrice) || 0,
+      advance: Number(formData.advance) || 0,
+      do_no: formData.doNo,
+      tonnage: Number(formData.tonnage) || 0,
+      total_trips: Number(formData.totalTrips) || 0,
+      vehicle_balance: Number(formData.vehicleBalance) || 0,
+      per_mt: Number(formData.perMT) || 0,
+      total_freight: Number(formData.totalFreight) || 0,
+      departure_time: formData.departureTime || null,
+      arrival_time: formData.arrivalTime || null,
+      unloading_time: formData.unloadingTime || null,
+      turnaround_hours: tatCalc.hours !== '' ? Number(tatCalc.hours) : null,
+      turnaround_days: tatCalc.days !== '' ? Number(tatCalc.days) : null,
+      tat_status: tatCalc.status || null
+    };
+
+    const cleanReportDataWithoutTAT = {
       date: formData.date,
       vehicle_no: formData.vehicleNo,
       from_location: formData.from,
@@ -220,25 +293,42 @@ export default function TruckReports() {
     if (editingId) {
       const reportToEdit = reportsData.find(r => r.sNo === editingId);
       if (reportToEdit && reportToEdit.id) {
-        const { error } = await supabase
+        let updateResult = await supabase
           .from('truck_reports')
           .update(reportData)
           .eq('id', reportToEdit.id);
         
-        if (error) {
-          console.error("Error updating:", error);
+        // Graceful fallback if database column is missing yet
+        if (updateResult.error && updateResult.error.message?.includes('column')) {
+          console.warn("TAT columns not found in database, updating core fields only:", updateResult.error.message);
+          updateResult = await supabase
+            .from('truck_reports')
+            .update(cleanReportDataWithoutTAT)
+            .eq('id', reportToEdit.id);
+        }
+
+        if (updateResult.error) {
+          console.error("Error updating:", updateResult.error);
           toast.error("Error updating report!");
         } else {
           toast.success("Report updated successfully!");
         }
       }
     } else {
-      const { error } = await supabase
+      let insertResult = await supabase
         .from('truck_reports')
         .insert([reportData]);
         
-      if (error) {
-        console.error("Error inserting:", error);
+      // Graceful fallback if database column is missing yet
+      if (insertResult.error && insertResult.error.message?.includes('column')) {
+        console.warn("TAT columns not found in database, inserting core fields only:", insertResult.error.message);
+        insertResult = await supabase
+          .from('truck_reports')
+          .insert([cleanReportDataWithoutTAT]);
+      }
+
+      if (insertResult.error) {
+        console.error("Error inserting:", insertResult.error);
         toast.error("Error saving report!");
       } else {
         toast.success("Report saved successfully!");
@@ -246,7 +336,10 @@ export default function TruckReports() {
     }
     
     await fetchReports();
-    setFormData({ date: '', vehicleNo: '', from: '', to: '', distance: '', partyName: '', doPartyName: '', diesel: '', dieselPrice: '', advance: '', doNo: '', totalTrips: '', vehicleBalance: '', perMT: '', tonnage: '', totalFreight: '' });
+    setFormData({ 
+      date: '', vehicleNo: '', from: '', to: '', distance: '', partyName: '', doPartyName: '', diesel: '', dieselPrice: '', advance: '', doNo: '', totalTrips: '', vehicleBalance: '', perMT: '', tonnage: '', totalFreight: '',
+      departureTime: '', arrivalTime: '', unloadingTime: '', turnaroundHours: '', turnaroundDays: '', tatStatus: ''
+    });
     setIsModalOpen(false);
     setEditingId(null);
   };
@@ -325,6 +418,14 @@ export default function TruckReports() {
   const totalAdvanceSum = filteredData.reduce((sum, item) => sum + (Number(item.advance) || 0), 0);
   const totalDieselSum = filteredData.reduce((sum, item) => sum + (parseInt(String(item.diesel).replace(/[^0-9]/g, '')) || 0), 0);
   const totalDistanceSum = filteredData.reduce((sum, item) => sum + (parseInt(String(item.distance).replace(/[^0-9]/g, '')) || 0), 0);
+
+  // Turnaround Time KPI Calculations
+  const completedTatTrips = filteredData.filter(item => item.turnaroundHours !== '' && !isNaN(Number(item.turnaroundHours)));
+  const avgTurnaroundHours = completedTatTrips.length > 0
+    ? Math.round((completedTatTrips.reduce((acc, curr) => acc + Number(curr.turnaroundHours), 0) / completedTatTrips.length) * 10) / 10
+    : 0;
+  const avgTurnaroundDays = Math.round((avgTurnaroundHours / 24) * 10) / 10;
+  const activeTripsCount = filteredData.filter(item => item.departureTime && !item.unloadingTime).length;
 
   // Helper to rename a dropdown option value across database and state
   const handleRenameOption = async (type, oldValue) => {
@@ -849,14 +950,16 @@ export default function TruckReports() {
     const currentDate = new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
     doc.text(`Generated on: ${currentDate}`, 14, 28);
 
-    const tableColumn = ["S.No", "Date", "Vehicle No", "From", "To", "Dist.", "Diesel", "Price", "Total Diesel Price", "Advance", "DO No", "Tonnage", "Freight", "Trips", "Per MT", "Balance"];
+    const tableColumn = ["S.No", "Date", "Vehicle No", "From", "To", "Dist.", "Departure Time", "Arrival Time", "Unload Time", "Turnaround (TAT)", "Status", "Diesel", "Price", "Total Diesel Price", "Advance", "DO No", "Tonnage", "Freight", "Trips", "Per MT", "Balance"];
     const tableRows = [];
     filteredData.forEach(row => {
       const dL = parseFloat(String(row.diesel || '').replace(/[^0-9.]/g, '')) || 0;
       const dP = parseFloat(row.dieselPrice) || 0;
       const totalDieselCost = Math.round(dL * dP);
+      const tatDisplay = row.turnaroundHours ? `${row.turnaroundHours} hrs (${row.turnaroundDays} d)` : '—';
       tableRows.push([
         row.sNo, row.date, row.vehicleNo, row.from, row.to, row.distance, 
+        row.departureTime || '—', row.arrivalTime || '—', row.unloadingTime || '—', tatDisplay, row.tatStatus || '—',
         row.diesel, row.dieselPrice, totalDieselCost, row.advance, row.doNo, 
         row.tonnage, row.totalFreight, row.totalTrips, row.perMT, row.vehicleBalance
       ]);
@@ -906,6 +1009,9 @@ export default function TruckReports() {
         "From (Origin)": "DIPKA",
         "To (Destination)": "BIRGHANI",
         "Distance (KM)": "58 km",
+        "Departure Time": "2026-09-22T08:30",
+        "Arrival Time": "2026-09-22T14:45",
+        "Unloading Time": "2026-09-22T16:30",
         "Party Name": "JAY BHOLE",
         "DO Party Name": "BALAJI FUELS",
         "DO No": "87912",
@@ -922,6 +1028,9 @@ export default function TruckReports() {
         "From (Origin)": "DIPKA",
         "To (Destination)": "BIRGHANI",
         "Distance (KM)": "58 km",
+        "Departure Time": "2026-09-22T09:00",
+        "Arrival Time": "2026-09-22T15:15",
+        "Unloading Time": "2026-09-22T17:00",
         "Party Name": "JAY BHOLE",
         "DO Party Name": "BALAJI FUELS",
         "DO No": "87912",
@@ -997,6 +1106,13 @@ export default function TruckReports() {
     const doPartyName = String(getVal('dopartyname', 'doparty', 'doparty') || '').trim();
     const doNo = String(getVal('dono', 'donumber') || '').trim();
 
+    // Turnaround Time (TAT) Fields from file
+    const departureTime = String(getVal('departuretime', 'departure', 'depttime', 'deptime', 'startdatetime') || '').trim();
+    const arrivalTime = String(getVal('arrivaltime', 'arrival', 'arrtime', 'reachdatetime') || '').trim();
+    const unloadingTime = String(getVal('unloadingtime', 'unloadtime', 'unloadedtime', 'completedatetime') || '').trim();
+
+    const tatCalc = calculateTurnaround(departureTime, unloadingTime, arrivalTime);
+
     // Diesel (e.g. 35 or 35 L)
     let dieselRaw = String(getVal('diesell', 'diesel', 'fuel') || '').trim();
     let dieselNumeric = parseFloat(dieselRaw.replace(/[^0-9.]/g, '')) || 0;
@@ -1052,6 +1168,12 @@ export default function TruckReports() {
       tonnage,
       totalFreight,
       vehicleBalance,
+      departureTime,
+      arrivalTime,
+      unloadingTime,
+      turnaroundHours: tatCalc.hours,
+      turnaroundDays: tatCalc.days,
+      tatStatus: tatCalc.status,
       isValid: Boolean(vehicleNo)
     };
   };
@@ -1154,7 +1276,13 @@ export default function TruckReports() {
         total_trips: Number(r.totalTrips) || 1,
         vehicle_balance: Number(r.vehicleBalance) || 0,
         per_mt: Number(r.perMT) || 0,
-        total_freight: Number(r.totalFreight) || 0
+        total_freight: Number(r.totalFreight) || 0,
+        departure_time: r.departureTime || null,
+        arrival_time: r.arrivalTime || null,
+        unloading_time: r.unloadingTime || null,
+        turnaround_hours: r.turnaroundHours !== '' && !isNaN(Number(r.turnaroundHours)) ? Number(r.turnaroundHours) : null,
+        turnaround_days: r.turnaroundDays !== '' && !isNaN(Number(r.turnaroundDays)) ? Number(r.turnaroundDays) : null,
+        tat_status: r.tatStatus || null
       }));
 
     if (rowsToInsert.length === 0) {
@@ -1164,9 +1292,17 @@ export default function TruckReports() {
 
     setBulkUploading(true);
     try {
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('truck_reports')
         .insert(rowsToInsert);
+
+      // Fallback if TAT columns are not present in DB
+      if (error && error.message?.includes('column')) {
+        console.warn("TAT columns missing during bulk upload, falling back to core fields:", error.message);
+        const fallbackRows = rowsToInsert.map(({ departure_time, arrival_time, unloading_time, turnaround_hours, turnaround_days, tat_status, ...rest }) => rest);
+        const res = await supabase.from('truck_reports').insert(fallbackRows);
+        error = res.error;
+      }
 
       if (error) {
         console.error("Supabase bulk insert error:", error);
@@ -1271,74 +1407,108 @@ export default function TruckReports() {
       </div>
 
       {/* ═══════════════════════════════════════════════════════════
-          EXECUTIVE 4 KPI SUMMARY METRICS CARDS
+          EXECUTIVE KPI SUMMARY METRICS CARDS + TAT METRICS
       ═══════════════════════════════════════════════════════════ */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
         
         {/* Card 1: Total Trips */}
-        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex items-center justify-between group">
+        <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex items-center justify-between group">
           <div>
-            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
-              Total Dispatched Trips
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
+              Total Trips
             </span>
             <div className="text-xl sm:text-2xl font-black text-slate-800 tracking-tight group-hover:text-red-600 transition-colors">
               {totalTripsCount}
             </div>
             <span className="text-[10px] text-blue-600 font-bold flex items-center gap-1 mt-0.5">
               <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
-              Live Fleet Dispatches
+              Dispatches
             </span>
           </div>
-          <div className="h-11 w-11 sm:h-12 sm:w-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 shadow-2xs group-hover:bg-blue-600 group-hover:text-white transition-colors">
-            <Truck size={22} />
+          <div className="h-10 w-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 shadow-2xs group-hover:bg-blue-600 group-hover:text-white transition-colors">
+            <Truck size={20} />
           </div>
         </div>
 
-        {/* Card 2: Total Advance */}
-        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex items-center justify-between group">
+        {/* Card 2: Avg Turnaround (TAT) */}
+        <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex items-center justify-between group">
           <div>
-            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
-              Total Advance Disbursed
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
+              Avg Turnaround
+            </span>
+            <div className="text-xl sm:text-2xl font-black text-indigo-700 tracking-tight">
+              {avgTurnaroundHours} <span className="text-xs font-bold text-slate-400">hrs</span>
+            </div>
+            <span className="text-[10px] text-indigo-600 font-semibold">
+              ≈ {avgTurnaroundDays} Days Avg
+            </span>
+          </div>
+          <div className="h-10 w-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 shadow-2xs group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+            <Timer size={20} />
+          </div>
+        </div>
+
+        {/* Card 3: Active Trips in Transit */}
+        <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex items-center justify-between group">
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
+              In Transit
             </span>
             <div className="text-xl sm:text-2xl font-black text-amber-600 tracking-tight">
-              ₹ {totalAdvanceSum.toLocaleString('en-IN')}
+              {activeTripsCount}
             </div>
-            <span className="text-[10px] text-amber-700 font-medium">Driver Advance Payments</span>
+            <span className="text-[10px] text-amber-700 font-medium">Pending Unload</span>
           </div>
-          <div className="h-11 w-11 sm:h-12 sm:w-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 shadow-2xs group-hover:bg-amber-600 group-hover:text-white transition-colors">
-            <IndianRupee size={22} />
+          <div className="h-10 w-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 shadow-2xs group-hover:bg-amber-600 group-hover:text-white transition-colors">
+            <Clock size={20} />
           </div>
         </div>
 
-        {/* Card 3: Total Diesel */}
-        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex items-center justify-between group">
+        {/* Card 4: Total Advance */}
+        <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex items-center justify-between group">
           <div>
-            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
-              Total Diesel Issued
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
+              Total Advance
             </span>
-            <div className="text-xl sm:text-2xl font-black text-purple-700 tracking-tight">
+            <div className="text-lg sm:text-xl font-black text-slate-800 tracking-tight">
+              ₹{totalAdvanceSum.toLocaleString('en-IN')}
+            </div>
+            <span className="text-[10px] text-slate-500 font-medium">Driver Advance</span>
+          </div>
+          <div className="h-10 w-10 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0 shadow-2xs group-hover:bg-rose-600 group-hover:text-white transition-colors">
+            <IndianRupee size={20} />
+          </div>
+        </div>
+
+        {/* Card 5: Total Diesel */}
+        <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex items-center justify-between group">
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
+              Total Diesel
+            </span>
+            <div className="text-lg sm:text-xl font-black text-purple-700 tracking-tight">
               {totalDieselSum.toLocaleString('en-IN')} L
             </div>
-            <span className="text-[10px] text-purple-600 font-medium">Fuel Consumption Metric</span>
+            <span className="text-[10px] text-purple-600 font-medium">Fuel Issued</span>
           </div>
-          <div className="h-11 w-11 sm:h-12 sm:w-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 shadow-2xs group-hover:bg-purple-600 group-hover:text-white transition-colors">
-            <Fuel size={22} />
+          <div className="h-10 w-10 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 shadow-2xs group-hover:bg-purple-600 group-hover:text-white transition-colors">
+            <Fuel size={20} />
           </div>
         </div>
 
-        {/* Card 4: Total Distance */}
-        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex items-center justify-between group">
+        {/* Card 6: Total Distance */}
+        <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex items-center justify-between group">
           <div>
-            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
-              Cumulative Distance
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
+              Total Highway
             </span>
-            <div className="text-xl sm:text-2xl font-black text-emerald-600 tracking-tight">
+            <div className="text-lg sm:text-xl font-black text-emerald-600 tracking-tight">
               {totalDistanceSum.toLocaleString('en-IN')} KM
             </div>
-            <span className="text-[10px] text-emerald-600 font-medium">Total Highway Distance</span>
+            <span className="text-[10px] text-emerald-600 font-medium">Highway Run</span>
           </div>
-          <div className="h-11 w-11 sm:h-12 sm:w-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 shadow-2xs group-hover:bg-emerald-600 group-hover:text-white transition-colors">
-            <Route size={22} />
+          <div className="h-10 w-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 shadow-2xs group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+            <Route size={20} />
           </div>
         </div>
 
@@ -1458,6 +1628,12 @@ export default function TruckReports() {
                 <th className="py-3.5 px-3.5 whitespace-nowrap">Date</th>
                 <th className="py-3.5 px-3.5 whitespace-nowrap">Vehicle No.</th>
                 <th className="py-3.5 px-3.5 whitespace-nowrap">Route (From ➔ To)</th>
+                <th className="py-3.5 px-3.5 text-center whitespace-nowrap bg-indigo-50/70 text-indigo-800">
+                  <div className="flex items-center justify-center gap-1">
+                    <Timer size={13} />
+                    <span>Turnaround (TAT)</span>
+                  </div>
+                </th>
                 <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Dist.</th>
                 <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Diesel</th>
                 <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Price</th>
@@ -1512,6 +1688,26 @@ export default function TruckReports() {
                           <ArrowRight size={12} className="text-red-500 shrink-0" />
                           <span>{row.to}</span>
                         </span>
+                      </td>
+                      <td className="py-3.5 px-3.5 text-center whitespace-nowrap bg-indigo-50/20">
+                        {row.turnaroundHours ? (
+                          <div className="inline-flex flex-col items-center">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-black bg-indigo-100 text-indigo-700 font-mono shadow-2xs">
+                              <Timer size={12} />
+                              {row.turnaroundHours} hrs
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-semibold mt-0.5">
+                              {row.turnaroundDays} Days • {row.tatStatus || 'Done'}
+                            </span>
+                          </div>
+                        ) : row.departureTime ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-700 animate-pulse">
+                            <Clock size={11} />
+                            In Transit
+                          </span>
+                        ) : (
+                          <span className="text-xs text-slate-300 font-medium">—</span>
+                        )}
                       </td>
                       <td className="py-3.5 px-3.5 text-right font-bold text-slate-700 whitespace-nowrap">
                         {row.distance || '—'}
@@ -1662,6 +1858,27 @@ export default function TruckReports() {
                       {row.to || 'Destination'}
                     </span>
                   </div>
+
+                  {/* Turnaround Time (TAT) Badge in Mobile */}
+                  {row.turnaroundHours ? (
+                    <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/60 text-xs">
+                      <span className="text-[11px] font-bold text-indigo-700 flex items-center gap-1">
+                        <Timer size={12} /> Turnaround:
+                      </span>
+                      <span className="font-mono font-black text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200">
+                        {row.turnaroundHours} hrs ({row.turnaroundDays} d)
+                      </span>
+                    </div>
+                  ) : row.departureTime ? (
+                    <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/60 text-xs">
+                      <span className="text-[11px] font-bold text-amber-600 flex items-center gap-1">
+                        <Clock size={12} /> Status:
+                      </span>
+                      <span className="font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 animate-pulse">
+                        In Transit
+                      </span>
+                    </div>
+                  ) : null}
 
                   {/* Parties Info */}
                   {row.doPartyName && (
@@ -2147,6 +2364,101 @@ export default function TruckReports() {
 
               </div>
 
+              {/* ═══════════════════════════════════════════════════════════
+                  TRUCK TURNAROUND TIME (TAT) TRACKING SECTION
+              ═══════════════════════════════════════════════════════════ */}
+              <div className="mt-4 p-4 sm:p-5 bg-gradient-to-br from-indigo-50/70 via-white to-blue-50/60 rounded-2xl border border-indigo-200/80 shadow-2xs space-y-3.5">
+                <div className="flex items-center justify-between pb-2 border-b border-indigo-100">
+                  <div className="flex items-center gap-2">
+                    <div className="h-7 w-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center">
+                      <Timer size={16} />
+                    </div>
+                    <div>
+                      <h4 className="text-xs sm:text-sm font-black text-indigo-950 uppercase tracking-wide">
+                        Truck Turnaround Time (TAT) Journey Tracking
+                      </h4>
+                      <p className="text-[10px] text-slate-500 font-medium">
+                        Departure ➔ Arrival ➔ Unloading Completion • Auto Duration Calculation
+                      </p>
+                    </div>
+                  </div>
+                  {formData.turnaroundHours ? (
+                    <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black border border-emerald-300 flex items-center gap-1 shadow-2xs">
+                      <CheckCircle2 size={13} />
+                      {formData.turnaroundHours} hrs ({formData.turnaroundDays} d)
+                    </span>
+                  ) : formData.departureTime ? (
+                    <span className="px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-bold border border-amber-300 flex items-center gap-1">
+                      <Clock size={13} />
+                      In Transit
+                    </span>
+                  ) : null}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                  {/* Departure Time */}
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700 uppercase flex items-center gap-1">
+                      <PlayCircle size={13} className="text-blue-600" />
+                      <span>Departure Time</span>
+                    </label>
+                    <input 
+                      type="datetime-local" 
+                      name="departureTime" 
+                      value={formData.departureTime} 
+                      onChange={handleInputChange} 
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none shadow-2xs"
+                    />
+                  </div>
+
+                  {/* Arrival Time */}
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700 uppercase flex items-center gap-1">
+                      <Clock size={13} className="text-amber-600" />
+                      <span>Arrival Time</span>
+                    </label>
+                    <input 
+                      type="datetime-local" 
+                      name="arrivalTime" 
+                      value={formData.arrivalTime} 
+                      onChange={handleInputChange} 
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none shadow-2xs"
+                    />
+                  </div>
+
+                  {/* Unloading Time */}
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700 uppercase flex items-center gap-1">
+                      <StopCircle size={13} className="text-emerald-600" />
+                      <span>Unloading Completion</span>
+                    </label>
+                    <input 
+                      type="datetime-local" 
+                      name="unloadingTime" 
+                      value={formData.unloadingTime} 
+                      onChange={handleInputChange} 
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none shadow-2xs"
+                    />
+                  </div>
+                </div>
+
+                {/* Auto Calculated TAT Display */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div className="bg-white/80 p-3 rounded-xl border border-indigo-100 flex items-center justify-between">
+                    <span className="text-xs font-bold text-indigo-900 uppercase">Turnaround Time (Hours)</span>
+                    <span className="font-mono font-black text-indigo-700 text-sm">
+                      {formData.turnaroundHours ? `${formData.turnaroundHours} Hours` : '— (Auto)'}
+                    </span>
+                  </div>
+                  <div className="bg-white/80 p-3 rounded-xl border border-indigo-100 flex items-center justify-between">
+                    <span className="text-xs font-bold text-indigo-900 uppercase">Turnaround Duration (Days)</span>
+                    <span className="font-mono font-black text-indigo-700 text-sm">
+                      {formData.turnaroundDays ? `${formData.turnaroundDays} Days` : '— (Auto)'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
               {/* Modal Footer */}
               <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-2.5">
                 <button 
@@ -2321,6 +2633,48 @@ export default function TruckReports() {
                 <div className="text-right">
                   <span className="text-[10px] font-bold text-slate-400 uppercase">Distance</span>
                   <p className="font-mono font-bold text-slate-700 text-sm">{viewModal.data.distance || '—'}</p>
+                </div>
+              </div>
+
+              {/* Turnaround Time (TAT) Banner in View Modal */}
+              <div className="p-3.5 bg-gradient-to-r from-indigo-50 to-blue-50 rounded-2xl border border-indigo-200 shadow-2xs space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-black text-indigo-950 uppercase tracking-wide flex items-center gap-1.5">
+                    <Timer size={14} className="text-indigo-600" />
+                    Turnaround Time (TAT) Journey
+                  </span>
+                  {viewModal.data.turnaroundHours ? (
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black border border-emerald-300">
+                      {viewModal.data.turnaroundHours} hrs ({viewModal.data.turnaroundDays} d)
+                    </span>
+                  ) : viewModal.data.departureTime ? (
+                    <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-xs font-bold border border-amber-300">
+                      In Transit
+                    </span>
+                  ) : (
+                    <span className="text-xs text-slate-400 font-medium">Not Recorded</span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 text-xs pt-1">
+                  <div className="bg-white/90 p-2 rounded-xl border border-indigo-100">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase block">Departure</span>
+                    <span className="font-semibold text-slate-800 text-[11px] block mt-0.5">
+                      {viewModal.data.departureTime ? new Date(viewModal.data.departureTime).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' }) : '—'}
+                    </span>
+                  </div>
+                  <div className="bg-white/90 p-2 rounded-xl border border-indigo-100">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase block">Arrival</span>
+                    <span className="font-semibold text-slate-800 text-[11px] block mt-0.5">
+                      {viewModal.data.arrivalTime ? new Date(viewModal.data.arrivalTime).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' }) : '—'}
+                    </span>
+                  </div>
+                  <div className="bg-white/90 p-2 rounded-xl border border-indigo-100">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase block">Unload Done</span>
+                    <span className="font-semibold text-slate-800 text-[11px] block mt-0.5">
+                      {viewModal.data.unloadingTime ? new Date(viewModal.data.unloadingTime).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' }) : '—'}
+                    </span>
+                  </div>
                 </div>
               </div>
 
