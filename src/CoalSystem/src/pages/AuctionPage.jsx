@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { supabase } from "../utils/supabase";
 import "../App.css";
+import { extractAuctionNoticeFromPdf } from "../utils/auctionNoticeOcr";
 
 export default function AuctionPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -78,6 +79,7 @@ export default function AuctionPage() {
   const [items, setItems] = useState([defaultNewItem()]);
   const [pdfFile, setPdfFile] = useState(null);
   const fileInputRef = useRef(null);
+  const isReadingPdf = useRef(false);
 
   const fetchAuctions = async () => {
     setIsLoading(true);
@@ -172,9 +174,53 @@ export default function AuctionPage() {
     }
   };
 
+  // Reads the uploaded notice PDF (scanned pages included) with AI and pre-fills the form below.
+  // Anything the PDF does not contain is left as it is; the user reviews and edits before saving.
+  const fillFormFromPdf = async (file) => {
+    if (isReadingPdf.current) return;
+    const hasEnteredClusters = items.some(i => i.cluster_name || i.source || i.loading_point || i.mine || i.coal_grade || i.quantity_offered || i.total_offer);
+    if (hasEnteredClusters && !window.confirm("Replace the cluster offers entered so far with the data read from this PDF?")) return;
+
+    isReadingPdf.current = true;
+    try {
+      setToastMessage("Reading PDF with AI...");
+      const { form, items: pdfItems, warnings, corrections } = await extractAuctionNoticeFromPdf(file, setToastMessage);
+
+      if (pdfItems.length === 0 && !Object.values(form).some(Boolean)) {
+        showToast("No auction notice data found in this PDF");
+        return;
+      }
+
+      setFormData(prev => {
+        const next = { ...prev };
+        Object.entries(form).forEach(([key, value]) => { if (value) next[key] = value; });
+        return next;
+      });
+      if (pdfItems.length > 0) {
+        setItems(pdfItems.map(item => ({ ...defaultNewItem(), ...item })));
+      }
+
+      showToast(`Read ${pdfItems.length} cluster offer lines from the PDF. Please review before saving.`);
+      if (warnings.length > 0 || corrections.length > 0) {
+        const lines = [...warnings];
+        if (corrections.length > 0) lines.push(`A second check corrected ${corrections.length} value(s).`);
+        window.alert("Please check these points against the PDF:\n\n- " + lines.join("\n- "));
+      }
+    } catch (err) {
+      console.error("PDF read error:", err);
+      setToastMessage("");
+      window.alert("Could not read the PDF: " + err.message);
+    } finally {
+      isReadingPdf.current = false;
+    }
+  };
+
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files.length > 0) {
-      setPdfFile(e.target.files[0]);
+      const file = e.target.files[0];
+      setPdfFile(file);
+      e.target.value = "";
+      fillFormFromPdf(file);
     }
   };
 
