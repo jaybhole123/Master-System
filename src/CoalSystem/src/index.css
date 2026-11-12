@@ -907,6 +907,23 @@ html, body { height: 100%; margin: 0; }
 /* ═══════════════════════════════════════════════
    RESPONSIVE
 ═══════════════════════════════════════════════ */
+/* Auction Table Responsive Visibility */
+.auction-desktop-table {
+  display: block;
+}
+.auction-mobile-cards {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .auction-desktop-table {
+    display: none !important;
+  }
+  .auction-mobile-cards {
+    display: block !important;
+  }
+}
+
 .sidebar-overlay {
   display: none;
   position: fixed;

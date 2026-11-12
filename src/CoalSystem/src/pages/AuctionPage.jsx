@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { supabase } from "../utils/supabase";
 import "../App.css";
-import { extractAuctionNoticeFromPdf } from "../utils/auctionNoticeOcr";
+import { extractAuctionNoticeFromPdf, extractAuctionNoticeFromImage } from "../utils/auctionNoticeOcr";
 
 export default function AuctionPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -174,20 +174,24 @@ export default function AuctionPage() {
     }
   };
 
-  // Reads the uploaded notice PDF (scanned pages included) with AI and pre-fills the form below.
-  // Anything the PDF does not contain is left as it is; the user reviews and edits before saving.
-  const fillFormFromPdf = async (file) => {
+  // Reads the uploaded notice PDF or Image (scanned pages included) with AI and pre-fills the form below.
+  // Anything the file does not contain is left as it is; the user reviews and edits before saving.
+  const fillFormFromFile = async (file) => {
     if (isReadingPdf.current) return;
     const hasEnteredClusters = items.some(i => i.cluster_name || i.source || i.loading_point || i.mine || i.coal_grade || i.quantity_offered || i.total_offer);
-    if (hasEnteredClusters && !window.confirm("Replace the cluster offers entered so far with the data read from this PDF?")) return;
+    if (hasEnteredClusters && !window.confirm("Replace the cluster offers entered so far with the data read from this document?")) return;
 
     isReadingPdf.current = true;
     try {
-      setToastMessage("Reading PDF with AI...");
-      const { form, items: pdfItems, warnings, corrections } = await extractAuctionNoticeFromPdf(file, setToastMessage);
+      const isImage = file.type?.startsWith("image/") || /\.(jpg|jpeg|png|webp|bmp)$/i.test(file.name);
+      setToastMessage(isImage ? "Reading Image with AI..." : "Reading PDF with AI...");
+      
+      const { form, items: pdfItems, warnings, corrections } = isImage 
+        ? await extractAuctionNoticeFromImage(file, setToastMessage)
+        : await extractAuctionNoticeFromPdf(file, setToastMessage);
 
       if (pdfItems.length === 0 && !Object.values(form).some(Boolean)) {
-        showToast("No auction notice data found in this PDF");
+        showToast("No auction notice data found in this file");
         return;
       }
 
@@ -200,16 +204,16 @@ export default function AuctionPage() {
         setItems(pdfItems.map(item => ({ ...defaultNewItem(), ...item })));
       }
 
-      showToast(`Read ${pdfItems.length} cluster offer lines from the PDF. Please review before saving.`);
+      showToast(`Read ${pdfItems.length} cluster offer lines from the document. Please review before saving.`);
       if (warnings.length > 0 || corrections.length > 0) {
         const lines = [...warnings];
         if (corrections.length > 0) lines.push(`A second check corrected ${corrections.length} value(s).`);
-        window.alert("Please check these points against the PDF:\n\n- " + lines.join("\n- "));
+        window.alert("Please check these points against the document:\n\n- " + lines.join("\n- "));
       }
     } catch (err) {
-      console.error("PDF read error:", err);
+      console.error("Document read error:", err);
       setToastMessage("");
-      window.alert("Could not read the PDF: " + err.message);
+      window.alert("Could not read the document: " + err.message);
     } finally {
       isReadingPdf.current = false;
     }
@@ -220,7 +224,7 @@ export default function AuctionPage() {
       const file = e.target.files[0];
       setPdfFile(file);
       e.target.value = "";
-      fillFormFromPdf(file);
+      fillFormFromFile(file);
     }
   };
 
@@ -386,6 +390,26 @@ export default function AuctionPage() {
       }
     } catch (err) {
       console.error("Error fetching view items:", err);
+    }
+  };
+
+  const handleDeleteClick = async (row) => {
+    const confirmDelete = window.confirm(`Are you sure you want to delete auction record #${row.id} (${row.coal_company || 'Auction'})?`);
+    if (!confirmDelete) return;
+
+    try {
+      showToast("Deleting Auction Record...");
+      // Delete child items first if foreign key cascade not set
+      await supabase.from('auction_items').delete().eq('auction_id', row.id);
+      
+      const { error } = await supabase.from('auctions').delete().eq('id', row.id);
+      if (error) throw error;
+
+      showToast("Auction deleted successfully!");
+      fetchAuctions();
+    } catch (err) {
+      console.error("Error deleting auction:", err);
+      window.alert("Failed to delete auction: " + err.message);
     }
   };
 
@@ -636,7 +660,7 @@ export default function AuctionPage() {
             }}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-            + ADD AUCTION
+            ADD AUCTION
           </button>
         </div>
       </div>
@@ -646,12 +670,14 @@ export default function AuctionPage() {
         <div style={{ background: "white", padding: "16px 20px", borderRadius: "14px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
           <div style={{ fontSize: "11px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>Registered Auctions</div>
           <div style={{ fontSize: "24px", fontWeight: "800", color: "#0f172a", marginTop: "4px" }}>{data.length}</div>
-          <div style={{ fontSize: "11px", color: "#16a34a", fontWeight: "600", marginTop: "4px" }}>Total Recorded Notices</div>
+          <div style={{ fontSize: "11px", color: data.length > 0 ? "#16a34a" : "#94a3b8", fontWeight: "600", marginTop: "4px" }}>
+            {data.length > 0 ? "Total Recorded Notices" : "No records"}
+          </div>
         </div>
         <div style={{ background: "white", padding: "16px 20px", borderRadius: "14px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
           <div style={{ fontSize: "11px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>Active Coal Companies</div>
-          <div style={{ fontSize: "20px", fontWeight: "800", color: "#dc2626", marginTop: "4px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-            {[...new Set(data.map(d => d.coal_company).filter(Boolean))].length || 0}
+          <div style={{ fontSize: "24px", fontWeight: "800", color: "#dc2626", marginTop: "4px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {[...new Set(data.map(d => d.coal_company).filter(Boolean))].length}
           </div>
           <div style={{ fontSize: "11px", color: "#64748b", marginTop: "4px" }}>
             {[...new Set(data.map(d => d.coal_company).filter(Boolean))].slice(0, 2).join(", ") || "No records"}
@@ -659,15 +685,21 @@ export default function AuctionPage() {
         </div>
         <div style={{ background: "white", padding: "16px 20px", borderRadius: "14px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
           <div style={{ fontSize: "11px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>Total Bidders Active</div>
-          <div style={{ fontSize: "20px", fontWeight: "800", color: "#4f46e5", marginTop: "4px" }}>
-            {[...new Set(data.map(d => d.bidder).filter(Boolean))].length || 0}
+          <div style={{ fontSize: "24px", fontWeight: "800", color: "#4f46e5", marginTop: "4px" }}>
+            {[...new Set(data.map(d => d.bidder).filter(Boolean))].length}
           </div>
-          <div style={{ fontSize: "11px", color: "#64748b", marginTop: "4px" }}>Unique Registered Bidders</div>
+          <div style={{ fontSize: "11px", color: "#64748b", marginTop: "4px" }}>
+            {data.length > 0 ? "Unique Registered Bidders" : "No active bidders"}
+          </div>
         </div>
         <div style={{ background: "white", padding: "16px 20px", borderRadius: "14px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-          <div style={{ fontSize: "11px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>Rail Booking Policy</div>
-          <div style={{ fontSize: "18px", fontWeight: "800", color: "#0891b2", marginTop: "4px" }}>4,150 T / Rake</div>
-          <div style={{ fontSize: "11px", color: "#64748b", marginTop: "4px" }}>SECL Standard Notice Value</div>
+          <div style={{ fontSize: "11px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>Total Offered Qty</div>
+          <div style={{ fontSize: "24px", fontWeight: "800", color: "#0891b2", marginTop: "4px" }}>
+            {filteredData.reduce((acc, row) => acc + (Number(row.totalQty) || 0), 0).toLocaleString()} <span style={{ fontSize: "14px", fontWeight: "600", color: "#64748b" }}>Tes</span>
+          </div>
+          <div style={{ fontSize: "11px", color: "#64748b", marginTop: "4px" }}>
+            {filteredData.length > 0 ? `Across ${filteredData.length} recorded notice(s)` : "No active notices"}
+          </div>
         </div>
       </div>
 
@@ -717,11 +749,13 @@ export default function AuctionPage() {
           </div>
         </div>
 
-        <div className="summary-table-wrap" style={{ overflowX: "auto" }}>
-          <table className="stable" style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
+        {/* Desktop Table View */}
+        <div className="summary-table-wrap auction-desktop-table" style={{ overflowX: "auto" }}>
+          <table className="auction-main-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px", minWidth: "900px" }}>
             <thead>
               <tr style={{ background: "#f8fafc", borderBottom: "2px solid #e2e8f0" }}>
                 <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "center", width: "50px" }}>S.NO</th>
+                <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "center", width: "70px" }}>VIEW</th>
                 <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "left" }}>DATE (दिनांक)</th>
                 <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "left" }}>SERVICE PROVIDER (सेवा प्रदायकर्ता)</th>
                 <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "left" }}>REMARKS / ANNEXURE</th>
@@ -729,20 +763,20 @@ export default function AuctionPage() {
                 <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "center" }}>MODE</th>
                 <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "right" }}>OFFERED QTY (TES)</th>
                 <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "center" }}>PREVIEW</th>
-                <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "center" }}>ACTION</th>
+                <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "center", minWidth: "140px" }}>ACTION</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan="9" style={{ textAlign: "center", padding: "40px", color: "var(--muted)" }}>
+                  <td colSpan="10" style={{ textAlign: "center", padding: "40px", color: "var(--muted)" }}>
                     <div style={{ display: "inline-block", width: "24px", height: "24px", border: "3px solid #fecaca", borderTopColor: "#dc2626", borderRadius: "50%", animation: "spin 1s linear infinite" }}></div>
                     <div style={{ marginTop: "8px", fontWeight: "600", fontSize: "13px" }}>Loading auction records...</div>
                   </td>
                 </tr>
               ) : filteredData.length === 0 ? (
                 <tr>
-                  <td colSpan="9" style={{ textAlign: "center", padding: "48px", color: "#94a3b8" }}>
+                  <td colSpan="10" style={{ textAlign: "center", padding: "48px", color: "#94a3b8" }}>
                     <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="1.5" style={{ margin: "0 auto 8px" }}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
                     <div style={{ fontWeight: "700", color: "#64748b", fontSize: "14px" }}>No auction notifications found</div>
                     <div style={{ fontSize: "12px", marginTop: "4px" }}>Click "+ Add Auction" to create a new SECL / CIL e-auction record.</div>
@@ -752,10 +786,26 @@ export default function AuctionPage() {
                 filteredData.map((row, i) => {
                   return (
                     <tr key={row.id} style={{ borderBottom: "1px solid #f1f5f9", transition: "background 0.15s" }}>
-                      <td style={{ textAlign: "center", fontWeight: "700", color: "#94a3b8", fontSize: "12px" }}>
+                      <td data-label="S.NO" style={{ textAlign: "center", fontWeight: "700", color: "#94a3b8", fontSize: "12px", padding: "12px 14px" }}>
                         {String(i + 1).padStart(2, '0')}
                       </td>
-                      <td style={{ fontSize: "12px", color: "#0f172a", fontWeight: "800" }}>
+                      <td data-label="VIEW" style={{ textAlign: "center", padding: "12px 14px" }}>
+                        <button
+                          style={{
+                            cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "4px",
+                            padding: "5px 10px", fontSize: "11px", fontWeight: "700", borderRadius: "6px",
+                            border: "1px solid #fee2e2", background: "#fef2f2", color: "#dc2626", transition: "all 0.15s"
+                          }}
+                          onMouseOver={(e) => { e.currentTarget.style.background = "#dc2626"; e.currentTarget.style.color = "white"; }}
+                          onMouseOut={(e) => { e.currentTarget.style.background = "#fef2f2"; e.currentTarget.style.color = "#dc2626"; }}
+                          onClick={() => handleViewClick(row)}
+                          title="View Details"
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                          View
+                        </button>
+                      </td>
+                      <td data-label="DATE (दिनांक)" style={{ fontSize: "12px", color: "#0f172a", fontWeight: "800", padding: "12px 14px" }}>
                         <div>{formatDate(row.bid_date)}</div>
                         {row.notification_date && row.notification_date !== row.bid_date && (
                           <div style={{ fontSize: "10px", color: "#64748b", fontWeight: "500" }}>
@@ -763,7 +813,7 @@ export default function AuctionPage() {
                           </div>
                         )}
                       </td>
-                      <td style={{ fontSize: "12px" }}>
+                      <td data-label="SERVICE PROVIDER" style={{ fontSize: "12px", padding: "12px 14px" }}>
                         <div style={{ fontWeight: "800", color: "#dc2626" }}>
                           {row.meta?.service_provider_hindi || row.meta?.service_provider || row.coal_company || "CMPDIL"}
                         </div>
@@ -773,12 +823,12 @@ export default function AuctionPage() {
                           </div>
                         )}
                       </td>
-                      <td style={{ fontSize: "11px", color: "#475569", maxWidth: "240px" }}>
+                      <td data-label="REMARKS / ANNEXURE" style={{ fontSize: "11px", color: "#475569", maxWidth: "240px", padding: "12px 14px" }}>
                         <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={row.meta?.remarks_annexure || row.remarks}>
                           {row.meta?.remarks_annexure || (row.remarks && !row.remarks.startsWith("{") ? row.remarks : "Annexure A & B")}
                         </div>
                       </td>
-                      <td style={{ fontSize: "12px" }}>
+                      <td data-label="OFFERED CLUSTER(S)" style={{ fontSize: "12px", padding: "12px 14px" }}>
                         <div style={{ fontWeight: "700", color: "#0f172a" }}>
                           {row.clusterNamesDisplay}
                         </div>
@@ -788,7 +838,7 @@ export default function AuctionPage() {
                           </div>
                         )}
                       </td>
-                      <td style={{ textAlign: "center" }}>
+                      <td data-label="MODE" style={{ textAlign: "center", padding: "12px 14px" }}>
                         <span style={{ 
                           display: "inline-block", padding: "2px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: "700",
                           background: row.modeDisplay?.toLowerCase().includes("rail") ? "#ecfeff" : "#fef3c7",
@@ -797,33 +847,49 @@ export default function AuctionPage() {
                           {row.modeDisplay || "Road"}
                         </span>
                       </td>
-                      <td style={{ textAlign: "right", fontWeight: "800", color: "#0f172a", fontSize: "13px" }}>
+                      <td data-label="OFFERED QTY (TES)" style={{ textAlign: "right", fontWeight: "800", color: "#0f172a", fontSize: "13px", padding: "12px 14px" }}>
                         {typeof row.totalQty === 'number' ? row.totalQty.toLocaleString() : (row.totalQty || "-")}
                         <span style={{ fontSize: "10px", color: "#64748b", marginLeft: "3px" }}>Tes</span>
                       </td>
-                      <td style={{ textAlign: "center" }}>
+                      <td data-label="PREVIEW" style={{ textAlign: "center", padding: "12px 14px" }}>
                         {row.pdf_url ? (
                           <a href={row.pdf_url} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: "4px", padding: "4px 8px", background: "#fef2f2", color: "#dc2626", borderRadius: "6px", textDecoration: "none", fontWeight: 700, fontSize: "11px", border: "1px solid #fecaca" }}>
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-                            PDF
+                            {/\.(jpg|jpeg|png|webp)$/i.test(row.pdf_url) ? "IMG" : "PDF"}
                           </a>
                         ) : <span style={{ color: "#cbd5e1" }}>—</span>}
                       </td>
-                      <td style={{ textAlign: "center" }}>
-                        <button
-                          style={{
-                            cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "5px",
-                            padding: "6px 12px", fontSize: "12px", fontWeight: "700", borderRadius: "8px",
-                            border: "1px solid #fee2e2", background: "#fef2f2", color: "#dc2626", transition: "all 0.15s"
-                          }}
-                          onMouseOver={(e) => { e.currentTarget.style.background = "#dc2626"; e.currentTarget.style.color = "white"; }}
-                          onMouseOut={(e) => { e.currentTarget.style.background = "#fef2f2"; e.currentTarget.style.color = "#dc2626"; }}
-                          onClick={() => handleViewClick(row)}
-                          title="View Details"
-                        >
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                          View
-                        </button>
+                      <td data-label="ACTION" style={{ textAlign: "center", padding: "12px 14px" }}>
+                        <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                          <button
+                            style={{
+                              cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "4px",
+                              padding: "5px 10px", fontSize: "11px", fontWeight: "700", borderRadius: "6px",
+                              border: "1px solid #cbd5e1", background: "#ffffff", color: "#0f172a", transition: "all 0.15s"
+                            }}
+                            onMouseOver={(e) => { e.currentTarget.style.background = "#f1f5f9"; }}
+                            onMouseOut={(e) => { e.currentTarget.style.background = "#ffffff"; }}
+                            onClick={() => handleEditClick(row)}
+                            title="Update Auction Record"
+                          >
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                            Update
+                          </button>
+                          <button
+                            style={{
+                              cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "4px",
+                              padding: "5px 10px", fontSize: "11px", fontWeight: "700", borderRadius: "6px",
+                              border: "1px solid #fee2e2", background: "#fef2f2", color: "#ef4444", transition: "all 0.15s"
+                            }}
+                            onMouseOver={(e) => { e.currentTarget.style.background = "#ef4444"; e.currentTarget.style.color = "white"; }}
+                            onMouseOut={(e) => { e.currentTarget.style.background = "#fef2f2"; e.currentTarget.style.color = "#ef4444"; }}
+                            onClick={() => handleDeleteClick(row)}
+                            title="Delete Auction Record"
+                          >
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                            Delete
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -832,445 +898,488 @@ export default function AuctionPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Mobile View: Dedicated Clean Cards */}
+        <div className="auction-mobile-cards">
+          {isLoading ? (
+            <div style={{ textAlign: "center", padding: "30px", color: "#64748b" }}>Loading records...</div>
+          ) : filteredData.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "30px", color: "#94a3b8" }}>No records found</div>
+          ) : (
+            filteredData.map((row, i) => (
+              <div key={row.id} style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "16px", marginBottom: "14px", boxShadow: "0 2px 6px rgba(0,0,0,0.03)" }}>
+                {/* Header row with Serial No and View button */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "10px", borderBottom: "1px solid #f1f5f9" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span style={{ fontSize: "11px", fontWeight: "800", color: "#94a3b8", background: "#f8fafc", padding: "2px 6px", borderRadius: "4px" }}>
+                      #{String(i + 1).padStart(2, '0')}
+                    </span>
+                    <span style={{ 
+                      padding: "2px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: "700",
+                      background: row.modeDisplay?.toLowerCase().includes("rail") ? "#ecfeff" : "#fef3c7",
+                      color: row.modeDisplay?.toLowerCase().includes("rail") ? "#0891b2" : "#b45309"
+                    }}>
+                      {row.modeDisplay || "Road"}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => handleViewClick(row)}
+                    style={{
+                      cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "4px",
+                      padding: "5px 12px", fontSize: "11px", fontWeight: "700", borderRadius: "6px",
+                      border: "1px solid #fee2e2", background: "#fef2f2", color: "#dc2626"
+                    }}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    View
+                  </button>
+                </div>
+
+                {/* Details list */}
+                <div style={{ padding: "12px 0", display: "flex", flexDirection: "column", gap: "10px", fontSize: "12px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ color: "#64748b", fontWeight: "700", fontSize: "11px" }}>DATE (दिनांक)</span>
+                    <span style={{ fontWeight: "800", color: "#0f172a" }}>{formatDate(row.bid_date)}</span>
+                  </div>
+
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ color: "#64748b", fontWeight: "700", fontSize: "11px" }}>SERVICE PROVIDER</span>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontWeight: "800", color: "#dc2626" }}>
+                        {row.meta?.service_provider_hindi || row.meta?.service_provider || row.coal_company || "CMPDIL"}
+                      </div>
+                      {row.meta?.service_provider && row.meta?.service_provider_hindi && (
+                        <div style={{ fontSize: "10px", color: "#64748b" }}>{row.meta.service_provider}</div>
+                      )}
+                    </div>
+                  </div>
+
+                  {row.remarks && (
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ color: "#64748b", fontWeight: "700", fontSize: "11px" }}>REMARKS</span>
+                      <span style={{ color: "#475569", fontSize: "11px", maxWidth: "180px", textAlign: "right", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {row.meta?.remarks_annexure || (row.remarks && !row.remarks.startsWith("{") ? row.remarks : "Annexure A & B")}
+                      </span>
+                    </div>
+                  )}
+
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ color: "#64748b", fontWeight: "700", fontSize: "11px" }}>OFFERED CLUSTER</span>
+                    <span style={{ fontWeight: "700", color: "#0f172a" }}>{row.clusterNamesDisplay}</span>
+                  </div>
+
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ color: "#64748b", fontWeight: "700", fontSize: "11px" }}>OFFERED QTY</span>
+                    <span style={{ fontWeight: "800", color: "#0f172a", fontSize: "13px" }}>
+                      {typeof row.totalQty === 'number' ? row.totalQty.toLocaleString() : (row.totalQty || "-")} Tes
+                    </span>
+                  </div>
+
+                  {row.pdf_url && (
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ color: "#64748b", fontWeight: "700", fontSize: "11px" }}>DOCUMENT PREVIEW</span>
+                      <a href={row.pdf_url} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: "4px", padding: "4px 10px", background: "#fef2f2", color: "#dc2626", borderRadius: "6px", textDecoration: "none", fontWeight: 700, fontSize: "11px", border: "1px solid #fecaca" }}>
+                        📄 {/\.(jpg|jpeg|png|webp)$/i.test(row.pdf_url) ? "IMG" : "PDF"}
+                      </a>
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer action buttons */}
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", paddingTop: "10px", borderTop: "1px solid #f1f5f9" }}>
+                  <button
+                    onClick={() => handleEditClick(row)}
+                    style={{
+                      flex: 1, cursor: "pointer", display: "inline-flex", justifyContent: "center", alignItems: "center", gap: "4px",
+                      padding: "8px 12px", fontSize: "12px", fontWeight: "700", borderRadius: "6px",
+                      border: "1px solid #cbd5e1", background: "#ffffff", color: "#0f172a"
+                    }}
+                  >
+                    ✏️ Update
+                  </button>
+                  <button
+                    onClick={() => handleDeleteClick(row)}
+                    style={{
+                      flex: 1, cursor: "pointer", display: "inline-flex", justifyContent: "center", alignItems: "center", gap: "4px",
+                      padding: "8px 12px", fontSize: "12px", fontWeight: "700", borderRadius: "6px",
+                      border: "1px solid #fee2e2", background: "#fef2f2", color: "#ef4444"
+                    }}
+                  >
+                    🗑️ Delete
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════
-          ADD / EDIT MODAL - REDESIGNED PER SECL NOTICE PDF
+          ADD / EDIT MODAL - CLEAN & PROFESSIONAL DESIGN
       ═══════════════════════════════════════════════════════════════ */}
       {isModalOpen && (
-        <div className="auction-modal-overlay">
-          <div className="auction-modal" style={{ maxWidth: '960px', maxHeight: '92vh', overflowY: 'auto', borderRadius: '16px' }}>
-            <div className="auction-modal-header" style={{ padding: "18px 24px", background: "linear-gradient(to right, #fef2f2, #ffffff)", borderBottom: "1px solid #fee2e2" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <span className="auction-badge" style={{ background: "#dc2626", color: "white", borderRadius: "6px" }}>
-                  {editId ? 'UPDATE AUCTION' : 'CIL E-AUCTION ENTRY'}
-                </span>
-                <span style={{ fontSize: "11px", fontWeight: "700", color: "#dc2626", background: "#fee2e2", padding: "3px 8px", borderRadius: "6px" }}>
-                  Single Window Mode Agnostic Policy
-                </span>
-              </div>
-              <h2 className="auction-modal-title" style={{ marginTop: "6px", fontSize: "18px", color: "#0f172a" }}>
-                {editId ? 'Edit Auction Notification' : 'Record New Coal Auction Notification'}
-              </h2>
-              <p style={{ margin: "2px 0 0", fontSize: "12px", color: "#64748b" }}>
-                Enter parameters as per official SECL / CIL Auction Notice & Annexure Cluster Offers
-              </p>
-              <button className="auction-close-btn" onClick={() => setIsModalOpen(false)}>&times;</button>
-            </div>
-
-            <div className="auction-modal-body" style={{ padding: "20px 24px" }}>
-              {/* Section 1: Notice Conduction Schedule (Page 1 Table Structure) */}
-              <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: "12px", padding: "16px 20px", marginBottom: "20px", boxShadow: "0 2px 6px rgba(0,0,0,0.03)" }}>
-                
-                {/* Page 1 Service Provider Table (Date | Service Provider | Remarks) */}
+        <div className="auction-modal-overlay" style={{ backdropFilter: "blur(4px)", background: "rgba(15, 23, 42, 0.6)" }}>
+          <div className="auction-modal" style={{ maxWidth: '980px', maxHeight: '90vh', overflowY: 'auto', borderRadius: '16px', border: "1px solid #e2e8f0", boxShadow: "0 20px 40px rgba(0,0,0,0.15)" }}>
+            
+            {/* Modal Header */}
+            <div className="auction-modal-header" style={{ padding: "20px 28px", background: "#ffffff", borderBottom: "1px solid #f1f5f9", position: "sticky", top: 0, zIndex: 10 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                 <div>
-                  <div style={{ fontSize: "12px", fontWeight: "800", color: "#0f172a", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
-                    <span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", background: "#dc2626" }}></span>
-                    Service Provider & Conduction Schedule (Page 1 Table Structure)
-                  </div>
-                  <div style={{ overflowX: "auto", border: "1px solid #cbd5e1", borderRadius: "8px" }}>
-                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
-                      <thead>
-                        <tr style={{ background: "#f1f5f9", borderBottom: "1px solid #cbd5e1", textAlign: "left" }}>
-                          <th style={{ padding: "8px 12px", fontWeight: "800", color: "#0f172a", borderRight: "1px solid #cbd5e1", width: "25%" }}>
-                            Date (दिनांक)
-                          </th>
-                          <th style={{ padding: "8px 12px", fontWeight: "800", color: "#0f172a", borderRight: "1px solid #cbd5e1", width: "35%" }}>
-                            Service Provider (सेवा प्रदायकर्ता)
-                          </th>
-                          <th style={{ padding: "8px 12px", fontWeight: "800", color: "#0f172a", width: "40%" }}>
-                            Remarks (रिमार्क्स)
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr style={{ background: "#ffffff" }}>
-                          <td style={{ padding: "8px 12px", borderRight: "1px solid #cbd5e1", verticalAlign: "top" }}>
-                            <input 
-                              type="date" 
-                              name="bid_date" 
-                              className="auction-input" 
-                              style={{ margin: 0, padding: "6px 8px", fontSize: "12px", fontWeight: "700" }} 
-                              value={formData.bid_date} 
-                              onChange={handleInputChange} 
-                            />
-                            <div style={{ fontSize: "10px", color: "#64748b", marginTop: "4px" }}>
-                              Auction Conduction Date (Page 1 e-Auction Date)
-                            </div>
-                          </td>
-                          <td style={{ padding: "8px 12px", borderRight: "1px solid #cbd5e1", verticalAlign: "top" }}>
-                            <input 
-                              type="text" 
-                              name="service_provider_hindi" 
-                              className="auction-input" 
-                              style={{ margin: 0, padding: "4px 8px", fontSize: "12px", marginBottom: "4px", fontWeight: "700" }} 
-                              placeholder="सेवा प्रदायकर्ता (हिंदी) e.g. सीएमपीडीआईएल" 
-                              value={formData.service_provider_hindi} 
-                              onChange={handleInputChange} 
-                            />
-                            <input 
-                              type="text" 
-                              name="service_provider" 
-                              className="auction-input" 
-                              style={{ margin: 0, padding: "4px 8px", fontSize: "12px" }} 
-                              placeholder="Service Provider (English) e.g. CMPDIL / MSTC" 
-                              value={formData.service_provider} 
-                              onChange={handleInputChange} 
-                            />
-                          </td>
-                          <td style={{ padding: "8px 12px", verticalAlign: "top" }}>
-                            <textarea 
-                              name="remarks_annexure" 
-                              className="auction-textarea" 
-                              style={{ margin: 0, padding: "6px 8px", fontSize: "11px", minHeight: "56px" }} 
-                              placeholder="Enter remarks or annexure note..." 
-                              value={formData.remarks_annexure} 
-                              onChange={handleInputChange}
-                            ></textarea>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-              </div>
-
-              {/* Section 2: Cluster Offer & Cluster Description Tables (Per Page 2 of Notice PDF) */}
-              <div style={{ marginTop: "24px", marginBottom: "14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div>
-                  <div style={{ fontWeight: "800", fontSize: "13px", color: "#dc2626", letterSpacing: "0.5px", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "6px" }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
-                    2. Cluster Offers & Cluster Description Tables (Page 2 Notice Format)
-                  </div>
-                  <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>
-                    Exact table structure per SECL CIL E-Auction Notice: Cluster Offer summary table + Cluster Description line items
-                  </div>
-                </div>
-                <span style={{ fontSize: "11px", color: "#475569", fontWeight: "700", background: "#f1f5f9", padding: "4px 10px", borderRadius: "999px" }}>
-                  {items.length} {items.length === 1 ? 'Cluster Offer' : 'Cluster Offers'}
-                </span>
-              </div>
-
-              {items.map((item, index) => (
-                <div key={item.id} className="auction-item-card" style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: "12px", padding: "16px", marginBottom: "20px", boxShadow: "0 2px 6px rgba(0,0,0,0.03)" }}>
-                  
-                  {/* Cluster Offer Item Header */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: "12px", borderBottom: "1px solid #f1f5f9", paddingBottom: "8px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <span style={{ background: "#dc2626", color: "#ffffff", fontSize: "11px", fontWeight: "800", padding: "3px 8px", borderRadius: "6px" }}>
-                        CLUSTER OFFER #{index + 1}
-                      </span>
-                      <span style={{ fontSize: "13px", fontWeight: "800", color: "#0f172a" }}>
-                        {item.cluster_name ? `${item.cluster_name} Cluster Offer` : 'New Cluster Offer'}
-                      </span>
-                    </div>
-
-                    {items.length > 1 && (
-                      <button 
-                        type="button"
-                        onClick={() => handleRemoveItem(item.id)} 
-                        style={{ background: '#fef2f2', border: '1px solid #fee2e2', color: '#ef4444', cursor: 'pointer', fontSize: '11px', fontWeight: "700", padding: "4px 10px", borderRadius: "6px" }}
-                        title="Remove Cluster Offer"
-                      >
-                        ✕ Remove Cluster
-                      </button>
-                    )}
-                  </div>
-
-                  {/* TABLE 1: [Cluster Name] Cluster Offer Header Table (Page 2 Table Format) */}
-                  <div style={{ marginBottom: "14px" }}>
-                    <div style={{ fontSize: "11px", fontWeight: "800", color: "#475569", letterSpacing: "0.5px", textTransform: "uppercase", marginBottom: "6px", display: "flex", alignItems: "center", gap: "5px" }}>
-                      <span style={{ display: "inline-block", width: "6px", height: "6px", borderRadius: "50%", background: "#dc2626" }}></span>
-                      Table 1: Cluster Offer Summary
-                    </div>
-                    
-                    <div style={{ overflowX: "auto", border: "1px solid #cbd5e1", borderRadius: "8px" }}>
-                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
-                        <thead>
-                          <tr style={{ background: "#f1f5f9", borderBottom: "1px solid #cbd5e1", textAlign: "left" }}>
-                            <th style={{ padding: "8px 10px", fontWeight: "800", color: "#0f172a", borderRight: "1px solid #e2e8f0" }}>Cluster Name *</th>
-                            <th style={{ padding: "8px 10px", fontWeight: "800", color: "#0f172a", borderRight: "1px solid #e2e8f0" }}>Total Offer (Tes) *</th>
-                            <th style={{ padding: "8px 10px", fontWeight: "800", color: "#0f172a", borderRight: "1px solid #e2e8f0" }}>Representative Grade</th>
-                            <th style={{ padding: "8px 10px", fontWeight: "800", color: "#0f172a", borderRight: "1px solid #e2e8f0" }}>Representative Size</th>
-                            <th style={{ padding: "8px 10px", fontWeight: "800", color: "#0f172a", borderRight: "1px solid #e2e8f0" }}>Modulated Price (₹)</th>
-                            <th style={{ padding: "8px 10px", fontWeight: "800", color: "#0f172a" }}>Floor Price (₹) *</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr style={{ background: "#ffffff" }}>
-                            <td style={{ padding: "6px 8px", borderRight: "1px solid #e2e8f0", minWidth: "160px" }}>
-                              <input 
-                                type="text" 
-                                className="auction-input" 
-                                style={{ margin: 0, padding: "6px 8px", fontSize: "12px", fontWeight: "600" }} 
-                                placeholder="e.g. Saraipalli G10 / Gevra" 
-                                value={item.cluster_name} 
-                                onChange={(e) => handleItemChange(item.id, 'cluster_name', e.target.value)} 
-                              />
-                            </td>
-                            <td style={{ padding: "6px 8px", borderRight: "1px solid #e2e8f0", minWidth: "130px" }}>
-                              <input 
-                                type="number" 
-                                className="auction-input" 
-                                style={{ margin: 0, padding: "6px 8px", fontSize: "12px", fontWeight: "600" }} 
-                                placeholder="e.g. 50000" 
-                                value={item.total_offer} 
-                                onChange={(e) => handleItemChange(item.id, 'total_offer', e.target.value)} 
-                              />
-                            </td>
-                            <td style={{ padding: "6px 8px", borderRight: "1px solid #e2e8f0", minWidth: "120px" }}>
-                              <input 
-                                type="text" 
-                                className="auction-input" 
-                                style={{ margin: 0, padding: "6px 8px", fontSize: "12px", fontWeight: "600" }} 
-                                placeholder="e.g. G10, G11" 
-                                value={item.representative_grade} 
-                                onChange={(e) => handleItemChange(item.id, 'representative_grade', e.target.value)} 
-                              />
-                            </td>
-                            <td style={{ padding: "6px 8px", borderRight: "1px solid #e2e8f0", minWidth: "140px" }}>
-                              <input 
-                                type="text" 
-                                className="auction-input" 
-                                style={{ margin: 0, padding: "6px 8px", fontSize: "12px" }} 
-                                placeholder="Sized Rom (-100mm)" 
-                                value={item.representative_size} 
-                                onChange={(e) => handleItemChange(item.id, 'representative_size', e.target.value)} 
-                              />
-                            </td>
-                            <td style={{ padding: "6px 8px", borderRight: "1px solid #e2e8f0", minWidth: "120px" }}>
-                              <input 
-                                type="number" 
-                                className="auction-input" 
-                                style={{ margin: 0, padding: "6px 8px", fontSize: "12px" }} 
-                                placeholder="e.g. 1184" 
-                                value={item.cluster_modulated_price} 
-                                onChange={(e) => handleItemChange(item.id, 'cluster_modulated_price', e.target.value)} 
-                              />
-                            </td>
-                            <td style={{ padding: "6px 8px", minWidth: "120px" }}>
-                              <input 
-                                type="number" 
-                                className="auction-input" 
-                                style={{ margin: 0, padding: "6px 8px", fontSize: "12px", fontWeight: "700", color: "#16a34a" }} 
-                                placeholder="e.g. 1421" 
-                                value={item.floor_price} 
-                                onChange={(e) => handleItemChange(item.id, 'floor_price', e.target.value)} 
-                              />
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  {/* TABLE 2: Cluster Description / Offer Description Table (Page 2 Sub-Table Format) */}
-                  <div>
-                    <div style={{ fontSize: "11px", fontWeight: "800", color: "#475569", letterSpacing: "0.5px", textTransform: "uppercase", marginBottom: "6px", display: "flex", alignItems: "center", gap: "5px" }}>
-                      <span style={{ display: "inline-block", width: "6px", height: "6px", borderRadius: "50%", background: "#0891b2" }}></span>
-                      Table 2: Cluster Description / Offer Line Items
-                    </div>
-
-                    <div style={{ overflowX: "auto", border: "1px solid #cbd5e1", borderRadius: "8px" }}>
-                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px", whiteSpace: "nowrap" }}>
-                        <thead>
-                          <tr style={{ background: "#f8fafc", borderBottom: "1px solid #cbd5e1", textAlign: "left" }}>
-                            <th style={{ padding: "8px 10px", fontWeight: "800", color: "#0f172a", borderRight: "1px solid #e2e8f0" }}>Source / Loading Points</th>
-                            <th style={{ padding: "8px 10px", fontWeight: "800", color: "#0f172a", borderRight: "1px solid #e2e8f0" }}>Mode</th>
-                            <th style={{ padding: "8px 10px", fontWeight: "800", color: "#0f172a", borderRight: "1px solid #e2e8f0" }}>Feeding Collieries</th>
-                            <th style={{ padding: "8px 10px", fontWeight: "800", color: "#0f172a", borderRight: "1px solid #e2e8f0" }}>Grade</th>
-                            <th style={{ padding: "8px 10px", fontWeight: "800", color: "#0f172a", borderRight: "1px solid #e2e8f0" }}>Size</th>
-                            <th style={{ padding: "8px 10px", fontWeight: "800", color: "#0f172a", borderRight: "1px solid #e2e8f0" }}>Evacuation Qty (Tes)</th>
-                            <th style={{ padding: "8px 10px", fontWeight: "800", color: "#0f172a", borderRight: "1px solid #e2e8f0" }}>Modulated Price (₹)</th>
-                            <th style={{ padding: "8px 10px", fontWeight: "800", color: "#0f172a", borderRight: "1px solid #e2e8f0" }}>Mod. Price of Rep. Grade (₹)</th>
-                            <th style={{ padding: "8px 10px", fontWeight: "800", color: "#0f172a", borderRight: "1px solid #e2e8f0" }}>Supply Pattern</th>
-                            <th style={{ padding: "8px 10px", fontWeight: "800", color: "#0f172a" }}>No of Lots</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr style={{ background: "#ffffff" }}>
-                            <td style={{ padding: "6px 8px", borderRight: "1px solid #e2e8f0", minWidth: "160px" }}>
-                              <input 
-                                type="text" 
-                                className="auction-input" 
-                                style={{ margin: 0, padding: "6px 8px", fontSize: "12px" }} 
-                                placeholder="e.g. Saraipalli Road / Gevra OC" 
-                                value={item.loading_point || item.source} 
-                                onChange={(e) => handleItemChange(item.id, 'loading_point', e.target.value)} 
-                              />
-                            </td>
-                            <td style={{ padding: "6px 8px", borderRight: "1px solid #e2e8f0", minWidth: "110px" }}>
-                              <select 
-                                className="auction-input" 
-                                style={{ margin: 0, padding: "4px 8px", fontSize: "12px", height: "32px" }} 
-                                value={item.mode} 
-                                onChange={(e) => handleItemChange(item.id, 'mode', e.target.value)}
-                              >
-                                <option value="Road">Road</option>
-                                <option value="Rail">Rail</option>
-                              </select>
-                            </td>
-                            <td style={{ padding: "6px 8px", borderRight: "1px solid #e2e8f0", minWidth: "150px" }}>
-                              <input 
-                                type="text" 
-                                className="auction-input" 
-                                style={{ margin: 0, padding: "6px 8px", fontSize: "12px" }} 
-                                placeholder="e.g. Amlai OC, Sharda HW" 
-                                value={item.feeding_collieries} 
-                                onChange={(e) => handleItemChange(item.id, 'feeding_collieries', e.target.value)} 
-                              />
-                            </td>
-                            <td style={{ padding: "6px 8px", borderRight: "1px solid #e2e8f0", minWidth: "90px" }}>
-                              <input 
-                                type="text" 
-                                className="auction-input" 
-                                style={{ margin: 0, padding: "6px 8px", fontSize: "12px", fontWeight: "600" }} 
-                                placeholder="G10" 
-                                value={item.coal_grade} 
-                                onChange={(e) => handleItemChange(item.id, 'coal_grade', e.target.value)} 
-                              />
-                            </td>
-                            <td style={{ padding: "6px 8px", borderRight: "1px solid #e2e8f0", minWidth: "130px" }}>
-                              <input 
-                                type="text" 
-                                className="auction-input" 
-                                style={{ margin: 0, padding: "6px 8px", fontSize: "12px" }} 
-                                placeholder="Sized Rom (-100mm)" 
-                                value={item.size} 
-                                onChange={(e) => handleItemChange(item.id, 'size', e.target.value)} 
-                              />
-                            </td>
-                            <td style={{ padding: "6px 8px", borderRight: "1px solid #e2e8f0", minWidth: "120px" }}>
-                              <input 
-                                type="number" 
-                                className="auction-input" 
-                                style={{ margin: 0, padding: "6px 8px", fontSize: "12px", fontWeight: "700" }} 
-                                placeholder="50000" 
-                                value={item.quantity_offered} 
-                                onChange={(e) => handleItemChange(item.id, 'quantity_offered', e.target.value)} 
-                              />
-                            </td>
-                            <td style={{ padding: "6px 8px", borderRight: "1px solid #e2e8f0", minWidth: "110px" }}>
-                              <input 
-                                type="number" 
-                                className="auction-input" 
-                                style={{ margin: 0, padding: "6px 8px", fontSize: "12px" }} 
-                                placeholder="1184" 
-                                value={item.modulated_price} 
-                                onChange={(e) => handleItemChange(item.id, 'modulated_price', e.target.value)} 
-                              />
-                            </td>
-                            <td style={{ padding: "6px 8px", borderRight: "1px solid #e2e8f0", minWidth: "120px" }}>
-                              <input 
-                                type="number" 
-                                className="auction-input" 
-                                style={{ margin: 0, padding: "6px 8px", fontSize: "12px" }} 
-                                placeholder="1184" 
-                                value={item.modulated_price_rep_grade} 
-                                onChange={(e) => handleItemChange(item.id, 'modulated_price_rep_grade', e.target.value)} 
-                              />
-                            </td>
-                            <td style={{ padding: "6px 8px", borderRight: "1px solid #e2e8f0", minWidth: "110px" }}>
-                              <input 
-                                type="text" 
-                                className="auction-input" 
-                                style={{ margin: 0, padding: "6px 8px", fontSize: "12px" }} 
-                                placeholder="100%" 
-                                value={item.supply_pattern} 
-                                onChange={(e) => handleItemChange(item.id, 'supply_pattern', e.target.value)} 
-                              />
-                            </td>
-                            <td style={{ padding: "6px 8px", minWidth: "80px" }}>
-                              <input 
-                                type="text" 
-                                className="auction-input" 
-                                style={{ margin: 0, padding: "6px 8px", fontSize: "12px" }} 
-                                placeholder="1" 
-                                value={item.no_of_lots} 
-                                onChange={(e) => handleItemChange(item.id, 'no_of_lots', e.target.value)} 
-                              />
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                </div>
-              ))}
-
-              {/* Page 2 Summary Box: Total Lots and Total Offered Qty */}
-              <div style={{ background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "10px", padding: "12px 18px", marginBottom: "16px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
-                  <div>
-                    <span style={{ fontSize: "11px", fontWeight: "800", color: "#64748b", textTransform: "uppercase" }}>TOTAL LOTS:</span>
-                    <span style={{ marginLeft: "8px", fontSize: "14px", fontWeight: "800", color: "#0f172a" }}>
-                      {items.reduce((sum, item) => sum + (parseInt(item.no_of_lots, 10) || 1), 0)}
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px" }}>
+                    <span style={{ background: "#fee2e2", color: "#dc2626", fontSize: "11px", fontWeight: "800", padding: "4px 10px", borderRadius: "6px", letterSpacing: "0.5px" }}>
+                      {editId ? 'UPDATE AUCTION' : 'CIL / SECL E-AUCTION'}
+                    </span>
+                    <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "600" }}>
+                      Single Window Mode Agnostic Policy
                     </span>
                   </div>
-                  <div>
-                    <span style={{ fontSize: "11px", fontWeight: "800", color: "#64748b", textTransform: "uppercase" }}>TOTAL OFFERED QTY (IN TES):</span>
-                    <span style={{ marginLeft: "8px", fontSize: "15px", fontWeight: "800", color: "#dc2626" }}>
-                      {items.reduce((sum, item) => sum + (parseFloat(item.quantity_offered || item.total_offer) || 0), 0).toLocaleString()} Tes
-                    </span>
-                  </div>
+                  <h2 style={{ margin: 0, fontSize: "19px", fontWeight: "800", color: "#0f172a", letterSpacing: "-0.3px" }}>
+                    {editId ? 'Edit Auction Notification' : 'Record New Auction Notification'}
+                  </h2>
                 </div>
-
                 <button 
-                  type="button"
-                  className="auction-add-btn" 
-                  onClick={handleAddItem}
-                  style={{ border: "1px dashed #dc2626", color: "#dc2626", background: "#fef2f2", padding: "8px 14px", borderRadius: "8px", fontWeight: "700", fontSize: "12px", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "6px" }}
+                  onClick={() => setIsModalOpen(false)}
+                  style={{ background: "#f1f5f9", border: "none", width: "32px", height: "32px", borderRadius: "8px", cursor: "pointer", color: "#64748b", fontSize: "18px", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "700" }}
                 >
-                  <span style={{ fontSize: "14px" }}>+</span> Add Another Cluster Offer Table
+                  &times;
                 </button>
               </div>
+            </div>
 
-              {/* Section 3: Official Notice Document */}
-              <div style={{ marginTop: "24px", marginBottom: "12px", fontWeight: "800", fontSize: "12px", color: "#dc2626", letterSpacing: "0.5px", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "6px" }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-                3. Official Notice Document
-              </div>
+            <div className="auction-modal-body" style={{ padding: "24px 28px", background: "#f8fafc" }}>
+              
+              {/* Card 1: AI Auto-Extract & Document Upload */}
+              <div style={{ background: "#ffffff", border: "1.5px dashed #cbd5e1", borderRadius: "12px", padding: "18px 22px", marginBottom: "20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px", flexWrap: "wrap", transition: "all 0.2s" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+                  <div style={{ width: "44px", height: "44px", borderRadius: "10px", background: "#fef2f2", color: "#dc2626", display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid #fee2e2" }}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                      <line x1="16" y1="13" x2="8" y2="13"></line>
+                      <line x1="16" y1="17" x2="8" y2="17"></line>
+                    </svg>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: "14px", fontWeight: "700", color: "#0f172a" }}>
+                      Upload Official Notice Document (PDF / Image)
+                    </div>
+                    <div style={{ fontSize: "12px", color: "#64748b", marginTop: "2px" }}>
+                      {pdfFile ? (
+                        <span style={{ color: "#16a34a", fontWeight: "700" }}>
+                          ✓ Attached: {pdfFile.name} ({(pdfFile.size / 1024).toFixed(1)} KB)
+                        </span>
+                      ) : "Attach official notice to auto-extract details or preserve document record"}
+                    </div>
+                  </div>
+                </div>
 
-              <div style={{ marginBottom: "12px" }}>
-                <div className="auction-form-group">
-                  <label className="auction-label">UPLOAD OFFICIAL NOTIFICATION PDF</label>
+                <div>
                   <input 
                     type="file" 
-                    accept=".pdf" 
+                    accept=".pdf,image/png,image/jpeg,image/jpg,image/webp" 
                     ref={fileInputRef} 
                     onChange={handleFileChange} 
                     style={{ display: "none" }} 
                   />
-                  <div 
-                    className="auction-upload-box" 
+                  <button
+                    type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    style={{ background: "#f8fafc", border: "1px dashed #cbd5e1", borderRadius: "8px", padding: "12px 16px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}
+                    style={{
+                      background: pdfFile ? "#ffffff" : "#dc2626",
+                      color: pdfFile ? "#dc2626" : "#ffffff",
+                      border: pdfFile ? "1.5px solid #dc2626" : "none",
+                      padding: "8px 16px",
+                      borderRadius: "8px",
+                      fontSize: "12px",
+                      fontWeight: "700",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      boxShadow: pdfFile ? "none" : "0 2px 8px rgba(220, 38, 38, 0.2)"
+                    }}
                   >
-                    <span style={{ color: pdfFile ? "#0f172a" : "#64748b", fontWeight: "600", fontSize: "13px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {pdfFile ? `📄 ${pdfFile.name}` : "Click to Upload Notice PDF"}
-                    </span>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.5">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                       <polyline points="17 8 12 3 7 8"></polyline>
                       <line x1="12" y1="3" x2="12" y2="15"></line>
                     </svg>
-                  </div>
+                    {pdfFile ? "Replace Document" : "Upload & Auto-Fill"}
+                  </button>
                 </div>
               </div>
+
+              {/* Card 2: Schedule & Notice Details */}
+              <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "20px 22px", marginBottom: "20px", boxShadow: "0 1px 3px rgba(0,0,0,0.02)" }}>
+                <div style={{ fontSize: "13px", fontWeight: "800", color: "#0f172a", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
+                  <span style={{ width: "4px", height: "14px", background: "#dc2626", borderRadius: "2px" }}></span>
+                  Auction Schedule & Details
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px", marginBottom: "16px" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "11px", fontWeight: "700", color: "#475569", marginBottom: "6px", textTransform: "uppercase" }}>
+                      Auction Date (e-Auction दिनांक) *
+                    </label>
+                    <input 
+                      type="date" 
+                      name="bid_date" 
+                      className="auction-input" 
+                      style={{ width: "100%", padding: "9px 12px", fontSize: "13px", borderRadius: "8px", border: "1px solid #cbd5e1", background: "#f8fafc", fontWeight: "600" }} 
+                      value={formData.bid_date} 
+                      onChange={handleInputChange} 
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: "block", fontSize: "11px", fontWeight: "700", color: "#475569", marginBottom: "6px", textTransform: "uppercase" }}>
+                      Service Provider (Hindi / English) *
+                    </label>
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <input 
+                        type="text" 
+                        name="service_provider_hindi" 
+                        className="auction-input" 
+                        style={{ width: "50%", padding: "9px 12px", fontSize: "12px", borderRadius: "8px", border: "1px solid #cbd5e1", background: "#ffffff", fontWeight: "600" }} 
+                        placeholder="e.g. सीएमपीडीआईएल" 
+                        value={formData.service_provider_hindi} 
+                        onChange={handleInputChange} 
+                      />
+                      <input 
+                        type="text" 
+                        name="service_provider" 
+                        className="auction-input" 
+                        style={{ width: "50%", padding: "9px 12px", fontSize: "12px", borderRadius: "8px", border: "1px solid #cbd5e1", background: "#ffffff", fontWeight: "600" }} 
+                        placeholder="e.g. CMPDIL / MSTC" 
+                        value={formData.service_provider} 
+                        onChange={handleInputChange} 
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ display: "block", fontSize: "11px", fontWeight: "700", color: "#475569", marginBottom: "6px", textTransform: "uppercase" }}>
+                      Notice Ref No / Scheme
+                    </label>
+                    <input 
+                      type="text" 
+                      name="notice_ref_no" 
+                      className="auction-input" 
+                      style={{ width: "100%", padding: "9px 12px", fontSize: "12px", borderRadius: "8px", border: "1px solid #cbd5e1", background: "#ffffff", fontWeight: "600" }} 
+                      placeholder="e.g. SECL/BSP/H-360" 
+                      value={formData.notice_ref_no || ""} 
+                      onChange={handleInputChange} 
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: "block", fontSize: "11px", fontWeight: "700", color: "#475569", marginBottom: "6px", textTransform: "uppercase" }}>
+                    Remarks / Annexure Notes
+                  </label>
+                  <input 
+                    type="text" 
+                    name="remarks_annexure" 
+                    className="auction-input" 
+                    style={{ width: "100%", padding: "9px 12px", fontSize: "12px", borderRadius: "8px", border: "1px solid #cbd5e1", background: "#ffffff" }} 
+                    placeholder="e.g. Details provided in Annexure A & B" 
+                    value={formData.remarks_annexure} 
+                    onChange={handleInputChange}
+                  />
+                </div>
+              </div>
+
+              {/* Card 3: Cluster Offers */}
+              <div style={{ marginBottom: "20px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                  <div style={{ fontSize: "13px", fontWeight: "800", color: "#0f172a", textTransform: "uppercase", letterSpacing: "0.5px", display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span style={{ width: "4px", height: "14px", background: "#dc2626", borderRadius: "2px" }}></span>
+                    Cluster Offers & Pricing
+                  </div>
+                  <span style={{ fontSize: "11px", color: "#475569", fontWeight: "700", background: "#e2e8f0", padding: "3px 10px", borderRadius: "6px" }}>
+                    {items.length} {items.length === 1 ? 'Cluster' : 'Clusters'}
+                  </span>
+                </div>
+
+                {items.map((item, index) => (
+                  <div key={item.id} style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "18px 20px", marginBottom: "14px", boxShadow: "0 1px 3px rgba(0,0,0,0.02)" }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: "14px", borderBottom: "1px solid #f1f5f9", paddingBottom: "10px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <span style={{ background: "#fef2f2", color: "#dc2626", fontSize: "11px", fontWeight: "800", padding: "3px 8px", borderRadius: "6px", border: "1px solid #fecaca" }}>
+                          CLUSTER #{index + 1}
+                        </span>
+                        <span style={{ fontSize: "13px", fontWeight: "800", color: "#0f172a" }}>
+                          {item.cluster_name || 'New Cluster Offer'}
+                        </span>
+                      </div>
+
+                      {items.length > 1 && (
+                        <button 
+                          type="button"
+                          onClick={() => handleRemoveItem(item.id)} 
+                          style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '11px', fontWeight: "700", display: "flex", alignItems: "center", gap: "4px" }}
+                        >
+                          ✕ Remove
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Clean Grid Format for Cluster Details */}
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "12px", marginBottom: "14px" }}>
+                      <div>
+                        <label style={{ display: "block", fontSize: "10px", fontWeight: "700", color: "#64748b", marginBottom: "4px", textTransform: "uppercase" }}>Cluster Name *</label>
+                        <input 
+                          type="text" 
+                          className="auction-input" 
+                          style={{ width: "100%", padding: "7px 10px", fontSize: "12px", fontWeight: "600", borderRadius: "6px", border: "1px solid #cbd5e1" }} 
+                          placeholder="e.g. Saraipalli G10" 
+                          value={item.cluster_name} 
+                          onChange={(e) => handleItemChange(item.id, 'cluster_name', e.target.value)} 
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: "block", fontSize: "10px", fontWeight: "700", color: "#64748b", marginBottom: "4px", textTransform: "uppercase" }}>Total Offer (Tes) *</label>
+                        <input 
+                          type="number" 
+                          className="auction-input" 
+                          style={{ width: "100%", padding: "7px 10px", fontSize: "12px", fontWeight: "700", color: "#dc2626", borderRadius: "6px", border: "1px solid #cbd5e1" }} 
+                          placeholder="50000" 
+                          value={item.total_offer} 
+                          onChange={(e) => handleItemChange(item.id, 'total_offer', e.target.value)} 
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: "block", fontSize: "10px", fontWeight: "700", color: "#64748b", marginBottom: "4px", textTransform: "uppercase" }}>Mode</label>
+                        <select 
+                          className="auction-input" 
+                          style={{ width: "100%", padding: "6px 10px", fontSize: "12px", borderRadius: "6px", border: "1px solid #cbd5e1", height: "33px" }} 
+                          value={item.mode} 
+                          onChange={(e) => handleItemChange(item.id, 'mode', e.target.value)}
+                        >
+                          <option value="Road">Road</option>
+                          <option value="Rail">Rail</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label style={{ display: "block", fontSize: "10px", fontWeight: "700", color: "#64748b", marginBottom: "4px", textTransform: "uppercase" }}>Grade</label>
+                        <input 
+                          type="text" 
+                          className="auction-input" 
+                          style={{ width: "100%", padding: "7px 10px", fontSize: "12px", borderRadius: "6px", border: "1px solid #cbd5e1" }} 
+                          placeholder="G10" 
+                          value={item.coal_grade || item.representative_grade} 
+                          onChange={(e) => {
+                            handleItemChange(item.id, 'coal_grade', e.target.value);
+                            handleItemChange(item.id, 'representative_grade', e.target.value);
+                          }} 
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: "block", fontSize: "10px", fontWeight: "700", color: "#64748b", marginBottom: "4px", textTransform: "uppercase" }}>Floor Price (₹) *</label>
+                        <input 
+                          type="number" 
+                          className="auction-input" 
+                          style={{ width: "100%", padding: "7px 10px", fontSize: "12px", fontWeight: "700", color: "#16a34a", borderRadius: "6px", border: "1px solid #cbd5e1" }} 
+                          placeholder="1421" 
+                          value={item.floor_price} 
+                          onChange={(e) => handleItemChange(item.id, 'floor_price', e.target.value)} 
+                        />
+                      </div>
+                    </div>
+
+                    {/* Secondary details collapsible/compact */}
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "12px", background: "#f8fafc", padding: "10px 12px", borderRadius: "8px", border: "1px solid #f1f5f9" }}>
+                      <div>
+                        <label style={{ display: "block", fontSize: "10px", color: "#64748b", marginBottom: "2px" }}>Source / Loading Point</label>
+                        <input 
+                          type="text" 
+                          className="auction-input" 
+                          style={{ width: "100%", padding: "5px 8px", fontSize: "11px", borderRadius: "4px", border: "1px solid #e2e8f0", background: "#fff" }} 
+                          placeholder="Loading Point" 
+                          value={item.loading_point || item.source} 
+                          onChange={(e) => handleItemChange(item.id, 'loading_point', e.target.value)} 
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: "block", fontSize: "10px", color: "#64748b", marginBottom: "2px" }}>Feeding Collieries</label>
+                        <input 
+                          type="text" 
+                          className="auction-input" 
+                          style={{ width: "100%", padding: "5px 8px", fontSize: "11px", borderRadius: "4px", border: "1px solid #e2e8f0", background: "#fff" }} 
+                          placeholder="Collieries" 
+                          value={item.feeding_collieries} 
+                          onChange={(e) => handleItemChange(item.id, 'feeding_collieries', e.target.value)} 
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: "block", fontSize: "10px", color: "#64748b", marginBottom: "2px" }}>Modulated Price (₹)</label>
+                        <input 
+                          type="number" 
+                          className="auction-input" 
+                          style={{ width: "100%", padding: "5px 8px", fontSize: "11px", borderRadius: "4px", border: "1px solid #e2e8f0", background: "#fff" }} 
+                          placeholder="1184" 
+                          value={item.modulated_price || item.cluster_modulated_price} 
+                          onChange={(e) => handleItemChange(item.id, 'modulated_price', e.target.value)} 
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: "block", fontSize: "10px", color: "#64748b", marginBottom: "2px" }}>Size</label>
+                        <input 
+                          type="text" 
+                          className="auction-input" 
+                          style={{ width: "100%", padding: "5px 8px", fontSize: "11px", borderRadius: "4px", border: "1px solid #e2e8f0", background: "#fff" }} 
+                          placeholder="Sized Rom (-100mm)" 
+                          value={item.size} 
+                          onChange={(e) => handleItemChange(item.id, 'size', e.target.value)} 
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Add Cluster Button & Summary */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px", background: "#ffffff", padding: "12px 18px", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
+                  <div style={{ display: "flex", gap: "20px" }}>
+                    <div style={{ fontSize: "12px" }}>
+                      <span style={{ color: "#64748b", fontWeight: "600" }}>Total Lots:</span>{" "}
+                      <strong style={{ color: "#0f172a" }}>{items.reduce((sum, item) => sum + (parseInt(item.no_of_lots, 10) || 1), 0)}</strong>
+                    </div>
+                    <div style={{ fontSize: "12px" }}>
+                      <span style={{ color: "#64748b", fontWeight: "600" }}>Total Offered Qty:</span>{" "}
+                      <strong style={{ color: "#dc2626" }}>{items.reduce((sum, item) => sum + (parseFloat(item.quantity_offered || item.total_offer) || 0), 0).toLocaleString()} Tes</strong>
+                    </div>
+                  </div>
+
+                  <button 
+                    type="button"
+                    onClick={handleAddItem}
+                    style={{ background: "#f8fafc", border: "1px solid #cbd5e1", color: "#0f172a", padding: "7px 14px", borderRadius: "8px", fontWeight: "700", fontSize: "12px", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "6px" }}
+                  >
+                    + Add Cluster Offer
+                  </button>
+                </div>
+              </div>
+
             </div>
 
-            <div className="auction-modal-footer" style={{ padding: "16px 24px", background: "#f8fafc", borderTop: "1px solid #e2e8f0" }}>
-              <button className="auction-btn-cancel" onClick={() => setIsModalOpen(false)}>Cancel</button>
+            {/* Modal Footer */}
+            <div className="auction-modal-footer" style={{ padding: "16px 28px", background: "#ffffff", borderTop: "1px solid #f1f5f9", display: "flex", justifyContent: "flex-end", gap: "10px", position: "sticky", bottom: 0, zIndex: 10 }}>
               <button 
-                className="auction-btn-save" 
-                onClick={handleSave}
-                style={{ background: "#dc2626", borderColor: "#dc2626", fontWeight: "700", boxShadow: "0 4px 12px rgba(220, 38, 38, 0.25)" }}
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                style={{ background: "#ffffff", border: "1px solid #cbd5e1", color: "#475569", padding: "9px 18px", borderRadius: "8px", fontWeight: "600", fontSize: "13px", cursor: "pointer" }}
               >
-                Save & Transition
+                Cancel
+              </button>
+              <button 
+                type="button"
+                onClick={handleSave}
+                style={{ background: "#dc2626", border: "none", color: "#ffffff", padding: "9px 22px", borderRadius: "8px", fontWeight: "700", fontSize: "13px", cursor: "pointer", boxShadow: "0 4px 12px rgba(220, 38, 38, 0.25)" }}
+              >
+                {editId ? 'Update Auction Record' : 'Save Auction Record'}
               </button>
             </div>
+
           </div>
         </div>
       )}
@@ -1453,7 +1562,7 @@ export default function AuctionPage() {
                 {viewData.pdf_url && (
                   <a href={viewData.pdf_url} target="_blank" rel="noopener noreferrer" className="btn" style={{ background: "white", color: "#dc2626", border: "1px solid #fecaca", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "6px", borderRadius: "8px", fontWeight: "700", textDecoration: "none" }}>
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-                    View Official PDF Notice
+                    {/\.(jpg|jpeg|png|webp)$/i.test(viewData.pdf_url) ? "View Official Notice Image" : "View Official PDF Notice"}
                   </a>
                 )}
               </div>

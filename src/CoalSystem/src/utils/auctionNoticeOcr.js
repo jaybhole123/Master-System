@@ -312,3 +312,14 @@ export async function extractAuctionNoticeFromPdf(file, onStage = () => {}) {
   const { images, truncated, totalPages } = await renderPdfPages(file);
   return extractAuctionNotice(images, { onStage, truncatedPages: truncated ? totalPages - images.length : 0 });
 }
+
+export async function extractAuctionNoticeFromImage(file, onStage = () => {}) {
+  onStage('Reading image file…');
+  const base64 = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+  return extractAuctionNotice([base64], { onStage, truncatedPages: 0 });
+}
