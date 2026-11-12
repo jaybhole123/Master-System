@@ -68,6 +68,7 @@ const specKeys = [
 const defaultVisibleSpecs = () => specKeys.reduce((acc, s) => ({ ...acc, [s.key]: true }), {});
 
 const defaultFormData = () => ({
+  documentType: 'Offer Letter',
   offerLetterNo: '',
   date: new Date().toISOString().split('T')[0],
   companyName: 'M/s Jai Bhole Traders',
@@ -95,6 +96,7 @@ const defaultFormData = () => ({
 });
 
 const toDb = (f, visibleSpecs) => ({
+  document_type: f.documentType || 'Offer Letter',
   offer_letter_no: f.offerLetterNo || null,
   offer_date: f.date,
   company_name: f.companyName,
@@ -124,6 +126,7 @@ const toDb = (f, visibleSpecs) => ({
 
 const fromDb = (row) => ({
   id: row.id,
+  documentType: row.document_type || 'Offer Letter',
   offerLetterNo: row.offer_letter_no || '',
   date: row.offer_date || new Date().toISOString().split('T')[0],
   companyName: row.company_name || 'M/s Jai Bhole Traders',
@@ -631,7 +634,12 @@ const OfferLetter = () => {
 
   const dbSuggestions = useMemo(() => {
     const cleanList = (arr) => Array.from(new Set(arr.map(v => (v ? String(v).trim() : '')).filter(Boolean)));
+    const defaultDocTypes = ['Purchase Order', 'Sales Order', 'Offer Letter', 'Coal Supply Offer Letter', 'Work Order', 'Quotation'];
+    const dbDocTypes = cleanList(letters.map(o => o.document_type || o.documentType));
+    const combinedDocTypes = Array.from(new Set([...defaultDocTypes, ...dbDocTypes]));
+
     return {
+      documentTypes: combinedDocTypes,
       buyers: cleanList(letters.map(o => o.buyer_name)),
       addresses: cleanList(letters.map(o => o.buyer_address)),
       gsts: cleanList(letters.map(o => o.buyer_gst)),
@@ -1392,6 +1400,17 @@ const OfferLetter = () => {
             <div style={{ overflowY: 'auto', padding: '20px 24px', flex: 1, backgroundColor: '#ffffff' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
 
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <DbDropdownInput
+                    label="Document Type / Title (Center Header)"
+                    name="documentType"
+                    value={formData.documentType}
+                    onChange={handleChange}
+                    options={dbSuggestions.documentTypes}
+                    placeholder="Search or enter new document title (e.g. Purchase Order, Sales Order...)"
+                  />
+                </div>
+
                 <div className="form-group">
                   <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>Date</label>
                   <input
@@ -1972,7 +1991,7 @@ const OfferLetter = () => {
                     minHeight: '1131px',
                     height: 'auto',
                     backgroundColor: '#ffffff',
-                    padding: '40px 48px',
+                    padding: '36px 48px 48px 48px',
                     boxShadow: '0 8px 30px rgba(0,0,0,0.15)',
                     boxSizing: 'border-box',
                     display: 'flex',
@@ -1987,15 +2006,11 @@ const OfferLetter = () => {
                   }}
                 >
                   {/* Top Letterhead Header */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '2px solid #000', paddingBottom: '12px', marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '2px solid #000', paddingBottom: '12px', marginBottom: '14px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                       {activeFirm.logo ? (
                         <img src={activeFirm.logo} alt="Company Logo" style={{ height: '70px', width: 'auto', objectFit: 'contain' }} />
-                      ) : (
-                        <div style={{ width: '70px', height: '70px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fee2e2', color: '#dc2626', fontWeight: 'bold', fontSize: '24px', borderRadius: '8px' }}>
-                          {activeFirm.name.charAt(0)}
-                        </div>
-                      )}
+                      ) : null}
                       <div>
                         <h2 style={{ fontSize: '22px', fontWeight: '800', margin: '0 0 4px 0', color: activeFirm.textColor || '#ee5945', letterSpacing: '0.5px' }}>
                           {activeFirm.name}
@@ -2005,16 +2020,30 @@ const OfferLetter = () => {
                         </div>
                       </div>
                     </div>
-                    {ganeshLogo && (
-                      <img src={ganeshLogo} alt="Ganesh Logo" style={{ height: '56px', width: 'auto', objectFit: 'contain' }} />
-                    )}
                   </div>
+
+                  {/* Center Document Title (Upper Position) */}
+                  {previewData.documentType && previewData.documentType !== 'None' && (
+                    <div style={{
+                      textAlign: 'center',
+                      fontSize: '21px',
+                      fontWeight: '900',
+                      color: '#000000',
+                      letterSpacing: '0.5px',
+                      fontFamily: '"Times New Roman", Times, serif',
+                      marginTop: '2px',
+                      marginBottom: '12px'
+                    }}>
+                      {previewData.documentType}
+                    </div>
+                  )}
 
                   {/* Ref No & Date */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', fontSize: '13px' }}>
                     <div style={{ fontWeight: 'bold', color: '#000000' }}>
                       REF NO: <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#000' }}>{previewData.offerLetterNo || 'DRAFT'}</span>
                     </div>
+
                     <div style={{ fontWeight: 'bold', color: '#000000' }}>
                       DT: - {previewData.date ? previewData.date.split('-').reverse().join('.') : ''}
                     </div>
@@ -2034,7 +2063,7 @@ const OfferLetter = () => {
                   </p>
 
                   <p style={{ marginBottom: '8px' }}>Dear Sir,</p>
-                  <p style={{ marginBottom: '14px' }}>
+                  <p style={{ marginBottom: '12px' }}>
                     We would like to offer the terms in connection with supply of Coal to your company.
                   </p>
 
@@ -2122,26 +2151,26 @@ const OfferLetter = () => {
                   )}
 
                   {/* Closing Paragraphs */}
-                  <div style={{ lineHeight: '1.45', marginBottom: '24px' }}>
-                    <p style={{ margin: '0 0 4px 0' }}>We hope you will find our offer competitive.</p>
-                    <p style={{ margin: '0 0 4px 0' }}>We are looking forward to have a long term association with your esteemed organization.</p>
+                  <div style={{ lineHeight: '1.45', marginBottom: '16px' }}>
+                    <p style={{ margin: '0 0 3px 0' }}>We hope you will find our offer competitive.</p>
+                    <p style={{ margin: '0 0 3px 0' }}>We are looking forward to have a long term association with your esteemed organization.</p>
                     <p style={{ margin: '0' }}>Please issue Purchase order to start supply of material.</p>
                   </div>
 
                   {/* Footer / Signature with natural flow */}
-                  <div style={{ marginTop: 'auto', lineHeight: '1.45' }}>
-                    <p style={{ fontWeight: 'bold', marginBottom: '6px' }}>Thanks & Regards</p>
+                  <div style={{ marginTop: 'auto', lineHeight: '1.4' }}>
+                    <p style={{ fontWeight: 'bold', marginBottom: '4px' }}>Thanks & Regards</p>
                     <p style={{ fontWeight: 'bold', margin: '0' }}>For {previewData.companyName}</p>
-                    <div style={{ minHeight: '85px', height: '85px', display: 'flex', alignItems: 'center', marginTop: '6px', marginBottom: '6px' }}>
+                    <div style={{ minHeight: '65px', height: '65px', display: 'flex', alignItems: 'center', marginTop: '4px', marginBottom: '4px' }}>
                       {previewData.signatureDataUrl && (
-                        <img src={previewData.signatureDataUrl} alt="Signature" style={{ height: '85px', maxWidth: '200px', objectFit: 'contain' }} />
+                        <img src={previewData.signatureDataUrl} alt="Signature" style={{ height: '65px', maxWidth: '180px', objectFit: 'contain' }} />
                       )}
                     </div>
                     <p style={{ fontWeight: 'bold', margin: '0' }}>{previewData.signatoryName}</p>
-                    <p style={{ margin: '0', color: '#4b5563' }}>{previewData.signatoryTitle}</p>
+                    <p style={{ margin: '0', color: '#4b5563', fontSize: '12px' }}>{previewData.signatoryTitle}</p>
 
                     {/* Bottom Address */}
-                    <div style={{ borderTop: '2px solid #ccc', marginTop: '16px', paddingTop: '8px', textAlign: 'center', fontSize: '0.85rem', color: '#1d4ed8' }}>
+                    <div style={{ borderTop: '2px solid #ccc', marginTop: '12px', paddingTop: '6px', textAlign: 'center', fontSize: '11px', color: '#1d4ed8', lineHeight: '1.3' }}>
                       <div>{previewData.firmAddress || activeFirm.address}</div>
                       <div>{previewData.firmFooterContact || activeFirm.footerContact}</div>
                     </div>
