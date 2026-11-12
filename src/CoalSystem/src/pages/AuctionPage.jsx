@@ -840,19 +840,19 @@ export default function AuctionPage() {
 
         {/* Desktop Table View */}
         <div className="summary-table-wrap auction-desktop-table" style={{ overflowX: "auto" }}>
-          <table className="auction-main-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px", minWidth: "900px" }}>
+          <table className="auction-main-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px", minWidth: "1250px" }}>
             <thead>
               <tr style={{ background: "#f8fafc", borderBottom: "2px solid #e2e8f0" }}>
-                <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "center", width: "50px" }}>S.NO</th>
-                <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "center", width: "70px" }}>VIEW</th>
-                <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "left" }}>DATE (दिनांक)</th>
-                <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "left" }}>SERVICE PROVIDER (सेवा प्रदायकर्ता)</th>
-                <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "left" }}>REMARKS / ANNEXURE</th>
-                <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "left" }}>OFFERED CLUSTER(S)</th>
-                <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "center" }}>MODE</th>
-                <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "right" }}>OFFERED QTY (TES)</th>
-                <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "center" }}>PREVIEW</th>
-                <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "center", minWidth: "140px" }}>ACTION</th>
+                <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "center", width: "50px", whiteSpace: "nowrap" }}>S.NO</th>
+                <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "center", width: "70px", whiteSpace: "nowrap" }}>VIEW</th>
+                <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "left", whiteSpace: "nowrap" }}>DATE (दिनांक)</th>
+                <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "left", whiteSpace: "nowrap" }}>SERVICE PROVIDER (सेवा प्रदायकर्ता)</th>
+                <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "left", whiteSpace: "nowrap" }}>REMARKS / ANNEXURE</th>
+                <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "left", whiteSpace: "nowrap" }}>OFFERED CLUSTER(S)</th>
+                <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "center", whiteSpace: "nowrap" }}>MODE</th>
+                <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "right", whiteSpace: "nowrap" }}>OFFERED QTY (TES)</th>
+                <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "center", whiteSpace: "nowrap" }}>PREVIEW</th>
+                <th style={{ padding: "12px 14px", fontSize: "11px", fontWeight: "800", color: "#64748b", textAlign: "center", minWidth: "140px", whiteSpace: "nowrap" }}>ACTION</th>
               </tr>
             </thead>
             <tbody>
@@ -875,10 +875,10 @@ export default function AuctionPage() {
                 filteredData.map((row, i) => {
                   return (
                     <tr key={row.id} style={{ borderBottom: "1px solid #f1f5f9", transition: "background 0.15s" }}>
-                      <td data-label="S.NO" style={{ textAlign: "center", fontWeight: "700", color: "#94a3b8", fontSize: "12px", padding: "12px 14px" }}>
+                      <td data-label="S.NO" style={{ textAlign: "center", fontWeight: "700", color: "#94a3b8", fontSize: "12px", padding: "12px 14px", whiteSpace: "nowrap" }}>
                         {String(i + 1).padStart(2, '0')}
                       </td>
-                      <td data-label="VIEW" style={{ textAlign: "center", padding: "12px 14px" }}>
+                      <td data-label="VIEW" style={{ textAlign: "center", padding: "12px 14px", whiteSpace: "nowrap" }}>
                         <button
                           style={{
                             cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "4px",
@@ -894,40 +894,46 @@ export default function AuctionPage() {
                           View
                         </button>
                       </td>
-                      <td data-label="DATE (दिनांक)" style={{ fontSize: "12px", color: "#0f172a", fontWeight: "800", padding: "12px 14px" }}>
-                        <div>{formatDate(row.bid_date)}</div>
-                        {row.notification_date && row.notification_date !== row.bid_date && (
-                          <div style={{ fontSize: "10px", color: "#64748b", fontWeight: "500" }}>
-                            Notif: {formatDate(row.notification_date)}
-                          </div>
-                        )}
-                      </td>
-                      <td data-label="SERVICE PROVIDER" style={{ fontSize: "12px", padding: "12px 14px" }}>
-                        <div style={{ fontWeight: "800", color: "#dc2626" }}>
-                          {row.meta?.service_provider_hindi || row.meta?.service_provider || row.coal_company || "CMPDIL"}
+                      <td data-label="DATE (दिनांक)" style={{ fontSize: "12px", color: "#0f172a", fontWeight: "800", padding: "12px 14px", whiteSpace: "nowrap" }}>
+                        <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                          <span>{formatDate(row.bid_date)}</span>
+                          {row.notification_date && row.notification_date !== row.bid_date && (
+                            <span style={{ fontSize: "11px", color: "#64748b", fontWeight: "500" }}>
+                              (Notif: {formatDate(row.notification_date)})
+                            </span>
+                          )}
                         </div>
-                        {row.meta?.service_provider && row.meta?.service_provider_hindi && (
-                          <div style={{ color: "#475569", fontSize: "11px", fontWeight: "600" }}>
-                            {row.meta.service_provider}
-                          </div>
-                        )}
                       </td>
-                      <td data-label="REMARKS / ANNEXURE" style={{ fontSize: "11px", color: "#475569", maxWidth: "240px", padding: "12px 14px" }}>
+                      <td data-label="SERVICE PROVIDER" style={{ fontSize: "12px", padding: "12px 14px", whiteSpace: "nowrap" }}>
+                        <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                          <span style={{ fontWeight: "800", color: "#dc2626" }}>
+                            {row.meta?.service_provider_hindi || row.meta?.service_provider || row.coal_company || "CMPDIL"}
+                          </span>
+                          {row.meta?.service_provider && row.meta?.service_provider_hindi && (
+                            <span style={{ color: "#475569", fontSize: "11px", fontWeight: "600" }}>
+                              ({row.meta.service_provider})
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td data-label="REMARKS / ANNEXURE" style={{ fontSize: "11px", color: "#475569", maxWidth: "260px", padding: "12px 14px", whiteSpace: "nowrap" }}>
                         <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={row.meta?.remarks_annexure || row.remarks}>
                           {row.meta?.remarks_annexure || (row.remarks && !row.remarks.startsWith("{") ? row.remarks : "Annexure A & B")}
                         </div>
                       </td>
-                      <td data-label="OFFERED CLUSTER(S)" style={{ fontSize: "12px", padding: "12px 14px" }}>
-                        <div style={{ fontWeight: "700", color: "#0f172a" }}>
-                          {row.clusterNamesDisplay}
+                      <td data-label="OFFERED CLUSTER(S)" style={{ fontSize: "12px", padding: "12px 14px", whiteSpace: "nowrap" }}>
+                        <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                          <span style={{ fontWeight: "700", color: "#0f172a" }}>
+                            {row.clusterNamesDisplay}
+                          </span>
+                          {row.clusterCount > 0 && (
+                            <span style={{ fontSize: "11px", color: "#64748b", fontWeight: "500" }}>
+                              ({row.clusterCount} {row.clusterCount === 1 ? 'Cluster Offer' : 'Cluster Offers'})
+                            </span>
+                          )}
                         </div>
-                        {row.clusterCount > 0 && (
-                          <div style={{ fontSize: "10px", color: "#64748b" }}>
-                            {row.clusterCount} {row.clusterCount === 1 ? 'Cluster Offer' : 'Cluster Offers'}
-                          </div>
-                        )}
                       </td>
-                      <td data-label="MODE" style={{ textAlign: "center", padding: "12px 14px" }}>
+                      <td data-label="MODE" style={{ textAlign: "center", padding: "12px 14px", whiteSpace: "nowrap" }}>
                         <span style={{ 
                           display: "inline-block", padding: "2px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: "700",
                           background: row.modeDisplay?.toLowerCase().includes("rail") ? "#ecfeff" : "#fef3c7",
@@ -936,11 +942,11 @@ export default function AuctionPage() {
                           {row.modeDisplay || "Road"}
                         </span>
                       </td>
-                      <td data-label="OFFERED QTY (TES)" style={{ textAlign: "right", fontWeight: "800", color: "#0f172a", fontSize: "13px", padding: "12px 14px" }}>
+                      <td data-label="OFFERED QTY (TES)" style={{ textAlign: "right", fontWeight: "800", color: "#0f172a", fontSize: "13px", padding: "12px 14px", whiteSpace: "nowrap" }}>
                         {typeof row.totalQty === 'number' ? row.totalQty.toLocaleString() : (row.totalQty || "-")}
                         <span style={{ fontSize: "10px", color: "#64748b", marginLeft: "3px" }}>Tes</span>
                       </td>
-                      <td data-label="PREVIEW" style={{ textAlign: "center", padding: "12px 14px" }}>
+                      <td data-label="PREVIEW" style={{ textAlign: "center", padding: "12px 14px", whiteSpace: "nowrap" }}>
                         {row.pdf_url ? (
                           <a href={row.pdf_url} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: "4px", padding: "4px 8px", background: "#fef2f2", color: "#dc2626", borderRadius: "6px", textDecoration: "none", fontWeight: 700, fontSize: "11px", border: "1px solid #fecaca" }}>
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
@@ -948,7 +954,7 @@ export default function AuctionPage() {
                           </a>
                         ) : <span style={{ color: "#cbd5e1" }}>—</span>}
                       </td>
-                      <td data-label="ACTION" style={{ textAlign: "center", padding: "12px 14px" }}>
+                      <td data-label="ACTION" style={{ textAlign: "center", padding: "12px 14px", whiteSpace: "nowrap" }}>
                         <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
                           <button
                             style={{
