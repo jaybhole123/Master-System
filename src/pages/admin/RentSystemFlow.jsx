@@ -239,7 +239,7 @@ export default function RentSystemFlow() {
 
   return (
     <AdminLayout>
-      <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+      <div className="w-full px-3 sm:px-6 lg:px-8 py-3 space-y-6 animate-in fade-in duration-300">
         
         {/* Top Header Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-gray-200">

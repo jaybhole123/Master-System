@@ -488,65 +488,265 @@ const MonthlyTracker = () => {
   };
 
   const handleDownloadPDF = () => {
-    const doc = new jsPDF('landscape');
-    
-    doc.setFontSize(20);
+    const doc = new jsPDF('landscape', 'mm', 'a4');
+    const pageWidth = doc.internal.pageSize.width; // 297mm
+    const margin = 14;
+
+    // Calculate dynamic totals for PDF report
+    const totalUnits = filteredData.length;
+    const totalRent = filteredData.reduce((acc, r) => acc + (Number(r.rent) || 0), 0);
+    let collectedRent = 0;
+    let pendingRent = 0;
+    let delayRent = 0;
+    let receivedCount = 0;
+    let delayCount = 0;
+
+    filteredData.forEach(r => {
+      const s = getRecordStatus(r);
+      const rent = Number(r.rent) || 0;
+      if (s === 'Received' || s === 'On Time') {
+        collectedRent += rent;
+        receivedCount++;
+      } else {
+        pendingRent += rent;
+        if (s === 'Delay') {
+          delayCount++;
+          delayRent += rent;
+        }
+      }
+    });
+
+    const pendingCount = totalUnits - receivedCount;
+    const collectionPercent = totalRent > 0 ? Math.round((collectedRent / totalRent) * 100) : 0;
+
+    // ── 1. Top Header Banner ──
+    // Red Accent indicator
+    doc.setFillColor(220, 38, 38);
+    doc.rect(margin, 12, 4, 14, 'F');
+
+    // Title & Brand
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.setTextColor(15, 23, 42); // slate-900
+    doc.text("JAI BHOLE GROUP", margin + 7, 18);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9.5);
     doc.setTextColor(220, 38, 38);
-    doc.text("JAI BHOLE GROUP - MONTHLY RENT TRACKER", 14, 18);
-    
-    doc.setFontSize(10);
+    doc.text("MONTHLY RENT TRACKER & RECOVERY LEDGER", margin + 7, 24);
+
+    // Right side metadata
+    const rightX = pageWidth - margin;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
     doc.setTextColor(100, 116, 139);
-    doc.text(`Cycle Month: ${filterMonth || 'All Months'} | Generated on: ${new Date().toLocaleDateString('en-GB')}`, 14, 25);
-    
+    doc.text(`Cycle Month:`, rightX - 65, 16);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text(`${filterMonth || 'All Months'}`, rightX, 16, { align: 'right' });
+
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.text(`Generated On:`, rightX - 65, 21);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text(`${new Date().toLocaleDateString('en-GB')}`, rightX, 21, { align: 'right' });
+
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.text(`Status Filter:`, rightX - 65, 26);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text(`${statusFilter === 'ALL' ? 'All Records' : statusFilter}`, rightX, 26, { align: 'right' });
+
+    // ── 2. Top Summary Stat Cards (5 KPI Cards) ──
+    const cardY = 30;
+    const cardHeight = 15;
+    const totalPrintableWidth = pageWidth - (margin * 2); // 269mm
+    const cardGap = 3.5;
+    const cardWidth = (totalPrintableWidth - (cardGap * 4)) / 5; // ~51mm
+
+    const kpiCards = [
+      {
+        title: "TOTAL UNITS",
+        value: `${totalUnits} Units`,
+        subtitle: `Cycle: ${filterMonth || 'Current'}`,
+        valColor: [15, 23, 42]
+      },
+      {
+        title: "MONTHLY TARGET",
+        value: `Rs. ${totalRent.toLocaleString('en-IN')}`,
+        subtitle: "Total Expected Rent",
+        valColor: [15, 23, 42]
+      },
+      {
+        title: "RENT RECEIVED",
+        value: `Rs. ${collectedRent.toLocaleString('en-IN')}`,
+        subtitle: `${receivedCount} Paid (${collectionPercent}%)`,
+        valColor: [22, 163, 74] // Green
+      },
+      {
+        title: "PENDING RENT",
+        value: `Rs. ${pendingRent.toLocaleString('en-IN')}`,
+        subtitle: `${pendingCount} Pending Units`,
+        valColor: [217, 119, 6] // Amber
+      },
+      {
+        title: "OVERDUE / DELAY",
+        value: `Rs. ${delayRent.toLocaleString('en-IN')}`,
+        subtitle: `${delayCount} Delayed Tenants`,
+        valColor: [220, 38, 38] // Red
+      }
+    ];
+
+    kpiCards.forEach((card, idx) => {
+      const cardX = margin + idx * (cardWidth + cardGap);
+      
+      // Box background & border
+      doc.setFillColor(248, 250, 252); // slate-50
+      doc.setDrawColor(226, 232, 240); // slate-200
+      doc.roundedRect(cardX, cardY, cardWidth, cardHeight, 1.5, 1.5, 'FD');
+
+      // Title
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.5);
+      doc.setTextColor(100, 116, 139); // slate-500
+      doc.text(card.title, cardX + 3.5, cardY + 4.5);
+
+      // Value
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9.5);
+      doc.setTextColor(card.valColor[0], card.valColor[1], card.valColor[2]);
+      doc.text(card.value, cardX + 3.5, cardY + 9.5);
+
+      // Subtitle
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6);
+      doc.setTextColor(100, 116, 139);
+      doc.text(card.subtitle, cardX + 3.5, cardY + 13);
+    });
+
+    // ── 3. AutoTable Data Ledger ──
     autoTable(doc, {
-      startY: 32,
-      head: [['S.No.', 'Month', 'Property', 'Tenant & Contact', 'Rent (₹)', 'Due Range', 'Delay', 'Bank & Mode', 'Status', 'Remarks', 'Received Date']],
+      startY: 49,
+      head: [['S.No.', 'Month', 'Property Name', 'Tenant & Contact', 'Monthly Rent', 'Due Window', 'Delay', 'Payment & Bank', 'Status', 'Remarks', 'Received Date']],
       body: filteredData.map((record, index) => [
         index + 1,
-        record.month,
-        record.property,
-        `${record.tenant}${record.tenantContact ? `\nPh: ${record.tenantContact}` : ''}`,
-        `₹${Number(record.rent || 0).toLocaleString('en-IN')}`,
-        `${formatDate(record.dueDateStart)} to ${formatDate(record.dueDateEnd)}`,
+        record.month || '-',
+        record.property || '-',
+        `${record.tenant || '-'}${record.tenantContact ? `\nPh: ${record.tenantContact}` : ''}`,
+        `Rs. ${Number(record.rent || 0).toLocaleString('en-IN')}`,
+        `${formatDate(record.dueDateStart)}\nto ${formatDate(record.dueDateEnd)}`,
         getDelayDays(record) > 0 ? `${getDelayDays(record)} days` : '-',
-        `${record.paymentMode}${record.bankDetails ? `\n${record.bankDetails}` : ''}`,
+        `${record.paymentMode || 'Cash'}${record.bankDetails ? `\n${record.bankDetails}` : ''}`,
         getRecordStatus(record) === 'On Time' ? 'On Time' : (getRecordStatus(record) === 'Received' ? 'Received' : (getRecordStatus(record) === 'Delay' ? 'Delayed' : 'Pending')),
         record.remarks || '-',
         formatDate(record.receivedDate)
       ]),
       theme: 'grid',
       headStyles: { 
-        fillColor: [220, 38, 38],
-        textColor: 255, 
+        fillColor: [30, 41, 59], // Slate-800
+        textColor: [255, 255, 255], 
         fontStyle: 'bold',
-        fontSize: 9,
-        halign: 'center'
+        fontSize: 8,
+        halign: 'center',
+        valign: 'middle',
+        cellPadding: { top: 3.5, bottom: 3.5, left: 2, right: 2 }
       },
       bodyStyles: { 
-        fontSize: 8.5,
-        textColor: 50,
-        valign: 'middle'
+        fontSize: 7.5,
+        textColor: [51, 65, 85], // slate-700
+        valign: 'middle',
+        cellPadding: { top: 3, bottom: 3, left: 2, right: 2 },
+        lineColor: [226, 232, 240],
+        lineWidth: 0.1
       },
       alternateRowStyles: { 
         fillColor: [248, 250, 252] 
       },
       columnStyles: {
-        0: { halign: 'center', cellWidth: 12 },
-        4: { halign: 'right', fontStyle: 'bold' },
-        6: { halign: 'center', textColor: [220, 38, 38] },
-        8: { halign: 'center', fontStyle: 'bold' }
+        0: { halign: 'center', cellWidth: 10 },
+        1: { halign: 'center', cellWidth: 18 },
+        2: { cellWidth: 36, fontStyle: 'bold', textColor: [15, 23, 42] },
+        3: { cellWidth: 36 },
+        4: { halign: 'right', fontStyle: 'bold', cellWidth: 24, textColor: [15, 23, 42] },
+        5: { halign: 'center', cellWidth: 26, fontSize: 7 },
+        6: { halign: 'center', cellWidth: 15 },
+        7: { cellWidth: 36, fontSize: 7 },
+        8: { halign: 'center', fontStyle: 'bold', cellWidth: 22 },
+        9: { cellWidth: 22, fontSize: 7 },
+        10: { halign: 'center', cellWidth: 24, fontSize: 7 }
       },
       didParseCell: function (data) {
-        if (data.section === 'body' && data.column.index === 8) {
-          const status = data.cell.raw;
-          if (status === 'Received' || status === 'On Time') data.cell.styles.textColor = [22, 163, 74];
-          else if (status === 'Delayed') data.cell.styles.textColor = [220, 38, 38];
-          else data.cell.styles.textColor = [234, 88, 12];
+        if (data.section === 'body') {
+          // Status column styling
+          if (data.column.index === 8) {
+            const status = data.cell.raw;
+            if (status === 'Received' || status === 'On Time') {
+              data.cell.styles.textColor = [22, 163, 74];
+              data.cell.styles.fillColor = [240, 253, 244];
+            } else if (status === 'Delayed') {
+              data.cell.styles.textColor = [220, 38, 38];
+              data.cell.styles.fillColor = [254, 242, 242];
+            } else {
+              data.cell.styles.textColor = [217, 119, 6];
+              data.cell.styles.fillColor = [255, 251, 235];
+            }
+          }
+          // Delay column highlighting
+          if (data.column.index === 6 && data.cell.raw && data.cell.raw !== '-') {
+            data.cell.styles.textColor = [220, 38, 38];
+            data.cell.styles.fontStyle = 'bold';
+          }
         }
+      },
+      foot: [[
+        { content: '', colSpan: 2 },
+        { content: `TOTAL (${totalUnits} UNITS)`, colSpan: 2, styles: { halign: 'left', fontStyle: 'bold' } },
+        { content: `Rs. ${totalRent.toLocaleString('en-IN')}`, styles: { halign: 'right', fontStyle: 'bold' } },
+        { content: '', colSpan: 2 },
+        { content: `Collected: Rs. ${collectedRent.toLocaleString('en-IN')}`, colSpan: 2, styles: { halign: 'left', fontStyle: 'bold', textColor: [22, 163, 74] } },
+        { content: `Pending: Rs. ${pendingRent.toLocaleString('en-IN')}`, colSpan: 2, styles: { halign: 'left', fontStyle: 'bold', textColor: [220, 38, 38] } }
+      ]],
+      footStyles: {
+        fillColor: [241, 245, 249],
+        textColor: [15, 23, 42],
+        fontSize: 7.5,
+        cellPadding: { top: 3.5, bottom: 3.5, left: 2, right: 2 },
+        lineColor: [203, 213, 225],
+        lineWidth: 0.15
       }
     });
+
+    // ── 4. Professional Page Numbering & Bottom Brand Footer ──
+    const totalPages = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      
+      // Bottom subtle rule
+      doc.setDrawColor(226, 232, 240);
+      doc.setLineWidth(0.3);
+      doc.line(margin, doc.internal.pageSize.height - 11, pageWidth - margin, doc.internal.pageSize.height - 11);
+
+      // Bottom footer text
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(148, 163, 184); // slate-400
+      doc.text(
+        'Jai Bhole Group ERP - Rent Management System | Confidential & Proprietary Document',
+        margin,
+        doc.internal.pageSize.height - 6.5
+      );
+      doc.setFont('helvetica', 'bold');
+      doc.text(
+        `Page ${i} of ${totalPages}`,
+        pageWidth - margin,
+        doc.internal.pageSize.height - 6.5,
+        { align: 'right' }
+      );
+    }
     
-    doc.save(`monthly_rent_tracker_${filterMonth || 'all'}.pdf`);
+    doc.save(`monthly_rent_tracker_${(filterMonth || 'all').toLowerCase().replace(/\s+/g, '_')}.pdf`);
   };
 
   const handleDownloadExcel = () => {
@@ -619,17 +819,17 @@ const MonthlyTracker = () => {
 
             <button 
               onClick={handleDownloadPDF}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all shadow-2xs"
-              title="Download PDF"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50/90 hover:bg-red-100 text-red-700 border border-red-200/80 rounded-xl text-xs font-bold transition-all shadow-2xs hover:shadow-xs active:scale-95"
+              title="Download Professional PDF Report"
             >
               <FileText className="h-3.5 w-3.5 text-red-600" />
-              <span>PDF</span>
+              <span>PDF Export</span>
             </button>
 
             <button 
               onClick={handleDownloadExcel}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all shadow-2xs"
-              title="Download Excel"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50/90 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/80 rounded-xl text-xs font-bold transition-all shadow-2xs hover:shadow-xs active:scale-95"
+              title="Download Excel Spreadsheet"
             >
               <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
               <span>Excel</span>

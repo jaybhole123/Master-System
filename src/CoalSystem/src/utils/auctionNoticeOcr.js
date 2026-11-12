@@ -163,7 +163,12 @@ export function toIsoDate(v) {
   return '';
 }
 
-const toMode = (v) => (/rail/i.test(String(v)) ? 'Rail' : 'Road');
+const toMode = (v) => {
+  const s = clean(v);
+  if (/rail/i.test(s)) return 'Rail';
+  if (/road/i.test(s)) return 'Road';
+  return s;
+};
 
 const formatFeeding = (list) =>
   (list || [])
@@ -181,24 +186,33 @@ function toItems(raw) {
     (c.lines || []).forEach((l) => {
       const source = clean(l.source);
       const floor = toNumber(c.floor_price);
+      const clusterModulated = toNumber(c.modulated_price);
+      const lineModulated = toNumber(l.modulated_price) || clusterModulated;
+      const repGrade = clean(c.representative_grade);
+      const lineGrade = clean(l.grade) || repGrade;
+      const repSize = clean(c.representative_size);
+      const lineSize = clean(l.size) || repSize;
+      const clusterTotal = toNumber(c.total_offer);
+      const lineQty = toNumber(l.quantity) || clusterTotal;
+
       items.push({
         cluster_name: clean(c.cluster_name),
-        total_offer: toNumber(c.total_offer),
-        representative_grade: clean(c.representative_grade),
-        representative_size: clean(c.representative_size),
-        cluster_modulated_price: toNumber(c.modulated_price),
+        total_offer: clusterTotal,
+        representative_grade: repGrade,
+        representative_size: repSize,
+        cluster_modulated_price: clusterModulated,
         floor_price: floor,
         source,
         loading_point: source,
         mode: toMode(l.mode),
         feeding_collieries: formatFeeding(l.feeding_collieries),
         mine: source,
-        coal_grade: clean(l.grade),
-        size: clean(l.size),
-        quantity_offered: toNumber(l.quantity),
+        coal_grade: lineGrade,
+        size: lineSize,
+        quantity_offered: lineQty,
         base_price: floor,
-        modulated_price: toNumber(l.modulated_price),
-        modulated_price_rep_grade: toNumber(l.modulated_price_rep_grade),
+        modulated_price: lineModulated,
+        modulated_price_rep_grade: toNumber(l.modulated_price_rep_grade) || clusterModulated,
         supply_pattern: clean(l.supply_pattern),
         no_of_lots: toNumber(l.no_of_lots),
       });
