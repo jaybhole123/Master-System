@@ -43,6 +43,8 @@ export default function TruckReports() {
   const [bulkFile, setBulkFile] = useState(null);
   const [bulkParsedData, setBulkParsedData] = useState([]);
   const [bulkUploading, setBulkUploading] = useState(false);
+  const [bulkCurrentPage, setBulkCurrentPage] = useState(1);
+  const [bulkPageSize, setBulkPageSize] = useState(50);
   
   const [reportsData, setReportsData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -88,6 +90,14 @@ export default function TruckReports() {
         vehicleBalance: item.vehicle_balance,
         perMT: item.per_mt,
         totalFreight: item.total_freight,
+        // Nandan Plant format fields
+        recWeight: item.rec_weight !== undefined && item.rec_weight !== null ? item.rec_weight : '',
+        receivedParty: item.to_location || '',
+        minesExp: item.mines_exp !== undefined && item.mines_exp !== null ? item.mines_exp : '',
+        biltyExp: item.bilty_exp !== undefined && item.bilty_exp !== null ? item.bilty_exp : '',
+        fastagExp: item.fastag_exp !== undefined && item.fastag_exp !== null ? item.fastag_exp : '',
+        shortageAmount: item.shortage_amount !== undefined && item.shortage_amount !== null ? item.shortage_amount : '',
+        totalExpenses: item.total_expenses !== undefined && item.total_expenses !== null ? item.total_expenses : '',
         // Turnaround Time (TAT) fields
         departureTime: item.departure_time || '',
         arrivalTime: item.arrival_time || '',
@@ -127,7 +137,7 @@ export default function TruckReports() {
   };
 
   const [formData, setFormData] = useState({
-    date: '', vehicleNo: '', from: '', to: '', distance: '', partyName: '', doPartyName: '', diesel: '', dieselPrice: '', advance: '', doNo: '', totalTrips: '', vehicleBalance: '', perMT: '', tonnage: '', totalFreight: '',
+    date: '', vehicleNo: '', from: '', to: '', distance: '', partyName: '', doPartyName: '', receivedParty: '', diesel: '', dieselPrice: '', advance: '', doNo: '', totalTrips: '', vehicleBalance: '', perMT: '', tonnage: '', recWeight: '', minesExp: '', biltyExp: '', fastagExp: '', shortageAmount: '', totalExpenses: '', totalFreight: '',
     // Turnaround Time fields
     departureTime: '', arrivalTime: '', unloadingTime: '', turnaroundHours: '', turnaroundDays: '', tatStatus: ''
   });
@@ -202,7 +212,7 @@ export default function TruckReports() {
     const { name, value } = e.target;
     let newFormData = { ...formData, [name]: value };
     
-    if (['perMT', 'tonnage', 'diesel', 'dieselPrice', 'advance'].includes(name)) {
+    if (['perMT', 'tonnage', 'recWeight', 'diesel', 'dieselPrice', 'advance', 'minesExp', 'biltyExp', 'fastagExp', 'shortageAmount'].includes(name)) {
       const perMT = parseFloat(name === 'perMT' ? value : newFormData.perMT) || 0;
       const tonnage = parseFloat(name === 'tonnage' ? value : newFormData.tonnage) || 0;
       
@@ -218,9 +228,17 @@ export default function TruckReports() {
       const dieselVal = parseFloat(dieselStr.replace(/[^0-9.]/g, '')) || 0;
       const dieselPriceVal = parseFloat(name === 'dieselPrice' ? value : newFormData.dieselPrice) || 0;
       const advanceVal = parseFloat(name === 'advance' ? value : newFormData.advance) || 0;
+      const minesExpVal = parseFloat(name === 'minesExp' ? value : newFormData.minesExp) || 0;
+      const biltyExpVal = parseFloat(name === 'biltyExp' ? value : newFormData.biltyExp) || 0;
+      const fastagVal = parseFloat(name === 'fastagExp' ? value : newFormData.fastagExp) || 0;
+      const shortageVal = parseFloat(name === 'shortageAmount' ? value : newFormData.shortageAmount) || 0;
+
+      const totalDieselCost = Math.round(dieselVal * dieselPriceVal);
+      const totalExpenses = totalDieselCost + minesExpVal + biltyExpVal + advanceVal + fastagVal + shortageVal;
+      newFormData.totalExpenses = totalExpenses > 0 ? totalExpenses.toString() : '';
 
       if (totalFreight > 0) {
-        const vehicleBalance = totalFreight - (dieselVal * dieselPriceVal) - advanceVal;
+        const vehicleBalance = totalFreight - totalExpenses;
         newFormData.vehicleBalance = Math.round(vehicleBalance).toString();
       } else {
         newFormData.vehicleBalance = '';
@@ -250,7 +268,7 @@ export default function TruckReports() {
       date: formData.date,
       vehicle_no: formData.vehicleNo,
       from_location: formData.from,
-      to_location: formData.to,
+      to_location: formData.receivedParty || formData.to,
       distance: formData.distance,
       party_name: formData.partyName,
       do_party_name: formData.doPartyName,
@@ -259,10 +277,16 @@ export default function TruckReports() {
       advance: Number(formData.advance) || 0,
       do_no: formData.doNo,
       tonnage: Number(formData.tonnage) || 0,
+      rec_weight: Number(formData.recWeight) || 0,
       total_trips: Number(formData.totalTrips) || 0,
-      vehicle_balance: Number(formData.vehicleBalance) || 0,
       per_mt: Number(formData.perMT) || 0,
+      mines_exp: Number(formData.minesExp) || 0,
+      bilty_exp: Number(formData.biltyExp) || 0,
+      fastag_exp: Number(formData.fastagExp) || 0,
+      shortage_amount: Number(formData.shortageAmount) || 0,
+      total_expenses: Number(formData.totalExpenses) || 0,
       total_freight: Number(formData.totalFreight) || 0,
+      vehicle_balance: Number(formData.vehicleBalance) || 0,
       departure_time: formData.departureTime || null,
       arrival_time: formData.arrivalTime || null,
       unloading_time: formData.unloadingTime || null,
@@ -275,7 +299,7 @@ export default function TruckReports() {
       date: formData.date,
       vehicle_no: formData.vehicleNo,
       from_location: formData.from,
-      to_location: formData.to,
+      to_location: formData.receivedParty || formData.to,
       distance: formData.distance,
       party_name: formData.partyName,
       do_party_name: formData.doPartyName,
@@ -284,10 +308,16 @@ export default function TruckReports() {
       advance: Number(formData.advance) || 0,
       do_no: formData.doNo,
       tonnage: Number(formData.tonnage) || 0,
+      rec_weight: Number(formData.recWeight) || 0,
       total_trips: Number(formData.totalTrips) || 0,
-      vehicle_balance: Number(formData.vehicleBalance) || 0,
       per_mt: Number(formData.perMT) || 0,
-      total_freight: Number(formData.totalFreight) || 0
+      mines_exp: Number(formData.minesExp) || 0,
+      bilty_exp: Number(formData.biltyExp) || 0,
+      fastag_exp: Number(formData.fastagExp) || 0,
+      shortage_amount: Number(formData.shortageAmount) || 0,
+      total_expenses: Number(formData.totalExpenses) || 0,
+      total_freight: Number(formData.totalFreight) || 0,
+      vehicle_balance: Number(formData.vehicleBalance) || 0
     };
 
     if (editingId) {
@@ -337,7 +367,7 @@ export default function TruckReports() {
     
     await fetchReports();
     setFormData({ 
-      date: '', vehicleNo: '', from: '', to: '', distance: '', partyName: '', doPartyName: '', diesel: '', dieselPrice: '', advance: '', doNo: '', totalTrips: '', vehicleBalance: '', perMT: '', tonnage: '', totalFreight: '',
+      date: '', vehicleNo: '', from: '', to: '', distance: '', partyName: '', doPartyName: '', receivedParty: '', diesel: '', dieselPrice: '', advance: '', doNo: '', totalTrips: '', vehicleBalance: '', perMT: '', tonnage: '', recWeight: '', minesExp: '', biltyExp: '', fastagExp: '', shortageAmount: '', totalExpenses: '', totalFreight: '',
       departureTime: '', arrivalTime: '', unloadingTime: '', turnaroundHours: '', turnaroundDays: '', tatStatus: ''
     });
     setIsModalOpen(false);
@@ -372,6 +402,15 @@ export default function TruckReports() {
   const handleEditReport = (report) => {
     setFormData({
       ...report,
+      from: report.from || report.from_location || '',
+      to: report.to || report.to_location || report.receivedParty || '',
+      receivedParty: report.receivedParty || report.to || report.to_location || '',
+      recWeight: report.recWeight !== undefined && report.recWeight !== null ? String(report.recWeight) : '',
+      minesExp: report.minesExp !== undefined && report.minesExp !== null ? String(report.minesExp) : '',
+      biltyExp: report.biltyExp !== undefined && report.biltyExp !== null ? String(report.biltyExp) : '',
+      fastagExp: report.fastagExp !== undefined && report.fastagExp !== null ? String(report.fastagExp) : '',
+      shortageAmount: report.shortageAmount !== undefined && report.shortageAmount !== null ? String(report.shortageAmount) : '',
+      totalExpenses: report.totalExpenses !== undefined && report.totalExpenses !== null ? String(report.totalExpenses) : '',
       departureTime: formatDateTimeLocal(report.departureTime || report.departure_time),
       arrivalTime: formatDateTimeLocal(report.arrivalTime || report.arrival_time),
       unloadingTime: formatDateTimeLocal(report.unloadingTime || report.unloading_time)
@@ -1034,48 +1073,83 @@ export default function TruckReports() {
   const downloadBulkTemplate = (fileType = 'xlsx') => {
     const templateData = [
       {
-        "Date": "2026-09-22",
-        "Vehicle No": "CG10CG9022",
-        "From (Origin)": "DIPKA",
-        "To (Destination)": "BIRGHANI",
-        "Distance (KM)": "58 km",
-        "Departure Time": "2026-09-22T08:30",
-        "Arrival Time": "2026-09-22T14:45",
-        "Unloading Time": "2026-09-22T16:30",
-        "Party Name": "JAY BHOLE",
-        "DO Party Name": "BALAJI FUELS",
-        "DO No": "87912",
-        "Diesel (L)": "35 L",
-        "Diesel Price (Rs)": 94.50,
-        "Advance (Rs)": 500,
-        "Total Trips": 1,
-        "Rate Per MT (Rs)": 350,
-        "Tonnage (MT)": 32.50
+        "SL.NO.": 1,
+        "DATE": "2026-09-22",
+        "VEHICLE NO.": "CG10CG9022",
+        "Trip Count": 1,
+        "DISP. WT.": 32.50,
+        "REC.WT.": 32.30,
+        "Freight RATE": 350,
+        "DO NO.": "87912",
+        "MINES": "DIPKA",
+        "Do Party Name": "BALAJI FUELS",
+        "Received Party": "NANDAN SMELTER",
+        "Billing PARTY": "JAY BHOLE ENTERPRISES",
+        "DIESEL in Litre": 35,
+        "MINES EXP.": 100,
+        "BILTY EXP.": 50,
+        "ADV": 500,
+        "Fastage": 200,
+        "SHORTAGE": 70,
+        "Total Expenses": "",
+        "Freight Amount": "",
+        "Balance Freight": ""
       },
       {
-        "Date": "2026-09-22",
-        "Vehicle No": "CG10CG6822",
-        "From (Origin)": "DIPKA",
-        "To (Destination)": "BIRGHANI",
-        "Distance (KM)": "58 km",
-        "Departure Time": "2026-09-22T09:00",
-        "Arrival Time": "2026-09-22T15:15",
-        "Unloading Time": "2026-09-22T17:00",
-        "Party Name": "JAY BHOLE",
-        "DO Party Name": "BALAJI FUELS",
-        "DO No": "87912",
-        "Diesel (L)": "37.85 L",
-        "Diesel Price (Rs)": 94.50,
-        "Advance (Rs)": 500,
-        "Total Trips": 1,
-        "Rate Per MT (Rs)": 350,
-        "Tonnage (MT)": 33.10
+        "SL.NO.": 2,
+        "DATE": "2026-09-22",
+        "VEHICLE NO.": "CG10CG6822",
+        "Trip Count": 1,
+        "DISP. WT.": 33.10,
+        "REC.WT.": 32.95,
+        "Freight RATE": 350,
+        "DO NO.": "87912",
+        "MINES": "DIPKA",
+        "Do Party Name": "BALAJI FUELS",
+        "Received Party": "NANDAN SMELTER",
+        "Billing PARTY": "JAY BHOLE ENTERPRISES",
+        "DIESEL in Litre": 37.85,
+        "MINES EXP.": 100,
+        "BILTY EXP.": 50,
+        "ADV": 500,
+        "Fastage": 200,
+        "SHORTAGE": 52.50,
+        "Total Expenses": "",
+        "Freight Amount": "",
+        "Balance Freight": ""
       }
     ];
 
     const worksheet = XLSX.utils.json_to_sheet(templateData);
+
+    // Auto set optimal column widths so headers look clean in Excel
+    const colWidths = [
+      { wch: 8 },  // SL.NO.
+      { wch: 12 }, // DATE
+      { wch: 15 }, // VEHICLE NO.
+      { wch: 12 }, // Trip Count
+      { wch: 12 }, // DISP. WT.
+      { wch: 12 }, // REC.WT.
+      { wch: 14 }, // Freight RATE
+      { wch: 12 }, // DO NO.
+      { wch: 15 }, // MINES
+      { wch: 20 }, // Do Party Name
+      { wch: 20 }, // Received Party
+      { wch: 24 }, // Billing PARTY
+      { wch: 15 }, // DIESEL in Litre
+      { wch: 13 }, // MINES EXP.
+      { wch: 13 }, // BILTY EXP.
+      { wch: 10 }, // ADV
+      { wch: 10 }, // Fastage
+      { wch: 12 }, // SHORTAGE
+      { wch: 16 }, // Total Expenses
+      { wch: 16 }, // Freight Amount
+      { wch: 16 }  // Balance Freight
+    ];
+    worksheet['!cols'] = colWidths;
+
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Bulk_Trip_Template");
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Trip_Reports_Template");
 
     if (fileType === 'csv') {
       XLSX.writeFile(workbook, "Truck_Trip_Bulk_Template.csv", { bookType: 'csv' });
@@ -1105,35 +1179,87 @@ export default function TruckReports() {
       return '';
     };
 
-    // Extract values
-    let date = String(getVal('date', 'tripdate', 'dateoftrip') || '').trim();
-    if (typeof date === 'number') {
-      const parsedDate = new Date(Math.round((date - 25569) * 86400 * 1000));
-      date = parsedDate.toISOString().split('T')[0];
-    } else if (date.includes('/')) {
-      const parts = date.split('/');
-      if (parts.length === 3) {
-        if (parts[2].length === 4) {
-          date = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+    // Extract values & robust Date parsing
+    let rawDate = getVal('date', 'tripdate', 'dateoftrip');
+    let date = '';
+
+    if (rawDate !== undefined && rawDate !== null && rawDate !== '') {
+      if (rawDate instanceof Date && !isNaN(rawDate.getTime())) {
+        const year = rawDate.getFullYear();
+        const month = String(rawDate.getMonth() + 1).padStart(2, '0');
+        const day = String(rawDate.getDate()).padStart(2, '0');
+        date = `${year}-${month}-${day}`;
+      } else if (typeof rawDate === 'number' || (!isNaN(Number(rawDate)) && !String(rawDate).includes('-') && !String(rawDate).includes('/'))) {
+        // Excel serial date number (e.g. 46296 -> 2026-10-09)
+        const serial = Number(rawDate);
+        if (serial > 10000 && serial < 80000) {
+          const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+          const parsed = new Date(excelEpoch.getTime() + Math.round(serial) * 86400 * 1000);
+          if (!isNaN(parsed.getTime())) {
+            const y = parsed.getUTCFullYear();
+            const m = String(parsed.getUTCMonth() + 1).padStart(2, '0');
+            const d = String(parsed.getUTCDate()).padStart(2, '0');
+            date = `${y}-${m}-${d}`;
+          }
+        }
+      }
+
+      if (!date) {
+        const dateStr = String(rawDate).trim();
+        if (dateStr.includes('/')) {
+          const parts = dateStr.split('/');
+          if (parts.length === 3) {
+            // DD/MM/YYYY or MM/DD/YYYY
+            const p0 = parts[0].padStart(2, '0');
+            const p1 = parts[1].padStart(2, '0');
+            const p2 = parts[2].length === 2 ? `20${parts[2]}` : parts[2];
+            // If p2 is year
+            if (p2.length === 4) {
+              date = `${p2}-${p1}-${p0}`;
+            }
+          }
+        } else if (dateStr.includes('-')) {
+          const parts = dateStr.split('-');
+          if (parts.length === 3) {
+            if (parts[0].length === 4) {
+              // YYYY-MM-DD
+              date = `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+            } else if (parts[2].length === 4) {
+              // DD-MM-YYYY
+              date = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+            }
+          }
+        } else if (!isNaN(Date.parse(dateStr))) {
+          const parsed = new Date(dateStr);
+          const y = parsed.getFullYear();
+          const m = String(parsed.getMonth() + 1).padStart(2, '0');
+          const d = String(parsed.getDate()).padStart(2, '0');
+          date = `${y}-${m}-${d}`;
         }
       }
     }
 
+    if (!date) {
+      date = new Date().toISOString().split('T')[0];
+    }
+
     const vehicleNo = String(getVal('vehicleno', 'truckno', 'vehiclenumber', 'truck', 'vehicle') || '').trim().toUpperCase();
     
-    // Origin / From
-    const from = String(getVal('fromorigin', 'from', 'origin', 'fromlocation', 'loadingpoint') || '').trim();
+    // Origin / From / Mines
+    const from = String(getVal('mines', 'mine', 'fromorigin', 'from', 'origin', 'fromlocation', 'loadingpoint') || '').trim();
     
-    // Destination / To
-    const to = String(getVal('todestination', 'to', 'destination', 'tolocation', 'unloadingpoint') || '').trim();
+    // Destination / To / Received Party
+    const to = String(getVal('receivedparty', 'recparty', 'receiverparty', 'todestination', 'to', 'destination', 'tolocation', 'unloadingpoint') || '').trim();
     
     let distance = String(getVal('distancekm', 'distance', 'dist', 'km') || '').trim();
     if (distance && !distance.toLowerCase().includes('km') && !isNaN(Number(distance))) {
       distance = `${distance} km`;
     }
 
-    const partyName = String(getVal('partyname', 'party') || '').trim();
-    const doPartyName = String(getVal('dopartyname', 'doparty', 'doparty') || '').trim();
+    // Party Names
+    const partyName = String(getVal('billingparty', 'partyname', 'party') || '').trim();
+    const doPartyName = String(getVal('dopartyname', 'doparty') || '').trim();
+    const receivedParty = to;
     const doNo = String(getVal('dono', 'donumber') || '').trim();
 
     // Turnaround Time (TAT) Fields from file
@@ -1143,40 +1269,70 @@ export default function TruckReports() {
 
     const tatCalc = calculateTurnaround(departureTime, unloadingTime, arrivalTime);
 
-    // Diesel (e.g. 35 or 35 L)
-    let dieselRaw = String(getVal('diesell', 'diesel', 'fuel') || '').trim();
+    // Diesel in Litres (Store clean numeric string in DB without extra 'L')
+    let dieselRaw = String(getVal('dieselinlitre', 'diesell', 'diesel', 'fuel') || '').trim();
     let dieselNumeric = parseFloat(dieselRaw.replace(/[^0-9.]/g, '')) || 0;
-    let diesel = dieselNumeric > 0 ? (dieselRaw.toLowerCase().includes('l') ? dieselRaw : `${dieselNumeric} L`) : '';
+    let diesel = dieselNumeric > 0 ? String(dieselNumeric) : '';
 
     // Diesel Price (e.g. 94.50)
     const dieselPriceRaw = String(getVal('dieselpricers', 'dieselprice', 'fuelprice', 'rateperliter', 'price') || '');
     const dieselPrice = parseFloat(dieselPriceRaw.replace(/[^0-9.]/g, '')) || 0;
 
     // Advance (e.g. 500)
-    const advanceRaw = String(getVal('advancers', 'advance', 'driveradvance', 'adv') || '');
+    const advanceRaw = String(getVal('adv', 'advancers', 'advance', 'driveradvance') || '');
     const advance = parseFloat(advanceRaw.replace(/[^0-9.]/g, '')) || 0;
 
-    // Total Trips
-    const totalTripsRaw = String(getVal('totaltrips', 'trips', 'tripcount') || '');
+    // Total Trips / Trip Count
+    const totalTripsRaw = String(getVal('tripcount', 'totaltrips', 'trips') || '');
     const totalTrips = parseInt(totalTripsRaw.replace(/[^0-9]/g, ''), 10) || 1;
 
-    // Rate Per MT (e.g. 350)
-    const perMTRaw = String(getVal('ratepermtrs', 'ratepermt', 'permt', 'rate', 'freightrate') || '');
-    const perMT = parseFloat(perMTRaw.replace(/[^0-9.]/g, '')) || 0;
-
-    // Tonnage (MT) (e.g. 32.50)
-    const tonnageRaw = String(getVal('tonnagemt', 'tonnage', 'weight', 'mt') || '');
+    // Dispatch Weight (DISP. WT.) / Tonnage
+    const tonnageRaw = String(getVal('dispwt', 'dispatchwt', 'dispatchweight', 'tonnagemt', 'tonnage', 'weight', 'mt') || '');
     const tonnage = parseFloat(tonnageRaw.replace(/[^0-9.]/g, '')) || 0;
 
-    // Full Accurate Automatic Calculations:
+    // Received Weight (REC.WT.)
+    const recWeightRaw = String(getVal('recwt', 'receivedwt', 'receivedweight', 'recweight') || '');
+    const recWeight = parseFloat(recWeightRaw.replace(/[^0-9.]/g, '')) || 0;
+
+    // Freight Rate (per MT)
+    const perMTRaw = String(getVal('freightrate', 'ratepermtrs', 'ratepermt', 'permt', 'rate') || '');
+    const perMT = parseFloat(perMTRaw.replace(/[^0-9.]/g, '')) || 0;
+
+    // Expenses: Mines Exp, Bilty Exp, Fastag, Shortage
+    const minesExpRaw = String(getVal('minesexp', 'mineexp', 'mineexpense') || '');
+    const minesExp = parseFloat(minesExpRaw.replace(/[^0-9.]/g, '')) || 0;
+
+    const biltyExpRaw = String(getVal('biltyexp', 'biltyexpense', 'builtyexp') || '');
+    const biltyExp = parseFloat(biltyExpRaw.replace(/[^0-9.]/g, '')) || 0;
+
+    const fastagRaw = String(getVal('fastage', 'fastag', 'fastagexp', 'toll') || '');
+    const fastagExp = parseFloat(fastagRaw.replace(/[^0-9.]/g, '')) || 0;
+
+    const shortageRaw = String(getVal('shortage', 'shortageexp', 'shortageamt') || '');
+    const parsedShortage = parseFloat(shortageRaw.replace(/[^0-9.]/g, '')) || 0;
+    // Round to max 2 decimal places to eliminate floating point issues (e.g. 0.58 instead of 0.580000000000054)
+    const shortageAmount = Math.round(parsedShortage * 100) / 100;
+
+    // Calculations:
     // 1. Total Diesel Price = Diesel(L) * Diesel Price(₹)
     const totalDieselPrice = Math.round(dieselNumeric * dieselPrice);
 
-    // 2. Total Freight = Rate Per MT * Tonnage (MT)
-    const totalFreight = (perMT > 0 && tonnage > 0) ? Math.round(perMT * tonnage) : 0;
+    // 2. Total Freight = Rate Per MT * Tonnage (DISP. WT.)
+    const userFreightAmount = parseFloat(String(getVal('freightamount', 'totalfreight') || '').replace(/[^0-9.]/g, '')) || 0;
+    const totalFreight = userFreightAmount > 0 
+      ? Math.round(userFreightAmount) 
+      : ((perMT > 0 && tonnage > 0) ? Math.round(perMT * tonnage) : 0);
 
-    // 3. Vehicle Balance = Total Freight - Total Diesel Price - Advance
-    const vehicleBalance = totalFreight > 0 ? Math.round(totalFreight - totalDieselPrice - advance) : 0;
+    // 3. Total Expenses = Total Diesel Cost + Mines Exp + Bilty Exp + Advance + Fastag + Shortage
+    const userTotalExpenses = parseFloat(String(getVal('totalexpenses', 'totalexpense') || '').replace(/[^0-9.]/g, '')) || 0;
+    const calculatedExpenses = totalDieselPrice + minesExp + biltyExp + advance + fastagExp + shortageAmount;
+    const totalExpenses = userTotalExpenses > 0 ? Math.round(userTotalExpenses) : Math.round(calculatedExpenses);
+
+    // 4. Vehicle Balance = Total Freight - Total Expenses
+    const userBalanceFreight = parseFloat(String(getVal('balancefreight', 'vehiclebalance', 'balance') || '').replace(/[^0-9.-]/g, '')) || 0;
+    const vehicleBalance = userBalanceFreight !== 0 
+      ? Math.round(userBalanceFreight) 
+      : (totalFreight > 0 ? Math.round(totalFreight - totalExpenses) : 0);
 
     return {
       index: index + 1,
@@ -1187,6 +1343,7 @@ export default function TruckReports() {
       distance,
       partyName,
       doPartyName,
+      receivedParty,
       doNo,
       diesel,
       dieselNumeric,
@@ -1196,6 +1353,12 @@ export default function TruckReports() {
       totalTrips,
       perMT,
       tonnage,
+      recWeight,
+      minesExp,
+      biltyExp,
+      fastagExp,
+      shortageAmount,
+      totalExpenses,
       totalFreight,
       vehicleBalance,
       departureTime,
@@ -1206,6 +1369,72 @@ export default function TruckReports() {
       tatStatus: tatCalc.status,
       isValid: Boolean(vehicleNo)
     };
+  };
+
+  // Helper to extract clean array of rows from sheet (auto-skipping banner/title rows at top)
+  const extractSheetData = (sheet) => {
+    // Read sheet as 2D array of rows
+    const rawRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false });
+    if (!rawRows || rawRows.length === 0) return [];
+
+    // Find the header row (look for row containing 'VEHICLE NO' or 'SL.NO' or 'VEHICLE')
+    let headerRowIdx = -1;
+    let vehicleColIdx = -1;
+
+    for (let r = 0; r < Math.min(rawRows.length, 15); r++) {
+      const row = rawRows[r];
+      if (Array.isArray(row)) {
+        for (let c = 0; c < row.length; c++) {
+          const cellStr = String(row[c] || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+          if (cellStr.includes('vehicleno') || cellStr === 'truckno' || cellStr === 'vehicle') {
+            headerRowIdx = r;
+            vehicleColIdx = c;
+            break;
+          }
+        }
+        if (headerRowIdx !== -1) break;
+      }
+    }
+
+    // If no explicit header found in top 15 rows, fallback to standard sheet_to_json
+    if (headerRowIdx === -1) {
+      return XLSX.utils.sheet_to_json(sheet, { defval: '', raw: false });
+    }
+
+    const headers = rawRows[headerRowIdx].map(h => String(h || '').trim());
+    const dataObjects = [];
+
+    for (let r = headerRowIdx + 1; r < rawRows.length; r++) {
+      const row = rawRows[r];
+      if (!row || !Array.isArray(row)) continue;
+
+      // STRICT VALIDATION: If row doesn't have a Vehicle No, it's a summary/footer row!
+      const vehicleVal = vehicleColIdx !== -1 ? String(row[vehicleColIdx] || '').trim() : '';
+      if (!vehicleVal) {
+        continue; // Skip footer / summary / empty lines completely
+      }
+
+      // Check if row has any non-empty value
+      const hasContent = row.some(cell => String(cell || '').trim() !== '');
+      if (!hasContent) continue;
+
+      const obj = {};
+      headers.forEach((hdr, colIdx) => {
+        if (hdr) {
+          obj[hdr] = row[colIdx] !== undefined ? row[colIdx] : '';
+        }
+      });
+
+      // Filter out footer summary lines (like "Total Trips", "Other Expenses", "AMC EMI", etc.)
+      const rowString = row.join(' ').toLowerCase();
+      if (rowString.includes('total trips') || rowString.includes('other expenses') || rowString.includes('amc emi') || rowString.includes('monthly emi') || rowString.includes('driver salary')) {
+        continue;
+      }
+
+      dataObjects.push(obj);
+    }
+
+    return dataObjects;
   };
 
   // Handle Bulk File Upload (Excel or CSV)
@@ -1227,10 +1456,10 @@ export default function TruckReports() {
       reader.onload = (evt) => {
         try {
           const csvText = evt.target.result;
-          const workbook = XLSX.read(csvText, { type: 'string' });
+          const workbook = XLSX.read(csvText, { type: 'string', cellDates: true });
           const firstSheetName = workbook.SheetNames[0];
           const sheet = workbook.Sheets[firstSheetName];
-          const jsonData = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+          const jsonData = extractSheetData(sheet);
 
           if (!jsonData || jsonData.length === 0) {
             toast.error("The CSV file is empty!");
@@ -1239,6 +1468,7 @@ export default function TruckReports() {
 
           const parsed = jsonData.map((row, idx) => processTripRow(row, idx));
           setBulkParsedData(parsed);
+          setBulkCurrentPage(1);
           toast.success(`Loaded ${parsed.length} rows from CSV! Review & Click Upload.`);
         } catch (err) {
           console.error("Error reading CSV:", err);
@@ -1250,10 +1480,10 @@ export default function TruckReports() {
       reader.onload = (evt) => {
         try {
           const data = new Uint8Array(evt.target.result);
-          const workbook = XLSX.read(data, { type: 'array' });
+          const workbook = XLSX.read(data, { type: 'array', cellDates: true });
           const firstSheetName = workbook.SheetNames[0];
           const sheet = workbook.Sheets[firstSheetName];
-          const jsonData = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+          const jsonData = extractSheetData(sheet);
 
           if (!jsonData || jsonData.length === 0) {
             toast.error("The Excel sheet is empty!");
@@ -1262,6 +1492,7 @@ export default function TruckReports() {
 
           const parsed = jsonData.map((row, idx) => processTripRow(row, idx));
           setBulkParsedData(parsed);
+          setBulkCurrentPage(1);
           toast.success(`Loaded ${parsed.length} rows from Excel! Review & Click Upload.`);
         } catch (err) {
           console.error("Error reading Excel:", err);
@@ -1294,7 +1525,7 @@ export default function TruckReports() {
         date: r.date,
         vehicle_no: r.vehicleNo,
         from_location: r.from,
-        to_location: r.to,
+        to_location: r.to || r.receivedParty,
         distance: r.distance,
         party_name: r.partyName,
         do_party_name: r.doPartyName,
@@ -1303,10 +1534,16 @@ export default function TruckReports() {
         advance: Number(r.advance) || 0,
         do_no: r.doNo,
         tonnage: Number(r.tonnage) || 0,
+        rec_weight: Number(r.recWeight) || 0,
         total_trips: Number(r.totalTrips) || 1,
-        vehicle_balance: Number(r.vehicleBalance) || 0,
         per_mt: Number(r.perMT) || 0,
+        mines_exp: Number(r.minesExp) || 0,
+        bilty_exp: Number(r.biltyExp) || 0,
+        fastag_exp: Number(r.fastagExp) || 0,
+        shortage_amount: Number(r.shortageAmount) || 0,
+        total_expenses: Number(r.totalExpenses) || 0,
         total_freight: Number(r.totalFreight) || 0,
+        vehicle_balance: Number(r.vehicleBalance) || 0,
         departure_time: r.departureTime || null,
         arrival_time: r.arrivalTime || null,
         unloading_time: r.unloadingTime || null,
@@ -1650,32 +1887,37 @@ export default function TruckReports() {
           className="hidden md:block overflow-x-auto overflow-y-auto max-h-[65vh] custom-sidebar-scroll"
           onScroll={handleTableScroll}
         >
-          <table className="w-full text-left border-collapse min-w-[1200px]">
+          <table className="w-full text-left border-collapse min-w-[1700px]">
             <thead className="sticky top-0 z-20 bg-slate-50/95 backdrop-blur-md border-b border-slate-200">
               <tr className="text-xs font-black text-slate-500 uppercase tracking-wider">
                 <th className="py-3.5 px-3.5 text-center whitespace-nowrap">S.No</th>
                 <th className="py-3.5 px-3.5 text-center whitespace-nowrap">View</th>
                 <th className="py-3.5 px-3.5 whitespace-nowrap">Date</th>
                 <th className="py-3.5 px-3.5 whitespace-nowrap">Vehicle No.</th>
-                <th className="py-3.5 px-3.5 whitespace-nowrap">Route (From ➔ To)</th>
+                <th className="py-3.5 px-3.5 text-center whitespace-nowrap">Trip Count</th>
+                <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Disp. Wt.</th>
+                <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Rec. Wt.</th>
+                <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Freight Rate</th>
+                <th className="py-3.5 px-3.5 whitespace-nowrap">DO No.</th>
+                <th className="py-3.5 px-3.5 whitespace-nowrap">Mines / Route</th>
+                <th className="py-3.5 px-3.5 whitespace-nowrap">DO Party</th>
+                <th className="py-3.5 px-3.5 whitespace-nowrap">Received Party</th>
+                <th className="py-3.5 px-3.5 whitespace-nowrap">Billing Party</th>
                 <th className="py-3.5 px-3.5 text-center whitespace-nowrap bg-indigo-50/70 text-indigo-800">
                   <div className="flex items-center justify-center gap-1">
                     <Timer size={13} />
                     <span>Turnaround (TAT)</span>
                   </div>
                 </th>
-                <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Dist.</th>
-                <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Diesel</th>
-                <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Price</th>
-                <th className="py-3.5 px-3.5 text-right whitespace-nowrap text-purple-700">Total Diesel Price</th>
+                <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Diesel (L)</th>
+                <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Mines Exp</th>
+                <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Bilty Exp</th>
                 <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Advance</th>
-                <th className="py-3.5 px-3.5 whitespace-nowrap">DO No.</th>
-                <th className="py-3.5 px-3.5 whitespace-nowrap">DO Party</th>
-                <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Tonnage</th>
-                <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Freight</th>
-                <th className="py-3.5 px-3.5 text-center whitespace-nowrap">Trips</th>
-                <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Per MT</th>
-                <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Vehicle Bal.</th>
+                <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Fastag</th>
+                <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Shortage</th>
+                <th className="py-3.5 px-3.5 text-right whitespace-nowrap text-amber-700 bg-amber-50/50">Total Expenses</th>
+                <th className="py-3.5 px-3.5 text-right whitespace-nowrap text-emerald-700 bg-emerald-50/50">Freight Amount</th>
+                <th className="py-3.5 px-3.5 text-right whitespace-nowrap text-blue-700 bg-blue-50/50">Balance Freight</th>
                 <th className="py-3.5 px-4 text-center whitespace-nowrap">Actions</th>
               </tr>
             </thead>
@@ -1685,6 +1927,15 @@ export default function TruckReports() {
                   const dieselNum = parseFloat(String(row.diesel || '').replace(/[^0-9.]/g, '')) || 0;
                   const dieselPriceNum = parseFloat(row.dieselPrice) || 0;
                   const totalDieselPrice = Math.round(dieselNum * dieselPriceNum);
+                  const minesExpVal = parseFloat(row.minesExp) || 0;
+                  const biltyExpVal = parseFloat(row.biltyExp) || 0;
+                  const advanceVal = parseFloat(row.advance) || 0;
+                  const fastagVal = parseFloat(row.fastagExp) || 0;
+                  const shortageVal = parseFloat(row.shortageAmount) || 0;
+                  const autoCalculatedExpenses = totalDieselPrice + minesExpVal + biltyExpVal + advanceVal + fastagVal + shortageVal;
+                  const totalExpDisplay = (row.totalExpenses !== '' && row.totalExpenses !== undefined && row.totalExpenses !== null && Number(row.totalExpenses) > 0)
+                    ? Number(row.totalExpenses)
+                    : autoCalculatedExpenses;
 
                   return (
                     <tr 
@@ -1712,12 +1963,44 @@ export default function TruckReports() {
                           {row.vehicleNo?.toUpperCase().includes('CG') ? row.vehicleNo : `CG-10-CG ${row.vehicleNo}`}
                         </span>
                       </td>
+                      <td className="py-3.5 px-3.5 text-center font-bold text-slate-800 whitespace-nowrap">
+                        {row.totalTrips || 1}
+                      </td>
+                      <td className="py-3.5 px-3.5 text-right font-bold text-slate-800 whitespace-nowrap">
+                        {row.tonnage ? `${row.tonnage} MT` : '—'}
+                      </td>
+                      <td className="py-3.5 px-3.5 text-right font-medium text-slate-700 whitespace-nowrap">
+                        {row.recWeight ? `${row.recWeight} MT` : '—'}
+                      </td>
+                      <td className="py-3.5 px-3.5 text-right font-semibold text-slate-700 whitespace-nowrap">
+                        ₹{row.perMT || 0}
+                      </td>
+                      <td className="py-3.5 px-3.5 whitespace-nowrap font-mono font-bold text-slate-700">
+                        {row.doNo ? (
+                          <span className="bg-slate-100 border border-slate-200/70 px-2.5 py-0.5 rounded text-xs">
+                            {row.doNo}
+                          </span>
+                        ) : '—'}
+                      </td>
                       <td className="py-3.5 px-3.5 whitespace-nowrap font-medium">
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 text-xs font-bold">
-                          <span>{row.from}</span>
-                          <ArrowRight size={12} className="text-red-500 shrink-0" />
-                          <span>{row.to}</span>
+                          <span>{row.from || '—'}</span>
+                          {row.to && (
+                            <>
+                              <ArrowRight size={12} className="text-red-500 shrink-0" />
+                              <span>{row.to}</span>
+                            </>
+                          )}
                         </span>
+                      </td>
+                      <td className="py-3.5 px-3.5 whitespace-nowrap font-medium text-slate-600">
+                        {row.doPartyName || '—'}
+                      </td>
+                      <td className="py-3.5 px-3.5 whitespace-nowrap font-medium text-slate-600">
+                        {row.receivedParty || '—'}
+                      </td>
+                      <td className="py-3.5 px-3.5 whitespace-nowrap font-medium text-slate-600">
+                        {row.partyName || '—'}
                       </td>
                       <td className="py-3.5 px-3.5 text-center whitespace-nowrap bg-indigo-50/20">
                         {row.turnaroundHours ? (
@@ -1739,44 +2022,39 @@ export default function TruckReports() {
                           <span className="text-xs text-slate-300 font-medium">—</span>
                         )}
                       </td>
-                      <td className="py-3.5 px-3.5 text-right font-bold text-slate-700 whitespace-nowrap">
-                        {row.distance || '—'}
-                      </td>
                       <td className="py-3.5 px-3.5 text-right font-black text-purple-700 whitespace-nowrap">
-                        {row.diesel ? `${row.diesel} L` : '—'}
+                        {(() => {
+                          if (!row.diesel) return '—';
+                          const cleanVal = String(row.diesel).replace(/[^0-9.]/g, '').trim();
+                          return cleanVal ? `${cleanVal} L` : '—';
+                        })()}
                       </td>
-                      <td className="py-3.5 px-3.5 text-right font-semibold text-slate-500 whitespace-nowrap">
-                        ₹{row.dieselPrice || 0}
+                      <td className="py-3.5 px-3.5 text-right font-medium text-slate-600 whitespace-nowrap">
+                        ₹{row.minesExp || 0}
                       </td>
-                      <td className="py-3.5 px-3.5 text-right font-black text-purple-700 whitespace-nowrap bg-purple-50/30">
-                        {totalDieselPrice > 0 ? `₹${totalDieselPrice.toLocaleString('en-IN')}` : '₹0'}
+                      <td className="py-3.5 px-3.5 text-right font-medium text-slate-600 whitespace-nowrap">
+                        ₹{row.biltyExp || 0}
                       </td>
                       <td className="py-3.5 px-3.5 text-right font-black text-amber-600 whitespace-nowrap">
                         ₹{row.advance ? Number(row.advance).toLocaleString('en-IN') : 0}
                       </td>
-                      <td className="py-3.5 px-3.5 whitespace-nowrap font-mono font-bold text-slate-700">
-                        {row.doNo ? (
-                          <span className="bg-slate-100 border border-slate-200/70 px-2.5 py-0.5 rounded text-xs">
-                            {row.doNo}
-                          </span>
-                        ) : '—'}
+                      <td className="py-3.5 px-3.5 text-right font-medium text-slate-600 whitespace-nowrap">
+                        ₹{row.fastagExp || 0}
                       </td>
-                      <td className="py-3.5 px-3.5 whitespace-nowrap font-medium text-slate-600">
-                        {row.doPartyName || '—'}
+                      <td className="py-3.5 px-3.5 text-right font-medium text-slate-600 whitespace-nowrap">
+                        {(() => {
+                          if (!row.shortageAmount && row.shortageAmount !== 0) return '₹0';
+                          const n = parseFloat(row.shortageAmount);
+                          return isNaN(n) ? '₹0' : `₹${parseFloat(n.toFixed(2))}`;
+                        })()}
                       </td>
-                      <td className="py-3.5 px-3.5 text-right font-bold text-slate-800 whitespace-nowrap">
-                        {row.tonnage ? `${row.tonnage} MT` : '—'}
+                      <td className="py-3.5 px-3.5 text-right font-black text-amber-700 bg-amber-50/30 whitespace-nowrap">
+                        ₹{totalExpDisplay.toLocaleString('en-IN')}
                       </td>
-                      <td className="py-3.5 px-3.5 text-right font-black text-emerald-700 whitespace-nowrap">
+                      <td className="py-3.5 px-3.5 text-right font-black text-emerald-700 bg-emerald-50/30 whitespace-nowrap">
                         ₹{row.totalFreight ? Number(row.totalFreight).toLocaleString('en-IN') : 0}
                       </td>
-                      <td className="py-3.5 px-3.5 text-center font-bold text-slate-800 whitespace-nowrap">
-                        {row.totalTrips || 1}
-                      </td>
-                      <td className="py-3.5 px-3.5 text-right font-semibold text-slate-600 whitespace-nowrap">
-                        ₹{row.perMT || 0}
-                      </td>
-                      <td className="py-3.5 px-3.5 text-right font-black whitespace-nowrap">
+                      <td className="py-3.5 px-3.5 text-right font-black bg-blue-50/30 whitespace-nowrap">
                         <span className={Number(row.vehicleBalance) >= 0 ? "text-emerald-600" : "text-rose-600"}>
                           ₹{row.vehicleBalance ? Number(row.vehicleBalance).toLocaleString('en-IN') : 0}
                         </span>
@@ -1804,7 +2082,7 @@ export default function TruckReports() {
                 })
               ) : (
                 <tr>
-                  <td colSpan={18} className="py-12 text-center text-slate-400">
+                  <td colSpan={24} className="py-12 text-center text-slate-400">
                     <Truck className="h-8 w-8 mx-auto text-slate-300 mb-2" />
                     <p className="font-bold text-slate-700 text-sm">No trip reports found matching your filters</p>
                     <p className="text-xs text-slate-400 mt-1">Try resetting search or date filters above.</p>
@@ -2082,15 +2360,15 @@ export default function TruckReports() {
                   />
                 </div>
 
-                {/* Origin City */}
+                {/* Origin / Mines */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-600 uppercase">From (Origin) *</label>
+                  <label className="text-xs font-bold text-slate-600 uppercase">From (Origin / Mines) *</label>
                   <Select
                     isClearable
                     options={fromOptions}
                     value={formData.from ? { label: formData.from, value: formData.from } : null}
                     onChange={(newValue) => handleInputChange({ target: { name: 'from', value: newValue ? newValue.value : '' } })}
-                    placeholder="Select Origin..."
+                    placeholder="Select Origin / Mines..."
                     components={{ MenuList: CustomMenuList, Option: FromOptionComponent }}
                     styles={{
                       control: (base) => ({
@@ -2106,15 +2384,19 @@ export default function TruckReports() {
                   />
                 </div>
 
-                {/* Destination City */}
+                {/* Received Party / Destination */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-600 uppercase">To (Destination) *</label>
+                  <label className="text-xs font-bold text-slate-600 uppercase">Received Party (To Destination) *</label>
                   <Select
                     isClearable
                     options={toOptions}
-                    value={formData.to ? { label: formData.to, value: formData.to } : null}
-                    onChange={(newValue) => handleInputChange({ target: { name: 'to', value: newValue ? newValue.value : '' } })}
-                    placeholder="Select Destination..."
+                    value={(formData.receivedParty || formData.to) ? { label: (formData.receivedParty || formData.to), value: (formData.receivedParty || formData.to) } : null}
+                    onChange={(newValue) => {
+                      const val = newValue ? newValue.value : '';
+                      handleInputChange({ target: { name: 'to', value: val } });
+                      handleInputChange({ target: { name: 'receivedParty', value: val } });
+                    }}
+                    placeholder="Select Received Party..."
                     components={{ MenuList: ToMenuList, Option: ToOptionComponent }}
                     styles={{
                       control: (base) => ({
@@ -2292,9 +2574,33 @@ export default function TruckReports() {
                   />
                 </div>
 
+                {/* Billing Party */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-600 uppercase">Billing Party</label>
+                  <Select
+                    isClearable
+                    options={partyOptions}
+                    value={formData.partyName ? { label: formData.partyName, value: formData.partyName } : null}
+                    onChange={(newValue) => handleInputChange({ target: { name: 'partyName', value: newValue ? newValue.value : '' } })}
+                    placeholder="Select billing party..."
+                    components={{ MenuList: PartyMenuList, Option: PartyOptionComponent }}
+                    styles={{
+                      control: (base) => ({
+                        ...base,
+                        padding: '2px',
+                        borderRadius: '12px',
+                        border: '1px solid #e2e8f0',
+                        fontSize: '14px',
+                        '&:hover': { borderColor: '#cbd5e1' }
+                      }),
+                      menu: (base) => ({ ...base, zIndex: 9999 })
+                    }}
+                  />
+                </div>
+
                 {/* Total Trips */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-600 uppercase">Total Trips *</label>
+                  <label className="text-xs font-bold text-slate-600 uppercase">Trip Count / Total Trips *</label>
                   <Select
                     isClearable
                     options={tripsOptions}
@@ -2316,39 +2622,15 @@ export default function TruckReports() {
                   />
                 </div>
 
-                {/* Per MT */}
+                {/* Dispatch Weight (DISP. WT.) */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-600 uppercase">Rate Per MT (₹) *</label>
-                  <Select
-                    isClearable
-                    options={perMTOptions}
-                    value={formData.perMT ? { label: `₹${formData.perMT}`, value: String(formData.perMT) } : null}
-                    onChange={(newValue) => handleInputChange({ target: { name: 'perMT', value: newValue ? newValue.value : '' } })}
-                    placeholder="Select Rate/MT..."
-                    components={{ MenuList: PerMTMenuList, Option: PerMTOptionComponent }}
-                    styles={{
-                      control: (base) => ({
-                        ...base,
-                        padding: '2px',
-                        borderRadius: '12px',
-                        border: '1px solid #e2e8f0',
-                        fontSize: '14px',
-                        '&:hover': { borderColor: '#cbd5e1' }
-                      }),
-                      menu: (base) => ({ ...base, zIndex: 9999 })
-                    }}
-                  />
-                </div>
-
-                {/* Tonnage */}
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-600 uppercase">Tonnage (MT) *</label>
+                  <label className="text-xs font-bold text-slate-600 uppercase">Disp. Wt. (Tonnage MT) *</label>
                   <Select
                     isClearable
                     options={tonnageOptions}
                     value={formData.tonnage ? { label: `${formData.tonnage} MT`, value: String(formData.tonnage) } : null}
                     onChange={(newValue) => handleInputChange({ target: { name: 'tonnage', value: newValue ? newValue.value : '' } })}
-                    placeholder="Select tonnage..."
+                    placeholder="Select dispatch weight..."
                     components={{ MenuList: TonnageMenuList, Option: TonnageOptionComponent }}
                     styles={{
                       control: (base) => ({
@@ -2364,9 +2646,117 @@ export default function TruckReports() {
                   />
                 </div>
 
-                {/* Total Freight (Calculated) */}
+                {/* Received Weight (REC. WT.) */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-emerald-700 uppercase">Total Freight (Calculated)</label>
+                  <label className="text-xs font-bold text-slate-600 uppercase">Rec. Wt. (MT)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    name="recWeight"
+                    value={formData.recWeight || ''}
+                    onChange={handleInputChange}
+                    placeholder="e.g. 32.30"
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-800 outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all shadow-2xs"
+                  />
+                </div>
+
+                {/* Freight Rate / Per MT */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-600 uppercase">Freight Rate (₹/MT) *</label>
+                  <Select
+                    isClearable
+                    options={perMTOptions}
+                    value={formData.perMT ? { label: `₹${formData.perMT}`, value: String(formData.perMT) } : null}
+                    onChange={(newValue) => handleInputChange({ target: { name: 'perMT', value: newValue ? newValue.value : '' } })}
+                    placeholder="Select Freight Rate..."
+                    components={{ MenuList: PerMTMenuList, Option: PerMTOptionComponent }}
+                    styles={{
+                      control: (base) => ({
+                        ...base,
+                        padding: '2px',
+                        borderRadius: '12px',
+                        border: '1px solid #e2e8f0',
+                        fontSize: '14px',
+                        '&:hover': { borderColor: '#cbd5e1' }
+                      }),
+                      menu: (base) => ({ ...base, zIndex: 9999 })
+                    }}
+                  />
+                </div>
+
+                {/* Mines Exp */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-600 uppercase">Mines Exp. (₹)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    name="minesExp"
+                    value={formData.minesExp || ''}
+                    onChange={handleInputChange}
+                    placeholder="e.g. 100"
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-800 outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all shadow-2xs"
+                  />
+                </div>
+
+                {/* Bilty Exp */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-600 uppercase">Bilty Exp. (₹)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    name="biltyExp"
+                    value={formData.biltyExp || ''}
+                    onChange={handleInputChange}
+                    placeholder="e.g. 50"
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-800 outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all shadow-2xs"
+                  />
+                </div>
+
+                {/* Fastag Exp */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-600 uppercase">Fastage / Fastag (₹)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    name="fastagExp"
+                    value={formData.fastagExp || ''}
+                    onChange={handleInputChange}
+                    placeholder="e.g. 200"
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-800 outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all shadow-2xs"
+                  />
+                </div>
+
+                {/* Shortage Amount */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-600 uppercase">Shortage (₹)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    name="shortageAmount"
+                    value={formData.shortageAmount || ''}
+                    onChange={handleInputChange}
+                    placeholder="e.g. 70"
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-800 outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all shadow-2xs"
+                  />
+                </div>
+
+                {/* Total Expenses (Calculated) */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-amber-700 uppercase">Total Expenses (Calculated)</label>
+                  <input 
+                    type="number" 
+                    name="totalExpenses" 
+                    value={formData.totalExpenses || ''} 
+                    onChange={handleInputChange} 
+                    placeholder="Auto calculated" 
+                    readOnly
+                    className="w-full px-3.5 py-2.5 bg-amber-50 border border-amber-200 rounded-xl text-sm font-black text-amber-800 outline-none shadow-2xs"
+                  />
+                </div>
+
+                {/* Total Freight / Freight Amount (Calculated) */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-emerald-700 uppercase">Freight Amount (Calculated)</label>
                   <input 
                     type="number" 
                     name="totalFreight" 
@@ -2378,9 +2768,9 @@ export default function TruckReports() {
                   />
                 </div>
 
-                {/* Vehicle Balance (Calculated) */}
+                {/* Vehicle Balance / Balance Freight (Calculated) */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-blue-700 uppercase">Vehicle Balance (Calculated)</label>
+                  <label className="text-xs font-bold text-blue-700 uppercase">Balance Freight (Calculated)</label>
                   <input 
                     type="number" 
                     name="vehicleBalance" 
@@ -2726,23 +3116,44 @@ export default function TruckReports() {
                 </div>
 
                 <div className="bg-white p-3 rounded-xl border border-slate-200/80">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Total Trips</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Received Party</span>
+                  <span className="font-bold text-slate-700 text-sm mt-0.5 block">{viewModal.data.receivedParty || '—'}</span>
+                </div>
+
+                <div className="bg-white p-3 rounded-xl border border-slate-200/80">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Billing Party</span>
+                  <span className="font-bold text-slate-700 text-sm mt-0.5 block">{viewModal.data.partyName || '—'}</span>
+                </div>
+
+                <div className="bg-white p-3 rounded-xl border border-slate-200/80">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Trip Count</span>
                   <span className="font-bold text-slate-800 text-sm mt-0.5 block">{viewModal.data.totalTrips || 1}</span>
                 </div>
 
                 <div className="bg-white p-3 rounded-xl border border-slate-200/80">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Tonnage</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Disp. Wt. (Tonnage)</span>
                   <span className="font-bold text-slate-800 text-sm mt-0.5 block">{viewModal.data.tonnage ? `${viewModal.data.tonnage} MT` : '—'}</span>
                 </div>
 
                 <div className="bg-white p-3 rounded-xl border border-slate-200/80">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Rate Per MT</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Rec. Wt.</span>
+                  <span className="font-bold text-slate-800 text-sm mt-0.5 block">{viewModal.data.recWeight ? `${viewModal.data.recWeight} MT` : '—'}</span>
+                </div>
+
+                <div className="bg-white p-3 rounded-xl border border-slate-200/80">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Freight Rate</span>
                   <span className="font-mono font-bold text-slate-700 text-sm mt-0.5 block">₹{viewModal.data.perMT || 0}</span>
                 </div>
 
                 <div className="bg-purple-50/60 p-3 rounded-xl border border-purple-200/80">
                   <span className="text-[10px] font-bold text-purple-700 uppercase block">Diesel (Liters)</span>
-                  <span className="font-mono font-black text-purple-700 text-sm mt-0.5 block">{viewModal.data.diesel ? `${viewModal.data.diesel} L` : '—'}</span>
+                  <span className="font-mono font-black text-purple-700 text-sm mt-0.5 block">
+                    {(() => {
+                      if (!viewModal.data.diesel) return '—';
+                      const cleanVal = String(viewModal.data.diesel).replace(/[^0-9.]/g, '').trim();
+                      return cleanVal ? `${cleanVal} L` : '—';
+                    })()}
+                  </span>
                 </div>
 
                 <div className="bg-purple-50/60 p-3 rounded-xl border border-purple-200/80">
@@ -2750,9 +3161,9 @@ export default function TruckReports() {
                   <span className="font-mono font-bold text-purple-700 text-sm mt-0.5 block">₹{viewModal.data.dieselPrice || 0}</span>
                 </div>
 
-                <div className="bg-purple-100/70 p-3 rounded-xl border border-purple-300 col-span-2">
+                <div className="bg-purple-100/70 p-3 rounded-xl border border-purple-300">
                   <span className="text-[10px] font-bold text-purple-800 uppercase block">Total Diesel Price</span>
-                  <span className="font-mono font-black text-purple-900 text-base mt-0.5 block">
+                  <span className="font-mono font-black text-purple-900 text-sm mt-0.5 block">
                     {(() => {
                       const dL = parseFloat(String(viewModal.data.diesel || '').replace(/[^0-9.]/g, '')) || 0;
                       const dP = parseFloat(viewModal.data.dieselPrice) || 0;
@@ -2766,14 +3177,61 @@ export default function TruckReports() {
                   <span className="font-mono font-black text-amber-600 text-sm mt-0.5 block">₹{viewModal.data.advance ? Number(viewModal.data.advance).toLocaleString('en-IN') : 0}</span>
                 </div>
 
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase block">Mines Exp.</span>
+                  <span className="font-mono font-bold text-slate-700 text-sm mt-0.5 block">₹{viewModal.data.minesExp ? Number(viewModal.data.minesExp).toLocaleString('en-IN') : 0}</span>
+                </div>
+
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase block">Bilty Exp.</span>
+                  <span className="font-mono font-bold text-slate-700 text-sm mt-0.5 block">₹{viewModal.data.biltyExp ? Number(viewModal.data.biltyExp).toLocaleString('en-IN') : 0}</span>
+                </div>
+
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase block">Fastag Exp.</span>
+                  <span className="font-mono font-bold text-slate-700 text-sm mt-0.5 block">₹{viewModal.data.fastagExp ? Number(viewModal.data.fastagExp).toLocaleString('en-IN') : 0}</span>
+                </div>
+
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase block">Shortage</span>
+                  <span className="font-mono font-bold text-slate-700 text-sm mt-0.5 block">
+                    {(() => {
+                      if (!viewModal.data.shortageAmount && viewModal.data.shortageAmount !== 0) return '₹0';
+                      const n = parseFloat(viewModal.data.shortageAmount);
+                      return isNaN(n) ? '₹0' : `₹${parseFloat(n.toFixed(2))}`;
+                    })()}
+                  </span>
+                </div>
+
+                <div className="bg-amber-100/70 p-3 rounded-xl border border-amber-300">
+                  <span className="text-[10px] font-bold text-amber-800 uppercase block">Total Expenses</span>
+                  <span className="font-mono font-black text-amber-900 text-sm mt-0.5 block">
+                    {(() => {
+                      const dL = parseFloat(String(viewModal.data.diesel || '').replace(/[^0-9.]/g, '')) || 0;
+                      const dP = parseFloat(viewModal.data.dieselPrice) || 0;
+                      const dTotal = Math.round(dL * dP);
+                      const mE = parseFloat(viewModal.data.minesExp) || 0;
+                      const bE = parseFloat(viewModal.data.biltyExp) || 0;
+                      const adv = parseFloat(viewModal.data.advance) || 0;
+                      const fE = parseFloat(viewModal.data.fastagExp) || 0;
+                      const sE = parseFloat(viewModal.data.shortageAmount) || 0;
+                      const autoCalc = dTotal + mE + bE + adv + fE + sE;
+                      const finalExp = (viewModal.data.totalExpenses !== '' && Number(viewModal.data.totalExpenses) > 0)
+                        ? Number(viewModal.data.totalExpenses)
+                        : autoCalc;
+                      return `₹${finalExp.toLocaleString('en-IN')}`;
+                    })()}
+                  </span>
+                </div>
+
                 <div className="bg-emerald-50/60 p-3 rounded-xl border border-emerald-200/80">
-                  <span className="text-[10px] font-bold text-emerald-700 uppercase block">Total Freight</span>
+                  <span className="text-[10px] font-bold text-emerald-700 uppercase block">Freight Amount</span>
                   <span className="font-mono font-black text-emerald-700 text-sm mt-0.5 block">₹{viewModal.data.totalFreight ? Number(viewModal.data.totalFreight).toLocaleString('en-IN') : 0}</span>
                 </div>
 
-                <div className="bg-blue-50/70 p-3 rounded-xl border border-blue-200/80 col-span-2 flex items-center justify-between">
-                  <span className="text-xs font-bold text-blue-700 uppercase">Vehicle Balance</span>
-                  <span className={`font-mono font-black text-base ${Number(viewModal.data.vehicleBalance) >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                <div className="bg-blue-50/70 p-3 rounded-xl border border-blue-200/80">
+                  <span className="text-[10px] font-bold text-blue-700 uppercase block">Balance Freight</span>
+                  <span className={`font-mono font-black text-sm mt-0.5 block ${Number(viewModal.data.vehicleBalance) >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
                     ₹{viewModal.data.vehicleBalance ? Number(viewModal.data.vehicleBalance).toLocaleString('en-IN') : 0}
                   </span>
                 </div>
@@ -2930,25 +3388,31 @@ export default function TruckReports() {
                   </div>
 
                   {/* Summary Calculation Chips */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 text-xs">
                     <div className="bg-slate-50 border border-slate-200 p-2.5 rounded-xl">
                       <span className="text-slate-400 font-semibold block text-[10px] uppercase">Total Trips</span>
                       <span className="font-bold text-slate-800 text-sm">{bulkParsedData.length}</span>
                     </div>
                     <div className="bg-purple-50 border border-purple-200 p-2.5 rounded-xl">
-                      <span className="text-purple-600 font-semibold block text-[10px] uppercase">Diesel Cost (Calculated)</span>
+                      <span className="text-purple-600 font-semibold block text-[10px] uppercase">Diesel Cost</span>
                       <span className="font-black text-purple-700 text-sm">
                         ₹{bulkParsedData.reduce((acc, r) => acc + (r.totalDieselPrice || 0), 0).toLocaleString('en-IN')}
                       </span>
                     </div>
+                    <div className="bg-amber-50 border border-amber-200 p-2.5 rounded-xl">
+                      <span className="text-amber-600 font-semibold block text-[10px] uppercase">Total Expenses</span>
+                      <span className="font-black text-amber-700 text-sm">
+                        ₹{bulkParsedData.reduce((acc, r) => acc + (r.totalExpenses || 0), 0).toLocaleString('en-IN')}
+                      </span>
+                    </div>
                     <div className="bg-emerald-50 border border-emerald-200 p-2.5 rounded-xl">
-                      <span className="text-emerald-600 font-semibold block text-[10px] uppercase">Total Freight (Calculated)</span>
+                      <span className="text-emerald-600 font-semibold block text-[10px] uppercase">Total Freight</span>
                       <span className="font-black text-emerald-700 text-sm">
                         ₹{bulkParsedData.reduce((acc, r) => acc + (r.totalFreight || 0), 0).toLocaleString('en-IN')}
                       </span>
                     </div>
                     <div className="bg-blue-50 border border-blue-200 p-2.5 rounded-xl">
-                      <span className="text-blue-600 font-semibold block text-[10px] uppercase">Net Balance (Calculated)</span>
+                      <span className="text-blue-600 font-semibold block text-[10px] uppercase">Balance Freight</span>
                       <span className="font-black text-blue-700 text-sm">
                         ₹{bulkParsedData.reduce((acc, r) => acc + (r.vehicleBalance || 0), 0).toLocaleString('en-IN')}
                       </span>
@@ -2956,75 +3420,156 @@ export default function TruckReports() {
                   </div>
 
                   {/* Scrollable Preview Table */}
-                  <div className="border border-slate-200 rounded-xl overflow-x-auto max-h-60 overflow-y-auto">
+                  <div className="border border-slate-200 rounded-xl overflow-x-auto max-h-72 overflow-y-auto">
                     <table className="w-full text-left text-xs whitespace-nowrap">
                       <thead className="bg-slate-100 text-slate-700 font-bold sticky top-0 z-10 shadow-2xs">
                         <tr>
                           <th className="p-2 border-b">#</th>
                           <th className="p-2 border-b">Date</th>
                           <th className="p-2 border-b">Vehicle No.</th>
-                          <th className="p-2 border-b">Route (From ➔ To)</th>
-                          <th className="p-2 border-b">Dist.</th>
-                          <th className="p-2 border-b">Diesel</th>
-                          <th className="p-2 border-b">Price</th>
-                          <th className="p-2 border-b text-purple-700 bg-purple-50/70">Total Diesel Price</th>
-                          <th className="p-2 border-b">Advance</th>
+                          <th className="p-2 border-b">Trip Count</th>
+                          <th className="p-2 border-b">Disp. Wt.</th>
+                          <th className="p-2 border-b">Rec. Wt.</th>
+                          <th className="p-2 border-b">Freight Rate</th>
                           <th className="p-2 border-b">DO No.</th>
-                          <th className="p-2 border-b">DO Party</th>
-                          <th className="p-2 border-b">Tonnage</th>
-                          <th className="p-2 border-b text-emerald-700 bg-emerald-50/70">Freight</th>
-                          <th className="p-2 border-b">Trips</th>
-                          <th className="p-2 border-b">Per MT</th>
-                          <th className="p-2 border-b text-blue-700 bg-blue-50/70">Vehicle Bal.</th>
+                          <th className="p-2 border-b">Mines</th>
+                          <th className="p-2 border-b">DO Party Name</th>
+                          <th className="p-2 border-b">Received Party</th>
+                          <th className="p-2 border-b">Billing Party</th>
+                          <th className="p-2 border-b">Diesel (L)</th>
+                          <th className="p-2 border-b">Mines Exp</th>
+                          <th className="p-2 border-b">Bilty Exp</th>
+                          <th className="p-2 border-b">Adv</th>
+                          <th className="p-2 border-b">Fastag</th>
+                          <th className="p-2 border-b">Shortage</th>
+                          <th className="p-2 border-b text-amber-700 bg-amber-50/70">Total Expenses</th>
+                          <th className="p-2 border-b text-emerald-700 bg-emerald-50/70">Freight Amount</th>
+                          <th className="p-2 border-b text-blue-700 bg-blue-50/70">Balance Freight</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 text-slate-600">
-                        {bulkParsedData.slice(0, 25).map((row, idx) => (
-                          <tr key={idx} className={!row.isValid ? 'bg-rose-50/60' : 'hover:bg-slate-50 transition-colors'}>
-                            <td className="p-2 font-mono font-medium">{row.index}</td>
-                            <td className="p-2 font-medium">{row.date}</td>
-                            <td className="p-2">
-                              {row.vehicleNo ? (
-                                <span className="font-black text-slate-800 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">{row.vehicleNo}</span>
-                              ) : (
-                                <span className="text-rose-600 font-bold bg-rose-100 px-1.5 py-0.5 rounded">Missing!</span>
-                              )}
-                            </td>
-                            <td className="p-2 font-semibold">
-                              <span className="text-slate-800">{row.from || '—'}</span>
-                              <span className="text-red-500 mx-1">➔</span>
-                              <span className="text-slate-800">{row.to || '—'}</span>
-                            </td>
-                            <td className="p-2">{row.distance || '—'}</td>
-                            <td className="p-2 font-bold text-purple-700">{row.diesel || '0'}</td>
-                            <td className="p-2 font-mono">₹{row.dieselPrice || 0}</td>
-                            <td className="p-2 font-black text-purple-800 bg-purple-50/40 font-mono">
-                              ₹{row.totalDieselPrice ? row.totalDieselPrice.toLocaleString('en-IN') : 0}
-                            </td>
-                            <td className="p-2 font-bold text-amber-600 font-mono">
-                              ₹{row.advance ? row.advance.toLocaleString('en-IN') : 0}
-                            </td>
-                            <td className="p-2 font-mono font-semibold">{row.doNo || '—'}</td>
-                            <td className="p-2 font-medium text-slate-700">{row.doPartyName || row.partyName || '—'}</td>
-                            <td className="p-2 font-bold">{row.tonnage ? `${row.tonnage} MT` : '0 MT'}</td>
-                            <td className="p-2 font-black text-emerald-800 bg-emerald-50/40 font-mono">
-                              ₹{row.totalFreight ? row.totalFreight.toLocaleString('en-IN') : 0}
-                            </td>
-                            <td className="p-2 font-bold text-center">{row.totalTrips || 1}</td>
-                            <td className="p-2 font-mono">₹{row.perMT || 0}</td>
-                            <td className="p-2 font-black text-blue-800 bg-blue-50/40 font-mono">
-                              ₹{row.vehicleBalance ? row.vehicleBalance.toLocaleString('en-IN') : 0}
-                            </td>
-                          </tr>
-                        ))}
+                        {(() => {
+                          const startIdx = (bulkCurrentPage - 1) * bulkPageSize;
+                          const pageRows = bulkPageSize === 'all' ? bulkParsedData : bulkParsedData.slice(startIdx, startIdx + bulkPageSize);
+                          return pageRows.map((row, idx) => (
+                            <tr key={idx} className={!row.isValid ? 'bg-rose-50/60' : 'hover:bg-slate-50 transition-colors'}>
+                              <td className="p-2 font-mono font-medium">{row.index}</td>
+                              <td className="p-2 font-medium">{row.date}</td>
+                              <td className="p-2">
+                                {row.vehicleNo ? (
+                                  <span className="font-black text-slate-800 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">{row.vehicleNo}</span>
+                                ) : (
+                                  <span className="text-rose-600 font-bold bg-rose-100 px-1.5 py-0.5 rounded">Missing!</span>
+                                )}
+                              </td>
+                              <td className="p-2 font-bold text-center">{row.totalTrips || 1}</td>
+                              <td className="p-2 font-bold">{row.tonnage ? `${row.tonnage} MT` : '0 MT'}</td>
+                              <td className="p-2 font-medium">{row.recWeight ? `${row.recWeight} MT` : '—'}</td>
+                              <td className="p-2 font-mono">₹{row.perMT || 0}</td>
+                              <td className="p-2 font-mono font-semibold">{row.doNo || '—'}</td>
+                              <td className="p-2 font-semibold text-slate-800">{row.from || '—'}</td>
+                              <td className="p-2 font-medium text-slate-700">{row.doPartyName || '—'}</td>
+                              <td className="p-2 font-medium text-slate-700">{row.receivedParty || '—'}</td>
+                              <td className="p-2 font-medium text-slate-700">{row.partyName || '—'}</td>
+                              <td className="p-2 font-bold text-purple-700">
+                                {(() => {
+                                  if (!row.diesel) return '0 L';
+                                  const c = String(row.diesel).replace(/[^0-9.]/g, '').trim();
+                                  return c ? `${c} L` : '0 L';
+                                })()}
+                              </td>
+                              <td className="p-2 font-mono">₹{row.minesExp || 0}</td>
+                              <td className="p-2 font-mono">₹{row.biltyExp || 0}</td>
+                              <td className="p-2 font-bold text-amber-600 font-mono">
+                                ₹{row.advance ? row.advance.toLocaleString('en-IN') : 0}
+                              </td>
+                              <td className="p-2 font-mono">₹{row.fastagExp || 0}</td>
+                              <td className="p-2 font-mono">₹{row.shortageAmount || 0}</td>
+                              <td className="p-2 font-black text-amber-800 bg-amber-50/40 font-mono">
+                                ₹{row.totalExpenses ? row.totalExpenses.toLocaleString('en-IN') : 0}
+                              </td>
+                              <td className="p-2 font-black text-emerald-800 bg-emerald-50/40 font-mono">
+                                ₹{row.totalFreight ? row.totalFreight.toLocaleString('en-IN') : 0}
+                              </td>
+                              <td className="p-2 font-black text-blue-800 bg-blue-50/40 font-mono">
+                                ₹{row.vehicleBalance ? row.vehicleBalance.toLocaleString('en-IN') : 0}
+                              </td>
+                            </tr>
+                          ));
+                        })()}
                       </tbody>
                     </table>
                   </div>
-                  {bulkParsedData.length > 15 && (
-                    <p className="text-[11px] text-slate-400 italic text-right">
-                      Showing first 15 of {bulkParsedData.length} records in preview.
-                    </p>
-                  )}
+
+                  {/* Bulk Preview Pagination Bar */}
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 pt-2 px-1 text-xs text-slate-600">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">Rows per page:</span>
+                      <select
+                        value={bulkPageSize}
+                        onChange={(e) => {
+                          const val = e.target.value === 'all' ? 'all' : Number(e.target.value);
+                          setBulkPageSize(val);
+                          setBulkCurrentPage(1);
+                        }}
+                        className="px-2.5 py-1 bg-white border border-slate-200 rounded-lg font-bold text-slate-700 outline-none cursor-pointer"
+                      >
+                        <option value={25}>25</option>
+                        <option value={50}>50</option>
+                        <option value={100}>100</option>
+                        <option value={200}>200</option>
+                        <option value="all">All ({bulkParsedData.length})</option>
+                      </select>
+
+                      <span className="text-slate-400">|</span>
+                      
+                      <span>
+                        Showing {bulkPageSize === 'all' ? `all ${bulkParsedData.length}` : `${Math.min((bulkCurrentPage - 1) * bulkPageSize + 1, bulkParsedData.length)} - ${Math.min(bulkCurrentPage * bulkPageSize, bulkParsedData.length)} of ${bulkParsedData.length}`} records
+                      </span>
+                    </div>
+
+                    {bulkPageSize !== 'all' && (
+                      <div className="flex items-center gap-1.5 font-bold">
+                        <button
+                          type="button"
+                          onClick={() => setBulkCurrentPage(1)}
+                          disabled={bulkCurrentPage === 1}
+                          className="px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                          « First
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setBulkCurrentPage(prev => Math.max(prev - 1, 1))}
+                          disabled={bulkCurrentPage === 1}
+                          className="px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                          ‹ Prev
+                        </button>
+                        
+                        <span className="px-3 py-1 bg-red-50 text-red-600 rounded-lg border border-red-200 font-black">
+                          Page {bulkCurrentPage} of {Math.ceil(bulkParsedData.length / bulkPageSize) || 1}
+                        </span>
+
+                        <button
+                          type="button"
+                          onClick={() => setBulkCurrentPage(prev => Math.min(prev + 1, Math.ceil(bulkParsedData.length / bulkPageSize)))}
+                          disabled={bulkCurrentPage >= Math.ceil(bulkParsedData.length / bulkPageSize)}
+                          className="px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                          Next ›
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setBulkCurrentPage(Math.ceil(bulkParsedData.length / bulkPageSize))}
+                          disabled={bulkCurrentPage >= Math.ceil(bulkParsedData.length / bulkPageSize)}
+                          className="px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                          Last »
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

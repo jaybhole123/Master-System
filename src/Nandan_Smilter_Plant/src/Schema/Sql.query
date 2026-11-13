@@ -785,6 +785,13 @@ CREATE TABLE public.truck_reports (
   turnaround_hours numeric DEFAULT 0,
   turnaround_days numeric DEFAULT 0,
   tat_status text DEFAULT 'Pending'::text,
+  rec_weight numeric DEFAULT 0,
+  received_party text,
+  mines_exp numeric DEFAULT 0,
+  bilty_exp numeric DEFAULT 0,
+  fastag_exp numeric DEFAULT 0,
+  shortage_amount numeric DEFAULT 0,
+  total_expenses numeric DEFAULT 0,
   CONSTRAINT truck_reports_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.secl_intimation_format_2 (
