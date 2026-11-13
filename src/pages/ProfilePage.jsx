@@ -189,17 +189,18 @@ export default function ProfilePage() {
               </div>
             </div>
 
+            {/* Edit Profile Button - Available for all roles including Admin */}
+            <div className="flex justify-center sm:justify-end mt-4 sm:-mt-10 mb-6 relative z-10">
+              <button 
+                onClick={handleEditClick}
+                className="flex items-center gap-2 bg-red-50 text-red-600 hover:bg-red-100 px-5 py-2.5 rounded-xl font-bold transition-all shadow-sm active:scale-95"
+              >
+                <UserCircle className="w-5 h-5" />
+                Edit Profile
+              </button>
+            </div>
+
             {!(user.role && user.role.toLowerCase().includes('admin')) && (
-              <>
-              <div className="flex justify-center sm:justify-end mt-4 sm:-mt-10 mb-6 relative z-10">
-                <button 
-                  onClick={handleEditClick}
-                  className="flex items-center gap-2 bg-red-50 text-red-600 hover:bg-red-100 px-5 py-2.5 rounded-xl font-bold transition-all shadow-sm active:scale-95"
-                >
-                  <UserCircle className="w-5 h-5" />
-                  Edit Profile
-                </button>
-              </div>
               <div className="grid md:grid-cols-2 gap-6">
               <div className="flex items-center gap-4 p-4 rounded-2xl bg-gray-50 border border-gray-100">
                 <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center text-red-600">
@@ -242,7 +243,6 @@ export default function ProfilePage() {
               </div>
 
               </div>
-              </>
             )}
 
             {user.role && user.role.toLowerCase().includes('admin') && (

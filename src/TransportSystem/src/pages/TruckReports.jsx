@@ -344,8 +344,38 @@ export default function TruckReports() {
     setEditingId(null);
   };
 
+  // Helper to safely format any date/ISO/SQL timestamp to input type="datetime-local" (YYYY-MM-DDTHH:mm)
+  const formatDateTimeLocal = (dateVal) => {
+    if (!dateVal) return '';
+    try {
+      const d = new Date(dateVal);
+      if (isNaN(d.getTime())) {
+        // Fallback: If it's already a string matching YYYY-MM-DDTHH:mm
+        const s = String(dateVal).trim();
+        if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(s)) {
+          return s.slice(0, 16);
+        }
+        return '';
+      }
+      const pad = (n) => String(n).padStart(2, '0');
+      const year = d.getFullYear();
+      const month = pad(d.getMonth() + 1);
+      const day = pad(d.getDate());
+      const hours = pad(d.getHours());
+      const minutes = pad(d.getMinutes());
+      return `${year}-${month}-${day}T${hours}:${minutes}`;
+    } catch {
+      return '';
+    }
+  };
+
   const handleEditReport = (report) => {
-    setFormData(report);
+    setFormData({
+      ...report,
+      departureTime: formatDateTimeLocal(report.departureTime || report.departure_time),
+      arrivalTime: formatDateTimeLocal(report.arrivalTime || report.arrival_time),
+      unloadingTime: formatDateTimeLocal(report.unloadingTime || report.unloading_time)
+    });
     setEditingId(report.sNo);
     setIsModalOpen(true);
   };

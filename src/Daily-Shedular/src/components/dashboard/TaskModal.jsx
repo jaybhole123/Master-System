@@ -148,38 +148,112 @@ const TaskModal = ({ isOpen, onClose, task, selectedTime, selectedDate }) => {
     }
   };
 
+  const [isDragging, setIsDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const processFiles = async (filesList) => {
+    const files = Array.from(filesList).filter(f => f && f.size > 0);
+    if (!files.length) return;
+
+    setIsUploading(true);
+    try {
+      const newAttachments = await Promise.all(files.map(async file => {
+        const fileExt = file.name.split('.').pop() || 'dat';
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const filePath = `tasks/${fileName}`;
+
+        const { error } = await supabase.storage
+          .from('task-instructions')
+          .upload(filePath, file);
+
+        if (error) {
+          console.error("Upload error:", error);
+          alert(`Failed to upload ${file.name}: ${error.message}`);
+          return null;
+        }
+
+        const { data: publicUrlData } = supabase.storage
+          .from('task-instructions')
+          .getPublicUrl(filePath);
+
+        return {
+          name: file.name,
+          type: file.type || 'application/octet-stream',
+          size: file.size,
+          url: publicUrlData.publicUrl
+        };
+      }));
+      
+      const validAttachments = newAttachments.filter(a => a !== null);
+      setFormData(prev => ({ ...prev, attachments: [...(prev.attachments || []), ...validAttachments] }));
+    } catch (err) {
+      console.error("Error processing files:", err);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleFileChange = async (e) => {
-    const files = Array.from(e.target.files);
-    
-    const newAttachments = await Promise.all(files.map(async file => {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-      const filePath = `tasks/${fileName}`;
+    if (e.target.files) {
+      await processFiles(e.target.files);
+      e.target.value = '';
+    }
+  };
 
-      const { error } = await supabase.storage
-        .from('task-instructions')
-        .upload(filePath, file);
+  // Drag & Drop handlers
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
 
-      if (error) {
-        console.error("Upload error:", error);
-        alert(`Failed to upload ${file.name}: ${error.message}`);
-        return null;
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      await processFiles(e.dataTransfer.files);
+    }
+  };
+
+  // Clipboard Paste handler (Ctrl+V)
+  const handlePaste = async (e) => {
+    const clipboardData = e.clipboardData;
+    if (!clipboardData) return;
+
+    // Check for files (e.g. copied image/screenshot or file)
+    if (clipboardData.files && clipboardData.files.length > 0) {
+      e.preventDefault();
+      await processFiles(clipboardData.files);
+      return;
+    }
+
+    // Check items for image/file types
+    const items = clipboardData.items;
+    if (items) {
+      const filesToProcess = [];
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].kind === 'file') {
+          const file = items[i].getAsFile();
+          if (file) {
+            // Give unnamed pasted screenshots a friendly timestamped name
+            const ext = (file.type && file.type.split('/')[1]) || 'png';
+            const renamedFile = new File([file], file.name && file.name !== 'image.png' ? file.name : `screenshot-${Date.now()}.${ext}`, { type: file.type });
+            filesToProcess.push(renamedFile);
+          }
+        }
       }
-
-      const { data: publicUrlData } = supabase.storage
-        .from('task-instructions')
-        .getPublicUrl(filePath);
-
-      return {
-        name: file.name,
-        type: file.type,
-        size: file.size,
-        url: publicUrlData.publicUrl
-      };
-    }));
-    
-    const validAttachments = newAttachments.filter(a => a !== null);
-    setFormData(prev => ({ ...prev, attachments: [...(prev.attachments || []), ...validAttachments] }));
+      if (filesToProcess.length > 0) {
+        e.preventDefault();
+        await processFiles(filesToProcess);
+      }
+    }
   };
 
   const removeAttachment = (index) => {
@@ -505,27 +579,74 @@ const TaskModal = ({ isOpen, onClose, task, selectedTime, selectedDate }) => {
           </div>
 
           <div className="input-group">
-            <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Paperclip size={16} /> Attachments
+            <label className="input-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Paperclip size={16} /> Attachments
+              </span>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+                Drag & drop or Paste (Ctrl+V) anywhere
+              </span>
             </label>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div 
+              style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
+              onPaste={handlePaste}
+            >
               <label 
+                onDragOver={handleDragOver}
+                onDragEnter={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                tabIndex={0}
+                onPaste={handlePaste}
                 style={{ 
                   display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', 
-                  padding: '1rem', border: '2px dashed var(--border-color)', borderRadius: 'var(--radius-lg)', 
-                  cursor: 'pointer', backgroundColor: 'var(--surface-color)', color: 'var(--text-secondary)', 
-                  transition: 'all 0.2s ease', gap: '0.5rem'
+                  padding: '1.25rem 1rem', 
+                  border: isDragging ? '2px dashed var(--primary-color)' : '2px dashed var(--border-color)', 
+                  borderRadius: 'var(--radius-lg)', 
+                  cursor: isUploading ? 'wait' : 'pointer', 
+                  backgroundColor: isDragging ? '#e0f2fe' : (isUploading ? '#f8fafc' : 'var(--surface-color)'), 
+                  color: 'var(--text-secondary)', 
+                  transition: 'all 0.2s ease', gap: '0.5rem',
+                  outline: 'none',
+                  boxShadow: isDragging ? '0 0 0 4px rgba(37, 99, 235, 0.15)' : 'none'
                 }}
-                onMouseOver={(e) => { e.currentTarget.style.borderColor = 'var(--primary-color)'; e.currentTarget.style.backgroundColor = '#f0f9ff'; }}
-                onMouseOut={(e) => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.backgroundColor = 'var(--surface-color)'; }}
+                onMouseOver={(e) => { 
+                  if (!isDragging) {
+                    e.currentTarget.style.borderColor = 'var(--primary-color)'; 
+                    e.currentTarget.style.backgroundColor = '#f0f9ff'; 
+                  }
+                }}
+                onMouseOut={(e) => { 
+                  if (!isDragging) {
+                    e.currentTarget.style.borderColor = 'var(--border-color)'; 
+                    e.currentTarget.style.backgroundColor = 'var(--surface-color)'; 
+                  }
+                }}
               >
-                <input type="file" multiple onChange={handleFileChange} style={{ display: 'none' }} accept="image/*,.pdf,.doc,.docx,.txt" />
-                <div style={{ backgroundColor: '#e0f2fe', color: 'var(--primary-color)', padding: '0.5rem', borderRadius: '50%' }}>
-                  <UploadCloud size={20} />
+                <input 
+                  type="file" 
+                  multiple 
+                  onChange={handleFileChange} 
+                  style={{ display: 'none' }} 
+                  accept="image/*,.pdf,.doc,.docx,.txt" 
+                  disabled={isUploading}
+                />
+                <div style={{ 
+                  backgroundColor: isDragging ? '#2563eb' : '#e0f2fe', 
+                  color: isDragging ? '#ffffff' : 'var(--primary-color)', 
+                  padding: '0.55rem', 
+                  borderRadius: '50%',
+                  transition: 'all 0.2s'
+                }}>
+                  <UploadCloud size={22} className={isUploading ? 'animate-bounce' : ''} />
                 </div>
                 <div style={{ textAlign: 'center' }}>
-                  <p style={{ fontWeight: '600', color: 'var(--text-primary)', marginBottom: '0.15rem', fontSize: '0.875rem' }}>Click to upload</p>
-                  <p style={{ fontSize: '0.7rem' }}>SVG, PNG, JPG, PDF or DOC (max. 5MB)</p>
+                  <p style={{ fontWeight: '600', color: 'var(--text-primary)', marginBottom: '0.2rem', fontSize: '0.875rem' }}>
+                    {isUploading ? 'Uploading files...' : (isDragging ? 'Drop your files here now!' : 'Click to upload or Drag & Drop')}
+                  </p>
+                  <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                    Paste screenshot/files with <kbd style={{ padding: '2px 5px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold' }}>Ctrl + V</kbd> • SVG, PNG, JPG, PDF, DOC (max. 5MB)
+                  </p>
                 </div>
               </label>
               

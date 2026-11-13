@@ -586,33 +586,56 @@ const WorkOrder = () => {
   const handleDownloadPDF = async () => {
     const element = letterRef.current;
     if (!element) return;
+
     try {
-      const originalWidth = element.style.width;
-      element.style.width = '800px';
-      element.style.height = 'auto';
-      element.style.minHeight = '1131px';
-      element.style.border = 'none';
-      const canvas = await html2canvas(element, { scale: 2, windowWidth: 800 });
-      element.style.border = '1px solid #ccc';
-      element.style.width = originalWidth;
-      element.style.minHeight = '1131px';
-      const imgData = canvas.toDataURL('image/png');
+      toast.loading('Generating single page PDF...');
+
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        scrollX: 0,
+        scrollY: 0,
+        windowWidth: 800,
+        backgroundColor: '#ffffff'
+      });
+
       const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfPageHeight = pdf.internal.pageSize.getHeight();
-      let imgWidth = pdfWidth;
-      let imgHeight = (canvas.height * pdfWidth) / canvas.width;
-      if (imgHeight > pdfPageHeight) {
-        const ratio = pdfPageHeight / imgHeight;
-        imgHeight = pdfPageHeight;
-        imgWidth = pdfWidth * ratio;
+      const pageWidth = pdf.internal.pageSize.getWidth(); // 210mm
+      const pageHeight = pdf.internal.pageSize.getHeight(); // 297mm
+
+      const margin = 5; // 5mm margin
+      const maxW = pageWidth - (margin * 2); // 200mm
+      const maxH = pageHeight - (margin * 2); // 287mm
+
+      // Calculate aspect ratio
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = imgWidth / imgHeight;
+
+      let finalW = maxW;
+      let finalH = finalW / ratio;
+
+      // Strictly fit to single page height if it exceeds
+      if (finalH > maxH) {
+        finalH = maxH;
+        finalW = finalH * ratio;
       }
-      pdf.addImage(imgData, 'PNG', (pdfWidth - imgWidth) / 2, 0, imgWidth, imgHeight);
-      pdf.save(`Work_Order_${(previewData?.buyerName || 'Order').split(' ')[0]}.pdf`);
-      toast.success('PDF downloaded!');
+
+      // Center horizontally and vertically on the single page
+      const x = margin + ((maxW - finalW) / 2);
+      const y = margin + ((maxH - finalH) / 2);
+
+      const imgData = canvas.toDataURL('image/jpeg', 0.98);
+      pdf.addImage(imgData, 'JPEG', x, y, finalW, finalH);
+
+      toast.dismiss();
+      pdf.save(`Work_Order_${(previewData?.workOrderNo || previewData?.buyerName || 'Order').replace(/[^a-zA-Z0-9_-]/g, '_')}.pdf`);
+      toast.success('PDF downloaded successfully (1 page)!');
     } catch (err) {
+      toast.dismiss();
       console.error(err);
-      toast.error('Failed to download PDF');
+      toast.error('Failed to generate PDF: ' + err.message);
     }
   };
 
@@ -1968,7 +1991,7 @@ const WorkOrder = () => {
                   style={{
                     backgroundColor: '#ffffff',
                     color: '#000000',
-                    padding: '36px 44px 32px 44px',
+                    padding: '28px 40px 24px 40px',
                     width: '800px',
                     minHeight: '1131px',
                     height: 'auto',
@@ -1977,8 +2000,8 @@ const WorkOrder = () => {
                     flexDirection: 'column',
                     fontFamily: '"Times New Roman", Times, serif',
                     boxSizing: 'border-box',
-                    fontSize: '13.5px',
-                    lineHeight: '1.45',
+                    fontSize: '13px',
+                    lineHeight: '1.4',
                     borderRadius: '4px',
                     marginBottom: '20px'
                   }}

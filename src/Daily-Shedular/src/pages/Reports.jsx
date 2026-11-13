@@ -237,7 +237,7 @@ const Reports = () => {
         </div>
       </div>
 
-      <div className="table-container" style={{ maxHeight: '600px', overflowY: 'auto' }} onScroll={(e) => {
+      <div className="table-container" style={{ maxHeight: '600px', overflowY: 'auto', overflowX: 'auto', width: '100%' }} onScroll={(e) => {
         const { scrollTop, clientHeight, scrollHeight } = e.currentTarget;
         if (scrollHeight - scrollTop <= clientHeight + 50) {
           if (visibleCount < tableTasks.length) {
@@ -329,17 +329,17 @@ const Reports = () => {
             </button>
           </div>
         </div>
-        <table className="table" style={{ marginTop: '1rem' }}>
+        <table className="table" style={{ marginTop: '1rem', width: '100%', minWidth: '1350px' }}>
           <thead>
             <tr>
-              <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '8%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center', whiteSpace: 'nowrap' }}>DATE</th>
-              <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '8%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>TIME</th>
-              <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '45%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>TASK DETAILS</th>
-              <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '9%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center', whiteSpace: 'nowrap' }}>SUBMITTED BY</th>
-              <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '8%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>IMAGE / ATTACHMENT</th>
-              <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '8%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>REMARKS</th>
-              <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '7%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>STATUS</th>
-              <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '7%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>COMPLETED AT</th>
+              <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '110px', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center', whiteSpace: 'nowrap' }}>DATE</th>
+              <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '170px', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center', whiteSpace: 'nowrap' }}>TIME</th>
+              <th style={{ position: 'sticky', top: 0, zIndex: 10, minWidth: '380px', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'left', paddingLeft: '1rem' }}>TASK DETAILS</th>
+              <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '180px', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'left', whiteSpace: 'nowrap', paddingLeft: '0.75rem' }}>SUBMITTED BY</th>
+              <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '150px', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center', whiteSpace: 'nowrap' }}>IMAGE</th>
+              <th style={{ position: 'sticky', top: 0, zIndex: 10, minWidth: '180px', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'left', paddingLeft: '0.75rem' }}>REMARKS</th>
+              <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '120px', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center', whiteSpace: 'nowrap' }}>STATUS</th>
+              <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '120px', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center', whiteSpace: 'nowrap' }}>COMPLETED AT</th>
             </tr>
           </thead>
           <tbody>
@@ -349,21 +349,23 @@ const Reports = () => {
                 const endTimeDate = new Date(timeDate.getTime() + (settings?.intervalMinutes || 60) * 60000);
                 return (
                 <tr key={task.id}>
-                  <td data-label="DATE" style={{ verticalAlign: 'top', textAlign: 'center', fontWeight: '500', whiteSpace: 'nowrap' }}>
+                  <td data-label="DATE" style={{ verticalAlign: 'middle', textAlign: 'center', fontWeight: '500', whiteSpace: 'nowrap' }}>
                     {format(new Date(task.date), 'dd MMM yyyy')}
                   </td>
-                  <td data-label="TIME" style={{ verticalAlign: 'top', textAlign: 'center', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                  <td data-label="TIME" style={{ verticalAlign: 'middle', textAlign: 'center', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
                     {formatTime12h(task.startTime)} - {format(endTimeDate, 'hh:mm a')}
                   </td>
-                  <td data-label="TASK DETAILS" style={{ verticalAlign: 'top' }}>
-                    <div style={{ fontWeight: '500', color: 'var(--text-primary)' }}>{highlightText(task.description || 'No description', searchQuery)}</div>
+                  <td data-label="TASK DETAILS" style={{ verticalAlign: 'middle', padding: '0.75rem 1rem' }}>
+                    <div style={{ fontWeight: '500', color: 'var(--text-primary)', lineHeight: '1.45', wordBreak: 'normal', overflowWrap: 'break-word', maxWidth: '520px' }}>
+                      {highlightText(task.description || 'No description', searchQuery)}
+                    </div>
                   </td>
-                  <td data-label="SUBMITTED BY" style={{ verticalAlign: 'top', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                  <td data-label="SUBMITTED BY" style={{ verticalAlign: 'middle', textAlign: 'left', paddingLeft: '0.75rem', whiteSpace: 'nowrap' }}>
                     <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: '500' }}>
                       {highlightText(task.createdBy || 'Admin', searchQuery)}
                     </div>
                   </td>
-                  <td data-label="IMAGE / ATTACHMENT" style={{ verticalAlign: 'top' }}>
+                  <td data-label="IMAGE" style={{ verticalAlign: 'middle', textAlign: 'center' }}>
                     {task.attachments && task.attachments.length > 0 ? (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
                         {task.attachments.map((att, idx) => {
@@ -397,8 +399,8 @@ const Reports = () => {
                       <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>-</span>
                     )}
                   </td>
-                  <td data-label="REMARKS" style={{ verticalAlign: 'top' }}>
-                    <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                  <td data-label="REMARKS" style={{ verticalAlign: 'middle', paddingLeft: '0.75rem' }}>
+                    <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
                       {task.remark && <div style={{ fontStyle: 'italic', marginBottom: task.adminRemark ? '0.5rem' : '0' }}>"{highlightText(task.remark, searchQuery)}"</div>}
                       {task.adminRemark && (
                         <div style={{ fontStyle: 'italic', color: 'var(--status-notdone)' }}>
@@ -409,14 +411,14 @@ const Reports = () => {
                       {!task.remark && !task.adminRemark && '-'}
                     </div>
                   </td>
-                  <td data-label="STATUS" style={{ verticalAlign: 'top', textAlign: 'center' }}>
+                  <td data-label="STATUS" style={{ verticalAlign: 'middle', textAlign: 'center', whiteSpace: 'nowrap' }}>
                     <span className={`badge ${
                       task.status === 'Completed' ? 'badge-completed' : 
                       task.status === 'Not Done' ? 'badge-notdone' : 
                       task.status === 'Overdue' ? 'badge-overdue' : 'badge-pending'
                     }`}>{task.status}</span>
                   </td>
-                  <td data-label="COMPLETED AT" style={{ verticalAlign: 'top', textAlign: 'center' }}>
+                  <td data-label="COMPLETED AT" style={{ verticalAlign: 'middle', textAlign: 'center', whiteSpace: 'nowrap' }}>
                     <div style={{ color: 'var(--status-completed)', fontWeight: '600', fontSize: '0.875rem' }}>
                       {task.actualDoneDate ? format(new Date(task.actualDoneDate), 'hh:mm a') : '-'}
                     </div>
