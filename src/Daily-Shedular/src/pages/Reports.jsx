@@ -2,13 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { useScheduler } from '../context/SchedulerContext';
 import { format, isSameDay, parse } from 'date-fns';
 import TaskStatusChart from '../components/dashboard/TaskStatusChart';
-import { Paperclip, Image as ImageIcon, PlayCircle, ShieldCheck, Download, Search, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { 
+  Paperclip, Image as ImageIcon, PlayCircle, ShieldCheck, Download, Search, 
+  ChevronLeft, ChevronRight, Calendar, CheckCircle2, AlertCircle, XCircle, 
+  Clock, Sparkles, Filter, RotateCcw, User, Check
+} from 'lucide-react';
 import jsPDF from 'jspdf';
 
 const Reports = () => {
   const { allTasks: tasks, staffList, formatTime12h, settings, currentUser, fetchTasks } = useScheduler();
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const [startDate, setStartDate] = useState(todayStr);
+  const [endDate, setEndDate] = useState(todayStr);
   const [statusFilter, setStatusFilter] = useState('All');
   const [staffFilter, setStaffFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -208,237 +213,405 @@ const Reports = () => {
   };
 
   return (
-    <div className="daily-scheduler-container">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: '600' }}>Task History & Reports</h2>
+    <div className="daily-scheduler-container p-3 sm:p-5 w-full max-w-full space-y-6">
+      {/* ═══════════════════════════════════════════════════════════
+          COMPACT SINGLE-LINE EXECUTIVE BRAND HEADER
+      ═══════════════════════════════════════════════════════════ */}
+      <div className="bg-gradient-to-r from-red-600 via-rose-600 to-red-800 rounded-xl sm:rounded-2xl px-4 py-3 sm:px-5 sm:py-3.5 text-white shadow-md relative overflow-hidden flex items-center justify-between gap-4 border border-red-500/30">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
+        <div className="relative z-10 flex items-center gap-3 min-w-0 flex-wrap">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-[10px] font-extrabold uppercase tracking-widest text-red-100 shadow-2xs shrink-0">
+            <Sparkles className="h-3 w-3 text-amber-300 shrink-0" />
+            <span>Audit</span>
+          </div>
+          <h1 className="text-base sm:text-lg font-black tracking-tight text-white whitespace-nowrap">
+            Task History & Reports Analytics
+          </h1>
+          <span className="text-red-200/60 hidden md:inline">•</span>
+          <p className="text-red-100/90 text-xs font-medium truncate hidden md:inline">
+            Monitor daily employee submissions & administrative approvals.
+          </p>
+        </div>
+
+        <div className="relative z-10 flex items-center gap-2 shrink-0">
+          <button 
+            onClick={exportToPDF}
+            className="px-3 py-1.5 bg-white hover:bg-red-50 text-red-700 font-bold rounded-xl shadow-sm hover:shadow transition-all text-xs flex items-center gap-1.5 cursor-pointer active:scale-95"
+            title="Download PDF Report"
+          >
+            <Download size={14} />
+            <span>Export PDF</span>
+          </button>
+        </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1.5rem', marginBottom: '2rem' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div style={{ backgroundColor: 'var(--surface-color)', padding: '1.5rem', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: '500' }}>Total Tasks Generated</div>
-            <div style={{ fontSize: '1.75rem', fontWeight: '700', color: 'var(--primary-color)' }}>{totalTasks}</div>
+      {/* ═══════════════════════════════════════════════════════════
+          METRICS KPI CARDS + STATUS BREAKDOWN CHART
+      ═══════════════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
+        {/* Left Side: 3 Compact KPI Cards */}
+        <div className="flex flex-col gap-2.5 justify-between">
+          {/* Card 1: Total Tasks */}
+          <div className="flex-1 bg-white rounded-xl p-3 sm:p-3.5 border border-slate-200/90 shadow-2xs hover:shadow-md transition-all flex items-center justify-between">
+            <div className="space-y-0.5">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Tasks Generated</span>
+              <div className="text-xl sm:text-2xl font-black text-blue-600 font-mono tracking-tight">{totalTasks}</div>
+              <span className="text-[10px] font-medium text-slate-400">Filtered timeframe tasks</span>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shadow-2xs">
+              <Clock size={19} />
+            </div>
           </div>
-          <div style={{ backgroundColor: 'var(--surface-color)', padding: '1.5rem', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: '500' }}>Overall Completion Rate</div>
-            <div style={{ fontSize: '1.75rem', fontWeight: '700', color: 'var(--status-completed)' }}>{completionRate}%</div>
+
+          {/* Card 2: Overall Completion Rate */}
+          <div className="flex-1 bg-white rounded-xl p-3 sm:p-3.5 border border-slate-200/90 shadow-2xs hover:shadow-md transition-all flex items-center justify-between">
+            <div className="space-y-0.5">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Overall Completion Rate</span>
+              <div className="text-xl sm:text-2xl font-black text-emerald-600 font-mono tracking-tight">{completionRate}%</div>
+              <span className="text-[10px] font-semibold text-emerald-700">
+                {completedTasks} of {totalTasks} Completed
+              </span>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shadow-2xs">
+              <CheckCircle2 size={19} />
+            </div>
           </div>
-          <div style={{ backgroundColor: 'var(--surface-color)', padding: '1.5rem', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: '500' }}>Tasks Not Done</div>
-            <div style={{ fontSize: '1.75rem', fontWeight: '700', color: 'var(--status-notdone)' }}>{notDoneTasks}</div>
+
+          {/* Card 3: Tasks Not Done */}
+          <div className="flex-1 bg-white rounded-xl p-3 sm:p-3.5 border border-slate-200/90 shadow-2xs hover:shadow-md transition-all flex items-center justify-between">
+            <div className="space-y-0.5">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Tasks Not Done / Rejected</span>
+              <div className="text-xl sm:text-2xl font-black text-rose-600 font-mono tracking-tight">{notDoneTasks}</div>
+              <span className="text-[10px] font-medium text-slate-400">Overdue: {overdueTasks}</span>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600 shadow-2xs">
+              <XCircle size={19} />
+            </div>
           </div>
         </div>
 
-        <div style={{ backgroundColor: 'var(--surface-color)', padding: '1.5rem', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-color)', height: '100%', minHeight: '300px', display: 'flex', flexDirection: 'column' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '1rem' }}>Task Status Breakdown</h3>
-          <div style={{ flex: 1, position: 'relative' }}>
+        {/* Right Side: Chart Card - Exact 100% Equal Height */}
+        <div className="lg:col-span-2 bg-white rounded-xl sm:rounded-2xl p-3.5 sm:p-4 border border-slate-200/90 shadow-2xs flex flex-col justify-between h-full">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-1 shrink-0">
+            <div>
+              <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">Task Status Breakdown</h3>
+              <p className="text-[10px] font-medium text-slate-400">Distribution of current tasks status in the selected period</p>
+            </div>
+            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+              {getDisplayDate()}
+            </span>
+          </div>
+          <div className="flex-1 w-full min-h-[170px]">
             <TaskStatusChart tasks={statsTasks} />
           </div>
         </div>
       </div>
 
-      <div className="table-container" style={{ maxHeight: '600px', overflowY: 'auto', overflowX: 'auto', width: '100%' }} onScroll={(e) => {
-        const { scrollTop, clientHeight, scrollHeight } = e.currentTarget;
-        if (scrollHeight - scrollTop <= clientHeight + 50) {
-          if (visibleCount < tableTasks.length) {
-            setVisibleCount(prev => prev + 50);
-          }
-        }
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem 1.5rem 0', flexWrap: 'wrap', gap: '0.75rem' }}>
-          <h3 style={{ fontSize: '1.125rem', margin: 0 }}>Detailed Task History</h3>
-          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+      {/* ═══════════════════════════════════════════════════════════
+          DATA TABLE CONTAINER WITH MODERN FILTERS
+      ═══════════════════════════════════════════════════════════ */}
+      <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-2xs overflow-hidden space-y-3">
+        {/* Filter Toolbar Header */}
+        <div className="p-4 sm:p-5 border-b border-slate-100 space-y-3.5">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h3 className="text-base font-black text-slate-800 tracking-tight">Detailed Task History</h3>
+              <span className="text-xs text-slate-400 font-medium hidden sm:inline">•</span>
+              <p className="text-xs font-medium text-slate-400 hidden sm:inline">Showing all task logs with attachments and verification audit</p>
+            </div>
+            <span className="text-xs font-black px-3 py-1 bg-red-50 text-red-700 border border-red-200 rounded-full whitespace-nowrap">
+              {tableTasks.length} Total Records
+            </span>
+          </div>
+
+          {/* Filter Controls Row */}
+          <div className="flex items-center gap-2.5 flex-wrap">
             {/* Search Input */}
-            <div style={{ display: 'flex', alignItems: 'center', backgroundColor: 'var(--surface-color)', borderRadius: 'var(--radius-md)', padding: '0.25rem 0.75rem', border: '1px solid var(--border-color)', minWidth: '250px' }}>
-              <Search size={16} color="var(--text-muted)" style={{ marginRight: '0.5rem' }} />
+            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 flex-1 min-w-[240px] focus-within:bg-white focus-within:ring-2 focus-within:ring-red-500/20 focus-within:border-red-500 transition-all">
+              <Search size={15} className="text-slate-400 shrink-0" />
               <input 
                 type="text" 
-                placeholder="Search by description, remark, or staff..." 
+                placeholder="Search description, remark, staff..." 
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                style={{ border: 'none', background: 'transparent', width: '100%', outline: 'none', fontSize: '0.875rem', padding: '0.25rem 0' }}
+                className="bg-transparent text-xs sm:text-sm text-slate-800 placeholder-slate-400 w-full outline-none font-medium"
               />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery('')} className="text-slate-400 hover:text-slate-600">
+                  <XCircle size={14} />
+                </button>
+              )}
             </div>
 
-            {/* Day Navigator */}
-            <div style={{ display: 'flex', alignItems: 'center', backgroundColor: 'var(--surface-color)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', padding: '0.15rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                <button onClick={handlePrevDay} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', borderRadius: '4px', border: '1px solid var(--border-color)', backgroundColor: 'transparent', cursor: 'pointer' }}><ChevronLeft size={16} color="var(--text-secondary)" /></button>
-                <button onClick={handleToday} style={{ padding: '0 0.5rem', height: '28px', borderRadius: '4px', border: '1px solid var(--border-color)', backgroundColor: 'transparent', cursor: 'pointer', fontSize: '0.875rem', fontWeight: '500', color: 'var(--primary-color)' }}>Today</button>
-                <button onClick={handleNextDay} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', borderRadius: '4px', border: '1px solid var(--border-color)', backgroundColor: 'transparent', cursor: 'pointer' }}><ChevronRight size={16} color="var(--text-secondary)" /></button>
-              </div>
-              <div style={{ width: '1px', height: '20px', backgroundColor: 'var(--border-color)', margin: '0 0.5rem' }}></div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', paddingRight: '0.5rem' }}>
-                <Calendar size={16} color="var(--primary-color)" />
-                <span style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>{getDisplayDate()}</span>
+            {/* Quick Day Navigator */}
+            <div className="flex items-center bg-slate-50 border border-slate-200/90 rounded-xl p-1 gap-1">
+              <button 
+                onClick={handlePrevDay} 
+                className="p-1 text-slate-500 hover:text-slate-800 hover:bg-white rounded-lg transition-colors cursor-pointer"
+                title="Previous Day"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <button 
+                onClick={handleToday} 
+                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer ${startDate && startDate === endDate && startDate === format(new Date(), 'yyyy-MM-dd') ? 'bg-white text-red-600 shadow-2xs' : 'text-red-600 hover:bg-white'}`}
+              >
+                Today
+              </button>
+              <button 
+                onClick={handleNextDay} 
+                className="p-1 text-slate-500 hover:text-slate-800 hover:bg-white rounded-lg transition-colors cursor-pointer"
+                title="Next Day"
+              >
+                <ChevronRight size={16} />
+              </button>
+              <button 
+                onClick={() => { setStartDate(''); setEndDate(''); }}
+                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer ${!startDate && !endDate ? 'bg-white text-blue-600 shadow-2xs' : 'text-slate-600 hover:bg-white'}`}
+                title="Show All Dates"
+              >
+                All
+              </button>
+              <div className="h-4 w-px bg-slate-200 mx-1"></div>
+              <div className="flex items-center gap-1.5 px-2 text-xs font-bold text-slate-700 whitespace-nowrap">
+                <Calendar size={13} className="text-red-500" />
+                <span>{getDisplayDate()}</span>
               </div>
             </div>
 
-            {/* Date Range Filter Group */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'nowrap' }}>
+            {/* Date Range Inputs */}
+            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/90 rounded-xl px-2.5 py-1.5">
               <input 
                 type="date" 
                 value={startDate} 
                 onChange={e => setStartDate(e.target.value)} 
-                className="input-field" 
-                style={{ width: '120px' }} 
+                className="bg-transparent text-xs text-slate-700 font-medium outline-none cursor-pointer" 
                 title="Start Date"
               />
-              <span style={{ display: 'flex', alignItems: 'center', color: 'var(--text-secondary)' }}>to</span>
+              <span className="text-slate-400 text-xs font-bold">to</span>
               <input 
                 type="date" 
                 value={endDate} 
                 onChange={e => setEndDate(e.target.value)} 
-                className="input-field" 
-                style={{ width: '120px' }} 
+                className="bg-transparent text-xs text-slate-700 font-medium outline-none cursor-pointer" 
                 title="End Date"
               />
-              <button 
-                onClick={() => { setStartDate(''); setEndDate(''); }}
-                className="btn btn-outline"
-                style={{ padding: '0 0.75rem', height: '36px', whiteSpace: 'nowrap' }}
-                title="Clear Dates (Show All Time)"
-              >
-                Clear
-              </button>
             </div>
-            {/* Status filter available to everyone */}
-            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="input-field" style={{ width: '145px' }}>
+
+            {/* Status Filter */}
+            <select 
+              value={statusFilter} 
+              onChange={e => setStatusFilter(e.target.value)} 
+              className="px-3 py-2 bg-slate-50 border border-slate-200/90 rounded-xl text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 cursor-pointer"
+            >
               <option value="All">All Status</option>
               <option value="Pending">Pending</option>
               <option value="Completed">Completed</option>
               <option value="Not Done">Not Done</option>
               <option value="Overdue">Overdue</option>
             </select>
-            {/* Superadmin-only filters */}
+
+            {/* Staff Filter */}
             {isSuperadmin && (
-              <select value={staffFilter} onChange={e => setStaffFilter(e.target.value)} className="input-field" style={{ width: '170px' }}>
+              <select 
+                value={staffFilter} 
+                onChange={e => setStaffFilter(e.target.value)} 
+                className="px-3 py-2 bg-slate-50 border border-slate-200/90 rounded-xl text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 cursor-pointer"
+              >
                 <option value="All">All Staff</option>
                 {uniqueStaff.map(name => (
                   <option key={name} value={name}>{name}</option>
                 ))}
               </select>
             )}
-            <button 
-              onClick={exportToPDF}
-              className="btn btn-primary"
-              style={{ padding: '0 0.75rem', height: '36px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-              title="Download PDF"
-            >
-              <Download size={16} /> PDF
-            </button>
+
+            {/* Clear Filters */}
+            {(startDate || endDate || statusFilter !== 'All' || staffFilter !== 'All' || searchQuery) && (
+              <button 
+                onClick={() => { setStartDate(''); setEndDate(''); setStatusFilter('All'); setStaffFilter('All'); setSearchQuery(''); }}
+                className="px-3 py-2 bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 rounded-xl text-xs font-black transition-all flex items-center gap-1 cursor-pointer"
+                title="Reset Filters"
+              >
+                <RotateCcw size={13} />
+                <span>Reset</span>
+              </button>
+            )}
           </div>
         </div>
-        <table className="table" style={{ marginTop: '1rem', width: '100%', minWidth: '1350px' }}>
-          <thead>
-            <tr>
-              <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '110px', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center', whiteSpace: 'nowrap' }}>DATE</th>
-              <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '170px', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center', whiteSpace: 'nowrap' }}>TIME</th>
-              <th style={{ position: 'sticky', top: 0, zIndex: 10, minWidth: '380px', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'left', paddingLeft: '1rem' }}>TASK DETAILS</th>
-              <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '180px', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'left', whiteSpace: 'nowrap', paddingLeft: '0.75rem' }}>SUBMITTED BY</th>
-              <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '150px', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center', whiteSpace: 'nowrap' }}>IMAGE</th>
-              <th style={{ position: 'sticky', top: 0, zIndex: 10, minWidth: '180px', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'left', paddingLeft: '0.75rem' }}>REMARKS</th>
-              <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '120px', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center', whiteSpace: 'nowrap' }}>STATUS</th>
-              <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '120px', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center', whiteSpace: 'nowrap' }}>COMPLETED AT</th>
-            </tr>
-          </thead>
-          <tbody>
-            {tableTasks.length > 0 ? (
-              tableTasks.slice().reverse().slice(0, visibleCount).map(task => {
-                const timeDate = parse(task.startTime, 'HH:mm', new Date());
-                const endTimeDate = new Date(timeDate.getTime() + (settings?.intervalMinutes || 60) * 60000);
-                return (
-                <tr key={task.id}>
-                  <td data-label="DATE" style={{ verticalAlign: 'middle', textAlign: 'center', fontWeight: '500', whiteSpace: 'nowrap' }}>
-                    {format(new Date(task.date), 'dd MMM yyyy')}
-                  </td>
-                  <td data-label="TIME" style={{ verticalAlign: 'middle', textAlign: 'center', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                    {formatTime12h(task.startTime)} - {format(endTimeDate, 'hh:mm a')}
-                  </td>
-                  <td data-label="TASK DETAILS" style={{ verticalAlign: 'middle', padding: '0.75rem 1rem' }}>
-                    <div style={{ fontWeight: '500', color: 'var(--text-primary)', lineHeight: '1.45', wordBreak: 'normal', overflowWrap: 'break-word', maxWidth: '520px' }}>
-                      {highlightText(task.description || 'No description', searchQuery)}
-                    </div>
-                  </td>
-                  <td data-label="SUBMITTED BY" style={{ verticalAlign: 'middle', textAlign: 'left', paddingLeft: '0.75rem', whiteSpace: 'nowrap' }}>
-                    <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: '500' }}>
-                      {highlightText(task.createdBy || 'Admin', searchQuery)}
-                    </div>
-                  </td>
-                  <td data-label="IMAGE" style={{ verticalAlign: 'middle', textAlign: 'center' }}>
-                    {task.attachments && task.attachments.length > 0 ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
-                        {task.attachments.map((att, idx) => {
-                          if (att.type?.startsWith('image/')) {
-                            return (
-                              <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--bg-color)', padding: '0.25rem', borderRadius: 'var(--radius-sm)' }}>
-                                {att.url && <img src={att.url} alt={att.name} style={{ width: '32px', height: '32px', objectFit: 'cover', borderRadius: 'var(--radius-sm)' }} />}
-                                <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{att.name}</span>
-                              </div>
-                            );
-                          } else if (att.type?.startsWith('audio/')) {
-                            return (
-                              <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', backgroundColor: 'var(--bg-color)', padding: '0.5rem', borderRadius: 'var(--radius-sm)' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                  <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>🎤 {att.name}</span>
-                                </div>
-                                {att.url && <audio src={att.url} controls style={{ height: '28px', width: '100%', maxWidth: '250px' }} />}
-                              </div>
-                            );
-                          } else {
-                            return (
-                              <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', backgroundColor: 'var(--bg-color)', padding: '0.25rem 0.5rem', borderRadius: 'var(--radius-sm)' }}>
-                                <Paperclip size={12} color="var(--text-secondary)" />
-                                <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{att.name}</span>
-                              </div>
-                            );
-                          }
-                        })}
-                      </div>
-                    ) : (
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>-</span>
-                    )}
-                  </td>
-                  <td data-label="REMARKS" style={{ verticalAlign: 'middle', paddingLeft: '0.75rem' }}>
-                    <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
-                      {task.remark && <div style={{ fontStyle: 'italic', marginBottom: task.adminRemark ? '0.5rem' : '0' }}>"{highlightText(task.remark, searchQuery)}"</div>}
-                      {task.adminRemark && (
-                        <div style={{ fontStyle: 'italic', color: 'var(--status-notdone)' }}>
-                          <span style={{ fontWeight: '600', fontSize: '0.75rem', textTransform: 'uppercase' }}>Admin Rejected:</span><br/>
-                          "{highlightText(task.adminRemark, searchQuery)}"
+
+        {/* ═══════════ MODERN SCROLLABLE DATA TABLE ═══════════ */}
+        <div 
+          className="overflow-x-auto overflow-y-auto max-h-[68vh] custom-sidebar-scroll"
+          onScroll={(e) => {
+            const { scrollTop, clientHeight, scrollHeight } = e.currentTarget;
+            if (scrollHeight - scrollTop <= clientHeight + 50) {
+              if (visibleCount < tableTasks.length) {
+                setVisibleCount(prev => prev + 50);
+              }
+            }
+          }}
+        >
+          <table className="w-full text-left border-collapse min-w-[1750px]">
+            <thead className="sticky top-0 z-20 bg-slate-50/95 backdrop-blur-md border-b border-slate-200">
+              <tr className="text-xs font-black text-slate-500 uppercase tracking-wider">
+                <th className="py-3.5 px-4 text-center whitespace-nowrap w-[70px]">S.No</th>
+                <th className="py-3.5 px-4 text-center whitespace-nowrap w-[130px]">Date</th>
+                <th className="py-3.5 px-4 text-center whitespace-nowrap w-[190px]">Time</th>
+                <th className="py-3.5 px-5 text-left min-w-[500px]">Task Details</th>
+                <th className="py-3.5 px-4 text-left whitespace-nowrap w-[200px]">Submitted By</th>
+                <th className="py-3.5 px-4 text-center whitespace-nowrap w-[180px]">Attachments</th>
+                <th className="py-3.5 px-5 text-left min-w-[280px]">Remarks</th>
+                <th className="py-3.5 px-4 text-center whitespace-nowrap w-[140px]">Status</th>
+                <th className="py-3.5 px-4 text-center whitespace-nowrap w-[140px]">Completed At</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 bg-white text-sm text-slate-700">
+              {tableTasks.length > 0 ? (
+                tableTasks.slice().reverse().slice(0, visibleCount).map((task, index) => {
+                  const timeDate = parse(task.startTime, 'HH:mm', new Date());
+                  const endTimeDate = new Date(timeDate.getTime() + (settings?.intervalMinutes || 60) * 60000);
+                  
+                  return (
+                    <tr key={task.id} className="hover:bg-slate-50/80 transition-colors group">
+                      {/* S.No */}
+                      <td className="py-3.5 px-4 text-center font-mono font-bold text-slate-400">
+                        {index + 1}
+                      </td>
+
+                      {/* Date */}
+                      <td className="py-3.5 px-4 text-center font-semibold text-slate-700 whitespace-nowrap">
+                        <span className="px-2.5 py-1 bg-slate-100 rounded-lg text-xs font-bold text-slate-700 border border-slate-200/80">
+                          {format(new Date(task.date), 'dd MMM yyyy')}
+                        </span>
+                      </td>
+
+                      {/* Time Slot */}
+                      <td className="py-3.5 px-4 text-center text-xs font-mono font-bold text-slate-600 whitespace-nowrap">
+                        <span className="px-2.5 py-1 bg-blue-50/70 text-blue-800 rounded-lg border border-blue-100">
+                          {formatTime12h(task.startTime)} - {format(endTimeDate, 'hh:mm a')}
+                        </span>
+                      </td>
+
+                      {/* Task Details */}
+                      <td className="py-3.5 px-5">
+                        <div className="font-semibold text-slate-800 leading-relaxed break-words min-w-[320px]">
+                          {highlightText(task.description || 'No description', searchQuery)}
                         </div>
-                      )}
-                      {!task.remark && !task.adminRemark && '-'}
-                    </div>
-                  </td>
-                  <td data-label="STATUS" style={{ verticalAlign: 'middle', textAlign: 'center', whiteSpace: 'nowrap' }}>
-                    <span className={`badge ${
-                      task.status === 'Completed' ? 'badge-completed' : 
-                      task.status === 'Not Done' ? 'badge-notdone' : 
-                      task.status === 'Overdue' ? 'badge-overdue' : 'badge-pending'
-                    }`}>{task.status}</span>
-                  </td>
-                  <td data-label="COMPLETED AT" style={{ verticalAlign: 'middle', textAlign: 'center', whiteSpace: 'nowrap' }}>
-                    <div style={{ color: 'var(--status-completed)', fontWeight: '600', fontSize: '0.875rem' }}>
-                      {task.actualDoneDate ? format(new Date(task.actualDoneDate), 'hh:mm a') : '-'}
-                    </div>
+                      </td>
+
+                      {/* Submitted By */}
+                      <td className="py-3.5 px-4 text-left whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 text-xs font-bold border border-slate-200/70">
+                          <User size={12} className="text-slate-400" />
+                          <span>{highlightText(task.createdBy || 'Admin', searchQuery)}</span>
+                        </span>
+                      </td>
+
+                      {/* Attachments */}
+                      <td className="py-3.5 px-4 text-center">
+                        {task.attachments && task.attachments.length > 0 ? (
+                          <div className="flex flex-col gap-1 items-center max-w-[160px] mx-auto">
+                            {task.attachments.map((att, idx) => {
+                              if (att.type?.startsWith('image/')) {
+                                return (
+                                  <a 
+                                    key={idx} 
+                                    href={att.url} 
+                                    target="_blank" 
+                                    rel="noreferrer"
+                                    className="inline-flex items-center gap-1.5 p-1 px-2.5 rounded-lg bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 text-xs font-semibold transition-all max-w-full"
+                                  >
+                                    <ImageIcon size={13} className="shrink-0" />
+                                    <span className="truncate">{att.name || 'View Image'}</span>
+                                  </a>
+                                );
+                              } else if (att.type?.startsWith('audio/')) {
+                                return (
+                                  <div key={idx} className="w-full">
+                                    <audio src={att.url} controls className="h-7 w-full max-w-[150px]" />
+                                  </div>
+                                );
+                              } else {
+                                return (
+                                  <a 
+                                    key={idx} 
+                                    href={att.url} 
+                                    target="_blank" 
+                                    rel="noreferrer"
+                                    className="inline-flex items-center gap-1.5 p-1 px-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-all max-w-full"
+                                  >
+                                    <Paperclip size={12} className="shrink-0" />
+                                    <span className="truncate">{att.name || 'File'}</span>
+                                  </a>
+                                );
+                              }
+                            })}
+                          </div>
+                        ) : (
+                          <span className="text-slate-300 font-bold">—</span>
+                        )}
+                      </td>
+
+                      {/* Remarks */}
+                      <td className="py-3.5 px-5 text-left">
+                        <div className="text-xs text-slate-600 space-y-1 min-w-[200px]">
+                          {task.remark && (
+                            <div className="italic text-slate-700 bg-slate-50 p-2 rounded-lg border border-slate-100">
+                              "{highlightText(task.remark, searchQuery)}"
+                            </div>
+                          )}
+                          {task.adminRemark && (
+                            <div className="text-rose-700 bg-rose-50 p-2 rounded-lg border border-rose-200">
+                              <span className="font-bold uppercase tracking-wider text-[10px] block">Admin Feedback:</span>
+                              "{highlightText(task.adminRemark, searchQuery)}"
+                            </div>
+                          )}
+                          {!task.remark && !task.adminRemark && <span className="text-slate-300">—</span>}
+                        </div>
+                      </td>
+
+                      {/* Status */}
+                      <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                        {task.status === 'Completed' ? (
+                          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-800 border border-emerald-300">
+                            <Check size={12} strokeWidth={3} /> Completed
+                          </span>
+                        ) : task.status === 'Not Done' ? (
+                          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-black bg-rose-100 text-rose-800 border border-rose-300">
+                            <XCircle size={12} /> Not Done
+                          </span>
+                        ) : task.status === 'Overdue' ? (
+                          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-black bg-red-100 text-red-800 border border-red-300">
+                            <AlertCircle size={12} /> Overdue
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-black bg-amber-100 text-amber-800 border border-amber-300">
+                            <Clock size={12} /> Pending
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Completed At */}
+                      <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                        <span className="font-mono font-bold text-xs text-emerald-700">
+                          {task.actualDoneDate ? format(new Date(task.actualDoneDate), 'hh:mm a') : '—'}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={9} className="py-14 text-center text-slate-400">
+                    <Clock className="h-9 w-9 mx-auto text-slate-300 mb-2" />
+                    <p className="font-bold text-slate-700 text-sm">No task records found</p>
+                    <p className="text-xs text-slate-400 mt-1">Try resetting search query or date range filters.</p>
                   </td>
                 </tr>
-              )})
-            ) : (
-              <tr>
-                <td colSpan="8" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
-                  No tasks found for this period.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-        {visibleCount < tableTasks.length && (
-          <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)' }}>
-            Loading more...
-          </div>
-        )}
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

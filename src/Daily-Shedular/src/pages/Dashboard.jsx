@@ -5,7 +5,10 @@ import TeamOverview from '../components/dashboard/TeamOverview';
 import TaskModal from '../components/dashboard/TaskModal';
 import TaskStatusChart from '../components/dashboard/TaskStatusChart';
 import { format, isSameDay, addDays, subDays } from 'date-fns';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Check, Search } from 'lucide-react';
+import { 
+  ChevronLeft, ChevronRight, Calendar as CalendarIcon, Check, Search, 
+  Sparkles, Users, CheckCircle2, ListChecks, CheckSquare, Clock
+} from 'lucide-react';
 
 const Dashboard = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -71,72 +74,161 @@ const Dashboard = () => {
   const handleToday = () => setCurrentDate(new Date());
 
   return (
-    <div className="daily-scheduler-container">
-      <div className="header-flex">
-        <h1 style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--text-primary)' }}>Daily Scheduler</h1>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+    <div className="daily-scheduler-container px-2 sm:px-4 py-3 w-full max-w-full space-y-4">
+      {/* ═══════════════════════════════════════════════════════════
+          COMPACT SINGLE-LINE EXECUTIVE BRAND HEADER
+      ═══════════════════════════════════════════════════════════ */}
+      <div className="w-full bg-gradient-to-r from-red-600 via-rose-600 to-red-800 rounded-xl sm:rounded-2xl px-4 py-3 sm:px-5 sm:py-3.5 text-white shadow-md relative overflow-hidden flex items-center justify-between gap-4 border border-red-500/30 flex-wrap">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
+        <div className="relative z-10 flex items-center gap-3 min-w-0 flex-wrap">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-[10px] font-extrabold uppercase tracking-widest text-red-100 shadow-2xs shrink-0">
+            <Sparkles className="h-3 w-3 text-amber-300 shrink-0" />
+            <span>Daily Schedule</span>
+          </div>
+          <h1 className="text-base sm:text-lg font-black tracking-tight text-white whitespace-nowrap">
+            Scheduler Dashboard & Dispatch
+          </h1>
+          <span className="text-red-200/60 hidden md:inline">•</span>
+          <p className="text-red-100/90 text-xs font-medium truncate hidden md:inline">
+            Manage daily schedule, hourly task delegation & real-time progress.
+          </p>
+        </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--surface-color)', padding: '0.25rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)' }}>
-            <button onClick={handlePrevDay} className="btn btn-outline" style={{ padding: '0.375rem', border: 'none' }}>
+        {/* Date Navigator Pill */}
+        <div className="relative z-10 flex items-center bg-white/15 backdrop-blur-md border border-white/20 rounded-xl p-1 gap-1 text-white">
+          <button 
+            onClick={handlePrevDay} 
+            className="p-1 text-white/80 hover:text-white hover:bg-white/20 rounded-lg transition-colors cursor-pointer"
+            title="Previous Day"
+          >
             <ChevronLeft size={16} />
           </button>
-          <button onClick={handleToday} className="btn" style={{ padding: '0.375rem 0.75rem', border: 'none', backgroundColor: 'transparent', color: 'var(--text-primary)' }}>
+          <button 
+            onClick={handleToday} 
+            className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer ${isSameDay(currentDate, new Date()) ? 'bg-white text-red-700 shadow-2xs' : 'text-white hover:bg-white/20'}`}
+          >
             Today
           </button>
-          <button onClick={handleNextDay} className="btn btn-outline" style={{ padding: '0.375rem', border: 'none' }}>
+          <button 
+            onClick={handleNextDay} 
+            className="p-1 text-white/80 hover:text-white hover:bg-white/20 rounded-lg transition-colors cursor-pointer"
+            title="Next Day"
+          >
             <ChevronRight size={16} />
           </button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0 0.75rem', borderLeft: '1px solid var(--border-color)', color: 'var(--text-primary)', fontWeight: '500', fontSize: '0.875rem' }}>
-            <CalendarIcon size={16} color="var(--primary-color)" />
-            {format(currentDate, 'dd MMM yyyy')}
-          </div>
-          </div>
-        </div>
-      </div>
-      {/* Top Overview Section */}
-      <div className="dashboard-grid">
-        <div style={{ backgroundColor: 'var(--surface-color)', padding: '1.5rem', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-color)', height: '250px', overflowY: 'auto' }}>
-          <h2 style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '1rem' }}>Team Overview</h2>
-          <TeamOverview currentDate={currentDate} />
-        </div>
-        <div style={{ backgroundColor: 'var(--surface-color)', padding: '1.5rem', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-color)', height: '250px' }}>
-          <h2 style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '1rem' }}>Today's Progress</h2>
-          <TaskStatusChart tasks={todaysTasks} />
-        </div>
-        <div style={{ backgroundColor: 'var(--surface-color)', padding: '1.5rem', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-color)', height: '250px', display: 'flex', flexDirection: 'column' }}>
-          <h2 style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '1rem' }}>Selected Tasks</h2>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ fontSize: '5rem', fontWeight: '800', color: 'var(--primary-color)', lineHeight: '1' }}>
-              {selectedTaskIds.length}
-            </div>
-            <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem', fontWeight: '500' }}>Tasks currently selected</p>
+          <div className="h-4 w-px bg-white/25 mx-1"></div>
+          <div className="flex items-center gap-1.5 px-2 text-xs font-bold text-white whitespace-nowrap">
+            <CalendarIcon size={13} className="text-amber-300" />
+            <span>{format(currentDate, 'dd MMM yyyy')}</span>
           </div>
         </div>
       </div>
 
-      <div style={{ display: 'block', width: '100%' }}>
-        
-        {/* Main Scheduler */}
-        <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
-            <div>
-              {selectedTaskIds.length > 0 && (
-                <button onClick={handleMarkSelectedDone} className="btn btn-primary" style={{ padding: '0.375rem 0.75rem', fontSize: '0.875rem' }}>
-                  <Check size={16} /> Mark Selected Done ({selectedTaskIds.length})
-                </button>
-              )}
+      {/* ═══════════════════════════════════════════════════════════
+          EXECUTIVE 3-COLUMN OVERVIEW METRIC CARDS (FULL WIDTH)
+      ═══════════════════════════════════════════════════════════ */}
+      <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
+        {/* Card 1: Team Overview */}
+        <div className="w-full bg-white rounded-xl sm:rounded-2xl p-4 border border-slate-200/90 shadow-2xs flex flex-col justify-between h-[230px]">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-2 shrink-0">
+            <div className="flex items-center gap-2">
+              <Users size={16} className="text-blue-600" />
+              <h2 className="text-xs font-black text-slate-800 uppercase tracking-wider">Team Overview</h2>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', backgroundColor: 'var(--surface-color)', borderRadius: 'var(--radius-md)', padding: '0.25rem 0.75rem', border: '1px solid var(--border-color)', minWidth: '300px' }}>
-              <Search size={16} color="var(--text-muted)" style={{ marginRight: '0.5rem' }} />
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
+              {staffList?.length || 1} Members
+            </span>
+          </div>
+          <div className="flex-1 overflow-y-auto custom-sidebar-scroll pr-1">
+            <TeamOverview currentDate={currentDate} />
+          </div>
+        </div>
+
+        {/* Card 2: Today's Progress Chart */}
+        <div className="w-full bg-white rounded-xl sm:rounded-2xl p-4 border border-slate-200/90 shadow-2xs flex flex-col justify-between h-[230px] overflow-hidden">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-1 shrink-0">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 size={16} className="text-emerald-600" />
+              <h2 className="text-xs font-black text-slate-800 uppercase tracking-wider">Today's Progress</h2>
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
+              {todaysTasks.length} Tasks
+            </span>
+          </div>
+          <div className="flex-1 w-full min-h-0 flex items-center justify-center overflow-hidden">
+            <TaskStatusChart tasks={todaysTasks} />
+          </div>
+        </div>
+
+        {/* Card 3: Selected Tasks & Batch Action */}
+        <div className="w-full bg-white rounded-xl sm:rounded-2xl p-4 border border-slate-200/90 shadow-2xs flex flex-col justify-between h-[230px]">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-2 shrink-0">
+            <div className="flex items-center gap-2">
+              <CheckSquare size={16} className="text-purple-600" />
+              <h2 className="text-xs font-black text-slate-800 uppercase tracking-wider">Selected Tasks</h2>
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-100">
+              Action Ready
+            </span>
+          </div>
+          <div className="flex-1 flex flex-col items-center justify-center space-y-1">
+            <div className="text-5xl font-black text-purple-600 font-mono tracking-tight leading-none">
+              {selectedTaskIds.length}
+            </div>
+            <p className="text-xs font-bold text-slate-500">Tasks currently selected</p>
+          </div>
+          {selectedTaskIds.length > 0 ? (
+            <button
+              onClick={handleMarkSelectedDone}
+              className="w-full py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold rounded-xl text-xs shadow-sm flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-95 shrink-0"
+            >
+              <Check size={14} />
+              <span>Mark Selected Done ({selectedTaskIds.length})</span>
+            </button>
+          ) : (
+            <div className="text-center text-[11px] text-slate-400 font-medium shrink-0 py-1">
+              Select checkboxes in table below to batch complete
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════
+          MAIN SCHEDULER DATA TABLE & CONTROLS (EXPANDED FULL WIDTH)
+      ═══════════════════════════════════════════════════════════ */}
+      <div className="w-full bg-white rounded-xl sm:rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden space-y-3">
+        {/* Table Search & Action Bar */}
+        <div className="p-3.5 sm:p-4 border-b border-slate-100 flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 min-w-[280px] focus-within:bg-white focus-within:ring-2 focus-within:ring-red-500/20 focus-within:border-red-500 transition-all">
+              <Search size={15} className="text-slate-400 shrink-0" />
               <input 
                 type="text" 
-                placeholder="Search by description, remark, or staff..." 
+                placeholder="Search description, remark, staff..." 
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                style={{ border: 'none', background: 'transparent', width: '100%', outline: 'none', fontSize: '0.875rem', padding: '0.25rem 0' }}
+                className="bg-transparent text-xs sm:text-sm text-slate-800 placeholder-slate-400 w-full outline-none font-medium"
               />
             </div>
+            {selectedTaskIds.length > 0 && (
+              <button 
+                onClick={handleMarkSelectedDone} 
+                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-sm flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
+              >
+                <Check size={14} />
+                <span>Mark Selected Done ({selectedTaskIds.length})</span>
+              </button>
+            )}
           </div>
+
+          <div className="text-xs font-bold text-slate-500 flex items-center gap-1.5">
+            <Clock size={13} className="text-slate-400" />
+            <span>Hourly Schedule: <strong>{todaysTasks.length} Tasks Scheduled</strong></span>
+          </div>
+        </div>
+
+        {/* Scrollable Scheduler Table */}
+        <div className="p-2 sm:p-3 overflow-x-auto">
           <SchedulerTable 
             currentDate={currentDate} 
             onAddTask={handleAddTask} 
@@ -146,7 +238,6 @@ const Dashboard = () => {
             searchQuery={searchQuery}
           />
         </div>
-
       </div>
 
       <TaskModal 
@@ -161,7 +252,7 @@ const Dashboard = () => {
       {rescheduleModal.isOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
           <form onSubmit={handleRescheduleSubmit} style={{ backgroundColor: 'var(--surface-color)', padding: '1.5rem', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '400px' }} className="animate-fade-in">
-            <h3 style={{ marginBottom: '1rem' }}>Reschedule Task</h3>
+            <h3 style={{ marginBottom: '1rem', fontWeight: '700' }}>Reschedule Task</h3>
             <div className="input-group">
               <label className="input-label">New Date</label>
               <input required type="date" value={rescheduleModal.newDate} onChange={e => setRescheduleModal(prev => ({ ...prev, newDate: e.target.value }))} className="input-field" />
@@ -188,7 +279,7 @@ const Dashboard = () => {
       {scheduleModal.isOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
           <form onSubmit={handleScheduleSubmit} style={{ backgroundColor: 'var(--surface-color)', padding: '1.5rem', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '400px' }} className="animate-fade-in">
-            <h3 style={{ marginBottom: '1rem' }}>Schedule Task</h3>
+            <h3 style={{ marginBottom: '1rem', fontWeight: '700' }}>Schedule Task</h3>
             <div className="input-group">
               <label className="input-label">Date *</label>
               <input required type="date" value={scheduleModal.date} onChange={e => setScheduleModal(prev => ({ ...prev, date: e.target.value }))} className="input-field" />

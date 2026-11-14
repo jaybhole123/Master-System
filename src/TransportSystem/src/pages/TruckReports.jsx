@@ -46,6 +46,10 @@ export default function TruckReports() {
   const [bulkCurrentPage, setBulkCurrentPage] = useState(1);
   const [bulkPageSize, setBulkPageSize] = useState(50);
   
+  // Bulk selection for delete
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [isDeletingBulk, setIsDeletingBulk] = useState(false);
+  
   const [reportsData, setReportsData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [trucksList, setTrucksList] = useState([]);
@@ -93,6 +97,7 @@ export default function TruckReports() {
         // Nandan Plant format fields
         recWeight: item.rec_weight !== undefined && item.rec_weight !== null ? item.rec_weight : '',
         receivedParty: item.to_location || '',
+        driverName: item.driver_name || '',
         minesExp: item.mines_exp !== undefined && item.mines_exp !== null ? item.mines_exp : '',
         biltyExp: item.bilty_exp !== undefined && item.bilty_exp !== null ? item.bilty_exp : '',
         fastagExp: item.fastag_exp !== undefined && item.fastag_exp !== null ? item.fastag_exp : '',
@@ -137,7 +142,7 @@ export default function TruckReports() {
   };
 
   const [formData, setFormData] = useState({
-    date: '', vehicleNo: '', from: '', to: '', distance: '', partyName: '', doPartyName: '', receivedParty: '', diesel: '', dieselPrice: '', advance: '', doNo: '', totalTrips: '', vehicleBalance: '', perMT: '', tonnage: '', recWeight: '', minesExp: '', biltyExp: '', fastagExp: '', shortageAmount: '', totalExpenses: '', totalFreight: '',
+    date: '', vehicleNo: '', from: '', to: '', distance: '', partyName: '', doPartyName: '', receivedParty: '', driverName: '', diesel: '', dieselPrice: '', advance: '', doNo: '', totalTrips: '', vehicleBalance: '', perMT: '', tonnage: '', recWeight: '', minesExp: '', biltyExp: '', fastagExp: '', shortageAmount: '', totalExpenses: '', totalFreight: '',
     // Turnaround Time fields
     departureTime: '', arrivalTime: '', unloadingTime: '', turnaroundHours: '', turnaroundDays: '', tatStatus: ''
   });
@@ -272,6 +277,7 @@ export default function TruckReports() {
       distance: formData.distance,
       party_name: formData.partyName,
       do_party_name: formData.doPartyName,
+      driver_name: formData.driverName || null,
       diesel: formData.diesel,
       diesel_price: Number(formData.dieselPrice) || 0,
       advance: Number(formData.advance) || 0,
@@ -303,6 +309,7 @@ export default function TruckReports() {
       distance: formData.distance,
       party_name: formData.partyName,
       do_party_name: formData.doPartyName,
+      driver_name: formData.driverName || null,
       diesel: formData.diesel,
       diesel_price: Number(formData.dieselPrice) || 0,
       advance: Number(formData.advance) || 0,
@@ -367,7 +374,7 @@ export default function TruckReports() {
     
     await fetchReports();
     setFormData({ 
-      date: '', vehicleNo: '', from: '', to: '', distance: '', partyName: '', doPartyName: '', receivedParty: '', diesel: '', dieselPrice: '', advance: '', doNo: '', totalTrips: '', vehicleBalance: '', perMT: '', tonnage: '', recWeight: '', minesExp: '', biltyExp: '', fastagExp: '', shortageAmount: '', totalExpenses: '', totalFreight: '',
+      date: '', vehicleNo: '', from: '', to: '', distance: '', partyName: '', doPartyName: '', receivedParty: '', driverName: '', diesel: '', dieselPrice: '', advance: '', doNo: '', totalTrips: '', vehicleBalance: '', perMT: '', tonnage: '', recWeight: '', minesExp: '', biltyExp: '', fastagExp: '', shortageAmount: '', totalExpenses: '', totalFreight: '',
       departureTime: '', arrivalTime: '', unloadingTime: '', turnaroundHours: '', turnaroundDays: '', tatStatus: ''
     });
     setIsModalOpen(false);
@@ -405,6 +412,7 @@ export default function TruckReports() {
       from: report.from || report.from_location || '',
       to: report.to || report.to_location || report.receivedParty || '',
       receivedParty: report.receivedParty || report.to || report.to_location || '',
+      driverName: report.driverName || report.driver_name || '',
       recWeight: report.recWeight !== undefined && report.recWeight !== null ? String(report.recWeight) : '',
       minesExp: report.minesExp !== undefined && report.minesExp !== null ? String(report.minesExp) : '',
       biltyExp: report.biltyExp !== undefined && report.biltyExp !== null ? String(report.biltyExp) : '',
@@ -433,9 +441,63 @@ export default function TruckReports() {
           toast.error("Failed to delete report");
         } else {
           toast.success("Report deleted successfully");
+          setSelectedIds(prev => prev.filter(id => id !== reportToDelete.id));
           await fetchReports();
         }
       }
+    }
+  };
+
+  // Bulk Delete Selected Reports
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) {
+      toast.error("Please select at least one report to delete!");
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to delete ${selectedIds.length} selected trip reports? This action cannot be undone.`)) {
+      return;
+    }
+
+    setIsDeletingBulk(true);
+    try {
+      const { error } = await supabase
+        .from('truck_reports')
+        .delete()
+        .in('id', selectedIds);
+
+      if (error) {
+        console.error("Error in bulk delete:", error);
+        toast.error(`Failed to delete selected reports: ${error.message}`);
+      } else {
+        toast.success(`Successfully deleted ${selectedIds.length} trip reports!`);
+        setSelectedIds([]);
+        await fetchReports();
+      }
+    } catch (err) {
+      console.error("Error bulk deleting reports:", err);
+      toast.error("Unexpected error occurred while deleting.");
+    } finally {
+      setIsDeletingBulk(false);
+    }
+  };
+
+  // Toggle single row selection
+  const handleToggleSelectRow = (id) => {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  // Toggle Select All filtered / displayed rows
+  const handleToggleSelectAll = () => {
+    const displayedIds = displayedData.map(r => r.id).filter(Boolean);
+    const allSelected = displayedIds.length > 0 && displayedIds.every(id => selectedIds.includes(id));
+
+    if (allSelected) {
+      setSelectedIds(prev => prev.filter(id => !displayedIds.includes(id)));
+    } else {
+      setSelectedIds(prev => Array.from(new Set([...prev, ...displayedIds])));
     }
   };
 
@@ -1083,6 +1145,7 @@ export default function TruckReports() {
         "DO NO.": "87912",
         "MINES": "DIPKA",
         "Do Party Name": "BALAJI FUELS",
+        "Driver Name": "RAMESH KUMAR",
         "Received Party": "NANDAN SMELTER",
         "Billing PARTY": "JAY BHOLE ENTERPRISES",
         "DIESEL in Litre": 35,
@@ -1106,6 +1169,7 @@ export default function TruckReports() {
         "DO NO.": "87912",
         "MINES": "DIPKA",
         "Do Party Name": "BALAJI FUELS",
+        "Driver Name": "RAMESH KUMAR",
         "Received Party": "NANDAN SMELTER",
         "Billing PARTY": "JAY BHOLE ENTERPRISES",
         "DIESEL in Litre": 37.85,
@@ -1134,6 +1198,7 @@ export default function TruckReports() {
       { wch: 12 }, // DO NO.
       { wch: 15 }, // MINES
       { wch: 20 }, // Do Party Name
+      { wch: 18 }, // Driver Name
       { wch: 20 }, // Received Party
       { wch: 24 }, // Billing PARTY
       { wch: 15 }, // DIESEL in Litre
@@ -1206,27 +1271,43 @@ export default function TruckReports() {
 
       if (!date) {
         const dateStr = String(rawDate).trim();
-        if (dateStr.includes('/')) {
-          const parts = dateStr.split('/');
+        const sep = dateStr.includes('/') ? '/' : (dateStr.includes('-') ? '-' : (dateStr.includes('.') ? '.' : ''));
+        if (sep) {
+          const parts = dateStr.split(sep);
           if (parts.length === 3) {
-            // DD/MM/YYYY or MM/DD/YYYY
-            const p0 = parts[0].padStart(2, '0');
-            const p1 = parts[1].padStart(2, '0');
-            const p2 = parts[2].length === 2 ? `20${parts[2]}` : parts[2];
-            // If p2 is year
-            if (p2.length === 4) {
-              date = `${p2}-${p1}-${p0}`;
-            }
-          }
-        } else if (dateStr.includes('-')) {
-          const parts = dateStr.split('-');
-          if (parts.length === 3) {
-            if (parts[0].length === 4) {
-              // YYYY-MM-DD
-              date = `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
-            } else if (parts[2].length === 4) {
-              // DD-MM-YYYY
-              date = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+            let p0 = parts[0].trim();
+            let p1 = parts[1].trim();
+            let p2 = parts[2].trim();
+
+            if (p0.length === 4) {
+              // YYYY-MM-DD or YYYY-DD-MM
+              const y = p0;
+              let m = parseInt(p1, 10);
+              let d = parseInt(p2, 10);
+              if (m > 12 && d <= 12) {
+                // Inverted: YYYY-DD-MM -> swap to YYYY-MM-DD
+                const temp = m; m = d; d = temp;
+              }
+              date = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            } else {
+              // DD/MM/YYYY or MM/DD/YYYY
+              const y = p2.length === 2 ? `20${p2}` : (p2.length === 4 ? p2 : p2);
+              let first = parseInt(p0, 10);
+              let second = parseInt(p1, 10);
+
+              // Standard Indian/SECL format is DD/MM/YYYY
+              let day = first;
+              let month = second;
+
+              if (first <= 12 && second > 12) {
+                // MM/DD/YYYY format
+                month = first;
+                day = second;
+              }
+
+              if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+                date = `${y}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+              }
             }
           }
         } else if (!isNaN(Date.parse(dateStr))) {
@@ -1259,6 +1340,7 @@ export default function TruckReports() {
     // Party Names
     const partyName = String(getVal('billingparty', 'partyname', 'party') || '').trim();
     const doPartyName = String(getVal('dopartyname', 'doparty') || '').trim();
+    const driverName = String(getVal('drivername', 'driver', 'pilotname') || '').trim();
     const receivedParty = to;
     const doNo = String(getVal('dono', 'donumber') || '').trim();
 
@@ -1343,6 +1425,7 @@ export default function TruckReports() {
       distance,
       partyName,
       doPartyName,
+      driverName,
       receivedParty,
       doNo,
       diesel,
@@ -1529,6 +1612,7 @@ export default function TruckReports() {
         distance: r.distance,
         party_name: r.partyName,
         do_party_name: r.doPartyName,
+        driver_name: r.driverName || null,
         diesel: r.diesel,
         diesel_price: Number(r.dieselPrice) || 0,
         advance: Number(r.advance) || 0,
@@ -1871,6 +1955,20 @@ export default function TruckReports() {
               </button>
             )}
 
+            {/* Bulk Delete Button when items selected */}
+            {selectedIds.length > 0 && (
+              <button
+                type="button"
+                onClick={handleBulkDelete}
+                disabled={isDeletingBulk}
+                className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white rounded-xl text-xs font-black shadow-sm flex items-center gap-1.5 transition-all cursor-pointer animate-in zoom-in-95"
+                title="Delete selected trips"
+              >
+                <Trash2 size={13} />
+                <span>Delete Selected ({selectedIds.length})</span>
+              </button>
+            )}
+
           </div>
 
         </div>
@@ -1890,6 +1988,15 @@ export default function TruckReports() {
           <table className="w-full text-left border-collapse min-w-[1700px]">
             <thead className="sticky top-0 z-20 bg-slate-50/95 backdrop-blur-md border-b border-slate-200">
               <tr className="text-xs font-black text-slate-500 uppercase tracking-wider">
+                <th className="py-3.5 px-3 text-center whitespace-nowrap">
+                  <input
+                    type="checkbox"
+                    checked={displayedData.length > 0 && displayedData.every(r => selectedIds.includes(r.id))}
+                    onChange={handleToggleSelectAll}
+                    className="w-4 h-4 rounded border-slate-300 text-red-600 focus:ring-red-500 cursor-pointer accent-red-600"
+                    title="Select / Deselect all visible trips"
+                  />
+                </th>
                 <th className="py-3.5 px-3.5 text-center whitespace-nowrap">S.No</th>
                 <th className="py-3.5 px-3.5 text-center whitespace-nowrap">View</th>
                 <th className="py-3.5 px-3.5 whitespace-nowrap">Date</th>
@@ -1901,6 +2008,7 @@ export default function TruckReports() {
                 <th className="py-3.5 px-3.5 whitespace-nowrap">DO No.</th>
                 <th className="py-3.5 px-3.5 whitespace-nowrap">Mines / Route</th>
                 <th className="py-3.5 px-3.5 whitespace-nowrap">DO Party</th>
+                <th className="py-3.5 px-3.5 whitespace-nowrap">Driver Name</th>
                 <th className="py-3.5 px-3.5 whitespace-nowrap">Received Party</th>
                 <th className="py-3.5 px-3.5 whitespace-nowrap">Billing Party</th>
                 <th className="py-3.5 px-3.5 text-center whitespace-nowrap bg-indigo-50/70 text-indigo-800">
@@ -1940,8 +2048,16 @@ export default function TruckReports() {
                   return (
                     <tr 
                       key={row.id || index} 
-                      className="hover:bg-slate-50/80 transition-colors group"
+                      className={`hover:bg-slate-50/80 transition-colors group ${selectedIds.includes(row.id) ? 'bg-red-50/40' : ''}`}
                     >
+                      <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.includes(row.id)}
+                          onChange={() => handleToggleSelectRow(row.id)}
+                          className="w-4 h-4 rounded border-slate-300 text-red-600 focus:ring-red-500 cursor-pointer accent-red-600"
+                        />
+                      </td>
                       <td className="py-3.5 px-3.5 text-center font-bold text-slate-400">
                         {row.sNo}
                       </td>
@@ -1995,6 +2111,9 @@ export default function TruckReports() {
                       </td>
                       <td className="py-3.5 px-3.5 whitespace-nowrap font-medium text-slate-600">
                         {row.doPartyName || '—'}
+                      </td>
+                      <td className="py-3.5 px-3.5 whitespace-nowrap font-semibold text-slate-700">
+                        {row.driverName || '—'}
                       </td>
                       <td className="py-3.5 px-3.5 whitespace-nowrap font-medium text-slate-600">
                         {row.receivedParty || '—'}
@@ -2082,7 +2201,7 @@ export default function TruckReports() {
                 })
               ) : (
                 <tr>
-                  <td colSpan={24} className="py-12 text-center text-slate-400">
+                  <td colSpan={25} className="py-12 text-center text-slate-400">
                     <Truck className="h-8 w-8 mx-auto text-slate-300 mb-2" />
                     <p className="font-bold text-slate-700 text-sm">No trip reports found matching your filters</p>
                     <p className="text-xs text-slate-400 mt-1">Try resetting search or date filters above.</p>
@@ -2102,11 +2221,17 @@ export default function TruckReports() {
             displayedData.map((row, index) => (
               <div 
                 key={row.id || index}
-                className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs hover:shadow-md transition-all space-y-3"
+                className={`bg-white rounded-2xl p-4 border transition-all space-y-3 ${selectedIds.includes(row.id) ? 'border-red-400 bg-red-50/20 shadow-md' : 'border-slate-200/90 shadow-2xs hover:shadow-md'}`}
               >
-                {/* Header: S.No + Vehicle Badge + Action Buttons */}
+                {/* Header: Checkbox + S.No + Vehicle Badge + Action Buttons */}
                 <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-slate-100">
                   <div className="flex items-center gap-2 min-w-0">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(row.id)}
+                      onChange={() => handleToggleSelectRow(row.id)}
+                      className="w-4 h-4 rounded border-slate-300 text-red-600 focus:ring-red-500 cursor-pointer accent-red-600 shrink-0"
+                    />
                     <span className="text-xs font-mono font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md shrink-0">
                       #{row.sNo}
                     </span>
@@ -2188,12 +2313,24 @@ export default function TruckReports() {
                     </div>
                   ) : null}
 
-                  {/* Parties Info */}
-                  {row.doPartyName && (
-                    <div className="pt-1.5 border-t border-slate-200/60 flex items-center justify-end gap-2 text-xs">
+                  {/* Parties & Driver Info */}
+                  {(row.doPartyName || row.driverName) && (
+                    <div className="pt-1.5 border-t border-slate-200/60 flex items-center justify-between gap-2 text-xs">
+                      <div className="truncate text-left">
+                        {row.driverName && (
+                          <>
+                            <span className="text-slate-400 text-[11px] font-medium">Driver: </span>
+                            <span className="font-bold text-slate-800">{row.driverName}</span>
+                          </>
+                        )}
+                      </div>
                       <div className="truncate text-right">
-                        <span className="text-slate-400 text-[11px] font-medium">DO Party: </span>
-                        <span className="font-bold text-slate-700">{row.doPartyName}</span>
+                        {row.doPartyName && (
+                          <>
+                            <span className="text-slate-400 text-[11px] font-medium">DO Party: </span>
+                            <span className="font-bold text-slate-700">{row.doPartyName}</span>
+                          </>
+                        )}
                       </div>
                     </div>
                   )}
@@ -2571,6 +2708,19 @@ export default function TruckReports() {
                       }),
                       menu: (base) => ({ ...base, zIndex: 9999 })
                     }}
+                  />
+                </div>
+
+                {/* Driver Name */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-600 uppercase">Driver Name</label>
+                  <input
+                    type="text"
+                    name="driverName"
+                    value={formData.driverName || ''}
+                    onChange={handleInputChange}
+                    placeholder="Enter driver name..."
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all shadow-2xs"
                   />
                 </div>
 
@@ -3116,6 +3266,11 @@ export default function TruckReports() {
                 </div>
 
                 <div className="bg-white p-3 rounded-xl border border-slate-200/80">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Driver Name</span>
+                  <span className="font-bold text-slate-800 text-sm mt-0.5 block">{viewModal.data.driverName || '—'}</span>
+                </div>
+
+                <div className="bg-white p-3 rounded-xl border border-slate-200/80">
                   <span className="text-[10px] font-bold text-slate-400 uppercase block">Received Party</span>
                   <span className="font-bold text-slate-700 text-sm mt-0.5 block">{viewModal.data.receivedParty || '—'}</span>
                 </div>
@@ -3434,6 +3589,7 @@ export default function TruckReports() {
                           <th className="p-2 border-b">DO No.</th>
                           <th className="p-2 border-b">Mines</th>
                           <th className="p-2 border-b">DO Party Name</th>
+                          <th className="p-2 border-b">Driver Name</th>
                           <th className="p-2 border-b">Received Party</th>
                           <th className="p-2 border-b">Billing Party</th>
                           <th className="p-2 border-b">Diesel (L)</th>
@@ -3469,6 +3625,7 @@ export default function TruckReports() {
                               <td className="p-2 font-mono font-semibold">{row.doNo || '—'}</td>
                               <td className="p-2 font-semibold text-slate-800">{row.from || '—'}</td>
                               <td className="p-2 font-medium text-slate-700">{row.doPartyName || '—'}</td>
+                              <td className="p-2 font-medium text-slate-700">{row.driverName || '—'}</td>
                               <td className="p-2 font-medium text-slate-700">{row.receivedParty || '—'}</td>
                               <td className="p-2 font-medium text-slate-700">{row.partyName || '—'}</td>
                               <td className="p-2 font-bold text-purple-700">

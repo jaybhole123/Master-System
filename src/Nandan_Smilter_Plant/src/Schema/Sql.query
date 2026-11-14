@@ -1087,3 +1087,11 @@ CREATE TABLE public.auction_items (
   CONSTRAINT auction_items_pkey PRIMARY KEY (id),
   CONSTRAINT auction_items_auction_id_fkey FOREIGN KEY (auction_id) REFERENCES public.auctions(id)
 );
+
+-- Add driver_name column to truck_reports
+ALTER TABLE public.truck_reports 
+ADD COLUMN IF NOT EXISTS driver_name character varying NULL;
+
+-- Add driver_name column to truck_reports
+ALTER TABLE public.truck_reports 
+ADD COLUMN IF NOT EXISTS driver_name character varying NULL;

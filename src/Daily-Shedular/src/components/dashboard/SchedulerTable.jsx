@@ -35,15 +35,15 @@ const SchedulerTable = ({ currentDate, onAddTask, selectedTaskIds = [], setSelec
   };
 
   return (
-    <div className="table-container animate-fade-in" style={{ marginTop: '1.5rem', maxHeight: '600px', overflowY: 'auto' }}>
-      <table className="table">
+    <div className="table-container animate-fade-in w-full" style={{ maxHeight: '680px', overflowY: 'auto', overflowX: 'auto' }}>
+      <table className="table" style={{ width: '100%', minWidth: '1600px' }}>
         <thead>
           <tr>
-            <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '9%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>TIME</th>
-            <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '4%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>
+            <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '180px', backgroundColor: '#dbeafe', color: '#1e3a8a', textAlign: 'center', whiteSpace: 'nowrap' }}>TIME</th>
+            <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '60px', backgroundColor: '#dbeafe', color: '#1e3a8a', textAlign: 'center' }}>
               <input 
                 type="checkbox" 
-                style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                style={{ width: '17px', height: '17px', cursor: 'pointer', accentColor: '#2563eb' }}
                 onChange={(e) => {
                   if (e.target.checked) {
                     const pending = todaysTasks.filter(t => t.status === 'Pending' || t.status === 'In Progress' || t.status === 'Scheduled');
@@ -55,12 +55,12 @@ const SchedulerTable = ({ currentDate, onAddTask, selectedTaskIds = [], setSelec
                 checked={todaysTasks.filter(t => t.status === 'Pending' || t.status === 'In Progress' || t.status === 'Scheduled').length > 0 && selectedTaskIds.length === todaysTasks.filter(t => t.status === 'Pending' || t.status === 'In Progress' || t.status === 'Scheduled').length} 
               />
             </th>
-            <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '20%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>TASK DESCRIPTION</th>
-            <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '10%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center', whiteSpace: 'nowrap' }}>SUBMITTED BY</th>
-            <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '12%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>REMARK</th>
-            <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '12%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>STATUS</th>
-            <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '13%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>ATTACHMENT</th>
-            <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '12%', backgroundColor: '#bfdbfe', color: '#1e3a8a', textAlign: 'center' }}>ACTIONS</th>
+            <th style={{ position: 'sticky', top: 0, zIndex: 10, minWidth: '460px', backgroundColor: '#dbeafe', color: '#1e3a8a', textAlign: 'left', paddingLeft: '1rem' }}>TASK DESCRIPTION</th>
+            <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '220px', backgroundColor: '#dbeafe', color: '#1e3a8a', textAlign: 'left', whiteSpace: 'nowrap', paddingLeft: '0.75rem' }}>SUBMITTED BY</th>
+            <th style={{ position: 'sticky', top: 0, zIndex: 10, minWidth: '240px', backgroundColor: '#dbeafe', color: '#1e3a8a', textAlign: 'left', paddingLeft: '0.75rem' }}>REMARK</th>
+            <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '150px', backgroundColor: '#dbeafe', color: '#1e3a8a', textAlign: 'center', whiteSpace: 'nowrap' }}>STATUS</th>
+            <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '180px', backgroundColor: '#dbeafe', color: '#1e3a8a', textAlign: 'center', whiteSpace: 'nowrap' }}>ATTACHMENT</th>
+            <th style={{ position: 'sticky', top: 0, zIndex: 10, width: '160px', backgroundColor: '#dbeafe', color: '#1e3a8a', textAlign: 'center', whiteSpace: 'nowrap' }}>ACTIONS</th>
           </tr>
         </thead>
         <tbody>
