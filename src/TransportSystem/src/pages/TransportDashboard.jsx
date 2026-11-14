@@ -31,7 +31,8 @@ import {
   Eye,
   MapPin,
   Building2,
-  Loader2
+  Loader2,
+  Timer
 } from 'lucide-react';
 
 const FINANCIAL_COLORS = ['#f59e0b', '#10b981'];
@@ -238,10 +239,35 @@ export default function TransportDashboard() {
         return (b.id || 0) - (a.id || 0);
       });
 
+    // Compute TAT (Turnaround Days) between consecutive trips for this specific vehicle
+    const tripsWithTat = vehicleTrips.map((trip, idx) => {
+      // Since array is sorted descending, next chronological trip is at idx + 1
+      const prevTrip = vehicleTrips[idx + 1];
+      let tatDays = null;
+      let prevDateStr = null;
+
+      if (prevTrip && prevTrip.date && trip.date) {
+        const currTime = new Date(trip.date).getTime();
+        const prevTime = new Date(prevTrip.date).getTime();
+        const diffMs = currTime - prevTime;
+        if (!isNaN(diffMs)) {
+          tatDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+          prevDateStr = prevTrip.date;
+        }
+      }
+
+      return {
+        ...trip,
+        tatDays,
+        prevDateStr,
+        isFirstTrip: !prevTrip
+      };
+    });
+
     setVehicleHistoryModal({
       isOpen: true,
       vehicleNo: vehicleNo,
-      trips: vehicleTrips
+      trips: tripsWithTat
     });
   };
 
@@ -1302,6 +1328,12 @@ export default function TransportDashboard() {
                     <tr>
                       <th className="py-3 px-3 text-center w-10">#</th>
                       <th className="py-3 px-3 whitespace-nowrap">Trip Date</th>
+                      <th className="py-3 px-3 text-center whitespace-nowrap bg-indigo-50/70 text-indigo-800">
+                        <div className="flex items-center justify-center gap-1 font-bold">
+                          <Timer className="h-3.5 w-3.5 text-indigo-600" />
+                          <span>Turnaround (TAT)</span>
+                        </div>
+                      </th>
                       <th className="py-3 px-3 whitespace-nowrap">Route (From → To)</th>
                       <th className="py-3 px-3 whitespace-nowrap">Party / Consignee</th>
                       <th className="py-3 px-3 whitespace-nowrap">DO No. / DO Party</th>
@@ -1328,6 +1360,30 @@ export default function TransportDashboard() {
                               <Calendar className="h-3 w-3 text-red-500" />
                               {formatDateDisplay(trip.date)}
                             </span>
+                          </td>
+                          <td className="py-2.5 px-3 text-center whitespace-nowrap bg-indigo-50/20">
+                            {trip.tatDays !== null && trip.tatDays !== undefined ? (
+                              <div className="inline-flex flex-col items-center">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-black bg-indigo-100 text-indigo-800 font-mono shadow-2xs border border-indigo-200">
+                                  <Timer size={12} className="text-indigo-600" />
+                                  {trip.tatDays} {trip.tatDays === 1 ? 'Day' : 'Days'}
+                                </span>
+                                {trip.prevDateStr && (
+                                  <span className="text-[10px] text-slate-400 font-semibold mt-0.5" title={`Previous trip: ${trip.prevDateStr}`}>
+                                    TAT • Prev: {trip.prevDateStr}
+                                  </span>
+                                )}
+                              </div>
+                            ) : trip.isFirstTrip ? (
+                              <div className="inline-flex flex-col items-center">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                                  Start Trip
+                                </span>
+                                <span className="text-[10px] text-slate-400 font-medium mt-0.5">First Entry</span>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-slate-300 font-medium">—</span>
+                            )}
                           </td>
                           <td className="py-2.5 px-3 whitespace-nowrap">
                             {(trip.from_location || trip.to_location) ? (
@@ -1399,10 +1455,18 @@ export default function TransportDashboard() {
                     <div key={trip.id || tIdx} className="bg-slate-50/70 p-3 rounded-xl border border-slate-200 space-y-2 text-xs">
                       <div className="flex items-center justify-between border-b border-slate-200/70 pb-1.5">
                         <span className="font-bold text-slate-400 font-mono">Trip #{tIdx + 1}</span>
-                        <span className="inline-flex items-center gap-1 font-bold text-slate-800 font-mono">
-                          <Calendar className="h-3 w-3 text-red-500" />
-                          {formatDateDisplay(trip.date)}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          {trip.tatDays !== null && trip.tatDays !== undefined && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-100 text-indigo-800 font-mono border border-indigo-200">
+                              <Timer size={10} className="text-indigo-600" />
+                              {trip.tatDays} {trip.tatDays === 1 ? 'Day' : 'Days'} TAT
+                            </span>
+                          )}
+                          <span className="inline-flex items-center gap-1 font-bold text-slate-800 font-mono">
+                            <Calendar className="h-3 w-3 text-red-500" />
+                            {formatDateDisplay(trip.date)}
+                          </span>
+                        </div>
                       </div>
 
                       {(trip.from_location || trip.to_location) && (

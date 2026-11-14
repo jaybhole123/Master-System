@@ -50,6 +50,14 @@ export default function TruckReports() {
   const [selectedIds, setSelectedIds] = useState([]);
   const [isDeletingBulk, setIsDeletingBulk] = useState(false);
   
+  // Custom Delete Confirmation Modal state with full preview/verification
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState({
+    isOpen: false,
+    isBulk: false,
+    report: null,
+    bulkReports: []
+  });
+  
   const [reportsData, setReportsData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [trucksList, setTrucksList] = useState([]);
@@ -216,6 +224,23 @@ export default function TruckReports() {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     let newFormData = { ...formData, [name]: value };
+
+    // Auto-set Departure Time when Trip Date changes (if Departure Time is empty or was previously auto-filled from Date)
+    if (name === 'date' && value) {
+      if (!formData.departureTime || formData.departureTime.startsWith(formData.date)) {
+        // Keep current time or default to 08:00 AM of that date
+        const now = new Date();
+        const currentHours = String(now.getHours()).padStart(2, '0');
+        const currentMinutes = String(now.getMinutes()).padStart(2, '0');
+        newFormData.departureTime = `${value}T${currentHours}:${currentMinutes}`;
+
+        // Re-evaluate TAT
+        const tatCalc = calculateTurnaround(newFormData.departureTime, newFormData.unloadingTime, newFormData.arrivalTime);
+        newFormData.turnaroundHours = tatCalc.hours !== '' ? tatCalc.hours.toString() : '';
+        newFormData.turnaroundDays = tatCalc.days !== '' ? tatCalc.days.toString() : '';
+        newFormData.tatStatus = tatCalc.status;
+      }
+    }
     
     if (['perMT', 'tonnage', 'recWeight', 'diesel', 'dieselPrice', 'advance', 'minesExp', 'biltyExp', 'fastagExp', 'shortageAmount'].includes(name)) {
       const perMT = parseFloat(name === 'perMT' ? value : newFormData.perMT) || 0;
@@ -407,6 +432,12 @@ export default function TruckReports() {
   };
 
   const handleEditReport = (report) => {
+    // If departureTime is not present in existing report, auto-derive from trip date
+    let formattedDep = formatDateTimeLocal(report.departureTime || report.departure_time);
+    if (!formattedDep && report.date) {
+      formattedDep = `${report.date}T08:00`;
+    }
+
     setFormData({
       ...report,
       from: report.from || report.from_location || '',
@@ -419,7 +450,7 @@ export default function TruckReports() {
       fastagExp: report.fastagExp !== undefined && report.fastagExp !== null ? String(report.fastagExp) : '',
       shortageAmount: report.shortageAmount !== undefined && report.shortageAmount !== null ? String(report.shortageAmount) : '',
       totalExpenses: report.totalExpenses !== undefined && report.totalExpenses !== null ? String(report.totalExpenses) : '',
-      departureTime: formatDateTimeLocal(report.departureTime || report.departure_time),
+      departureTime: formattedDep,
       arrivalTime: formatDateTimeLocal(report.arrivalTime || report.arrival_time),
       unloadingTime: formatDateTimeLocal(report.unloadingTime || report.unloading_time)
     });
@@ -427,58 +458,81 @@ export default function TruckReports() {
     setIsModalOpen(true);
   };
 
-  const handleDeleteReport = async (sNoToDelete) => {
-    if(window.confirm("Are you sure you want to delete this trip report?")) {
-      const reportToDelete = reportsData.find(r => r.sNo === sNoToDelete);
-      if (reportToDelete && reportToDelete.id) {
-        const { error } = await supabase
-          .from('truck_reports')
-          .delete()
-          .eq('id', reportToDelete.id);
-          
-        if (error) {
-          console.error("Error deleting:", error);
-          toast.error("Failed to delete report");
-        } else {
-          toast.success("Report deleted successfully");
-          setSelectedIds(prev => prev.filter(id => id !== reportToDelete.id));
-          await fetchReports();
-        }
-      }
-    }
+  // Open verification modal before single delete
+  const handleDeleteReport = (sNoToDelete) => {
+    const reportToDelete = reportsData.find(r => r.sNo === sNoToDelete);
+    if (!reportToDelete) return;
+    setDeleteConfirmModal({
+      isOpen: true,
+      isBulk: false,
+      report: reportToDelete,
+      bulkReports: []
+    });
   };
 
-  // Bulk Delete Selected Reports
-  const handleBulkDelete = async () => {
+  // Open verification modal before bulk delete
+  const handleBulkDelete = () => {
     if (selectedIds.length === 0) {
       toast.error("Please select at least one report to delete!");
       return;
     }
+    const reportsToBulkDelete = reportsData.filter(r => selectedIds.includes(r.id));
+    setDeleteConfirmModal({
+      isOpen: true,
+      isBulk: true,
+      report: null,
+      bulkReports: reportsToBulkDelete
+    });
+  };
 
-    if (!window.confirm(`Are you sure you want to delete ${selectedIds.length} selected trip reports? This action cannot be undone.`)) {
-      return;
-    }
+  // Execute confirmed delete action
+  const handleExecuteDelete = async () => {
+    if (deleteConfirmModal.isBulk) {
+      setIsDeletingBulk(true);
+      try {
+        const { error } = await supabase
+          .from('truck_reports')
+          .delete()
+          .in('id', selectedIds);
 
-    setIsDeletingBulk(true);
-    try {
-      const { error } = await supabase
-        .from('truck_reports')
-        .delete()
-        .in('id', selectedIds);
-
-      if (error) {
-        console.error("Error in bulk delete:", error);
-        toast.error(`Failed to delete selected reports: ${error.message}`);
-      } else {
-        toast.success(`Successfully deleted ${selectedIds.length} trip reports!`);
-        setSelectedIds([]);
-        await fetchReports();
+        if (error) {
+          console.error("Error in bulk delete:", error);
+          toast.error(`Failed to delete selected reports: ${error.message}`);
+        } else {
+          toast.success(`Successfully deleted ${selectedIds.length} trip reports!`);
+          setSelectedIds([]);
+          setDeleteConfirmModal({ isOpen: false, isBulk: false, report: null, bulkReports: [] });
+          await fetchReports();
+        }
+      } catch (err) {
+        console.error("Error bulk deleting reports:", err);
+        toast.error("Unexpected error occurred while deleting.");
+      } finally {
+        setIsDeletingBulk(false);
       }
-    } catch (err) {
-      console.error("Error bulk deleting reports:", err);
-      toast.error("Unexpected error occurred while deleting.");
-    } finally {
-      setIsDeletingBulk(false);
+    } else {
+      const reportToDelete = deleteConfirmModal.report;
+      if (reportToDelete && reportToDelete.id) {
+        try {
+          const { error } = await supabase
+            .from('truck_reports')
+            .delete()
+            .eq('id', reportToDelete.id);
+            
+          if (error) {
+            console.error("Error deleting:", error);
+            toast.error("Failed to delete report");
+          } else {
+            toast.success("Report deleted successfully");
+            setSelectedIds(prev => prev.filter(id => id !== reportToDelete.id));
+            setDeleteConfirmModal({ isOpen: false, isBulk: false, report: null, bulkReports: [] });
+            await fetchReports();
+          }
+        } catch (err) {
+          console.error("Error deleting report:", err);
+          toast.error("Unexpected error occurred.");
+        }
+      }
     }
   };
 
@@ -528,12 +582,84 @@ export default function TruckReports() {
     });
   }, [reportsData, searchTerm, fromDate, toDate, filterVehicleNo, filterDoNo]);
 
+  // Turnaround (TAT) calculation based on consecutive trips for each vehicle
+  const reportsWithTat = useMemo(() => {
+    // Helper to safely parse date string to timestamp, handling potential DD/MM/YYYY vs YYYY-MM-DD
+    const parseDateMs = (dStr) => {
+      if (!dStr) return 0;
+      const s = String(dStr).trim();
+      // If DD-MM-YYYY or DD/MM/YYYY format
+      if (/^\d{1,2}[-/]\d{1,2}[-/]\d{4}$/.test(s)) {
+        const parts = s.split(/[-/]/);
+        return new Date(`${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`).getTime() || 0;
+      }
+      return new Date(s).getTime() || 0;
+    };
+
+    // 1. Group all raw reports by normalized vehicle number
+    const vehicleTripsMap = new Map();
+    reportsData.forEach(item => {
+      const vKey = String(item.vehicleNo || '').toUpperCase().replace(/[\s-]/g, '');
+      if (!vKey) return;
+      if (!vehicleTripsMap.has(vKey)) {
+        vehicleTripsMap.set(vKey, []);
+      }
+      vehicleTripsMap.get(vKey).push(item);
+    });
+
+    // 2. Sort trips of each vehicle chronologically by Date
+    const tatMap = new Map(); // key: report item id -> { days, prevDate, nextDate }
+    vehicleTripsMap.forEach((trips) => {
+      const sorted = [...trips].sort((a, b) => {
+        const da = parseDateMs(a.date);
+        const db = parseDateMs(b.date);
+        if (da !== db) return da - db;
+        return (a.sNo || 0) - (b.sNo || 0);
+      });
+
+      for (let i = 0; i < sorted.length; i++) {
+        const curr = sorted[i];
+        if (i === 0) {
+          // First recorded trip for this vehicle
+          tatMap.set(curr.id, { days: null, isFirst: true, prevDate: null, nextDate: sorted[i + 1]?.date || null });
+        } else {
+          const prev = sorted[i - 1];
+          const currTime = parseDateMs(curr.date);
+          const prevTime = parseDateMs(prev.date);
+          if (currTime > 0 && prevTime > 0) {
+            const diffDays = Math.round((currTime - prevTime) / (1000 * 60 * 60 * 24));
+            tatMap.set(curr.id, { 
+              days: Math.max(0, diffDays), 
+              isFirst: false, 
+              prevDate: prev.date,
+              nextDate: sorted[i + 1]?.date || null
+            });
+          } else {
+            tatMap.set(curr.id, { days: null, isFirst: false, prevDate: prev.date, nextDate: sorted[i + 1]?.date || null });
+          }
+        }
+      }
+    });
+
+    // 3. Attach dateTat to filteredData items
+    return filteredData.map(row => {
+      const info = tatMap.get(row.id);
+      return {
+        ...row,
+        dateTatDays: info ? info.days : null,
+        dateTatIsFirst: info ? info.isFirst : false,
+        dateTatPrevDate: info ? info.prevDate : null,
+        dateTatNextDate: info ? info.nextDate : null
+      };
+    });
+  }, [reportsData, filteredData]);
+
   const formattedVehicles = trucksList.map(v => v.toUpperCase().trim());
   const uniqueVehicles = [...new Set(formattedVehicles)].sort();
   const vehicleOptions = uniqueVehicles.map(v => ({ label: v, value: v }));
   const uniqueDoNumbers = [...new Set(reportsData.map(item => item.doNo).filter(Boolean))].sort();
 
-  const displayedData = filteredData.slice(0, visibleCount);
+  const displayedData = reportsWithTat.slice(0, visibleCount);
 
   const handleTableScroll = (e) => {
     const { scrollTop, scrollHeight, clientHeight } = e.target;
@@ -1748,7 +1874,46 @@ export default function TruckReports() {
           </button>
 
           <button 
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => {
+              const todayStr = new Date().toISOString().split('T')[0];
+              const now = new Date();
+              const hh = String(now.getHours()).padStart(2, '0');
+              const mm = String(now.getMinutes()).padStart(2, '0');
+              setEditingId(null);
+              setFormData({
+                date: todayStr,
+                vehicleNo: '',
+                from: '',
+                to: '',
+                distance: '',
+                partyName: '',
+                doPartyName: '',
+                receivedParty: '',
+                driverName: '',
+                diesel: '',
+                dieselPrice: '',
+                advance: '',
+                doNo: '',
+                totalTrips: '1',
+                vehicleBalance: '',
+                perMT: '',
+                tonnage: '',
+                recWeight: '',
+                minesExp: '',
+                biltyExp: '',
+                fastagExp: '',
+                shortageAmount: '',
+                totalExpenses: '',
+                totalFreight: '',
+                departureTime: `${todayStr}T${hh}:${mm}`,
+                arrivalTime: '',
+                unloadingTime: '',
+                turnaroundHours: '',
+                turnaroundDays: '',
+                tatStatus: 'In Transit'
+              });
+              setIsModalOpen(true);
+            }}
             className="bg-white hover:bg-red-50 text-red-700 px-4 py-2 rounded-xl font-black text-xs sm:text-sm shadow-md hover:shadow-lg transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
           >
             <Plus size={16} /> 
@@ -2000,6 +2165,12 @@ export default function TruckReports() {
                 <th className="py-3.5 px-3.5 text-center whitespace-nowrap">S.No</th>
                 <th className="py-3.5 px-3.5 text-center whitespace-nowrap">View</th>
                 <th className="py-3.5 px-3.5 whitespace-nowrap">Date</th>
+                <th className="py-3.5 px-3.5 text-center whitespace-nowrap bg-indigo-50/70 text-indigo-800">
+                  <div className="flex items-center justify-center gap-1">
+                    <Timer size={13} />
+                    <span>Turnaround (TAT)</span>
+                  </div>
+                </th>
                 <th className="py-3.5 px-3.5 whitespace-nowrap">Vehicle No.</th>
                 <th className="py-3.5 px-3.5 text-center whitespace-nowrap">Trip Count</th>
                 <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Disp. Wt.</th>
@@ -2011,12 +2182,6 @@ export default function TruckReports() {
                 <th className="py-3.5 px-3.5 whitespace-nowrap">Driver Name</th>
                 <th className="py-3.5 px-3.5 whitespace-nowrap">Received Party</th>
                 <th className="py-3.5 px-3.5 whitespace-nowrap">Billing Party</th>
-                <th className="py-3.5 px-3.5 text-center whitespace-nowrap bg-indigo-50/70 text-indigo-800">
-                  <div className="flex items-center justify-center gap-1">
-                    <Timer size={13} />
-                    <span>Turnaround (TAT)</span>
-                  </div>
-                </th>
                 <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Diesel (L)</th>
                 <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Mines Exp</th>
                 <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Bilty Exp</th>
@@ -2074,6 +2239,40 @@ export default function TruckReports() {
                       <td className="py-3.5 px-3.5 font-semibold text-slate-700 whitespace-nowrap">
                         {row.date}
                       </td>
+                      <td className="py-3.5 px-3.5 text-center whitespace-nowrap bg-indigo-50/20">
+                        {row.dateTatDays !== null && row.dateTatDays !== undefined ? (
+                          <div className="inline-flex flex-col items-center">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-black bg-indigo-100 text-indigo-800 font-mono shadow-2xs border border-indigo-200">
+                              <Timer size={12} className="text-indigo-600" />
+                              {row.dateTatDays} {row.dateTatDays === 1 ? 'Day' : 'Days'}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-semibold mt-0.5" title={`Previous trip: ${row.dateTatPrevDate}`}>
+                              TAT • Prev: {row.dateTatPrevDate}
+                            </span>
+                          </div>
+                        ) : row.dateTatIsFirst ? (
+                          <div className="inline-flex flex-col items-center">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                              Start Trip
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-medium mt-0.5">
+                              First Entry
+                            </span>
+                          </div>
+                        ) : row.turnaroundHours ? (
+                          <div className="inline-flex flex-col items-center">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-black bg-indigo-100 text-indigo-700 font-mono shadow-2xs">
+                              <Timer size={12} />
+                              {row.turnaroundHours} hrs
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-semibold mt-0.5">
+                              {row.turnaroundDays} Days
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-slate-300 font-medium">—</span>
+                        )}
+                      </td>
                       <td className="py-3.5 px-3.5 whitespace-nowrap">
                         <span className="inline-block px-3 py-1 bg-blue-50 text-blue-700 border border-blue-200/90 rounded-lg font-black font-mono tracking-wider text-xs shadow-2xs">
                           {row.vehicleNo?.toUpperCase().includes('CG') ? row.vehicleNo : `CG-10-CG ${row.vehicleNo}`}
@@ -2120,26 +2319,6 @@ export default function TruckReports() {
                       </td>
                       <td className="py-3.5 px-3.5 whitespace-nowrap font-medium text-slate-600">
                         {row.partyName || '—'}
-                      </td>
-                      <td className="py-3.5 px-3.5 text-center whitespace-nowrap bg-indigo-50/20">
-                        {row.turnaroundHours ? (
-                          <div className="inline-flex flex-col items-center">
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-black bg-indigo-100 text-indigo-700 font-mono shadow-2xs">
-                              <Timer size={12} />
-                              {row.turnaroundHours} hrs
-                            </span>
-                            <span className="text-[10px] text-slate-400 font-semibold mt-0.5">
-                              {row.turnaroundDays} Days • {row.tatStatus || 'Done'}
-                            </span>
-                          </div>
-                        ) : row.departureTime ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-700 animate-pulse">
-                            <Clock size={11} />
-                            In Transit
-                          </span>
-                        ) : (
-                          <span className="text-xs text-slate-300 font-medium">—</span>
-                        )}
                       </td>
                       <td className="py-3.5 px-3.5 text-right font-black text-purple-700 whitespace-nowrap">
                         {(() => {
@@ -2293,22 +2472,31 @@ export default function TruckReports() {
                   </div>
 
                   {/* Turnaround Time (TAT) Badge in Mobile */}
-                  {row.turnaroundHours ? (
+                  {row.dateTatDays !== null && row.dateTatDays !== undefined ? (
+                    <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/60 text-xs">
+                      <span className="text-[11px] font-bold text-indigo-700 flex items-center gap-1">
+                        <Timer size={12} /> Turnaround (TAT):
+                      </span>
+                      <span className="font-mono font-black text-indigo-800 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200 shadow-2xs">
+                        {row.dateTatDays} {row.dateTatDays === 1 ? 'Day' : 'Days'}
+                      </span>
+                    </div>
+                  ) : row.dateTatIsFirst ? (
+                    <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/60 text-xs">
+                      <span className="text-[11px] font-bold text-slate-500 flex items-center gap-1">
+                        <Timer size={12} /> Trip:
+                      </span>
+                      <span className="font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+                        First Entry
+                      </span>
+                    </div>
+                  ) : row.turnaroundHours ? (
                     <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/60 text-xs">
                       <span className="text-[11px] font-bold text-indigo-700 flex items-center gap-1">
                         <Timer size={12} /> Turnaround:
                       </span>
                       <span className="font-mono font-black text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200">
                         {row.turnaroundHours} hrs ({row.turnaroundDays} d)
-                      </span>
-                    </div>
-                  ) : row.departureTime ? (
-                    <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/60 text-xs">
-                      <span className="text-[11px] font-bold text-amber-600 flex items-center gap-1">
-                        <Clock size={12} /> Status:
-                      </span>
-                      <span className="font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 animate-pulse">
-                        In Transit
                       </span>
                     </div>
                   ) : null}
@@ -3762,6 +3950,167 @@ export default function TruckReports() {
                     <span>Upload {bulkParsedData.filter(r => r.isValid).length} Trips to System</span>
                   </>
                 )}
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════
+          DELETE / BULK DELETE VERIFICATION & PREVIEW MODAL
+      ═══════════════════════════════════════════════════════════ */}
+      {deleteConfirmModal.isOpen && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden border border-rose-100">
+            
+            {/* Modal Header */}
+            <div className="p-5 sm:p-6 border-b border-rose-100 flex items-center justify-between bg-rose-50/70">
+              <div className="flex items-center gap-3">
+                <div className="h-11 w-11 rounded-2xl bg-gradient-to-br from-rose-600 to-red-700 text-white flex items-center justify-center shrink-0 shadow-sm">
+                  <AlertCircle size={22} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-800 leading-tight">
+                    {deleteConfirmModal.isBulk 
+                      ? `Verify Bulk Deletion (${deleteConfirmModal.bulkReports.length} Trips)`
+                      : 'Verify Trip Report Deletion'}
+                  </h3>
+                  <p className="text-xs text-rose-700 font-semibold mt-0.5">
+                    Review trip details below before permanently deleting from database.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmModal({ isOpen: false, isBulk: false, report: null, bulkReports: [] })}
+                className="h-8 w-8 rounded-full bg-slate-200/60 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Modal Body / Preview Content */}
+            <div className="p-5 overflow-y-auto max-h-[58vh] custom-sidebar-scroll space-y-4">
+              
+              {/* Warning Alert Banner */}
+              <div className="flex items-start gap-2.5 p-3.5 bg-amber-50 border border-amber-200/80 rounded-2xl text-xs text-amber-900">
+                <AlertCircle size={16} className="text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold">Irreversible Action:</span> Once confirmed, this data will be permanently removed from Supabase and cannot be recovered.
+                </div>
+              </div>
+
+              {/* Preview Case 1: Single Report Delete */}
+              {!deleteConfirmModal.isBulk && deleteConfirmModal.report && (
+                <div className="border border-slate-200 rounded-2xl p-4 bg-slate-50/50 space-y-3">
+                  <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                    <span className="text-xs font-bold text-slate-500">Vehicle Number:</span>
+                    <span className="px-3 py-1 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg font-mono font-black text-xs">
+                      {deleteConfirmModal.report.vehicleNo || '—'}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="text-slate-400 block text-[11px]">Trip Date:</span>
+                      <span className="font-bold text-slate-700">{deleteConfirmModal.report.date || '—'}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block text-[11px]">DO Number:</span>
+                      <span className="font-mono font-bold text-slate-700">#{deleteConfirmModal.report.doNo || '—'}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block text-[11px]">From (Mines):</span>
+                      <span className="font-bold text-slate-700">{deleteConfirmModal.report.from || '—'}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block text-[11px]">To (Destination):</span>
+                      <span className="font-bold text-slate-700">{deleteConfirmModal.report.to || deleteConfirmModal.report.receivedParty || '—'}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block text-[11px]">Disp. Weight:</span>
+                      <span className="font-bold text-slate-700">{deleteConfirmModal.report.tonnage ? `${deleteConfirmModal.report.tonnage} MT` : '—'}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block text-[11px]">Freight Amount:</span>
+                      <span className="font-bold text-emerald-700 font-mono">₹{deleteConfirmModal.report.totalFreight ? Number(deleteConfirmModal.report.totalFreight).toLocaleString('en-IN') : 0}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block text-[11px]">Diesel Issued:</span>
+                      <span className="font-bold text-purple-700">{deleteConfirmModal.report.diesel ? `${deleteConfirmModal.report.diesel} L` : '—'}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block text-[11px]">Driver Name:</span>
+                      <span className="font-bold text-slate-700">{deleteConfirmModal.report.driverName || '—'}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Preview Case 2: Bulk Reports Delete (Table of selected items) */}
+              {deleteConfirmModal.isBulk && (
+                <div className="border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-2xs">
+                  <div className="p-3 bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-600 flex justify-between items-center">
+                    <span>Selected Trips to be Deleted ({deleteConfirmModal.bulkReports.length})</span>
+                    <span className="text-rose-600 font-black">All Will Be Removed</span>
+                  </div>
+                  <div className="max-h-[300px] overflow-y-auto">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead className="bg-slate-100 text-slate-500 font-black text-[11px] sticky top-0">
+                        <tr>
+                          <th className="py-2 px-3">#</th>
+                          <th className="py-2 px-3">Date</th>
+                          <th className="py-2 px-3">Vehicle</th>
+                          <th className="py-2 px-3">DO No</th>
+                          <th className="py-2 px-3">Route (From → To)</th>
+                          <th className="py-2 px-3 text-right">Freight</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {deleteConfirmModal.bulkReports.map((item, idx) => (
+                          <tr key={item.id || idx} className="hover:bg-slate-50">
+                            <td className="py-2 px-3 text-slate-400 font-mono">{idx + 1}</td>
+                            <td className="py-2 px-3 font-medium text-slate-700 whitespace-nowrap">{item.date}</td>
+                            <td className="py-2 px-3 font-mono font-bold text-blue-700 whitespace-nowrap">{item.vehicleNo}</td>
+                            <td className="py-2 px-3 font-mono text-slate-600">{item.doNo || '—'}</td>
+                            <td className="py-2 px-3 text-slate-600 truncate max-w-[150px]" title={`${item.from} → ${item.to}`}>
+                              {item.from} → {item.to}
+                            </td>
+                            <td className="py-2 px-3 text-right font-mono font-bold text-emerald-700 whitespace-nowrap">
+                              ₹{item.totalFreight ? Number(item.totalFreight).toLocaleString('en-IN') : 0}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+            </div>
+
+            {/* Modal Actions Footer */}
+            <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between shrink-0">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmModal({ isOpen: false, isBulk: false, report: null, bulkReports: [] })}
+                className="px-4 py-2 text-xs sm:text-sm font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-200/60 rounded-xl transition-colors cursor-pointer"
+              >
+                No, Keep Trip
+              </button>
+
+              <button
+                type="button"
+                onClick={handleExecuteDelete}
+                disabled={isDeletingBulk}
+                className="px-6 py-2.5 bg-gradient-to-r from-rose-600 to-red-700 hover:from-rose-700 hover:to-red-800 disabled:opacity-50 text-white font-black rounded-xl shadow-md shadow-rose-500/20 hover:shadow-lg transition-all text-xs sm:text-sm flex items-center gap-2 cursor-pointer active:scale-95"
+              >
+                <Trash2 size={16} />
+                <span>
+                  {deleteConfirmModal.isBulk 
+                    ? `Confirm Delete (${deleteConfirmModal.bulkReports.length} Trips)`
+                    : 'Confirm & Delete'}
+                </span>
               </button>
             </div>
 

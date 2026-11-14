@@ -5,7 +5,7 @@ import { InfoCard } from "./Cards";
 import EditModal from "./EditModal";
 import { exportToExcel, exportToPDF } from "../utils/exportHelpers";
 
-export default function SECLIntimationResults({ data, fileName, onReset, onAddFiles, onExportJson, onExportCsv, onSave, onDeleteRow, onUpdateRow, onAddManual, currentPage = 1, totalCount = 0, pageSize = 10, isFetching = false, onPageChange }) {
+export default function SECLIntimationResults({ data, fileName, onReset, onAddFiles, onExportJson, onExportCsv, onSave, onDeleteRow, onUpdateRow, onAddManual, currentPage = 1, totalCount = 0, pageSize = 50, isFetching = false, onPageChange }) {
   const dataArray = Array.isArray(data) ? data : [data];
   const allItems = dataArray.flatMap(d => 
     (d.items || []).map(item => ({ ...item, _meta: d.meta, pdfUrl: d.pdfUrl, pdfName: d.pdfName }))
@@ -13,9 +13,26 @@ export default function SECLIntimationResults({ data, fileName, onReset, onAddFi
   const [activeTab, setActiveTab] = useState("pending");
   const [editingIndex, setEditingIndex] = useState(null);
   const fileInputRef = useRef(null);
+  const observerRef = useRef(null);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDate, setSelectedDate] = useState(null);
+
+  // Infinite scroll IntersectionObserver
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && onPageChange && !isFetching && allItems.length < totalCount) {
+          onPageChange();
+        }
+      },
+      { threshold: 0.1 }
+    );
+    if (observerRef.current) {
+      observer.observe(observerRef.current);
+    }
+    return () => observer.disconnect();
+  }, [onPageChange, isFetching, allItems.length, totalCount]);
 
   // --- COLUMN TOGGLE LOGIC ---
   const [showColumnDropdown, setShowColumnDropdown] = useState(false);
@@ -547,44 +564,23 @@ export default function SECLIntimationResults({ data, fileName, onReset, onAddFi
             )}
           </div>
 
-          {/* PAGINATION CONTROLS */}
-          {onPageChange && totalCount > pageSize && (() => {
-            const totalPages = Math.ceil(totalCount / pageSize);
-            const pages = [];
-            const startPage = Math.max(1, currentPage - 2);
-            const endPage = Math.min(totalPages, currentPage + 2);
-            for (let p = startPage; p <= endPage; p++) pages.push(p);
-
-            return (
-              <div style={{ padding: "14px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid var(--line)", background: "var(--panel)" }}>
-                <div style={{ fontSize: "13px", color: "var(--muted)" }}>
-                  {isFetching ? "Loading..." : `Showing ${(currentPage - 1) * pageSize + 1}–${Math.min(currentPage * pageSize, totalCount)} of ${totalCount} records`}
-                </div>
-                <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
-                  <button
-                    onClick={() => onPageChange(currentPage - 1)}
-                    disabled={currentPage <= 1 || isFetching}
-                    style={{ padding: "5px 10px", borderRadius: "5px", border: "1px solid var(--line)", background: currentPage <= 1 ? "#f3f4f6" : "white", cursor: currentPage <= 1 ? "not-allowed" : "pointer", color: currentPage <= 1 ? "#9ca3af" : "var(--text)", fontSize: "13px", fontWeight: "500" }}
-                  >← Prev</button>
-                  {startPage > 1 && <span style={{ padding: "0 4px", color: "var(--muted)" }}>...</span>}
-                  {pages.map(p => (
-                    <button
-                      key={p}
-                      onClick={() => onPageChange(p)}
-                      disabled={isFetching}
-                      style={{ padding: "5px 10px", borderRadius: "5px", border: `1px solid ${p === currentPage ? "var(--primary)" : "var(--line)"}`, background: p === currentPage ? "var(--primary)" : "white", color: p === currentPage ? "white" : "var(--text)", fontWeight: p === currentPage ? "700" : "400", cursor: "pointer", fontSize: "13px", minWidth: "34px" }}
-                    >{p}</button>
-                  ))}
-                  {endPage < totalPages && <span style={{ padding: "0 4px", color: "var(--muted)" }}>...</span>}
-                  <button
-                    onClick={() => onPageChange(currentPage + 1)}
-                    disabled={currentPage >= totalPages || isFetching}
-                    style={{ padding: "5px 10px", borderRadius: "5px", border: "1px solid var(--line)", background: currentPage >= totalPages ? "#f3f4f6" : "white", cursor: currentPage >= totalPages ? "not-allowed" : "pointer", color: currentPage >= totalPages ? "#9ca3af" : "var(--text)", fontSize: "13px", fontWeight: "500" }}
-                  >Next →</button>
-                </div>
+          {/* INFINITE SCROLL OBSERVER */}
+          {onPageChange && totalCount > allItems.length && (
+            <div ref={observerRef} style={{ padding: "16px 20px", display: "flex", justifyContent: "center", alignItems: "center", borderTop: "1px solid var(--line)", background: "var(--panel)", flexDirection: "column", gap: "8px", marginTop: "12px", borderRadius: "8px", border: "1px solid var(--line)" }}>
+              <div style={{ fontSize: "13px", color: "var(--muted)", display: "flex", alignItems: "center", gap: "8px" }}>
+                {isFetching ? (
+                  <>
+                    <svg className="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ animation: "spin 1s linear infinite" }}>
+                      <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+                    </svg>
+                    Loading more records...
+                  </>
+                ) : (
+                  `Scroll to load more (Showing ${allItems.length} of ${totalCount} records)`
+                )}
               </div>
-            );
-          })()}
+            </div>
+          )}
 
           {activeTab === "pending" && (
           <div style={{ padding: "16px 20px", display: "flex", justifyContent: "flex-end", borderTop: "1px solid var(--line)", background: "var(--panel)", borderBottomLeftRadius: "var(--radius)", borderBottomRightRadius: "var(--radius)" }}>

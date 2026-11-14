@@ -12,7 +12,7 @@ import CLPage from "./CLPage";
  * SECLIntimationPage — owns the upload/result state for this page.
  */
 export default function SECLIntimationPage({ state, setState }) {
-  const PAGE_SIZE = 10;
+  const PAGE_SIZE = 50;
   const [activeTab, setActiveTab] = useState("format1");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -60,12 +60,28 @@ export default function SECLIntimationPage({ state, setState }) {
             }]
           }));
 
-          setState(s => ({
-            ...s,
-            view: "results",
-            data: formattedData,
-            fileName: "Loaded from Supabase"
-          }));
+          setState(s => {
+            if (currentPage === 1) {
+              return {
+                ...s,
+                view: "results",
+                data: formattedData,
+                fileName: "Loaded from Supabase"
+              };
+            } else {
+              // Append for infinite scroll
+              const existingData = s.data && Array.isArray(s.data) ? s.data : [];
+              // Prevent duplicates by id
+              const existingIds = new Set(existingData.map(d => d.id));
+              const newItems = formattedData.filter(d => !existingIds.has(d.id));
+              return {
+                ...s,
+                view: "results",
+                data: [...existingData, ...newItems],
+                fileName: "Loaded from Supabase"
+              };
+            }
+          });
         } else if (currentPage === 1) {
           // No data at all
           setState(s => ({ ...s, view: "drop", data: null, fileName: "" }));
@@ -486,9 +502,10 @@ export default function SECLIntimationPage({ state, setState }) {
           totalCount={totalCount}
           pageSize={PAGE_SIZE}
           isFetching={isFetching}
-          onPageChange={(page) => {
-            setCurrentPage(page);
-            setState(s => ({ ...s, data: null }));
+          onPageChange={() => {
+            if (!isFetching) {
+              setCurrentPage(prev => prev + 1);
+            }
           }}
         />
       )}
