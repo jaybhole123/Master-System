@@ -7,6 +7,7 @@ import {
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import { toast } from 'react-hot-toast';
+import './WorkOrder.css';
 
 import supabase from '../../../SupabaseClient';
 
@@ -1073,22 +1074,10 @@ const WorkOrder = () => {
   const toggleAllSpecs = (val) => setVisibleSpecs(specKeys.reduce((acc, s) => ({ ...acc, [s.key]: val }), {}));
 
   return (
-    <div className="fade-in" style={{ width: '100%', boxSizing: 'border-box', padding: '16px 20px', backgroundColor: '#f8fafc', minHeight: '100vh' }}>
+    <div className="fade-in work-order-page-container">
 
       {/* Hero Header */}
-      <div className="no-print" style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: '16px',
-        marginBottom: '20px',
-        backgroundColor: '#ffffff',
-        padding: '20px 24px',
-        borderRadius: '14px',
-        border: '1px solid #e2e8f0',
-        boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)'
-      }}>
+      <div className="no-print work-order-hero">
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
             <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.08em', backgroundColor: '#fef2f2', padding: '2px 8px', borderRadius: '4px' }}>
@@ -1108,21 +1097,7 @@ const WorkOrder = () => {
         <button
           id="btn-new-work-order"
           onClick={openNewModal}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '10px 20px',
-            fontSize: '0.875rem',
-            borderRadius: '9px',
-            fontWeight: 600,
-            color: '#ffffff',
-            background: 'linear-gradient(135deg, #e11d48 0%, #dc2626 100%)',
-            border: 'none',
-            cursor: 'pointer',
-            boxShadow: '0 4px 14px rgba(220, 38, 38, 0.3)',
-            transition: 'all 0.2s'
-          }}
+          className="work-order-hero-btn"
           onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(220, 38, 38, 0.4)'; }}
           onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(220, 38, 38, 0.3)'; }}
         >
@@ -1131,98 +1106,54 @@ const WorkOrder = () => {
       </div>
 
       {/* KPI Stats Cards */}
-      <div className="no-print" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', marginBottom: '20px' }}>
+      <div className="no-print work-order-kpi-grid">
         {/* Card 1 */}
-        <div style={{
-          backgroundColor: '#ffffff',
-          borderRadius: '12px',
-          padding: '18px 20px',
-          border: '1px solid #e2e8f0',
-          boxShadow: '0 1px 3px rgba(15, 23, 42, 0.03)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '16px'
-        }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="work-order-kpi-card">
+          <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <FileText size={22} strokeWidth={2.2} />
           </div>
-          <div>
-            <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{stats.card1Title}</div>
-            <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#0f172a', lineHeight: '1.2' }}>{stats.card1Count}</div>
+          <div style={{ minWidth: 0, overflow: 'hidden' }}>
+            <div className="kpi-title" style={{ fontSize: '0.74rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{stats.card1Title}</div>
+            <div className="kpi-count" style={{ fontSize: '1.65rem', fontWeight: 800, color: '#0f172a', lineHeight: '1.2' }}>{stats.card1Count}</div>
           </div>
         </div>
 
         {/* Card 2 */}
-        <div style={{
-          backgroundColor: '#ffffff',
-          borderRadius: '12px',
-          padding: '18px 20px',
-          border: '1px solid #e2e8f0',
-          boxShadow: '0 1px 3px rgba(15, 23, 42, 0.03)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '16px'
-        }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)', color: '#4338ca', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="work-order-kpi-card">
+          <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)', color: '#4338ca', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <Clock size={22} strokeWidth={2.2} />
           </div>
-          <div>
-            <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{stats.card2Title}</div>
-            <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#0f172a', lineHeight: '1.2' }}>{stats.card2Count}</div>
+          <div style={{ minWidth: 0, overflow: 'hidden' }}>
+            <div className="kpi-title" style={{ fontSize: '0.74rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{stats.card2Title}</div>
+            <div className="kpi-count" style={{ fontSize: '1.65rem', fontWeight: 800, color: '#0f172a', lineHeight: '1.2' }}>{stats.card2Count}</div>
           </div>
         </div>
 
         {/* Card 3 */}
-        <div style={{
-          backgroundColor: '#ffffff',
-          borderRadius: '12px',
-          padding: '18px 20px',
-          border: '1px solid #e2e8f0',
-          boxShadow: '0 1px 3px rgba(15, 23, 42, 0.03)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '16px'
-        }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)', color: '#15803d', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="work-order-kpi-card">
+          <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)', color: '#15803d', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <CheckCircle size={22} strokeWidth={2.2} />
           </div>
-          <div>
-            <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{stats.card3Title}</div>
-            <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#0f172a', lineHeight: '1.2' }}>{stats.card3Count}</div>
+          <div style={{ minWidth: 0, overflow: 'hidden' }}>
+            <div className="kpi-title" style={{ fontSize: '0.74rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{stats.card3Title}</div>
+            <div className="kpi-count" style={{ fontSize: '1.65rem', fontWeight: 800, color: '#0f172a', lineHeight: '1.2' }}>{stats.card3Count}</div>
           </div>
         </div>
 
         {/* Card 4 */}
-        <div style={{
-          backgroundColor: '#ffffff',
-          borderRadius: '12px',
-          padding: '18px 20px',
-          border: '1px solid #e2e8f0',
-          boxShadow: '0 1px 3px rgba(15, 23, 42, 0.03)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '16px'
-        }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)', color: '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="work-order-kpi-card">
+          <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)', color: '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <Sparkles size={22} strokeWidth={2.2} />
           </div>
-          <div>
-            <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{stats.card4Title}</div>
-            <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#0f172a', lineHeight: '1.2' }}>{stats.card4Count}</div>
+          <div style={{ minWidth: 0, overflow: 'hidden' }}>
+            <div className="kpi-title" style={{ fontSize: '0.74rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{stats.card4Title}</div>
+            <div className="kpi-count" style={{ fontSize: '1.65rem', fontWeight: 800, color: '#0f172a', lineHeight: '1.2' }}>{stats.card4Count}</div>
           </div>
         </div>
       </div>
 
       {/* Tabs Bar */}
-      <div className="no-print" style={{
-        display: 'flex',
-        gap: '6px',
-        marginBottom: '16px',
-        backgroundColor: '#e2e8f0',
-        padding: '4px',
-        borderRadius: '10px',
-        width: 'fit-content'
-      }}>
+      <div className="no-print work-order-tabs-bar">
         {/* Tab 1: Work Orders */}
         <button
           onClick={() => setActiveTab('active')}
@@ -1318,20 +1249,8 @@ const WorkOrder = () => {
       </div>
 
       {/* Filters Bar */}
-      <div className="no-print" style={{
-        backgroundColor: '#ffffff',
-        border: '1px solid #e2e8f0',
-        borderRadius: '12px',
-        padding: '12px 16px',
-        marginBottom: '16px',
-        boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '10px',
-        flexWrap: 'nowrap',
-        overflowX: 'auto'
-      }}>
-        <div style={{ position: 'relative', flex: '1 1 220px', minWidth: '180px' }}>
+      <div className="no-print work-order-filters-bar">
+        <div className="work-order-filter-search">
           <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
           <input
             id="work-order-search"
@@ -1355,7 +1274,7 @@ const WorkOrder = () => {
           />
         </div>
 
-        <div style={{ minWidth: '150px', flex: '0 1 180px' }}>
+        <div className="work-order-filter-select-comp">
           <select
             id="work-order-company-filter"
             value={filterCompany}
@@ -1379,7 +1298,7 @@ const WorkOrder = () => {
           </select>
         </div>
 
-        <div style={{ minWidth: '150px', flex: '0 1 180px' }}>
+        <div className="work-order-filter-select-buyer">
           <select
             id="work-order-buyer-filter"
             value={filterBuyer}
@@ -1403,7 +1322,7 @@ const WorkOrder = () => {
           </select>
         </div>
 
-        <div style={{ minWidth: '130px', flex: '0 1 150px' }}>
+        <div className="work-order-filter-select-comm">
           <select
             id="work-order-commodity-filter"
             value={filterCommodity}
@@ -1427,7 +1346,7 @@ const WorkOrder = () => {
           </select>
         </div>
 
-        <div style={{ minWidth: '110px', flex: '0 1 130px' }}>
+        <div className="work-order-filter-select-qty">
           <select
             id="work-order-qty-filter"
             value={filterQty}
@@ -1524,211 +1443,418 @@ const WorkOrder = () => {
             )}
           </div>
         ) : (
-          <div style={{ overflowX: 'auto', width: '100%' }}>
-            <table style={{ width: '100%', minWidth: '1050px', borderCollapse: 'separate', borderSpacing: 0, fontSize: '0.86rem' }}>
-              <thead>
-                <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                  <th style={{ padding: '14px 16px', textAlign: 'center', fontWeight: 700, color: '#475569', width: '50px', borderBottom: '1px solid #e2e8f0', fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>#</th>
-                  <th style={{ padding: '14px 12px', textAlign: 'center', fontWeight: 700, color: '#475569', width: '50px', borderBottom: '1px solid #e2e8f0', fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>VIEW</th>
-                  <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: 700, color: '#475569', minWidth: '150px', borderBottom: '1px solid #e2e8f0', fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>ORDER NO</th>
-                  <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: 700, color: '#475569', minWidth: '115px', borderBottom: '1px solid #e2e8f0', fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>DATE</th>
-                  <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: 700, color: '#475569', minWidth: '190px', borderBottom: '1px solid #e2e8f0', fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>ISSUING COMPANY</th>
-                  <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: 700, color: '#475569', minWidth: '220px', borderBottom: '1px solid #e2e8f0', fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    {activeTab === 'purchase_orders' ? 'VENDOR / PARTY' : 'BUYER / RECEIVER'}
-                  </th>
-                  <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: 700, color: '#475569', minWidth: '120px', borderBottom: '1px solid #e2e8f0', fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    {activeTab === 'purchase_orders' ? 'MATERIAL' : 'COMMODITY'}
-                  </th>
-                  <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: 700, color: '#475569', minWidth: '100px', borderBottom: '1px solid #e2e8f0', fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>QTY</th>
-                  <th style={{ padding: '14px 16px', textAlign: 'center', fontWeight: 700, color: '#475569', minWidth: '100px', borderBottom: '1px solid #e2e8f0', fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>STATUS</th>
-                  <th style={{ padding: '14px 16px', textAlign: 'center', fontWeight: 700, color: '#475569', minWidth: '150px', borderBottom: '1px solid #e2e8f0', fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>ACTIONS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredOrders.map((o, idx) => (
-                  <tr
-                    key={o.id}
-                    style={{
-                      borderBottom: '1px solid #f1f5f9',
-                      transition: 'background-color 0.15s ease'
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'}
-                    onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
-                  >
-                    <td style={{ padding: '14px 16px', color: '#94a3b8', fontWeight: 600, textAlign: 'center', borderBottom: '1px solid #f1f5f9' }}>
-                      {idx + 1}
-                    </td>
+          <>
+            {/* Desktop Table View */}
+            <div className="work-order-desktop-table">
+              <table style={{ width: '100%', minWidth: '1050px', borderCollapse: 'separate', borderSpacing: 0, fontSize: '0.86rem' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                    <th style={{ padding: '14px 16px', textAlign: 'center', fontWeight: 700, color: '#475569', width: '50px', borderBottom: '1px solid #e2e8f0', fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>#</th>
+                    <th style={{ padding: '14px 12px', textAlign: 'center', fontWeight: 700, color: '#475569', width: '50px', borderBottom: '1px solid #e2e8f0', fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>VIEW</th>
+                    <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: 700, color: '#475569', minWidth: '150px', borderBottom: '1px solid #e2e8f0', fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>ORDER NO</th>
+                    <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: 700, color: '#475569', minWidth: '115px', borderBottom: '1px solid #e2e8f0', fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>DATE</th>
+                    <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: 700, color: '#475569', minWidth: '190px', borderBottom: '1px solid #e2e8f0', fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>ISSUING COMPANY</th>
+                    <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: 700, color: '#475569', minWidth: '220px', borderBottom: '1px solid #e2e8f0', fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      {activeTab === 'purchase_orders' ? 'VENDOR / PARTY' : 'BUYER / RECEIVER'}
+                    </th>
+                    <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: 700, color: '#475569', minWidth: '120px', borderBottom: '1px solid #e2e8f0', fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      {activeTab === 'purchase_orders' ? 'MATERIAL' : 'COMMODITY'}
+                    </th>
+                    <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: 700, color: '#475569', minWidth: '100px', borderBottom: '1px solid #e2e8f0', fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>QTY</th>
+                    <th style={{ padding: '14px 16px', textAlign: 'center', fontWeight: 700, color: '#475569', minWidth: '100px', borderBottom: '1px solid #e2e8f0', fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>STATUS</th>
+                    <th style={{ padding: '14px 16px', textAlign: 'center', fontWeight: 700, color: '#475569', minWidth: '150px', borderBottom: '1px solid #e2e8f0', fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredOrders.map((o, idx) => (
+                    <tr
+                      key={o.id}
+                      style={{
+                        borderBottom: '1px solid #f1f5f9',
+                        transition: 'background-color 0.15s ease'
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                      onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                    >
+                      <td style={{ padding: '14px 16px', color: '#94a3b8', fontWeight: 600, textAlign: 'center', borderBottom: '1px solid #f1f5f9' }}>
+                        {idx + 1}
+                      </td>
 
-                    <td style={{ padding: '14px 12px', textAlign: 'center', borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '14px 12px', textAlign: 'center', borderBottom: '1px solid #f1f5f9' }}>
+                        <button
+                          id={`btn-preview-${o.id}`}
+                          title="Preview & Print Letter"
+                          onClick={() => openPreview(o)}
+                          style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '8px',
+                            border: '1px solid #bfdbfe',
+                            backgroundColor: '#eff6ff',
+                            cursor: 'pointer',
+                            color: '#2563eb',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'all 0.15s'
+                          }}
+                          onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#dbeafe'; e.currentTarget.style.transform = 'scale(1.05)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#eff6ff'; e.currentTarget.style.transform = 'scale(1)'; }}
+                        >
+                          <Eye size={15} />
+                        </button>
+                      </td>
+
+                      <td style={{ padding: '14px 16px', fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', borderBottom: '1px solid #f1f5f9' }}>
+                        <span style={{
+                          backgroundColor: '#f1f5f9',
+                          color: '#334155',
+                          padding: '4px 9px',
+                          borderRadius: '6px',
+                          fontSize: '0.8rem',
+                          fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                          fontWeight: 700,
+                          border: '1px solid #e2e8f0'
+                        }}>
+                          {o.workOrderNo || o.work_order_no || o.purchase_order_no || '—'}
+                        </span>
+                      </td>
+
+                      <td style={{ padding: '14px 16px', color: '#475569', whiteSpace: 'nowrap', borderBottom: '1px solid #f1f5f9', fontSize: '0.83rem' }}>
+                        {(o.date || o.order_date) ? new Date(o.date || o.order_date).toLocaleDateString('en-IN') : '—'}
+                      </td>
+
+                      <td style={{ padding: '14px 16px', fontWeight: 600, color: '#1e293b', whiteSpace: 'nowrap', borderBottom: '1px solid #f1f5f9' }}>
+                        {o.companyName || o.company_name}
+                      </td>
+
+                      <td style={{ padding: '14px 16px', color: '#0f172a', fontWeight: 500, whiteSpace: 'nowrap', borderBottom: '1px solid #f1f5f9' }}>
+                        {activeTab === 'purchase_orders' ? (o.consigneeName || o.buyer_name || o.buyerName) : (o.buyer_name || o.buyerName)}
+                      </td>
+
+                      <td style={{ padding: '14px 16px', color: '#475569', whiteSpace: 'nowrap', borderBottom: '1px solid #f1f5f9' }}>
+                        {o.materialName || o.visible_specs?._extra?.materialName || o.commodity || '—'}
+                      </td>
+
+                      <td style={{ padding: '14px 16px', fontWeight: 600, color: '#0f172a', whiteSpace: 'nowrap', borderBottom: '1px solid #f1f5f9' }}>
+                        {o.quantity || '—'}
+                      </td>
+
+                      <td style={{ padding: '14px 16px', textAlign: 'center', borderBottom: '1px solid #f1f5f9' }}>
+                        <StatusBadge status={o.status} />
+                      </td>
+
+                      <td style={{ padding: '14px 16px', textAlign: 'center', borderBottom: '1px solid #f1f5f9' }}>
+                        <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', justifyContent: 'center' }}>
+                          {o.status !== 'Done' ? (
+                            <button
+                              id={`btn-done-${o.id}`}
+                              title="Mark as Done"
+                              onClick={() => handleMarkDone(o)}
+                              style={{
+                                padding: '5px 9px',
+                                borderRadius: '7px',
+                                border: '1px solid #86efac',
+                                backgroundColor: '#f0fdf4',
+                                cursor: 'pointer',
+                                color: '#15803d',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                fontSize: '0.74rem',
+                                fontWeight: 700,
+                                whiteSpace: 'nowrap',
+                                transition: 'all 0.15s'
+                              }}
+                              onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#dcfce7'; }}
+                              onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#f0fdf4'; }}
+                            >
+                              <Check size={13} strokeWidth={2.8} /> Done
+                            </button>
+                          ) : (
+                            <button
+                              id={`btn-reopen-${o.id}`}
+                              title="Reopen Order"
+                              onClick={() => handleReopen(o)}
+                              style={{
+                                padding: '5px 9px',
+                                borderRadius: '7px',
+                                border: '1px solid #cbd5e1',
+                                backgroundColor: '#f8fafc',
+                                cursor: 'pointer',
+                                color: '#475569',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                fontSize: '0.74rem',
+                                fontWeight: 600,
+                                whiteSpace: 'nowrap',
+                                transition: 'all 0.15s'
+                              }}
+                              onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#f1f5f9'; }}
+                              onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#f8fafc'; }}
+                            >
+                              <Undo size={13} /> Reopen
+                            </button>
+                          )}
+
+                          <button
+                            id={`btn-edit-${o.id}`}
+                            title="Edit Order"
+                            onClick={() => openEditModal(o)}
+                            style={{
+                              width: '30px',
+                              height: '30px',
+                              borderRadius: '7px',
+                              border: '1px solid #fde68a',
+                              backgroundColor: '#fffbeb',
+                              cursor: 'pointer',
+                              color: '#b45309',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transition: 'all 0.15s'
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#fef3c7'; e.currentTarget.style.transform = 'scale(1.05)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#fffbeb'; e.currentTarget.style.transform = 'scale(1)'; }}
+                          >
+                            <Edit size={14} />
+                          </button>
+
+                          <button
+                            id={`btn-delete-${o.id}`}
+                            title="Delete Order"
+                            onClick={() => handleDelete(o.id)}
+                            style={{
+                              width: '30px',
+                              height: '30px',
+                              borderRadius: '7px',
+                              border: '1px solid #fecaca',
+                              backgroundColor: '#fef2f2',
+                              cursor: 'pointer',
+                              color: '#dc2626',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transition: 'all 0.15s'
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#fee2e2'; e.currentTarget.style.transform = 'scale(1.05)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#fef2f2'; e.currentTarget.style.transform = 'scale(1)'; }}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Cards View (< 768px) */}
+            <div className="work-order-mobile-cards">
+              {filteredOrders.map((o, idx) => {
+                const orderNo = o.workOrderNo || o.work_order_no || o.purchase_order_no || '—';
+                const orderDate = (o.date || o.order_date) ? new Date(o.date || o.order_date).toLocaleDateString('en-IN') : '—';
+                const partyName = activeTab === 'purchase_orders' ? (o.consigneeName || o.buyer_name || o.buyerName) : (o.buyer_name || o.buyerName);
+                const itemCommodity = o.materialName || o.visible_specs?._extra?.materialName || o.commodity || '—';
+
+                return (
+                  <div
+                    key={o.id}
+                    className="work-order-mobile-card-item"
+                    style={{
+                      backgroundColor: '#ffffff',
+                      borderRadius: '12px',
+                      padding: '12px',
+                      border: '1px solid #e2e8f0',
+                      boxShadow: '0 1px 4px rgba(15, 23, 42, 0.05)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px'
+                    }}
+                  >
+                    {/* Header Row: # + Order No (Left) and Status Badge (Right) */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#94a3b8' }}>#{idx + 1}</span>
+                        <span style={{
+                          backgroundColor: '#f1f5f9',
+                          color: '#0f172a',
+                          padding: '2px 8px',
+                          borderRadius: '6px',
+                          fontSize: '0.78rem',
+                          fontFamily: 'ui-monospace, monospace',
+                          fontWeight: 700,
+                          border: '1px solid #e2e8f0'
+                        }}>
+                          {orderNo}
+                        </span>
+                      </div>
+                      <StatusBadge status={o.status} />
+                    </div>
+
+                    {/* Company Name */}
+                    <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0f172a', lineHeight: '1.2' }}>
+                      {o.companyName || o.company_name}
+                    </div>
+
+                    {/* 2-Column Grid: Party / Commodity / Qty / Date side by side */}
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr',
+                      gap: '6px 12px',
+                      backgroundColor: '#f8fafc',
+                      padding: '8px 10px',
+                      borderRadius: '8px',
+                      border: '1px solid #e2e8f0'
+                    }}>
+                      <div>
+                        <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', display: 'block' }}>Party</span>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={partyName}>
+                          {partyName || '—'}
+                        </span>
+                      </div>
+                      <div>
+                        <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', display: 'block' }}>
+                          {activeTab === 'purchase_orders' ? 'Material' : 'Commodity'}
+                        </span>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={itemCommodity}>
+                          {itemCommodity}
+                        </span>
+                      </div>
+                      <div>
+                        <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', display: 'block' }}>Quantity</span>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0f172a', display: 'block' }}>
+                          {o.quantity || '—'}
+                        </span>
+                      </div>
+                      <div>
+                        <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', display: 'block' }}>Date</span>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block' }}>
+                          {orderDate}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Single Row Actions Bar: Preview + Done + Edit + Delete all on 1 clean row */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', paddingTop: '6px', borderTop: '1px solid #f1f5f9' }}>
                       <button
-                        id={`btn-preview-${o.id}`}
+                        type="button"
                         title="Preview & Print Letter"
                         onClick={() => openPreview(o)}
                         style={{
-                          width: '32px',
-                          height: '32px',
-                          borderRadius: '8px',
-                          border: '1px solid #bfdbfe',
-                          backgroundColor: '#eff6ff',
-                          cursor: 'pointer',
-                          color: '#2563eb',
                           display: 'inline-flex',
                           alignItems: 'center',
-                          justifyContent: 'center',
-                          transition: 'all 0.15s'
+                          gap: '4px',
+                          padding: '5px 10px',
+                          borderRadius: '6px',
+                          border: '1px solid #bfdbfe',
+                          backgroundColor: '#eff6ff',
+                          color: '#2563eb',
+                          fontSize: '0.74rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          flexShrink: 0
                         }}
-                        onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#dbeafe'; e.currentTarget.style.transform = 'scale(1.05)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#eff6ff'; e.currentTarget.style.transform = 'scale(1)'; }}
                       >
-                        <Eye size={15} />
+                        <Eye size={13} />
+                        <span>Preview</span>
                       </button>
-                    </td>
 
-                    <td style={{ padding: '14px 16px', fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', borderBottom: '1px solid #f1f5f9' }}>
-                      <span style={{
-                        backgroundColor: '#f1f5f9',
-                        color: '#334155',
-                        padding: '4px 9px',
-                        borderRadius: '6px',
-                        fontSize: '0.8rem',
-                        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-                        fontWeight: 700,
-                        border: '1px solid #e2e8f0'
-                      }}>
-                        {o.workOrderNo || o.work_order_no || o.purchase_order_no || '—'}
-                      </span>
-                    </td>
-
-                    <td style={{ padding: '14px 16px', color: '#475569', whiteSpace: 'nowrap', borderBottom: '1px solid #f1f5f9', fontSize: '0.83rem' }}>
-                      {(o.date || o.order_date) ? new Date(o.date || o.order_date).toLocaleDateString('en-IN') : '—'}
-                    </td>
-
-                    <td style={{ padding: '14px 16px', fontWeight: 600, color: '#1e293b', whiteSpace: 'nowrap', borderBottom: '1px solid #f1f5f9' }}>
-                      {o.companyName || o.company_name}
-                    </td>
-
-                    <td style={{ padding: '14px 16px', color: '#0f172a', fontWeight: 500, whiteSpace: 'nowrap', borderBottom: '1px solid #f1f5f9' }}>
-                      {activeTab === 'purchase_orders' ? (o.consigneeName || o.buyer_name || o.buyerName) : (o.buyer_name || o.buyerName)}
-                    </td>
-
-                    <td style={{ padding: '14px 16px', color: '#475569', whiteSpace: 'nowrap', borderBottom: '1px solid #f1f5f9' }}>
-                      {o.materialName || o.visible_specs?._extra?.materialName || o.commodity || '—'}
-                    </td>
-
-                    <td style={{ padding: '14px 16px', fontWeight: 600, color: '#0f172a', whiteSpace: 'nowrap', borderBottom: '1px solid #f1f5f9' }}>
-                      {o.quantity || '—'}
-                    </td>
-
-                    <td style={{ padding: '14px 16px', textAlign: 'center', borderBottom: '1px solid #f1f5f9' }}>
-                      <StatusBadge status={o.status} />
-                    </td>
-
-                    <td style={{ padding: '14px 16px', textAlign: 'center', borderBottom: '1px solid #f1f5f9' }}>
-                      <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
                         {o.status !== 'Done' ? (
                           <button
-                            id={`btn-done-${o.id}`}
+                            type="button"
                             title="Mark as Done"
                             onClick={() => handleMarkDone(o)}
                             style={{
-                              padding: '5px 9px',
-                              borderRadius: '7px',
+                              padding: '5px 8px',
+                              borderRadius: '6px',
                               border: '1px solid #86efac',
                               backgroundColor: '#f0fdf4',
-                              cursor: 'pointer',
                               color: '#15803d',
+                              fontSize: '0.72rem',
+                              fontWeight: 700,
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: '4px',
-                              fontSize: '0.74rem',
-                              fontWeight: 700,
-                              whiteSpace: 'nowrap',
-                              transition: 'all 0.15s'
+                              gap: '3px',
+                              cursor: 'pointer'
                             }}
-                            onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#dcfce7'; }}
-                            onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#f0fdf4'; }}
                           >
-                            <Check size={13} strokeWidth={2.8} /> Done
+                            <Check size={12} strokeWidth={2.8} />
+                            <span>Done</span>
                           </button>
                         ) : (
                           <button
-                            id={`btn-reopen-${o.id}`}
+                            type="button"
                             title="Reopen Order"
                             onClick={() => handleReopen(o)}
                             style={{
-                              padding: '5px 9px',
-                              borderRadius: '7px',
+                              padding: '5px 8px',
+                              borderRadius: '6px',
                               border: '1px solid #cbd5e1',
                               backgroundColor: '#f8fafc',
-                              cursor: 'pointer',
                               color: '#475569',
+                              fontSize: '0.72rem',
+                              fontWeight: 600,
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: '4px',
-                              fontSize: '0.74rem',
-                              fontWeight: 600,
-                              whiteSpace: 'nowrap',
-                              transition: 'all 0.15s'
+                              gap: '3px',
+                              cursor: 'pointer'
                             }}
-                            onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#f1f5f9'; }}
-                            onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#f8fafc'; }}
                           >
-                            <Undo size={13} /> Reopen
+                            <Undo size={12} />
+                            <span>Reopen</span>
                           </button>
                         )}
 
                         <button
-                          id={`btn-edit-${o.id}`}
+                          type="button"
                           title="Edit Order"
                           onClick={() => openEditModal(o)}
                           style={{
-                            width: '30px',
-                            height: '30px',
-                            borderRadius: '7px',
+                            width: '28px',
+                            height: '28px',
+                            borderRadius: '6px',
                             border: '1px solid #fde68a',
                             backgroundColor: '#fffbeb',
-                            cursor: 'pointer',
                             color: '#b45309',
                             display: 'inline-flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            transition: 'all 0.15s'
+                            cursor: 'pointer'
                           }}
-                          onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#fef3c7'; e.currentTarget.style.transform = 'scale(1.05)'; }}
-                          onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#fffbeb'; e.currentTarget.style.transform = 'scale(1)'; }}
                         >
-                          <Edit size={14} />
+                          <Edit size={13} />
                         </button>
 
                         <button
-                          id={`btn-delete-${o.id}`}
+                          type="button"
                           title="Delete Order"
                           onClick={() => handleDelete(o.id)}
                           style={{
-                            width: '30px',
-                            height: '30px',
-                            borderRadius: '7px',
+                            width: '28px',
+                            height: '28px',
+                            borderRadius: '6px',
                             border: '1px solid #fecaca',
                             backgroundColor: '#fef2f2',
-                            cursor: 'pointer',
                             color: '#dc2626',
                             display: 'inline-flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            transition: 'all 0.15s'
+                            cursor: 'pointer'
                           }}
-                          onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#fee2e2'; e.currentTarget.style.transform = 'scale(1.05)'; }}
-                          onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#fef2f2'; e.currentTarget.style.transform = 'scale(1)'; }}
                         >
-                          <Trash2 size={14} />
+                          <Trash2 size={13} />
                         </button>
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
 
@@ -1761,7 +1887,7 @@ const WorkOrder = () => {
           }}>
 
             {/* Modal Header */}
-            <div style={{
+            <div className="work-order-modal-header" style={{
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
@@ -1804,10 +1930,10 @@ const WorkOrder = () => {
             </div>
 
             {/* Modal Scroll Body */}
-            <div style={{ overflowY: 'auto', padding: '20px 24px', flex: 1, backgroundColor: '#ffffff' }}>
+            <div className="work-order-modal-body" style={{ overflowY: 'auto', padding: '20px 24px', flex: 1, backgroundColor: '#ffffff' }}>
               {formData.docType === 'purchase_order' ? (
                 /* ================= PURCHASE ORDER FORM ================= */
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                <div className="work-order-form-grid">
                   <div className="form-group">
                     <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>Order Date</label>
                     <input
@@ -2232,7 +2358,7 @@ const WorkOrder = () => {
                 </div>
               ) : (
                 /* ================= WORK ORDER FORM ================= */
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                <div className="work-order-form-grid">
                 {/* Section 1: Order Metadata */}
                 <div className="form-group">
                   <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>Date</label>
@@ -2597,7 +2723,7 @@ const WorkOrder = () => {
             </div>
 
             {/* Modal Actions Footer */}
-            <div style={{
+            <div className="work-order-modal-footer" style={{
               display: 'flex',
               justifyContent: 'flex-end',
               gap: '12px',

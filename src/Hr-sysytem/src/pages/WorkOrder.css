@@ -1,0 +1,274 @@
+/* Responsive Styles for WorkOrder & Letter Management */
+
+.work-order-page-container {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 16px 20px;
+  background-color: #f8fafc;
+  min-height: 100vh;
+}
+
+/* Hero Header */
+.work-order-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+  background-color: #ffffff;
+  padding: 20px 24px;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.work-order-hero-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  font-size: 0.875rem;
+  border-radius: 9px;
+  font-weight: 600;
+  color: #ffffff;
+  background: linear-gradient(135deg, #e11d48 0%, #dc2626 100%);
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.3);
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+/* KPI Cards Grid */
+.work-order-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.work-order-kpi-card {
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 16px 18px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* Tabs Bar */
+.work-order-tabs-bar {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+  background-color: #e2e8f0;
+  padding: 4px;
+  border-radius: 10px;
+  width: fit-content;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Filters Bar */
+.work-order-filters-bar {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.work-order-filter-search {
+  position: relative;
+  flex: 1 1 220px;
+  min-width: 180px;
+}
+
+.work-order-filter-select-comp {
+  min-width: 140px;
+  flex: 1 1 150px;
+}
+
+.work-order-filter-select-buyer {
+  min-width: 140px;
+  flex: 1 1 150px;
+}
+
+.work-order-filter-select-comm {
+  min-width: 120px;
+  flex: 1 1 130px;
+}
+
+.work-order-filter-select-qty {
+  min-width: 100px;
+  flex: 1 1 110px;
+}
+
+/* Responsive Table & Mobile Cards */
+.work-order-desktop-table {
+  display: block;
+  overflow-x: auto;
+  width: 100%;
+}
+
+.work-order-mobile-cards {
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  background-color: #f8fafc;
+}
+
+/* Form Modal Grids */
+.work-order-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+/* ─────────── Mobile Screen Media Queries (< 768px) ─────────── */
+@media (max-width: 768px) {
+  .work-order-page-container {
+    padding: 12px 10px;
+  }
+
+  /* Hero */
+  .work-order-hero {
+    padding: 14px 16px;
+    margin-bottom: 14px;
+    gap: 12px;
+  }
+
+  .work-order-hero h1 {
+    font-size: 1.3rem !important;
+  }
+
+  .work-order-hero p {
+    font-size: 0.78rem !important;
+  }
+
+  .work-order-hero-btn {
+    width: 100%;
+    padding: 9px 16px;
+    font-size: 0.82rem;
+  }
+
+  /* KPI Cards: 2 Columns on mobile */
+  .work-order-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .work-order-kpi-card {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+
+  .work-order-kpi-card > div:first-child {
+    width: 38px !important;
+    height: 38px !important;
+  }
+
+  .work-order-kpi-card svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+
+  .work-order-kpi-card .kpi-title {
+    font-size: 0.68rem !important;
+  }
+
+  .work-order-kpi-card .kpi-count {
+    font-size: 1.35rem !important;
+  }
+
+  /* Tabs */
+  .work-order-tabs-bar {
+    width: 100%;
+    display: flex;
+    overflow-x: auto;
+    padding: 3px;
+    gap: 4px;
+  }
+
+  .work-order-tabs-bar button {
+    flex: 1 0 auto;
+    padding: 6px 12px !important;
+    font-size: 0.78rem !important;
+  }
+
+  /* Filters */
+  .work-order-filters-bar {
+    padding: 10px 12px;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .work-order-filter-search {
+    flex: 1 1 100%;
+    min-width: 100%;
+  }
+
+  .work-order-filter-select-comp,
+  .work-order-filter-select-buyer,
+  .work-order-filter-select-comm,
+  .work-order-filter-select-qty {
+    flex: 1 1 calc(50% - 4px);
+    min-width: calc(50% - 4px);
+  }
+
+  /* Switch Table to Mobile Card List on Mobile */
+  .work-order-desktop-table {
+    display: none !important;
+  }
+
+  .work-order-mobile-cards {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    padding: 10px !important;
+  }
+
+  .work-order-mobile-card-item {
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .work-order-mobile-cards button {
+    box-sizing: border-box !important;
+  }
+
+  /* Form Modal */
+  .work-order-form-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  .work-order-modal-header {
+    padding: 12px 16px !important;
+  }
+
+  .work-order-modal-header h2 {
+    font-size: 1.05rem !important;
+  }
+
+  .work-order-modal-body {
+    padding: 14px 16px !important;
+  }
+
+  .work-order-modal-footer {
+    padding: 12px 16px !important;
+  }
+}
+

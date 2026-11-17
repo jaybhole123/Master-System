@@ -1387,12 +1387,89 @@ export default function Expenses() {
               </div>
             </div>
 
-            {/* Modal Footer */}
-            <div className="px-4 sm:px-5 py-3 border-t border-slate-100 bg-slate-50 flex justify-end">
+            {/* Modal Footer with Actions (Approve, Reject, Undo, Edit, Delete, Close) */}
+            <div className="px-4 sm:px-5 py-3 border-t border-slate-100 bg-slate-50 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* For PENDING status: Approve & Reject */}
+                {(selectedExpenseDetail.status === 'PENDING' || !selectedExpenseDetail.status) && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleApproveExpense(selectedExpenseDetail);
+                        setShowDetailModal(false);
+                      }}
+                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                      title="Approve this expense"
+                    >
+                      <Check size={14} strokeWidth={2.5} />
+                      <span>Approve</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleRejectExpense(selectedExpenseDetail);
+                        setShowDetailModal(false);
+                      }}
+                      className="px-3 py-1.5 bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                      title="Reject this expense"
+                    >
+                      <XCircle size={14} strokeWidth={2} />
+                      <span>Reject</span>
+                    </button>
+                  </>
+                )}
+
+                {/* For APPROVED or REJECTED: Undo / Revert to Pending */}
+                {selectedExpenseDetail.status && selectedExpenseDetail.status !== 'PENDING' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleRevertToPending(selectedExpenseDetail);
+                      setShowDetailModal(false);
+                    }}
+                    className="px-3 py-1.5 bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                    title="Undo & Revert to Pending"
+                  >
+                    <RotateCcw size={14} />
+                    <span>Undo to Pending</span>
+                  </button>
+                )}
+
+                {/* Edit Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowDetailModal(false);
+                    handleEditExpense(selectedExpenseDetail);
+                  }}
+                  className="px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                  title="Edit this expense"
+                >
+                  <Edit2 size={13} />
+                  <span>Edit</span>
+                </button>
+
+                {/* Delete Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowDetailModal(false);
+                    handleDeleteExpense(selectedExpenseDetail);
+                  }}
+                  className="px-3 py-1.5 bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white border border-rose-200 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                  title="Delete this expense"
+                >
+                  <Trash2 size={13} />
+                  <span>Delete</span>
+                </button>
+              </div>
+
+              {/* Close Button */}
               <button
                 type="button"
                 onClick={() => setShowDetailModal(false)}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-xs transition-colors cursor-pointer"
+                className="px-4 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-xs transition-colors cursor-pointer ml-auto"
               >
                 Close
               </button>
