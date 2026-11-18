@@ -244,6 +244,9 @@ const poToDb = (f, visibleSpecs) => ({
   order_date: f.date,
   company_name: f.companyName,
   order_title: f.orderTitle || 'PURCHASE ORDER',
+  vendor_name: f.buyerName || '',
+  vendor_address: f.buyerAddress || '',
+  vendor_gst: f.vendorGst || '',
   buyer_name: f.companyName,
   buyer_address: f.address,
   buyer_gst: f.buyerGst || COMPANY_DETAILS[f.companyName]?.gstin || '22AWGPA9068C1ZW',
@@ -276,9 +279,11 @@ const poFromDb = (row) => ({
   signatoryName: row.signatory_name || 'Jai Bhole Traders',
   signatoryTitle: '',
   signatureDataUrl: row.signature_url || (COMPANY_DETAILS[row.company_name]?.signature || ''),
-  buyerName: row.buyer_name || row.company_name || 'M/s Jai Bhole Traders',
+  // STRICT: Only use vendor_name/vendor_address/vendor_gst from DB column, no fallback to company address
+  buyerName: row.vendor_name || '',
   buyerDistState: '',
-  buyerAddress: row.firm_address || row.buyer_address || '',
+  buyerAddress: row.vendor_address || '',
+  vendorGst: row.vendor_gst || '',
   subject: 'Purchase Order',
   commodity: row.material_name || '',
   mines: '',
@@ -291,7 +296,7 @@ const poFromDb = (row) => ({
   destinationAdd: '',
   note: '',
   terms: row.terms || '',
-  address: row.firm_address || row.buyer_address || '',
+  address: row.buyer_address || row.firm_address || '',
   footerContact: row.firm_footer_contact || '',
   status: row.status || 'Draft',
   visibleSpecs: row.visible_specs && Object.keys(row.visible_specs).length > 0 ? row.visible_specs : defaultPoVisibleSpecs(),
@@ -528,9 +533,12 @@ const StatusBadge = ({ status }) => {
 const WorkOrder = () => {
   const letterRef = useRef(null);
 
-  const [activeTab, setActiveTab] = useState('active');
+  const [activeTab, setActiveTab] = useState('active'); // 'active' | 'purchase_orders' | 'wo_history' | 'po_history'
   const [orders, setOrders] = useState([]);
   const [purchaseOrders, setPurchaseOrders] = useState([]);
+  const [woHistoryOrders, setWoHistoryOrders] = useState([]);
+  const [poHistoryOrders, setPoHistoryOrders] = useState([]);
+  const [tabCounts, setTabCounts] = useState({ activeCount: 0, poCount: 0, woDoneCount: 0, poDoneCount: 0 });
   const [loadingList, setLoadingList] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCompany, setFilterCompany] = useState('All');
@@ -550,37 +558,90 @@ const WorkOrder = () => {
   const [visibleSpecs, setVisibleSpecs] = useState(defaultVisibleSpecs());
   const [showFieldsModal, setShowFieldsModal] = useState(false);
 
-  const fetchOrders = useCallback(async () => {
+  // Fast count fetch for badge counters (exact count, head: true - 0 heavy data transferred)
+  const fetchBadgeCounts = useCallback(async () => {
+    try {
+      const [woActiveRes, poActiveRes, woDoneRes, poDoneRes] = await Promise.all([
+        supabase.from('work_orders').select('id', { count: 'exact', head: true }).neq('status', 'Done'),
+        supabase.from('purchase_orders').select('id', { count: 'exact', head: true }).neq('status', 'Done'),
+        supabase.from('work_orders').select('id', { count: 'exact', head: true }).eq('status', 'Done'),
+        supabase.from('purchase_orders').select('id', { count: 'exact', head: true }).eq('status', 'Done'),
+      ]);
+
+      const activeCount = woActiveRes.count || 0;
+      const poCount = poActiveRes.count || 0;
+      const woDoneCount = woDoneRes.count || 0;
+      const poDoneCount = poDoneRes.count || 0;
+
+      setTabCounts({ activeCount, poCount, woDoneCount, poDoneCount });
+    } catch (err) {
+      console.warn('Error fetching badge counts:', err);
+    }
+  }, []);
+
+  // Optimized single-tab data fetching: only query the table required for the current tab
+  const fetchOrdersForTab = useCallback(async (tabToFetch) => {
+    const currentTab = tabToFetch || activeTab;
     setLoadingList(true);
     try {
-      // 1. Fetch work orders
-      const { data: woData, error: woError } = await supabase
-        .from('work_orders')
-        .select('*')
-        .order('created_at', { ascending: false });
-      if (woError) throw woError;
-      setOrders(woData || []);
-
-      // 2. Fetch purchase orders from dedicated purchase_orders table
-      try {
+      if (currentTab === 'active') {
+        // ONLY fetch active/draft work orders from work_orders table
+        const { data: woData, error: woError } = await supabase
+          .from('work_orders')
+          .select('*')
+          .neq('status', 'Done')
+          .order('created_at', { ascending: false });
+        if (woError) throw woError;
+        setOrders(woData || []);
+      } else if (currentTab === 'purchase_orders') {
+        // ONLY fetch PO/SO from purchase_orders table
         const { data: poData, error: poError } = await supabase
           .from('purchase_orders')
           .select('*')
+          .neq('status', 'Done')
           .order('created_at', { ascending: false });
-        if (!poError && poData) {
-          setPurchaseOrders(poData.map(poFromDb));
-        }
-      } catch (poErr) {
-        console.warn('purchase_orders table fetch skipped or not ready:', poErr);
+        if (poError) throw poError;
+        setPurchaseOrders((poData || []).map(poFromDb));
+      } else if (currentTab === 'wo_history') {
+        // STRICTLY fetch only from work_orders table where status = 'Done'
+        const { data: woDoneData, error: woDoneError } = await supabase
+          .from('work_orders')
+          .select('*')
+          .eq('status', 'Done')
+          .order('created_at', { ascending: false });
+        if (woDoneError) throw woDoneError;
+        setWoHistoryOrders((woDoneData || []).map(r => ({ ...fromDb(r), docType: 'work_order' })));
+      } else if (currentTab === 'po_history') {
+        // STRICTLY fetch only from purchase_orders table where status = 'Done'
+        const { data: poDoneData, error: poDoneError } = await supabase
+          .from('purchase_orders')
+          .select('*')
+          .eq('status', 'Done')
+          .order('created_at', { ascending: false });
+        if (poDoneError) throw poDoneError;
+        setPoHistoryOrders((poDoneData || []).map(r => ({ ...poFromDb(r), docType: 'purchase_order' })));
       }
     } catch (err) {
       toast.error('Failed to load orders: ' + err.message);
     } finally {
       setLoadingList(false);
     }
-  }, []);
+  }, [activeTab]);
 
-  useEffect(() => { fetchOrders(); }, [fetchOrders]);
+  // Fetch only active tab's data whenever the user switches tabs
+  useEffect(() => {
+    fetchOrdersForTab(activeTab);
+  }, [activeTab, fetchOrdersForTab]);
+
+  // Initial badge counts on mount
+  useEffect(() => {
+    fetchBadgeCounts();
+  }, [fetchBadgeCounts]);
+
+  const refreshAll = useCallback(() => {
+    fetchOrdersForTab(activeTab);
+    fetchBadgeCounts();
+  }, [fetchOrdersForTab, fetchBadgeCounts, activeTab]);
 
   const generateNextWorkOrderNo = async () => {
     const year = new Date().getFullYear();
@@ -650,13 +711,28 @@ const WorkOrder = () => {
       if (isPO) {
         // SAVE TO DEDICATED purchase_orders TABLE
         const poPayload = poToDb(formToSave, visibleSpecs);
+        let resError = null;
+
         if (editingId) {
           const { error } = await supabase.from('purchase_orders').update(poPayload).eq('id', editingId);
-          if (error) throw error;
+          resError = error;
+          if (resError && resError.message?.includes('column')) {
+            // Fallback without vendor_name/vendor_address/vendor_gst if DB doesn't have them yet
+            const { vendor_name, vendor_address, vendor_gst, ...fallbackPayload } = poPayload;
+            const res = await supabase.from('purchase_orders').update(fallbackPayload).eq('id', editingId);
+            resError = res.error;
+          }
+          if (resError) throw resError;
           toast.success('Purchase Order updated!');
         } else {
-          const { error } = await supabase.from('purchase_orders').insert([poPayload]);
-          if (error) throw error;
+          let { error } = await supabase.from('purchase_orders').insert([poPayload]);
+          resError = error;
+          if (resError && resError.message?.includes('column')) {
+            const { vendor_name, vendor_address, vendor_gst, ...fallbackPayload } = poPayload;
+            const res = await supabase.from('purchase_orders').insert([fallbackPayload]);
+            resError = res.error;
+          }
+          if (resError) throw resError;
           toast.success(`Purchase Order ${finalWorkOrderNo} saved!`);
         }
       } else {
@@ -673,7 +749,7 @@ const WorkOrder = () => {
         }
       }
       setShowOrderModal(false);
-      fetchOrders();
+      refreshAll();
     } catch (err) {
       toast.error('Save failed: ' + err.message);
     } finally {
@@ -691,7 +767,7 @@ const WorkOrder = () => {
         .eq('id', order.id);
       if (error) throw error;
       toast.success(`${isPO ? 'Purchase Order' : 'Work Order'} marked as Done!`);
-      fetchOrders();
+      refreshAll();
     } catch (err) {
       toast.error('Failed to update status: ' + err.message);
     }
@@ -707,7 +783,7 @@ const WorkOrder = () => {
         .eq('id', order.id);
       if (error) throw error;
       toast.success(`${isPO ? 'Purchase Order' : 'Work Order'} moved to Active!`);
-      fetchOrders();
+      refreshAll();
     } catch (err) {
       toast.error('Failed to update status: ' + err.message);
     }
@@ -722,7 +798,7 @@ const WorkOrder = () => {
       const { error } = await supabase.from(targetTable).delete().eq('id', id);
       if (error) throw error;
       toast.success('Deleted successfully');
-      fetchOrders();
+      refreshAll();
     } catch (err) {
       toast.error('Delete failed: ' + err.message);
     }
@@ -730,7 +806,12 @@ const WorkOrder = () => {
 
   const openPreview = (row) => {
     const isPO = row.docType === 'purchase_order' || row.purchase_order_no || row.order_title === 'PURCHASE ORDER';
-    const fd = isPO && row.chemical_specs ? poFromDb(row) : (row.docType === 'purchase_order' ? row : fromDb(row));
+    // If row is already mapped (has docType), use it directly; otherwise map from DB row
+    const fd = row.docType ? { ...row } : (isPO ? poFromDb(row) : fromDb(row));
+    // Ensure signature fallback if signatureDataUrl is empty
+    if (!fd.signatureDataUrl) {
+      fd.signatureDataUrl = COMPANY_DETAILS[fd.companyName]?.signature || jbtSignature;
+    }
     setPreviewData(fd);
     setPreviewSpecs(fd.visibleSpecs || (isPO ? defaultPoVisibleSpecs() : defaultVisibleSpecs()));
     setShowPreviewModal(true);
@@ -844,10 +925,14 @@ const WorkOrder = () => {
     ? (COMPANY_DETAILS[previewData.companyName] || COMPANY_DETAILS['Jai Bhole Logistics'])
     : COMPANY_DETAILS['Jai Bhole Logistics'];
 
-  const companyOptions = useMemo(() => ['All', ...Array.from(new Set(orders.map(o => o.company_name).filter(Boolean)))], [orders]);
-  const buyerOptions = useMemo(() => ['All', ...Array.from(new Set(orders.map(o => o.buyer_name).filter(Boolean)))], [orders]);
-  const commodityOptions = useMemo(() => ['All', ...Array.from(new Set(orders.map(o => o.commodity).filter(Boolean)))], [orders]);
-  const qtyOptions = useMemo(() => ['All', ...Array.from(new Set(orders.map(o => o.quantity).filter(Boolean)))], [orders]);
+  const allAvailableOrders = useMemo(() => {
+    return [...orders, ...purchaseOrders, ...woHistoryOrders, ...poHistoryOrders];
+  }, [orders, purchaseOrders, woHistoryOrders, poHistoryOrders]);
+
+  const companyOptions = useMemo(() => ['All', ...Array.from(new Set(allAvailableOrders.map(o => o.company_name || o.companyName).filter(Boolean)))], [allAvailableOrders]);
+  const buyerOptions = useMemo(() => ['All', ...Array.from(new Set(allAvailableOrders.map(o => o.buyer_name || o.buyerName).filter(Boolean)))], [allAvailableOrders]);
+  const commodityOptions = useMemo(() => ['All', ...Array.from(new Set(allAvailableOrders.map(o => o.commodity || o.materialName).filter(Boolean)))], [allAvailableOrders]);
+  const qtyOptions = useMemo(() => ['All', ...Array.from(new Set(allAvailableOrders.map(o => o.quantity).filter(Boolean)))], [allAvailableOrders]);
 
   const dbSuggestions = useMemo(() => {
     const cleanList = (arr) => Array.from(new Set(arr.map(v => (v ? String(v).trim() : '')).filter(Boolean)));
@@ -869,7 +954,10 @@ const WorkOrder = () => {
       prices: cleanList([...orders.map(o => o.price), ...purchaseOrders.map(p => p.price || p.rate)]),
       orderNos: cleanList(orders.map(o => o.work_order_no)),
       poOrderNos: cleanList(purchaseOrders.map(p => p.workOrderNo || p.purchase_order_no)),
-      // Purchase Orders specific suggestions:
+      // Purchase Orders specific suggestions (ONLY from vendor_name, vendor_address, vendor_gst columns):
+      vendorNames: cleanList(purchaseOrders.map(p => p.vendor_name || p.buyerName)),
+      vendorAddresses: cleanList(purchaseOrders.map(p => p.vendor_address || p.buyerAddress)),
+      vendorGsts: cleanList(purchaseOrders.map(p => p.vendor_gst || p.vendorGst)),
       consigneeNames: cleanList(purchaseOrders.map(p => p.consigneeName || p.consignee_name)),
       consigneeAddresses: cleanList(purchaseOrders.map(p => p.consigneeAddress || p.consignee_address)),
       consigneeGsts: cleanList(purchaseOrders.map(p => p.consigneeGst || p.consignee_gst)),
@@ -881,14 +969,19 @@ const WorkOrder = () => {
     };
   }, [orders, purchaseOrders]);
 
-  const handleBuyerChange = (val) => {
-    const matched = orders.find(o => o.buyer_name && o.buyer_name.toLowerCase().trim() === (val || '').toLowerCase().trim());
+  const handleVendorNameChange = (val) => {
+    // Auto-fill vendor address & vendor GST if user selects an existing vendor from purchase_orders
+    const matched = purchaseOrders.find(p => 
+      (p.buyerName || p.vendor_name || p.buyer_name) && 
+      (p.buyerName || p.vendor_name || p.buyer_name).toLowerCase().trim() === (val || '').toLowerCase().trim()
+    );
+
     if (matched) {
       setFormData(prev => ({
         ...prev,
         buyerName: val,
-        buyerDistState: matched.buyer_dist_state || prev.buyerDistState,
-        buyerAddress: matched.buyer_address || prev.buyerAddress
+        buyerAddress: matched.buyerAddress || matched.vendor_address || matched.buyer_address || prev.buyerAddress,
+        vendorGst: matched.vendorGst || matched.vendor_gst || prev.vendorGst
       }));
     } else {
       setFormData(prev => ({ ...prev, buyerName: val }));
@@ -897,104 +990,100 @@ const WorkOrder = () => {
 
   const stats = useMemo(() => {
     const isPOView = activeTab === 'purchase_orders';
-    const isHistoryView = activeTab === 'history';
-
-    const legacyPo = orders.filter(o => {
-      const extra = o.visible_specs?._extra;
-      return extra?.docType === 'purchase_order' || o.order_title === 'PURCHASE ORDER';
-    });
-    const allPO = [...purchaseOrders, ...legacyPo];
-    const woOrders = orders.filter(o => {
-      const extra = o.visible_specs?._extra;
-      return extra?.docType !== 'purchase_order' && o.order_title !== 'PURCHASE ORDER';
-    });
+    const isWOHistory = activeTab === 'wo_history';
+    const isPOHistory = activeTab === 'po_history';
 
     const isSoOrder = (item) => {
       const title = (item.orderTitle || item.order_title || '').toUpperCase();
       return title.includes('SALE') || title.includes('SO');
     };
 
-    const donePoList = allPO.filter(p => p.status === 'Done');
-    const soDone = donePoList.filter(p => isSoOrder(p)).length;
-    const poDone = donePoList.filter(p => !isSoOrder(p)).length;
-    const woDone = woOrders.filter(o => o.status === 'Done').length;
-    const allDone = woDone + donePoList.length;
-
-    const activePoList = allPO.filter(p => p.status !== 'Done');
-    const poActive = activePoList.length;
-    const woActive = woOrders.filter(o => o.status !== 'Done').length;
-
-    if (isHistoryView) {
-      // DYNAMIC STATS FOR COMPLETED HISTORY TAB:
-      // Total Completed, Completed Work Orders, Completed PO, Completed SO (Order Title matching)
+    if (isWOHistory) {
+      const count = tabCounts.woDoneCount || woHistoryOrders.length;
       return {
-        total: allDone,
-        card1Title: 'TOTAL COMPLETED',
-        card1Count: allDone,
-        card2Title: 'COMPLETED WO',
-        card2Count: woDone,
-        card3Title: 'COMPLETED PO',
-        card3Count: poDone,
-        card4Title: 'COMPLETED SO',
-        card4Count: soDone,
-        poCount: poActive,
-        activeCount: woActive,
-        doneCount: allDone
+        total: count,
+        card1Title: 'TOTAL COMPLETED WO',
+        card1Count: count,
+        card2Title: 'COAL TRANSPORT',
+        card2Count: woHistoryOrders.filter(o => (o.commodity || '').toLowerCase().includes('coal')).length,
+        card3Title: 'OTHER COMMODITY',
+        card3Count: woHistoryOrders.filter(o => !(o.commodity || '').toLowerCase().includes('coal')).length,
+        card4Title: 'STATUS',
+        card4Count: count,
+        poCount: tabCounts.poCount,
+        activeCount: tabCounts.activeCount,
+        woDoneCount: count,
+        poDoneCount: tabCounts.poDoneCount || poHistoryOrders.length
+      };
+    }
+
+    if (isPOHistory) {
+      const count = tabCounts.poDoneCount || poHistoryOrders.length;
+      const soDone = poHistoryOrders.filter(p => isSoOrder(p)).length;
+      const poDone = count - soDone;
+      return {
+        total: count,
+        card1Title: 'TOTAL COMPLETED PO/SO',
+        card1Count: count,
+        card2Title: 'COMPLETED PO',
+        card2Count: Math.max(0, poDone),
+        card3Title: 'COMPLETED SO',
+        card3Count: soDone,
+        card4Title: 'STATUS',
+        card4Count: count,
+        poCount: tabCounts.poCount,
+        activeCount: tabCounts.activeCount,
+        woDoneCount: tabCounts.woDoneCount || woHistoryOrders.length,
+        poDoneCount: count
       };
     }
 
     if (isPOView) {
-      // DYNAMIC STATS FOR PO + SO TAB BASED ON purchase_orders TABLE
-      const total = allPO.length;
-      const soCount = allPO.filter(p => isSoOrder(p)).length;
-      const purePoCount = total - soCount;
-      const poDraft = allPO.filter(p => !p.status || p.status === 'Draft').length;
+      const total = tabCounts.poCount || purchaseOrders.length;
+      const soCount = purchaseOrders.filter(p => isSoOrder(p)).length;
+      const purePoCount = purchaseOrders.filter(p => !isSoOrder(p)).length;
+      const poDraft = purchaseOrders.filter(p => !p.status || p.status === 'Draft').length;
       return {
         total,
         card1Title: 'TOTAL PO / SO',
         card1Count: total,
         card2Title: 'ACTIVE PO',
-        card2Count: activePoList.filter(p => !isSoOrder(p)).length,
+        card2Count: purePoCount,
         card3Title: 'ACTIVE SO',
-        card3Count: activePoList.filter(p => isSoOrder(p)).length,
-        card4Title: 'COMPLETED',
-        card4Count: donePoList.length,
-        poCount: poActive,
-        activeCount: woActive,
-        doneCount: allDone
+        card3Count: soCount,
+        card4Title: 'DRAFT PO/SO',
+        card4Count: poDraft,
+        poCount: tabCounts.poCount,
+        activeCount: tabCounts.activeCount,
+        woDoneCount: tabCounts.woDoneCount || woHistoryOrders.length,
+        poDoneCount: tabCounts.poDoneCount || poHistoryOrders.length
       };
     }
 
     // DEFAULT STATS FOR WORK ORDERS TAB
-    const woTotal = woOrders.length;
-    const woDraft = woOrders.filter(o => !o.status || o.status === 'Draft').length;
+    const woTotal = tabCounts.activeCount || orders.length;
+    const woDraft = orders.filter(o => !o.status || o.status === 'Draft').length;
 
     return {
       total: woTotal,
-      card1Title: 'TOTAL WORK ORDERS',
+      card1Title: 'ACTIVE WORK ORDERS',
       card1Count: woTotal,
-      card2Title: 'ACTIVE ORDERS',
-      card2Count: woActive,
-      card3Title: 'COMPLETED HISTORY',
-      card3Count: allDone,
+      card2Title: 'OPEN ORDERS',
+      card2Count: orders.filter(o => o.status === 'Open' || !o.status).length,
+      card3Title: 'WO HISTORY',
+      card3Count: tabCounts.woDoneCount || woHistoryOrders.length,
       card4Title: 'DRAFT STATUS',
       card4Count: woDraft,
-      poCount: poActive,
-      activeCount: woActive,
-      doneCount: allDone
+      poCount: tabCounts.poCount,
+      activeCount: tabCounts.activeCount,
+      woDoneCount: tabCounts.woDoneCount || woHistoryOrders.length,
+      poDoneCount: tabCounts.poDoneCount || poHistoryOrders.length
     };
-  }, [orders, purchaseOrders, activeTab]);
+  }, [orders, purchaseOrders, woHistoryOrders, poHistoryOrders, tabCounts, activeTab]);
 
   const filteredOrders = useMemo(() => {
     if (activeTab === 'purchase_orders') {
-      const legacyPo = orders.filter(o => {
-        const extra = o.visible_specs?._extra;
-        return extra?.docType === 'purchase_order' || o.order_title === 'PURCHASE ORDER';
-      });
-      const allPO = [...purchaseOrders, ...legacyPo];
-      // Only show Active (not Done) in Purchase Orders tab
-      return allPO.filter(o => {
-        if (o.status === 'Done') return false;
+      return purchaseOrders.filter(o => {
         const matchSearch = !searchTerm ||
           (o.buyerName || o.buyer_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
           (o.companyName || o.company_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -1008,57 +1097,52 @@ const WorkOrder = () => {
       });
     }
 
-    if (activeTab === 'history') {
-      // Completed history tab includes both Done Work Orders AND Done Purchase Orders
-      const legacyPo = orders.filter(o => {
-        const extra = o.visible_specs?._extra;
-        return extra?.docType === 'purchase_order' || o.order_title === 'PURCHASE ORDER';
-      });
-      const allDone = [
-        ...orders.filter(o => {
-          const extra = o.visible_specs?._extra;
-          const isPO = extra?.docType === 'purchase_order' || o.order_title === 'PURCHASE ORDER';
-          return !isPO && o.status === 'Done';
-        }),
-        ...purchaseOrders.filter(p => p.status === 'Done'),
-        ...legacyPo.filter(p => p.status === 'Done')
-      ];
-
-      return allDone.filter(o => {
+    if (activeTab === 'wo_history') {
+      // STRICTLY work_orders table records only
+      return woHistoryOrders.filter(o => {
         const matchSearch = !searchTerm ||
           (o.buyer_name || o.buyerName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
           (o.company_name || o.companyName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (o.work_order_no || o.workOrderNo || o.purchase_order_no || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (o.commodity || o.materialName || '').toLowerCase().includes(searchTerm.toLowerCase());
+          (o.work_order_no || o.workOrderNo || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (o.commodity || '').toLowerCase().includes(searchTerm.toLowerCase());
         const matchCompany = filterCompany === 'All' || (o.company_name || o.companyName) === filterCompany;
         const matchBuyer = filterBuyer === 'All' || (o.buyer_name || o.buyerName) === filterBuyer;
-        const matchCommodity = filterCommodity === 'All' || (o.commodity || o.materialName) === filterCommodity;
+        const matchCommodity = filterCommodity === 'All' || o.commodity === filterCommodity;
         const matchQty = filterQty === 'All' || (o.quantity) === filterQty;
         return matchSearch && matchCompany && matchBuyer && matchCommodity && matchQty;
       });
     }
 
-    // Active Orders tab (Work Orders only that are not Done)
+    if (activeTab === 'po_history') {
+      // STRICTLY purchase_orders table records only
+      return poHistoryOrders.filter(o => {
+        const matchSearch = !searchTerm ||
+          (o.buyerName || o.vendor_name || o.consigneeName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (o.companyName || o.company_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (o.workOrderNo || o.purchase_order_no || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (o.materialName || '').toLowerCase().includes(searchTerm.toLowerCase());
+        const matchCompany = filterCompany === 'All' || (o.companyName || o.company_name) === filterCompany;
+        const matchBuyer = filterBuyer === 'All' || (o.buyerName || o.vendor_name) === filterBuyer;
+        const matchCommodity = filterCommodity === 'All' || o.materialName === filterCommodity;
+        const matchQty = filterQty === 'All' || (o.quantity) === filterQty;
+        return matchSearch && matchCompany && matchBuyer && matchCommodity && matchQty;
+      });
+    }
+
+    // Active Orders tab (Work Orders only)
     return orders.filter(o => {
-      const extra = o.visible_specs?._extra;
-      const isPO = extra?.docType === 'purchase_order' || o.order_title === 'PURCHASE ORDER';
-      const isDone = o.status === 'Done';
-
-      if (isPO) return false;
-      if (isDone) return false;
-
       const matchSearch = !searchTerm ||
-        o.buyer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        o.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        o.work_order_no?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        o.commodity?.toLowerCase().includes(searchTerm.toLowerCase());
+        (o.buyer_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (o.company_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (o.work_order_no || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (o.commodity || '').toLowerCase().includes(searchTerm.toLowerCase());
       const matchCompany = filterCompany === 'All' || o.company_name === filterCompany;
       const matchBuyer = filterBuyer === 'All' || o.buyer_name === filterBuyer;
       const matchCommodity = filterCommodity === 'All' || o.commodity === filterCommodity;
       const matchQty = filterQty === 'All' || o.quantity === filterQty;
       return matchSearch && matchCompany && matchBuyer && matchCommodity && matchQty;
     });
-  }, [orders, purchaseOrders, activeTab, searchTerm, filterCompany, filterBuyer, filterCommodity, filterQty]);
+  }, [orders, purchaseOrders, woHistoryOrders, poHistoryOrders, activeTab, searchTerm, filterCompany, filterBuyer, filterCommodity, filterQty]);
 
   const resetFilters = () => {
     setSearchTerm('');
@@ -1216,9 +1300,9 @@ const WorkOrder = () => {
           </span>
         </button>
 
-        {/* Tab 3: Completed History */}
+        {/* Tab 3: Completed Work Orders History */}
         <button
-          onClick={() => setActiveTab('history')}
+          onClick={() => setActiveTab('wo_history')}
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -1226,24 +1310,55 @@ const WorkOrder = () => {
             padding: '8px 18px',
             borderRadius: '8px',
             border: 'none',
-            backgroundColor: activeTab === 'history' ? '#ffffff' : 'transparent',
-            color: activeTab === 'history' ? '#0f172a' : '#64748b',
+            backgroundColor: activeTab === 'wo_history' ? '#ffffff' : 'transparent',
+            color: activeTab === 'wo_history' ? '#dc2626' : '#64748b',
             cursor: 'pointer',
             fontWeight: 700,
             fontSize: '0.84rem',
-            boxShadow: activeTab === 'history' ? '0 1px 3px rgba(15, 23, 42, 0.08)' : 'none',
+            boxShadow: activeTab === 'wo_history' ? '0 1px 3px rgba(15, 23, 42, 0.08)' : 'none',
             transition: 'all 0.15s'
           }}>
-          <History size={15} style={{ color: activeTab === 'history' ? '#15803d' : '#64748b' }} />
-          Completed History
+          <Clock size={15} style={{ color: activeTab === 'wo_history' ? '#dc2626' : '#64748b' }} />
+          Work Order History
           <span style={{
             fontSize: '0.72rem',
             padding: '1px 6px',
             borderRadius: '10px',
-            backgroundColor: activeTab === 'history' ? '#dcfce7' : '#cbd5e1',
-            color: activeTab === 'history' ? '#15803d' : '#475569'
+            backgroundColor: activeTab === 'wo_history' ? '#fee2e2' : '#cbd5e1',
+            color: activeTab === 'wo_history' ? '#dc2626' : '#475569'
           }}>
-            {stats.doneCount}
+            {stats.woDoneCount}
+          </span>
+        </button>
+
+        {/* Tab 4: Completed PO + SO History */}
+        <button
+          onClick={() => setActiveTab('po_history')}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 18px',
+            borderRadius: '8px',
+            border: 'none',
+            backgroundColor: activeTab === 'po_history' ? '#ffffff' : 'transparent',
+            color: activeTab === 'po_history' ? '#2563eb' : '#64748b',
+            cursor: 'pointer',
+            fontWeight: 700,
+            fontSize: '0.84rem',
+            boxShadow: activeTab === 'po_history' ? '0 1px 3px rgba(15, 23, 42, 0.08)' : 'none',
+            transition: 'all 0.15s'
+          }}>
+          <FileText size={15} style={{ color: activeTab === 'po_history' ? '#2563eb' : '#64748b' }} />
+          PO + SO History
+          <span style={{
+            fontSize: '0.72rem',
+            padding: '1px 6px',
+            borderRadius: '10px',
+            backgroundColor: activeTab === 'po_history' ? '#dbeafe' : '#cbd5e1',
+            color: activeTab === 'po_history' ? '#2563eb' : '#475569'
+          }}>
+            {stats.poDoneCount}
           </span>
         </button>
       </div>
@@ -1455,10 +1570,14 @@ const WorkOrder = () => {
                     <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: 700, color: '#475569', minWidth: '115px', borderBottom: '1px solid #e2e8f0', fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>DATE</th>
                     <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: 700, color: '#475569', minWidth: '190px', borderBottom: '1px solid #e2e8f0', fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>ISSUING COMPANY</th>
                     <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: 700, color: '#475569', minWidth: '220px', borderBottom: '1px solid #e2e8f0', fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                      {activeTab === 'purchase_orders' ? 'VENDOR / PARTY' : 'BUYER / RECEIVER'}
+                      {activeTab === 'purchase_orders' || activeTab === 'po_history'
+                        ? 'VENDOR / PARTY'
+                        : 'BUYER / RECEIVER'}
                     </th>
                     <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: 700, color: '#475569', minWidth: '120px', borderBottom: '1px solid #e2e8f0', fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                      {activeTab === 'purchase_orders' ? 'MATERIAL' : 'COMMODITY'}
+                      {activeTab === 'purchase_orders' || activeTab === 'po_history'
+                        ? 'MATERIAL'
+                        : 'COMMODITY'}
                     </th>
                     <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: 700, color: '#475569', minWidth: '100px', borderBottom: '1px solid #e2e8f0', fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>QTY</th>
                     <th style={{ padding: '14px 16px', textAlign: 'center', fontWeight: 700, color: '#475569', minWidth: '100px', borderBottom: '1px solid #e2e8f0', fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>STATUS</th>
@@ -1529,7 +1648,9 @@ const WorkOrder = () => {
                       </td>
 
                       <td style={{ padding: '14px 16px', color: '#0f172a', fontWeight: 500, whiteSpace: 'nowrap', borderBottom: '1px solid #f1f5f9' }}>
-                        {activeTab === 'purchase_orders' ? (o.consigneeName || o.buyer_name || o.buyerName) : (o.buyer_name || o.buyerName)}
+                        {o.docType === 'purchase_order' 
+                          ? (o.buyerName || o.vendor_name || o.consigneeName || '—')
+                          : (o.buyer_name || o.buyerName || '—')}
                       </td>
 
                       <td style={{ padding: '14px 16px', color: '#475569', whiteSpace: 'nowrap', borderBottom: '1px solid #f1f5f9' }}>
@@ -1875,9 +1996,9 @@ const WorkOrder = () => {
           onClick={(e) => { if (e.target === e.currentTarget) setShowOrderModal(false); }}>
           <div style={{
             backgroundColor: '#ffffff',
-            borderRadius: '16px',
+            borderRadius: '20px',
             width: '100%',
-            maxWidth: '850px',
+            maxWidth: '1100px',
             maxHeight: '92vh',
             display: 'flex',
             flexDirection: 'column',
@@ -1988,23 +2109,82 @@ const WorkOrder = () => {
                     placeholder="e.g. 1367 or PO-2026-001"
                   />
 
-                  {/* Buyer & Consignee */}
+                  {/* Vendor / Supplier, Buyer & Consignee */}
                   <div style={{ gridColumn: '1 / -1', borderTop: '1px solid #e2e8f0', paddingTop: '16px', marginTop: '6px' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                      {/* Buyer Details */}
-                      <div style={{ backgroundColor: '#f8fafc', padding: '12px 14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                        <h4 style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', margin: '0 0 8px 0', textTransform: 'uppercase' }}>Buyer (Self Firm)</h4>
-                        <div style={{ marginBottom: '8px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', alignItems: 'stretch' }}>
+                      
+                      {/* 1. Vendor Details (To / Supplier Firm) */}
+                      <div style={{ backgroundColor: '#fffbf5', padding: '16px', borderRadius: '12px', border: '1px solid #fed7aa', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                            <h4 style={{ fontSize: '0.82rem', fontWeight: 800, color: '#9a3412', margin: 0, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                              {(formData.orderTitle || '').toUpperCase().includes('SALE') ? 'Buyer / Customer' : 'Vendor (Supplier Firm)'}
+                            </h4>
+                            <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', backgroundColor: '#ffedd5', color: '#c2410c' }}>
+                              {(formData.orderTitle || '').toUpperCase().includes('SALE') ? 'FROM' : 'TO'}
+                            </span>
+                          </div>
+                          <div style={{ marginBottom: '10px' }}>
+                            <DbDropdownInput
+                              label="Vendor Firm Name"
+                              name="buyerName"
+                              value={formData.buyerName}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                handleVendorNameChange(val);
+                              }}
+                              options={dbSuggestions.vendorNames || []}
+                              placeholder="e.g. PH ENTERPRISE / ABC CORP"
+                            />
+                          </div>
+                          <div style={{ marginBottom: '10px' }}>
+                            <DbDropdownInput
+                              label="Vendor Address"
+                              name="buyerAddress"
+                              value={formData.buyerAddress}
+                              onChange={handleChange}
+                              options={dbSuggestions.vendorAddresses || []}
+                              placeholder="Vendor Address / Location..."
+                              isTextarea={true}
+                              rows={3}
+                            />
+                          </div>
+                        </div>
+                        <div>
                           <DbDropdownInput
-                            label="Buyer Name & Address"
-                            name="address"
-                            value={formData.address}
+                            label="Vendor GST No."
+                            name="vendorGst"
+                            value={formData.vendorGst}
                             onChange={handleChange}
-                            options={dbSuggestions.addresses}
-                            placeholder="Buyer Address..."
-                            isTextarea={true}
-                            rows={3}
+                            options={dbSuggestions.vendorGsts || []}
+                            placeholder="e.g. 22ABCDE1234F1Z5"
                           />
+                        </div>
+                      </div>
+
+                      {/* 2. Buyer Details (Self Firm) */}
+                      <div style={{ backgroundColor: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                            <h4 style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', margin: 0, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                              Buyer (Self Firm)
+                            </h4>
+                            <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', backgroundColor: '#e2e8f0', color: '#334155' }}>
+                              ISSUING
+                            </span>
+                          </div>
+                          <div style={{ marginBottom: '10px' }}>
+                            <DbDropdownInput
+                              label="Buyer Name & Address"
+                              name="address"
+                              value={formData.address}
+                              onChange={handleChange}
+                              options={dbSuggestions.addresses}
+                              placeholder="Buyer Address..."
+                              isTextarea={true}
+                              rows={5}
+                            />
+                          </div>
                         </div>
                         <div>
                           <DbDropdownInput
@@ -2018,30 +2198,39 @@ const WorkOrder = () => {
                         </div>
                       </div>
 
-                      {/* Consignee Details */}
-                      <div style={{ backgroundColor: '#f8fafc', padding: '12px 14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                        <h4 style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', margin: '0 0 8px 0', textTransform: 'uppercase' }}>Consignee</h4>
-                        <div style={{ marginBottom: '8px' }}>
-                          <DbDropdownInput
-                            label="Consignee Name"
-                            name="consigneeName"
-                            value={formData.consigneeName}
-                            onChange={handleChange}
-                            options={dbSuggestions.consigneeNames}
-                            placeholder="e.g. Hindustan Structural Pipes Limited"
-                          />
-                        </div>
-                        <div style={{ marginBottom: '8px' }}>
-                          <DbDropdownInput
-                            label="Consignee Address"
-                            name="consigneeAddress"
-                            value={formData.consigneeAddress}
-                            onChange={handleChange}
-                            options={dbSuggestions.consigneeAddresses}
-                            placeholder="Plot No, Industrial Area, City..."
-                            isTextarea={true}
-                            rows={2}
-                          />
+                      {/* 3. Consignee Details */}
+                      <div style={{ backgroundColor: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                            <h4 style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', margin: 0, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                              Consignee (Delivery Point)
+                            </h4>
+                            <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', backgroundColor: '#e2e8f0', color: '#334155' }}>
+                              SHIP TO
+                            </span>
+                          </div>
+                          <div style={{ marginBottom: '10px' }}>
+                            <DbDropdownInput
+                              label="Consignee Name"
+                              name="consigneeName"
+                              value={formData.consigneeName}
+                              onChange={handleChange}
+                              options={dbSuggestions.consigneeNames}
+                              placeholder="e.g. Hindustan Structural Pipes Limited"
+                            />
+                          </div>
+                          <div style={{ marginBottom: '10px' }}>
+                            <DbDropdownInput
+                              label="Consignee Address"
+                              name="consigneeAddress"
+                              value={formData.consigneeAddress}
+                              onChange={handleChange}
+                              options={dbSuggestions.consigneeAddresses}
+                              placeholder="Plot No, Industrial Area, City..."
+                              isTextarea={true}
+                              rows={3}
+                            />
+                          </div>
                         </div>
                         <div>
                           <DbDropdownInput
@@ -2054,6 +2243,7 @@ const WorkOrder = () => {
                           />
                         </div>
                       </div>
+
                     </div>
                   </div>
 
@@ -3101,7 +3291,7 @@ const WorkOrder = () => {
             <div style={{
               overflowY: 'auto',
               flex: 1,
-              padding: '28px 20px 48px 20px',
+              padding: '24px 20px 40px 20px',
               backgroundColor: '#334155',
               display: 'flex',
               justifyContent: 'center',
@@ -3114,19 +3304,21 @@ const WorkOrder = () => {
                   style={{
                     backgroundColor: '#ffffff',
                     color: '#000000',
-                    padding: '16px 38px 12px 38px',
-                    width: '800px',
-                    minHeight: '1131px',
+                    padding: '30px 42px 24px 42px',
+                    width: '794px',
+                    minHeight: '1123px',
                     height: 'auto',
-                    boxShadow: '0 8px 30px rgba(0,0,0,0.15)',
+                    boxShadow: '0 8px 30px rgba(0,0,0,0.3)',
                     display: 'flex',
                     flexDirection: 'column',
+                    justifyContent: 'space-between',
                     fontFamily: '"Times New Roman", Times, serif',
                     boxSizing: 'border-box',
                     fontSize: '14px',
                     lineHeight: '1.34',
-                    borderRadius: '4px',
-                    marginBottom: '20px'
+                    borderRadius: '2px',
+                    marginBottom: '20px',
+                    position: 'relative'
                   }}
                 >
                   {previewData.docType === 'purchase_order' ? (
@@ -3216,14 +3408,25 @@ const WorkOrder = () => {
                       </table>
 
                       {/* To / From Vendor Section */}
-                      <div style={{ marginBottom: '8px', lineHeight: '1.34', fontSize: '14px' }}>
-                        <p style={{ margin: '0 0 2px 0' }}>
+                      <div style={{ marginBottom: '10px', lineHeight: '1.38', fontSize: '14.5px' }}>
+                        <p style={{ margin: '0 0 2px 0', fontWeight: 'bold' }}>
                           {(previewData.orderTitle || '').toUpperCase().includes('SALE ORDER') || (previewData.orderTitle || '').toUpperCase().includes('SALES ORDER') ? 'FROM,' : 'To,'}
                         </p>
-                        <p style={{ margin: '0 0 1px 0', fontWeight: 'bold' }}>{previewData.buyerName || 'PH ENTERPRISE'}</p>
-                        <p style={{ margin: '0 0 1px 0', whiteSpace: 'pre-wrap' }}>{previewData.buyerAddress}</p>
+                        {/* 1) Vendor Firm Name */}
+                        <p style={{ margin: '0 0 2px 0', fontWeight: 'bold', fontSize: '15px' }}>
+                          {previewData.buyerName || 'PH ENTERPRISE'}
+                        </p>
+                        {/* 2) Vendor Address */}
+                        {previewData.buyerAddress && (
+                          <p style={{ margin: '0 0 2px 0', whiteSpace: 'pre-wrap' }}>
+                            {previewData.buyerAddress}
+                          </p>
+                        )}
+                        {/* 3) Vendor GST No. */}
                         {previewData.vendorGst && (
-                          <p style={{ margin: 0, fontWeight: 'bold' }}>GST NO. {previewData.vendorGst}</p>
+                          <p style={{ margin: '2px 0 0 0', fontWeight: 'bold' }}>
+                            GST NO. {previewData.vendorGst}
+                          </p>
                         )}
                       </div>
 
@@ -3342,7 +3545,7 @@ const WorkOrder = () => {
                       </div>
 
                       {/* Footer & Signature */}
-                      <div style={{ marginTop: 'auto', lineHeight: '1.32', fontSize: '14px' }}>
+                      <div style={{ marginTop: 'auto', paddingTop: '16px', lineHeight: '1.32', fontSize: '14px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '24px', marginBottom: '4px' }}>
                           <div>
                             <p style={{ fontWeight: 'bold', margin: '0' }}>Thanking You</p>
@@ -3351,13 +3554,17 @@ const WorkOrder = () => {
                           </div>
 
                           <div style={{ minHeight: '80px', height: '80px', display: 'flex', alignItems: 'center' }}>
-                            {(previewData.signatureDataUrl || activeFirm?.signature || jbtSignature) && (
-                              <img 
-                                src={previewData.signatureDataUrl || activeFirm?.signature || jbtSignature} 
-                                alt="Signature" 
-                                style={{ height: '80px', maxWidth: '200px', objectFit: 'contain' }}
-                              />
-                            )}
+                            <img 
+                              src={previewData.signatureDataUrl || activeFirm?.signature || jbtSignature} 
+                              alt="Signature" 
+                              style={{ height: '80px', maxWidth: '200px', objectFit: 'contain' }}
+                              onError={(e) => {
+                                const fallbackSig = activeFirm?.signature || jbtSignature;
+                                if (fallbackSig && e.target.src !== fallbackSig) {
+                                  e.target.src = fallbackSig;
+                                }
+                              }}
+                            />
                           </div>
                         </div>
 
@@ -3498,7 +3705,7 @@ const WorkOrder = () => {
                       </h3>
                       <div style={{ paddingLeft: '14px', marginBottom: '6px', lineHeight: '1.34', whiteSpace: 'pre-wrap', fontSize: '14px' }}>{previewData.terms}</div>
 
-                      <div style={{ marginTop: 'auto', lineHeight: '1.32', fontSize: '14px' }}>
+                      <div style={{ marginTop: 'auto', paddingTop: '16px', lineHeight: '1.32', fontSize: '14px' }}>
                         <p style={{ fontWeight: 'bold', margin: '0 0 2px 0' }}>For {previewData.companyName}</p>
                         <div style={{ minHeight: '85px', height: '85px', display: 'flex', alignItems: 'center', marginTop: '2px', marginBottom: '2px' }}>
                           {(previewData.signatureDataUrl || activeFirm?.signature) && (

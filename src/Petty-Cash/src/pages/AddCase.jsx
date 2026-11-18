@@ -940,11 +940,41 @@ export default function AddCase() {
             </div>
 
             {/* Modal Footer */}
-            <div className="px-4 sm:px-5 py-3 border-t border-slate-100 bg-slate-50 flex justify-end">
+            <div className="px-4 sm:px-5 py-3 border-t border-slate-100 bg-slate-50 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                {/* Edit Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowDetailModal(false);
+                    handleEditCredit(selectedCreditDetail);
+                  }}
+                  className="px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+                  title="Edit this credit entry"
+                >
+                  <Edit2 size={13} />
+                  <span>Edit</span>
+                </button>
+
+                {/* Delete Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowDetailModal(false);
+                    handleDeleteCredit(selectedCreditDetail);
+                  }}
+                  className="px-3 py-1.5 bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white border border-rose-200 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+                  title="Delete this credit entry"
+                >
+                  <Trash2 size={13} />
+                  <span>Delete</span>
+                </button>
+              </div>
+
               <button
                 type="button"
                 onClick={() => setShowDetailModal(false)}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-xs transition-colors cursor-pointer"
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-xs transition-colors cursor-pointer ml-auto"
               >
                 Close
               </button>

@@ -377,6 +377,7 @@ const OfferLetter = () => {
 
   const [activeTab, setActiveTab] = useState('active');
   const [letters, setLetters] = useState([]);
+  const [tabCounts, setTabCounts] = useState({ total: 0, activeCount: 0, doneCount: 0, draftCount: 0 });
   const [loadingList, setLoadingList] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCompany, setFilterCompany] = useState('All');
@@ -409,13 +410,43 @@ const OfferLetter = () => {
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, [showColumnDropdown]);
 
-  const fetchLetters = useCallback(async () => {
+  // Fast count query for KPI and tab badges (head: true transfers 0 row data)
+  const fetchBadgeCounts = useCallback(async () => {
+    try {
+      const [totalRes, activeRes, doneRes, draftRes] = await Promise.all([
+        supabase.from('coal_offer_letters').select('id', { count: 'exact', head: true }),
+        supabase.from('coal_offer_letters').select('id', { count: 'exact', head: true }).neq('status', 'Done'),
+        supabase.from('coal_offer_letters').select('id', { count: 'exact', head: true }).eq('status', 'Done'),
+        supabase.from('coal_offer_letters').select('id', { count: 'exact', head: true }).or('status.is.null,status.eq.Draft')
+      ]);
+      setTabCounts({
+        total: totalRes.count || 0,
+        activeCount: activeRes.count || 0,
+        doneCount: doneRes.count || 0,
+        draftCount: draftRes.count || 0
+      });
+    } catch (err) {
+      console.warn('Error fetching counts:', err);
+    }
+  }, []);
+
+  // Optimized single-tab data fetching: only query data for active tab
+  const fetchLettersForTab = useCallback(async (tabToFetch) => {
+    const targetTab = tabToFetch || activeTab;
     setLoadingList(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('coal_offer_letters')
         .select('*')
         .order('created_at', { ascending: false });
+
+      if (targetTab === 'active') {
+        query = query.neq('status', 'Done');
+      } else if (targetTab === 'history') {
+        query = query.eq('status', 'Done');
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       setLetters(data || []);
     } catch (err) {
@@ -423,11 +454,20 @@ const OfferLetter = () => {
     } finally {
       setLoadingList(false);
     }
-  }, []);
+  }, [activeTab]);
 
   useEffect(() => {
-    fetchLetters();
-  }, [fetchLetters]);
+    fetchLettersForTab(activeTab);
+  }, [activeTab, fetchLettersForTab]);
+
+  useEffect(() => {
+    fetchBadgeCounts();
+  }, [fetchBadgeCounts]);
+
+  const refreshAll = useCallback(() => {
+    fetchLettersForTab(activeTab);
+    fetchBadgeCounts();
+  }, [fetchLettersForTab, fetchBadgeCounts, activeTab]);
 
   const generateNextOfferLetterNo = async () => {
     const year = new Date().getFullYear();
@@ -497,7 +537,7 @@ const OfferLetter = () => {
         toast.success(`Offer Letter ${finalNo} saved!`);
       }
       setShowOrderModal(false);
-      fetchLetters();
+      refreshAll();
     } catch (err) {
       toast.error('Save failed: ' + err.message);
     } finally {
@@ -513,7 +553,7 @@ const OfferLetter = () => {
         .eq('id', order.id);
       if (error) throw error;
       toast.success(`Offer Letter ${order.offer_letter_no || ''} marked as Done!`);
-      fetchLetters();
+      refreshAll();
     } catch (err) {
       toast.error('Failed to update status: ' + err.message);
     }
@@ -527,7 +567,7 @@ const OfferLetter = () => {
         .eq('id', order.id);
       if (error) throw error;
       toast.success(`Offer Letter ${order.offer_letter_no || ''} moved to Active!`);
-      fetchLetters();
+      refreshAll();
     } catch (err) {
       toast.error('Failed to update status: ' + err.message);
     }
@@ -539,7 +579,7 @@ const OfferLetter = () => {
       const { error } = await supabase.from('coal_offer_letters').delete().eq('id', id);
       if (error) throw error;
       toast.success('Deleted successfully');
-      fetchLetters();
+      refreshAll();
     } catch (err) {
       toast.error('Delete failed: ' + err.message);
     }
@@ -667,19 +707,16 @@ const OfferLetter = () => {
   };
 
   const stats = useMemo(() => {
-    const total = letters.length;
-    const doneCount = letters.filter(o => o.status === 'Done').length;
-    const activeCount = letters.filter(o => o.status !== 'Done').length;
-    const draftCount = letters.filter(o => !o.status || o.status === 'Draft').length;
-    return { total, doneCount, activeCount, draftCount };
-  }, [letters]);
+    return {
+      total: tabCounts.total || letters.length,
+      doneCount: tabCounts.doneCount,
+      activeCount: tabCounts.activeCount,
+      draftCount: tabCounts.draftCount
+    };
+  }, [tabCounts, letters]);
 
   const filteredLetters = useMemo(() => {
     return letters.filter(o => {
-      const isDone = o.status === 'Done';
-      if (activeTab === 'active' && isDone) return false;
-      if (activeTab === 'history' && !isDone) return false;
-
       const matchSearch = !searchTerm ||
         o.buyer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         o.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -691,7 +728,7 @@ const OfferLetter = () => {
       const matchQty = filterQty === 'All' || o.quantity === filterQty;
       return matchSearch && matchCompany && matchBuyer && matchCommodity && matchQty;
     });
-  }, [letters, activeTab, searchTerm, filterCompany, filterBuyer, filterCommodity, filterQty]);
+  }, [letters, searchTerm, filterCompany, filterBuyer, filterCommodity, filterQty]);
 
   const resetFilters = () => {
     setSearchTerm('');

@@ -15,6 +15,7 @@ import './TruckReports.css';
 
 export default function TruckReports() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterMonth, setFilterMonth] = useState('');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [filterVehicleNo, setFilterVehicleNo] = useState('');
@@ -563,7 +564,11 @@ export default function TruckReports() {
       );
       
       let matchesDate = true;
-      if (fromDate || toDate) {
+      if (filterMonth) {
+        if (!row.date || !row.date.startsWith(filterMonth)) {
+          matchesDate = false;
+        }
+      } else if (fromDate || toDate) {
         const rowDate = new Date(row.date);
         if (fromDate) {
           const from = new Date(fromDate);
@@ -580,7 +585,7 @@ export default function TruckReports() {
 
       return matchesSearch && matchesDate && matchesVehicle && matchesDoNo;
     });
-  }, [reportsData, searchTerm, fromDate, toDate, filterVehicleNo, filterDoNo]);
+  }, [reportsData, searchTerm, filterMonth, fromDate, toDate, filterVehicleNo, filterDoNo]);
 
   // Turnaround (TAT) calculation based on consecutive trips for each vehicle
   const reportsWithTat = useMemo(() => {
@@ -683,6 +688,64 @@ export default function TruckReports() {
     : 0;
   const avgTurnaroundDays = Math.round((avgTurnaroundHours / 24) * 10) / 10;
   const activeTripsCount = filteredData.filter(item => item.departureTime && !item.unloadingTime).length;
+
+  // Table Column Subtotals for filteredData
+  const tableSubtotals = useMemo(() => {
+    let tripCountSum = 0;
+    let dispWtSum = 0;
+    let recWtSum = 0;
+    let dieselSum = 0;
+    let minesExpSum = 0;
+    let biltyExpSum = 0;
+    let advanceSum = 0;
+    let fastagSum = 0;
+    let shortageSum = 0;
+    let totalExpensesSum = 0;
+    let totalFreightSum = 0;
+    let balanceFreightSum = 0;
+
+    filteredData.forEach(row => {
+      tripCountSum += Number(row.totalTrips) || 1;
+      dispWtSum += parseFloat(row.tonnage) || 0;
+      recWtSum += parseFloat(row.recWeight) || 0;
+      
+      const dL = parseFloat(String(row.diesel || '').replace(/[^0-9.]/g, '')) || 0;
+      dieselSum += dL;
+
+      minesExpSum += parseFloat(row.minesExp) || 0;
+      biltyExpSum += parseFloat(row.biltyExp) || 0;
+      advanceSum += parseFloat(row.advance) || 0;
+      fastagSum += parseFloat(row.fastagExp) || 0;
+      shortageSum += parseFloat(row.shortageAmount) || 0;
+
+      // Expense
+      const exp = parseFloat(row.totalExpenses) || 0;
+      totalExpensesSum += exp;
+
+      // Freight
+      const freight = parseFloat(row.totalFreight) || 0;
+      totalFreightSum += freight;
+
+      // Balance
+      const bal = parseFloat(row.vehicleBalance) || 0;
+      balanceFreightSum += bal;
+    });
+
+    return {
+      tripCountSum,
+      dispWtSum: Math.round(dispWtSum * 100) / 100,
+      recWtSum: Math.round(recWtSum * 100) / 100,
+      dieselSum: Math.round(dieselSum),
+      minesExpSum: Math.round(minesExpSum),
+      biltyExpSum: Math.round(biltyExpSum),
+      advanceSum: Math.round(advanceSum),
+      fastagSum: Math.round(fastagSum),
+      shortageSum: Math.round(shortageSum),
+      totalExpensesSum: Math.round(totalExpensesSum),
+      totalFreightSum: Math.round(totalFreightSum),
+      balanceFreightSum: Math.round(balanceFreightSum)
+    };
+  }, [filteredData]);
 
   // Helper to rename a dropdown option value across database and state
   const handleRenameOption = async (type, oldValue) => {
@@ -1375,13 +1438,14 @@ export default function TruckReports() {
     let date = '';
 
     if (rawDate !== undefined && rawDate !== null && rawDate !== '') {
+      // 1. If it's already a JS Date object from XLSX cellDates
       if (rawDate instanceof Date && !isNaN(rawDate.getTime())) {
         const year = rawDate.getFullYear();
         const month = String(rawDate.getMonth() + 1).padStart(2, '0');
         const day = String(rawDate.getDate()).padStart(2, '0');
         date = `${year}-${month}-${day}`;
       } else if (typeof rawDate === 'number' || (!isNaN(Number(rawDate)) && !String(rawDate).includes('-') && !String(rawDate).includes('/'))) {
-        // Excel serial date number (e.g. 46296 -> 2026-10-09)
+        // 2. Excel serial date number (e.g. 46296 -> 2026-10-09)
         const serial = Number(rawDate);
         if (serial > 10000 && serial < 80000) {
           const excelEpoch = new Date(Date.UTC(1899, 11, 30));
@@ -1395,6 +1459,7 @@ export default function TruckReports() {
         }
       }
 
+      // 3. String date parsing (handles mm-dd-yy, mm/dd/yy, dd-mm-yy, dd/mm/yy, yyyy-mm-dd)
       if (!date) {
         const dateStr = String(rawDate).trim();
         const sep = dateStr.includes('/') ? '/' : (dateStr.includes('-') ? '-' : (dateStr.includes('.') ? '.' : ''));
@@ -1414,21 +1479,39 @@ export default function TruckReports() {
                 // Inverted: YYYY-DD-MM -> swap to YYYY-MM-DD
                 const temp = m; m = d; d = temp;
               }
-              date = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+              if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+                date = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+              }
             } else {
-              // DD/MM/YYYY or MM/DD/YYYY
-              const y = p2.length === 2 ? `20${p2}` : (p2.length === 4 ? p2 : p2);
-              let first = parseInt(p0, 10);
-              let second = parseInt(p1, 10);
+              // 3 parts: p0, p1, p2 (could be MM-DD-YY, MM/DD/YYYY, DD-MM-YY, DD/MM/YYYY)
+              let y = p2;
+              if (y.length === 2) {
+                const yrNum = parseInt(y, 10);
+                y = yrNum > 50 ? `19${y}` : `20${y}`;
+              } else if (y.length < 4) {
+                y = `20${y.padStart(2, '0')}`;
+              }
 
-              // Standard Indian/SECL format is DD/MM/YYYY
-              let day = first;
-              let month = second;
+              let v0 = parseInt(p0, 10);
+              let v1 = parseInt(p1, 10);
 
-              if (first <= 12 && second > 12) {
-                // MM/DD/YYYY format
-                month = first;
-                day = second;
+              let month = 0;
+              let day = 0;
+
+              if (v0 > 12 && v1 <= 12) {
+                // Definitely DD-MM-YY (since first number > 12)
+                day = v0;
+                month = v1;
+              } else if (v0 <= 12 && v1 > 12) {
+                // Definitely MM-DD-YY (since second number > 12, e.g. 10-21-26)
+                month = v0;
+                day = v1;
+              } else {
+                // Both <= 12 (e.g. 10-09-26 or 05-06-26)
+                // In user's Excel files formatted as MM-DD-YY:
+                // If Excel/system exports MM-DD-YY, treat v0 as Month and v1 as Day
+                month = v0;
+                day = v1;
               }
 
               if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
@@ -1923,9 +2006,9 @@ export default function TruckReports() {
       </div>
 
       {/* ═══════════════════════════════════════════════════════════
-          EXECUTIVE KPI SUMMARY METRICS CARDS + TAT METRICS
+          EXECUTIVE KPI SUMMARY METRICS CARDS
       ═══════════════════════════════════════════════════════════ */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         
         {/* Card 1: Total Trips */}
         <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex items-center justify-between group">
@@ -1946,41 +2029,7 @@ export default function TruckReports() {
           </div>
         </div>
 
-        {/* Card 2: Avg Turnaround (TAT) */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex items-center justify-between group">
-          <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
-              Avg Turnaround
-            </span>
-            <div className="text-xl sm:text-2xl font-black text-indigo-700 tracking-tight">
-              {avgTurnaroundHours} <span className="text-xs font-bold text-slate-400">hrs</span>
-            </div>
-            <span className="text-[10px] text-indigo-600 font-semibold">
-              ≈ {avgTurnaroundDays} Days Avg
-            </span>
-          </div>
-          <div className="h-10 w-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 shadow-2xs group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-            <Timer size={20} />
-          </div>
-        </div>
-
-        {/* Card 3: Active Trips in Transit */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex items-center justify-between group">
-          <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
-              In Transit
-            </span>
-            <div className="text-xl sm:text-2xl font-black text-amber-600 tracking-tight">
-              {activeTripsCount}
-            </div>
-            <span className="text-[10px] text-amber-700 font-medium">Pending Unload</span>
-          </div>
-          <div className="h-10 w-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 shadow-2xs group-hover:bg-amber-600 group-hover:text-white transition-colors">
-            <Clock size={20} />
-          </div>
-        </div>
-
-        {/* Card 4: Total Advance */}
+        {/* Card 2: Total Advance */}
         <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex items-center justify-between group">
           <div>
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
@@ -2084,13 +2133,34 @@ export default function TruckReports() {
               </select>
             </div>
 
+            {/* Month Calendar Picker */}
+            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/90 rounded-xl px-2.5 py-1.5" title="Filter by Month">
+              <Calendar size={13} className="text-red-500 shrink-0" />
+              <input 
+                type="month" 
+                value={filterMonth}
+                onChange={(e) => {
+                  setFilterMonth(e.target.value);
+                  if (e.target.value) {
+                    setFromDate('');
+                    setToDate('');
+                  }
+                }}
+                className="bg-transparent text-xs text-slate-700 font-bold outline-none cursor-pointer"
+                title="Select Month"
+              />
+            </div>
+
             {/* From Date */}
             <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/90 rounded-xl px-2.5 py-1.5">
               <Calendar size={13} className="text-slate-400 shrink-0" />
               <input 
                 type="date" 
                 value={fromDate}
-                onChange={(e) => setFromDate(e.target.value)}
+                onChange={(e) => {
+                  setFromDate(e.target.value);
+                  if (e.target.value) setFilterMonth('');
+                }}
                 className="bg-transparent text-xs text-slate-700 font-medium outline-none cursor-pointer"
                 title="From Date"
               />
@@ -2102,16 +2172,19 @@ export default function TruckReports() {
               <input 
                 type="date" 
                 value={toDate}
-                onChange={(e) => setToDate(e.target.value)}
+                onChange={(e) => {
+                  setToDate(e.target.value);
+                  if (e.target.value) setFilterMonth('');
+                }}
                 className="bg-transparent text-xs text-slate-700 font-medium outline-none cursor-pointer"
                 title="To Date"
               />
             </div>
 
             {/* Clear Filter Button */}
-            {(searchTerm || fromDate || toDate || filterVehicleNo || filterDoNo) && (
+            {(searchTerm || filterMonth || fromDate || toDate || filterVehicleNo || filterDoNo) && (
               <button 
-                onClick={() => { setFromDate(''); setToDate(''); setFilterVehicleNo(''); setFilterDoNo(''); setSearchTerm(''); }}
+                onClick={() => { setFilterMonth(''); setFromDate(''); setToDate(''); setFilterVehicleNo(''); setFilterDoNo(''); setSearchTerm(''); }}
                 className="px-3 py-2 bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 rounded-xl text-xs font-black transition-all flex items-center gap-1 cursor-pointer"
                 title="Reset all filters"
               >
@@ -2388,6 +2461,63 @@ export default function TruckReports() {
                 </tr>
               )}
             </tbody>
+            {/* ═══════════ TABLE FOOTER (SUBTOTAL ROW) ═══════════ */}
+            {filteredData.length > 0 && (
+              <tfoot className="sticky bottom-0 z-20 bg-white text-slate-800 font-mono text-xs font-black shadow-[0_-4px_16px_rgba(0,0,0,0.08)] border-t-2 border-slate-300">
+                <tr className="bg-white hover:bg-slate-50/50 transition-colors">
+                  <td colSpan={6} className="py-3 px-4 text-left font-sans text-xs uppercase tracking-wider text-red-600 bg-white">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-red-600"></span>
+                      <span>SUBTOTAL ({filteredData.length} Records)</span>
+                    </div>
+                  </td>
+                  <td className="py-3 px-3.5 text-center text-slate-900 bg-white whitespace-nowrap">
+                    {tableSubtotals.tripCountSum}
+                  </td>
+                  <td className="py-3 px-3.5 text-right text-emerald-700 bg-white whitespace-nowrap font-bold">
+                    {tableSubtotals.dispWtSum.toFixed(2)} MT
+                  </td>
+                  <td className="py-3 px-3.5 text-right text-cyan-700 bg-white whitespace-nowrap font-bold">
+                    {tableSubtotals.recWtSum > 0 ? `${tableSubtotals.recWtSum.toFixed(2)} MT` : '—'}
+                  </td>
+                  <td className="py-3 px-3.5 text-center text-slate-300 bg-white">—</td>
+                  <td className="py-3 px-3.5 text-center text-slate-300 bg-white">—</td>
+                  <td className="py-3 px-3.5 text-center text-slate-300 bg-white">—</td>
+                  <td className="py-3 px-3.5 text-center text-slate-300 bg-white">—</td>
+                  <td className="py-3 px-3.5 text-center text-slate-300 bg-white">—</td>
+                  <td className="py-3 px-3.5 text-center text-slate-300 bg-white">—</td>
+                  <td className="py-3 px-3.5 text-center text-slate-300 bg-white">—</td>
+                  <td className="py-3 px-3.5 text-right text-purple-700 bg-white whitespace-nowrap font-bold">
+                    {tableSubtotals.dieselSum.toLocaleString('en-IN')} L
+                  </td>
+                  <td className="py-3 px-3.5 text-right text-slate-700 bg-white whitespace-nowrap">
+                    ₹{tableSubtotals.minesExpSum.toLocaleString('en-IN')}
+                  </td>
+                  <td className="py-3 px-3.5 text-right text-slate-700 bg-white whitespace-nowrap">
+                    ₹{tableSubtotals.biltyExpSum.toLocaleString('en-IN')}
+                  </td>
+                  <td className="py-3 px-3.5 text-right text-amber-700 bg-white whitespace-nowrap font-bold">
+                    ₹{tableSubtotals.advanceSum.toLocaleString('en-IN')}
+                  </td>
+                  <td className="py-3 px-3.5 text-right text-slate-700 bg-white whitespace-nowrap">
+                    ₹{tableSubtotals.fastagSum.toLocaleString('en-IN')}
+                  </td>
+                  <td className="py-3 px-3.5 text-right text-rose-700 bg-white whitespace-nowrap">
+                    ₹{tableSubtotals.shortageSum.toLocaleString('en-IN')}
+                  </td>
+                  <td className="py-3 px-3.5 text-right text-amber-800 bg-amber-50/70 whitespace-nowrap border-l border-r border-amber-200 font-bold">
+                    ₹{tableSubtotals.totalExpensesSum.toLocaleString('en-IN')}
+                  </td>
+                  <td className="py-3 px-3.5 text-right text-emerald-800 bg-emerald-50/70 whitespace-nowrap border-r border-emerald-200 font-bold">
+                    ₹{tableSubtotals.totalFreightSum.toLocaleString('en-IN')}
+                  </td>
+                  <td className="py-3 px-3.5 text-right text-blue-800 bg-blue-50/70 whitespace-nowrap border-r border-blue-200 font-bold">
+                    ₹{tableSubtotals.balanceFreightSum.toLocaleString('en-IN')}
+                  </td>
+                  <td className="py-3 px-4 text-center text-slate-300 bg-white">—</td>
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
 

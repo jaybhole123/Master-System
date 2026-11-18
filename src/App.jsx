@@ -81,6 +81,7 @@ import TruckReports from "./TransportSystem/src/pages/TruckReports"
 import PurchaseTruck from "./TransportSystem/src/pages/PurchaseTruck"
 import FastagSystem from "./TransportSystem/src/pages/FastagSystem"
 import ChallanSystem from "./TransportSystem/src/pages/ChallanSystem"
+import MonthlyTruckMaintenance from "./TransportSystem/src/pages/MonthlyTruckMaintenance"
 
 // --- Document Vault Imports ---
 import "./DocumentVault/src/index.css"
@@ -702,6 +703,7 @@ function App() {
                     <Route path="/transport-system/purchase-truck" element={<TransportSystemWrapper><PurchaseTruck /></TransportSystemWrapper>} />
                     <Route path="/transport-system/fastag" element={<TransportSystemWrapper><FastagSystem /></TransportSystemWrapper>} />
                     <Route path="/transport-system/Challan" element={<TransportSystemWrapper><ChallanSystem /></TransportSystemWrapper>} />
+                    <Route path="/transport-system/monthly-truck-maintenance" element={<TransportSystemWrapper><MonthlyTruckMaintenance /></TransportSystemWrapper>} />
 
                     {/* --- Document Vault System Routes --- */}
                     <Route path="/document-vault/system-flow" element={<DocumentVaultWrapper><DocumentVaultSystemFlow /></DocumentVaultWrapper>} />

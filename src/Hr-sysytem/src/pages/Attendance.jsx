@@ -130,7 +130,7 @@ export default function Attendance() {
 
   const handleDeleteVerifyItem = async (type, item) => {
     const name = type === 'user' ? item.user_name : item.employee_name;
-    const confirmDelete = window.confirm(`Are you sure you want to delete "${name}" from ${type === 'user' ? 'users table' : 'monthly_attendance'}?`);
+    const confirmDelete = window.confirm(`Are you sure you want to delete "${name}" from ${type === 'user' ? 'users table' : 'monthly_attendance'} and Attendance Register?`);
     if (!confirmDelete) return;
 
     setSavingVerifyAction(true);
@@ -142,8 +142,33 @@ export default function Attendance() {
           .eq('id', item.id);
         if (error) throw error;
 
+        // Also delete from 'employee' table if exists matching name or employee_id
+        try {
+          if (item.employee_id) {
+            await supabase.from('employee').delete().eq('id', item.employee_id);
+          }
+          await supabase.from('employee').delete().ilike('name', name);
+        } catch (e) {
+          console.warn('Could not remove from employee table:', e);
+        }
+
+        // Also delete from monthly_attendance table
+        try {
+          await supabase.from('monthly_attendance').delete().ilike('employee_name', name);
+        } catch (e) {
+          console.warn('Could not remove from monthly_attendance:', e);
+        }
+
+        // Remove from UI states immediately (Staff modal + Attendance Register sheet)
         setStaffUsers(prev => prev.filter(u => u.id !== item.id));
-        toast.success(`User "${name}" deleted successfully!`);
+        setMonthlyEmployees(prev => prev.filter(m => (m.employee_name || '').trim().toLowerCase() !== name.trim().toLowerCase()));
+        setEmployees(prev => prev.filter(e => {
+          const matchName = (e.name || '').trim().toLowerCase() === name.trim().toLowerCase();
+          const matchId = item.employee_id && String(e.id) === String(item.employee_id);
+          return !matchName && !matchId;
+        }));
+
+        toast.success(`User "${name}" deleted from users and Attendance Register!`);
       } else {
         let query = supabase.from('monthly_attendance').delete();
         if (item.id) {
@@ -156,9 +181,25 @@ export default function Attendance() {
         const { error } = await query;
         if (error) throw error;
 
-        // Also update state
-        setMonthlyEmployees(prev => prev.filter(m => m.employee_name !== item.employee_name));
-        toast.success(`Attendance record for "${name}" deleted!`);
+        // Also remove from 'employee' table if present
+        try {
+          if (item.employee_id) {
+            await supabase.from('employee').delete().eq('id', item.employee_id);
+          }
+          await supabase.from('employee').delete().ilike('name', name);
+        } catch (e) {
+          console.warn('Could not remove from employee table:', e);
+        }
+
+        // Update state across Staff modal and Attendance Register sheet
+        setMonthlyEmployees(prev => prev.filter(m => (m.employee_name || '').trim().toLowerCase() !== name.trim().toLowerCase()));
+        setEmployees(prev => prev.filter(e => {
+          const matchName = (e.name || '').trim().toLowerCase() === name.trim().toLowerCase();
+          const matchId = item.employee_id && String(e.id) === String(item.employee_id);
+          return !matchName && !matchId;
+        }));
+
+        toast.success(`Attendance record for "${name}" deleted from register!`);
       }
     } catch (err) {
       console.error('Error deleting record:', err);

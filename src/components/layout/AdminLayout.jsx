@@ -56,7 +56,8 @@ import {
   GitFork,
   Package,
   Factory,
-  FolderKanban
+  FolderKanban,
+  Wrench
 } from "lucide-react";
 
 // Helper: get module & page title from current pathname
@@ -1279,7 +1280,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
     },
     {
       href: "/letter/work-order",
-      label: "Work Order",
+      label: "Letter Head",
       icon: FileText,
       active: location.pathname === "/letter/work-order",
       showFor: ["admin", "user", "HOD"],
@@ -1461,6 +1462,14 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       label: "Truck Reports",
       icon: FileText,
       active: location.pathname === "/transport-system/truck-reports",
+      showFor: ["admin", "user", "HOD"],
+      module: "Transport Reporting",
+    },
+    {
+      href: "/transport-system/monthly-truck-maintenance",
+      label: "Monthly Truck Maintenance",
+      icon: Wrench,
+      active: location.pathname === "/transport-system/monthly-truck-maintenance",
       showFor: ["admin", "user", "HOD"],
       module: "Transport Reporting",
     },
