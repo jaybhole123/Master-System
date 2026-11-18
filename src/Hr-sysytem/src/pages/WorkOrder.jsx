@@ -24,7 +24,7 @@ const COMPANY_DETAILS = {
   'M/s Jai Bhole Traders': {
     name: 'M/s Jai Bhole Traders',
     logo: jbt2Logo,
-    gstin: '22BGWPA5742M1Z2',
+    gstin: '22AWGPA9068C1ZW',
     textColor: '#1e293b',
     address: 'N.K. Agrawal & Sons Tower, 2nd Floor, Lane No. 8, Near State Bank of India, New Shanti Nagar, Shankar Nagar, Raipur 492 004 (C.G.)',
     footerContact: 'Mo. : 78736 50000, 91091 61146, E-mail : biswanath23@gmail.com, jaibholetraderacc@gmail.com',
@@ -912,7 +912,32 @@ const WorkOrder = () => {
       pdf.addImage(imgData, 'JPEG', x, y, finalW, finalH);
 
       toast.dismiss();
-      pdf.save(`Work_Order_${(previewData?.workOrderNo || previewData?.buyerName || 'Order').replace(/[^a-zA-Z0-9_-]/g, '_')}.pdf`);
+
+      // Dynamic PDF Filename:
+      // Purchase Order -> Vendor Firm Name + Order No (e.g. nikhil_pvt_PO_123.pdf)
+      // Sale Order     -> Buyer Name + Order No (e.g. Sharma_Enterprises_SO_123.pdf)
+      // Work Order     -> Buyer Name + Order No (e.g. Sharma_Enterprises_WO_2026.pdf)
+      const orderTitle = (previewData?.orderTitle || '').toUpperCase();
+      const isSO = orderTitle.includes('SALE') || orderTitle.includes('SO');
+      const isPO = previewData?.docType === 'purchase_order' || !isSO && orderTitle.includes('PURCHASE');
+      const orderNo = previewData?.workOrderNo || 'Draft';
+
+      let fileNamePrefix = '';
+      if (isPO) {
+        // In PO: vendor name is stored in previewData.buyerName (Vendor Firm Name)
+        const vendorFirm = previewData?.buyerName || 'Vendor';
+        fileNamePrefix = `${vendorFirm}_PO_${orderNo}`;
+      } else if (isSO) {
+        // In SO: buyer name / party is previewData.buyerName
+        const buyer = previewData?.buyerName || 'Buyer';
+        fileNamePrefix = `${buyer}_SO_${orderNo}`;
+      } else {
+        const buyer = previewData?.buyerName || 'Party';
+        fileNamePrefix = `${buyer}_WO_${orderNo}`;
+      }
+
+      const sanitizedFileName = `${fileNamePrefix.replace(/[^a-zA-Z0-9_-]/g, '_')}.pdf`;
+      pdf.save(sanitizedFileName);
       toast.success('PDF downloaded successfully (1 page)!');
     } catch (err) {
       toast.dismiss();

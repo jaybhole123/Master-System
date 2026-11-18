@@ -23,7 +23,7 @@ const COMPANY_DETAILS = {
   'M/s Jai Bhole Traders': {
     name: 'M/s Jai Bhole Traders',
     logo: jbt2Logo,
-    gstin: '22BGWPA5742M1Z2',
+    gstin: '22AWGPA9068C1ZW',
     textColor: '#1e293b',
     address: 'N.K. Agrawal & Sons Tower, 2nd Floor, Lane No. 8, Near State Bank of India, New Shanti Nagar, Shankar Nagar, Raipur 492 004 (C.G.)',
     footerContact: 'Mo. : 78736 50000, 91091 61146, E-mail : biswanath23@gmail.com, jaibholetraderacc@gmail.com',
@@ -32,7 +32,7 @@ const COMPANY_DETAILS = {
   'Jai Bhole Traders': {
     name: 'Jai Bhole Traders',
     logo: jbt2Logo,
-    gstin: '22BGWPA5742M1Z2',
+    gstin: '22AWGPA9068C1ZW',
     textColor: '#1e293b',
     address: 'N.K. Agrawal & Sons Tower, 2nd Floor, Lane No. 8, Near State Bank of India, New Shanti Nagar, Shankar Nagar, Raipur 492 004 (C.G.)',
     footerContact: 'Mo. : 78736 50000, 91091 61146, E-mail : biswanath23@gmail.com, jaibholetraderacc@gmail.com',

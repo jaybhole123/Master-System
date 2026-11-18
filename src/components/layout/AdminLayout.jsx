@@ -1815,6 +1815,11 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
            if (route.label === "Coal Supply Offer Letter") {
                mappedLabel = "Offer Letter";
            }
+           if (route.label === "Letter Head") {
+               const key1 = `${mappedModule}::Letter Head`;
+               const key2 = `${mappedModule}::Work Order`;
+               return pgList.includes(key1) || pgList.includes(key2);
+           }
            if (route.module === "Hindustan Dhaatu Ltd (Sponge) Report" || route.module === "Nandan Smelters Pvt Ltd Report") {
                if (route.label === "Incoming & Outgoing") {
                    const key1 = `${mappedModule}::Incoming & Outgoing`;

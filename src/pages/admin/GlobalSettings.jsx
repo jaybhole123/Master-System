@@ -268,7 +268,7 @@ const MODULES = [
   {
     id: 'Letter',
     name: 'Letter',
-    pages: ['Offer Letter', 'Work Order']
+    pages: ['Offer Letter', 'Letter Head']
   },
   {
     id: 'Petty Cash',
