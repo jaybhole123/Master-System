@@ -4,13 +4,14 @@ import EditModal from "./EditModal";
 import { exportToPDF } from "../utils/exportHelpers";
 import HighlightText from "./HighlightText";
 
-export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAddFiles, onSave, onDeleteRow, onUpdateRow, onAddManual, onPageChange, totalCount, isFetching }) {
+export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAddFiles, onSave, onDeleteRow, onUpdateRow, onBulkUpdateStatus, onAddManual, onPageChange, totalCount, isFetching }) {
   const fileInputRef = useRef(null);
   const observerRef = useRef(null);
   const [activeTab, setActiveTab] = useState("pending");
   const [editingIndex, setEditingIndex] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedIndices, setSelectedIndices] = useState(new Set());
 
   const handleEditClick = (index) => setEditingIndex(index);
   const handleSaveEdit = (updatedData) => {
@@ -155,6 +156,65 @@ export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAd
     
     return { groups, order, tQty, tAmt, tGrand, tTcs, tInclTotal };
   }, [itemsToDisplay, filteredItems]);
+
+  // Bulk selection helpers
+  const displayedIndices = useMemo(() => {
+    return itemsToDisplay.map(r => r._originalIndex !== undefined ? r._originalIndex : filteredItems.indexOf(r)).filter(idx => idx !== -1);
+  }, [itemsToDisplay, filteredItems]);
+
+  const isAllSelected = displayedIndices.length > 0 && displayedIndices.every(idx => selectedIndices.has(idx));
+  const isSomeSelected = displayedIndices.some(idx => selectedIndices.has(idx));
+
+  const toggleSelectAll = () => {
+    setSelectedIndices(prev => {
+      const next = new Set(prev);
+      if (isAllSelected) {
+        displayedIndices.forEach(idx => next.delete(idx));
+      } else {
+        displayedIndices.forEach(idx => next.add(idx));
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectRow = (idx) => {
+    setSelectedIndices(prev => {
+      const next = new Set(prev);
+      if (next.has(idx)) {
+        next.delete(idx);
+      } else {
+        next.add(idx);
+      }
+      return next;
+    });
+  };
+
+  const handleBulkDone = () => {
+    if (selectedIndices.size === 0) return;
+    if (onBulkUpdateStatus) {
+      onBulkUpdateStatus(Array.from(selectedIndices), "done");
+      setSelectedIndices(new Set());
+    } else {
+      selectedIndices.forEach(idx => onUpdateRow && onUpdateRow(idx, { status: "done" }));
+      setSelectedIndices(new Set());
+    }
+  };
+
+  const handleBulkUndo = () => {
+    if (selectedIndices.size === 0) return;
+    if (onBulkUpdateStatus) {
+      onBulkUpdateStatus(Array.from(selectedIndices), "pending");
+      setSelectedIndices(new Set());
+    } else {
+      selectedIndices.forEach(idx => onUpdateRow && onUpdateRow(idx, { status: "pending" }));
+      setSelectedIndices(new Set());
+    }
+  };
+
+  // Clear selections when switching tab or search changes
+  React.useEffect(() => {
+    setSelectedIndices(new Set());
+  }, [activeTab, searchTerm, selectedDate]);
 
   // Excel Export matching the HTML logic
   const handleExportExcel = () => {
@@ -558,14 +618,110 @@ export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAd
         {/* TABLE */}
         {(activeTab === "pending" || activeTab === "history") && (
         <div className="summary-section" style={{ marginTop: 0 }}>
-          <div className="summary-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-            <div className="summary-title">{activeTab === "pending" ? "Pending Records" : "History Records"}</div>
+          <div className="summary-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <div className="summary-title" style={{ margin: 0 }}>{activeTab === "pending" ? "Pending Records" : "History Records"}</div>
+              {selectedIndices.size > 0 && (
+                <span style={{ 
+                  fontSize: "12px", 
+                  fontWeight: 700, 
+                  background: "#eff6ff", 
+                  color: "#1d4ed8", 
+                  padding: "3px 10px", 
+                  borderRadius: "12px",
+                  border: "1px solid #bfdbfe"
+                }}>
+                  {selectedIndices.size} Selected
+                </span>
+              )}
+            </div>
+
+            {/* Bulk Action Controls */}
+            {selectedIndices.size > 0 && (
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                {activeTab === "pending" ? (
+                  <button
+                    onClick={handleBulkDone}
+                    style={{
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      padding: "6px 14px",
+                      fontSize: "12px",
+                      fontWeight: "700",
+                      borderRadius: "6px",
+                      background: "#16a34a",
+                      color: "#ffffff",
+                      border: "none",
+                      boxShadow: "0 2px 4px rgba(22, 163, 74, 0.25)",
+                      transition: "all 0.15s ease"
+                    }}
+                    title="Mark all selected items as Done"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    Mark {selectedIndices.size} as Done
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleBulkUndo}
+                    style={{
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      padding: "6px 14px",
+                      fontSize: "12px",
+                      fontWeight: "700",
+                      borderRadius: "6px",
+                      background: "#d97706",
+                      color: "#ffffff",
+                      border: "none",
+                      boxShadow: "0 2px 4px rgba(217, 119, 6, 0.25)",
+                      transition: "all 0.15s ease"
+                    }}
+                    title="Move all selected items back to Pending"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+                    Move {selectedIndices.size} to Pending
+                  </button>
+                )}
+
+                <button
+                  onClick={() => setSelectedIndices(new Set())}
+                  style={{
+                    cursor: "pointer",
+                    padding: "6px 12px",
+                    fontSize: "12px",
+                    fontWeight: "600",
+                    borderRadius: "6px",
+                    background: "transparent",
+                    color: "#64748b",
+                    border: "1px solid #cbd5e1"
+                  }}
+                >
+                  Clear Selection
+                </button>
+              </div>
+            )}
           </div>
           <div className="summary-table-wrap">
             {allItems.length > 0 ? (
               <table className="stable secl-table">
                 <thead>
                   <tr>
+                    <th style={{ width: "36px", textAlign: "center", padding: "10px 8px" }}>
+                      <input 
+                        type="checkbox"
+                        checked={isAllSelected}
+                        ref={el => {
+                          if (el) el.indeterminate = isSomeSelected && !isAllSelected;
+                        }}
+                        onChange={toggleSelectAll}
+                        style={{ cursor: "pointer", width: "16px", height: "16px", accentColor: "#dc2626" }}
+                        title="Select All Records"
+                      />
+                    </th>
                     {visibleCols.sno && <th className="r">S.No</th>}
                     {visibleCols.minesName && <th>Mines Name</th>}
                     {visibleCols.customerName && <th>Customer Name</th>}
@@ -591,8 +747,17 @@ export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAd
                       const g = groups[cn];
                       g.rows.forEach(r => {
                         displaySno++;
+                        const isChecked = selectedIndices.has(r._originalIndex);
                         rows.push(
-                          <tr key={`row-${r._originalIndex}`}>
+                          <tr key={`row-${r._originalIndex}`} style={{ backgroundColor: isChecked ? "rgba(220, 38, 38, 0.04)" : undefined }}>
+                            <td style={{ textAlign: "center", padding: "10px 8px" }}>
+                              <input 
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => toggleSelectRow(r._originalIndex)}
+                                style={{ cursor: "pointer", width: "16px", height: "16px", accentColor: "#dc2626" }}
+                              />
+                            </td>
                             {visibleCols.sno && <td className="sno" data-label="S.No">{String(displaySno).padStart(2, '0')}</td>}
                             {visibleCols.minesName && <td className="mines" data-label="Mines Name" style={{ fontWeight: "bold", fontSize: "14px", color: "var(--text)" }}>
                               <HighlightText text={r.minesName} highlight={searchTerm} />
@@ -729,7 +894,7 @@ export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAd
                       });
 
                       // Party subtotal row
-                      const colSpanBeforeQty = (visibleCols.sno ? 1 : 0) + (visibleCols.minesName ? 1 : 0) + (visibleCols.customerName ? 1 : 0);
+                      const colSpanBeforeQty = 1 + (visibleCols.sno ? 1 : 0) + (visibleCols.minesName ? 1 : 0) + (visibleCols.customerName ? 1 : 0);
                       rows.push(
                         <tr key={`sub-${cn}`} className="party-sub-row" style={{ background: "rgba(88,166,255,0.06)", borderTop: "1px solid rgba(88,166,255,0.2)", borderBottom: "2px solid rgba(88,166,255,0.25)" }}>
                           {colSpanBeforeQty > 0 && (
@@ -753,7 +918,7 @@ export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAd
                     });
                     
                     // Grand Total Row
-                    const colSpanBeforeQtyTotal = (visibleCols.sno ? 1 : 0) + (visibleCols.minesName ? 1 : 0) + (visibleCols.customerName ? 1 : 0);
+                    const colSpanBeforeQtyTotal = 1 + (visibleCols.sno ? 1 : 0) + (visibleCols.minesName ? 1 : 0) + (visibleCols.customerName ? 1 : 0);
                     rows.push(
                       <tr key="totals" className="totals-row" style={{ background: "var(--panel)", borderTop: "2px solid var(--border)" }}>
                         {colSpanBeforeQtyTotal > 0 && (

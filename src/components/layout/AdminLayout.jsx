@@ -57,7 +57,8 @@ import {
   Package,
   Factory,
   FolderKanban,
-  Wrench
+  Wrench,
+  BarChart3
 } from "lucide-react";
 
 // Helper: get module & page title from current pathname
@@ -90,6 +91,19 @@ const getHeaderTitle = (pathname, routes) => {
     const flat = (routes || []).flatMap(r => r.subItems ? r.subItems : [r]);
     const match = flat.find(r => r.href && pathname === r.href);
     return { module: "Daily Scheduler", page: match?.label || "Daily Scheduler" };
+  }
+  // Check MIS Reports routes
+  if (pathname.startsWith("/mis-reports")) {
+    const misRoutes = [
+      { href: "/mis-reports/dashboard", label: "Dashboard" },
+      { href: "/mis-reports/today-tasks", label: "Today's Tasks" },
+      { href: "/mis-reports/pending-tasks", label: "Pending Tasks" },
+      { href: "/mis-reports/commitment-history", label: "Commitment History" },
+      { href: "/mis-reports/kpi-kra", label: "KPI / KRA" },
+      { href: "/mis-reports/department", label: "Department" },
+    ];
+    const match = misRoutes.find(r => pathname === r.href);
+    return { module: "MIS Reports", page: match?.label || "Dashboard" };
   }
   // Check Plant routes
   if (pathname.startsWith("/plant")) {
@@ -200,6 +214,10 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
   const [hrBadges, setHrBadges] = useState({});
   const [schedulerBadges, setSchedulerBadges] = useState({});
   const [helpSlipPendingCount, setHelpSlipPendingCount] = useState(0);
+  const [letterBadges, setLetterBadges] = useState({
+    "Coal Supply Offer Letter": 0,
+    "Letter Head": 0
+  });
 
   useEffect(() => {
     let isMounted = true;
@@ -352,29 +370,34 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
     let isMounted = true;
     const fetchRentCounts = async () => {
       try {
-        const currentMonth = new Date().toLocaleString('default', { month: 'long' });
-        
-        const fetchCount = async (table, filterMonth = null) => {
-          let query = supabase.from(table).select('*', { count: 'exact', head: true });
-          if (filterMonth) {
-            query = query.eq('month', filterMonth);
-          }
-          if (table === 'rent_monthly_tracker') {
-            query = query.eq('status', 'Pending');
-          }
-          const { count } = await query;
-          return count || 0;
-        };
-        const [
-          monthlyTrackerCount
-        ] = await Promise.all([
-          fetchCount('rent_monthly_tracker', currentMonth)
+        const selectedMonth = sessionStorage.getItem('rent_filter_month') || new Date().toLocaleString('default', { month: 'long' });
+
+        let monthlyQuery = supabase
+          .from('rent_monthly_tracker')
+          .select('id, status', { count: 'exact' });
+
+        if (selectedMonth && selectedMonth !== 'All Months') {
+          monthlyQuery = monthlyQuery.ilike('month', `%${selectedMonth}%`);
+        }
+
+        const [monthlyRes, masterRes] = await Promise.all([
+          monthlyQuery,
+          supabase.from('rent_master').select('id', { count: 'exact', head: true })
         ]);
+
+        // Pending count: status != 'Received' && status != 'Done'
+        const pendingRows = (monthlyRes.data || []).filter(r => {
+          const s = (r.status || 'Pending').toLowerCase();
+          return s !== 'received' && s !== 'done';
+        });
+        const monthlyTrackerCount = pendingRows.length;
+        const masterCount = masterRes?.count || 0;
 
         if (isMounted) {
           setRentBadges({
-            "Rent Master": 0,
+            "Rent Master": masterCount,
             "Monthly Tracker": monthlyTrackerCount,
+            "Rent Dashboard": 0,
             "Rent Management": 0
           });
         }
@@ -382,8 +405,23 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
         console.error("Error fetching rent system counts", err);
       }
     };
+
     fetchRentCounts();
-    return () => { isMounted = false; };
+
+    const handleMonthChange = () => fetchRentCounts();
+    window.addEventListener('rent_month_changed', handleMonthChange);
+
+    const rentChannel = supabase
+      .channel('realtime:rent_badges')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'rent_monthly_tracker' }, () => fetchRentCounts())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'rent_master' }, () => fetchRentCounts())
+      .subscribe();
+
+    return () => { 
+      isMounted = false; 
+      window.removeEventListener('rent_month_changed', handleMonthChange);
+      supabase.removeChannel(rentChannel);
+    };
   }, []);
 
   useEffect(() => {
@@ -446,6 +484,46 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
     };
     fetchCoalCounts();
     return () => { isMounted = false; };
+  }, [isSuperAdmin, systemAccess]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchLetterCounts = async () => {
+      if (!isSuperAdmin && !systemAccess.includes("Letter")) return;
+      try {
+        const [offerRes, woRes, poRes] = await Promise.all([
+          supabase.from('coal_offer_letters').select('id', { count: 'exact', head: true }).neq('status', 'Done'),
+          supabase.from('work_orders').select('id', { count: 'exact', head: true }).neq('status', 'Done'),
+          supabase.from('purchase_orders').select('id', { count: 'exact', head: true }).neq('status', 'Done'),
+        ]);
+
+        const offerCount = offerRes?.count || 0;
+        const letterHeadCount = (woRes?.count || 0) + (poRes?.count || 0);
+
+        if (isMounted) {
+          setLetterBadges({
+            "Coal Supply Offer Letter": offerCount,
+            "Letter Head": letterHeadCount
+          });
+        }
+      } catch (err) {
+        console.error("Error fetching letter badge counts:", err);
+      }
+    };
+
+    fetchLetterCounts();
+
+    const channel1 = supabase
+      .channel('realtime:letter_badge_counts')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'coal_offer_letters' }, () => fetchLetterCounts())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'work_orders' }, () => fetchLetterCounts())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'purchase_orders' }, () => fetchLetterCounts())
+      .subscribe();
+
+    return () => {
+      isMounted = false;
+      supabase.removeChannel(channel1);
+    };
   }, [isSuperAdmin, systemAccess]);
 
   useEffect(() => {
@@ -604,7 +682,8 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       "Nandan Smelters Pvt Ltd Report": path.startsWith("/nandan-smelter"),
       "Hindustan Dhaatu Ltd (Billet) Report": path.startsWith("/billet-system"),
       "Transport Reporting": path.startsWith("/transport-system"),
-      "Letter": path.startsWith("/letter")
+      "Letter": path.startsWith("/letter"),
+      "MIS Reports": path.startsWith("/mis-reports")
     };
     try {
       const saved = sessionStorage.getItem('sidebar_open_modules');
@@ -1277,6 +1356,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/letter/offer-letter",
       showFor: ["admin", "user", "HOD"],
       module: "Letter",
+      badge: letterBadges["Coal Supply Offer Letter"] > 0 ? letterBadges["Coal Supply Offer Letter"] : null,
     },
     {
       href: "/letter/work-order",
@@ -1285,6 +1365,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/letter/work-order",
       showFor: ["admin", "user", "HOD"],
       module: "Letter",
+      badge: letterBadges["Letter Head"] > 0 ? letterBadges["Letter Head"] : null,
     },
     // --- Petty Cash Module Routes ---
     {
@@ -1474,6 +1555,146 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       module: "Transport Reporting",
     },
 
+    // --- Coal System Module Routes ---
+    {
+      href: "/coal-system/system-flow",
+      label: "System Flow",
+      icon: GitFork,
+      active: location.pathname === "/coal-system/system-flow",
+      showFor: ["admin", "user", "HOD"],
+      module: "Coal System",
+    },
+    {
+      href: "/coal-system/dashboard",
+      label: "Dashboard",
+      icon: LayoutDashboard,
+      active: location.pathname === "/coal-system/dashboard" || location.pathname === "/coal-system",
+      showFor: ["admin", "user", "HOD"],
+      module: "Coal System",
+    },
+    {
+      href: "/coal-system/auction",
+      label: "Auction",
+      icon: Database,
+      active: location.pathname === "/coal-system/auction",
+      showFor: ["admin", "user", "HOD"],
+      module: "Coal System",
+      badge: coalBadges["Auction"] > 0 ? coalBadges["Auction"] : null,
+    },
+    {
+      href: "/coal-system/secl-intimation",
+      label: "SECL Intimation",
+      icon: FileText,
+      active: location.pathname === "/coal-system/secl-intimation",
+      showFor: ["admin", "user", "HOD"],
+      module: "Coal System",
+      badge: coalBadges["SECL Intimation"] > 0 ? coalBadges["SECL Intimation"] : null,
+    },
+    {
+      href: "/coal-system/secl-payment",
+      label: "SECL Payment Advice",
+      icon: FileText,
+      active: location.pathname === "/coal-system/secl-payment",
+      showFor: ["admin", "user", "HOD"],
+      module: "Coal System",
+      badge: coalBadges["SECL Payment Advice"] > 0 ? coalBadges["SECL Payment Advice"] : null,
+    },
+    {
+      href: "/coal-system/sales-order",
+      label: "Sales Order",
+      icon: FileText,
+      active: location.pathname === "/coal-system/sales-order",
+      showFor: ["admin", "user", "HOD"],
+      module: "Coal System",
+      badge: coalBadges["Sales Order"] > 0 ? coalBadges["Sales Order"] : null,
+    },
+    {
+      href: "/coal-system/dispatch",
+      label: "Dispatch",
+      icon: FileText,
+      active: location.pathname === "/coal-system/dispatch",
+      showFor: ["admin", "user", "HOD"],
+      module: "Coal System",
+      badge: coalBadges["Dispatch"] > 0 ? coalBadges["Dispatch"] : null,
+    },
+    {
+      href: "/coal-system/invoice",
+      label: "Invoice",
+      icon: FileText,
+      active: location.pathname === "/coal-system/invoice",
+      showFor: ["admin", "user", "HOD"],
+      module: "Coal System",
+      badge: coalBadges["Invoice"] > 0 ? coalBadges["Invoice"] : null,
+    },
+    {
+      href: "/coal-system/refund-lapse",
+      label: "Refund / Lapse",
+      icon: FileText,
+      active: location.pathname === "/coal-system/refund-lapse",
+      showFor: ["admin", "user", "HOD"],
+      module: "Coal System",
+      badge: coalBadges["Refund / Lapse"] > 0 ? coalBadges["Refund / Lapse"] : null,
+    },
+    {
+      href: "/coal-system/sauda-scale",
+      label: "Sauda Sale",
+      icon: FileText,
+      active: location.pathname === "/coal-system/sauda-scale",
+      showFor: ["admin", "user", "HOD"],
+      module: "Coal System",
+      badge: coalBadges["Sauda Sale"] > 0 ? coalBadges["Sauda Sale"] : null,
+    },
+
+    // --- MIS Reports Module Routes ---
+    {
+      href: "/mis-reports/dashboard",
+      label: "Dashboard",
+      icon: LayoutDashboard,
+      active: location.pathname === "/mis-reports/dashboard" || location.pathname === "/mis-reports",
+      showFor: ["admin", "user", "HOD"],
+      module: "MIS Reports",
+    },
+    {
+      href: "/mis-reports/today-tasks",
+      label: "Today's Tasks",
+      icon: CalendarCheck,
+      active: location.pathname === "/mis-reports/today-tasks",
+      showFor: ["admin", "user", "HOD"],
+      module: "MIS Reports",
+    },
+    {
+      href: "/mis-reports/pending-tasks",
+      label: "Pending Tasks",
+      icon: List,
+      active: location.pathname === "/mis-reports/pending-tasks",
+      showFor: ["admin", "user", "HOD"],
+      module: "MIS Reports",
+    },
+    {
+      href: "/mis-reports/commitment-history",
+      label: "Commitment History",
+      icon: RefreshCw,
+      active: location.pathname === "/mis-reports/commitment-history",
+      showFor: ["admin", "user", "HOD"],
+      module: "MIS Reports",
+    },
+    {
+      href: "/mis-reports/kpi-kra",
+      label: "KPI / KRA",
+      icon: BarChart3,
+      active: location.pathname === "/mis-reports/kpi-kra",
+      showFor: ["admin", "user", "HOD"],
+      module: "MIS Reports",
+    },
+    {
+      href: "/mis-reports/department",
+      label: "Department",
+      icon: Building2,
+      active: location.pathname === "/mis-reports/department",
+      showFor: ["admin", "user", "HOD"],
+      module: "MIS Reports",
+    },
+
     // --- Hindustan Dhaatu Ltd (Sponge) Report Module Routes ---
     {
       label: "Stock Management",
@@ -1621,108 +1842,6 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       showFor: ["admin", "user", "HOD"],
       module: "Hindustan Dhaatu Ltd (Billet) Report",
     },
-    // --- Coal System Module Routes ---
-    {
-      href: "/coal-system/system-flow",
-      label: "System Flow",
-      icon: GitFork,
-      active: location.pathname === "/coal-system/system-flow",
-      showFor: ["admin", "user", "HOD"],
-      module: "Coal System",
-    },
-    {
-      href: "/coal-system/dashboard",
-      label: "Dashboard",
-      icon: LayoutDashboard,
-      active: location.pathname === "/coal-system/dashboard" || location.pathname === "/coal-system",
-      showFor: ["admin", "user", "HOD"],
-      module: "Coal System",
-    },
-    {
-      href: "/coal-system/auction",
-      label: "Auction",
-      icon: Database,
-      active: location.pathname === "/coal-system/auction",
-      showFor: ["admin", "user", "HOD"],
-      module: "Coal System",
-      badge: coalBadges["Auction"] > 0 ? coalBadges["Auction"] : null,
-    },
-    {
-      href: "/coal-system/secl-intimation",
-      label: "SECL Intimation",
-      icon: FileText,
-      active: location.pathname === "/coal-system/secl-intimation",
-      showFor: ["admin", "user", "HOD"],
-      module: "Coal System",
-      badge: coalBadges["SECL Intimation"] > 0 ? coalBadges["SECL Intimation"] : null,
-    },
-    {
-      href: "/coal-system/secl-payment",
-      label: "SECL Payment Advice",
-      icon: FileText,
-      active: location.pathname === "/coal-system/secl-payment",
-      showFor: ["admin", "user", "HOD"],
-      module: "Coal System",
-      badge: coalBadges["SECL Payment Advice"] > 0 ? coalBadges["SECL Payment Advice"] : null,
-    },
-    {
-      href: "/coal-system/sales-order",
-      label: "Sales Order",
-      icon: FileText,
-      active: location.pathname === "/coal-system/sales-order",
-      showFor: ["admin", "user", "HOD"],
-      module: "Coal System",
-      badge: coalBadges["Sales Order"] > 0 ? coalBadges["Sales Order"] : null,
-    },
-
-    {
-      href: "/coal-system/dispatch",
-      label: "Dispatch",
-      icon: FileText,
-      active: location.pathname === "/coal-system/dispatch",
-      showFor: ["admin", "user", "HOD"],
-      module: "Coal System",
-      badge: coalBadges["Dispatch"] > 0 ? coalBadges["Dispatch"] : null,
-    },
-    {
-      href: "/coal-system/invoice",
-      label: "Invoice",
-      icon: FileText,
-      active: location.pathname === "/coal-system/invoice",
-      showFor: ["admin", "user", "HOD"],
-      module: "Coal System",
-      badge: coalBadges["Invoice"] > 0 ? coalBadges["Invoice"] : null,
-    },
-      // Transport Payment temporarily hidden from sidebar per user request
-      // {
-      //   href: "/coal-system/transport-payment",
-      //   label: "Transport Payment",
-      //   icon: FileText,
-      //   active: location.pathname === "/coal-system/transport-payment",
-      //   showFor: ["admin", "user", "HOD"],
-      //   module: "Coal System",
-      //   badge: coalBadges["Transport Payment"] > 0 ? coalBadges["Transport Payment"] : null,
-      // },
-    {
-      href: "/coal-system/refund-lapse",
-      label: "Refund / Lapse",
-      icon: FileText,
-      active: location.pathname === "/coal-system/refund-lapse",
-      showFor: ["admin", "user", "HOD"],
-      module: "Coal System",
-      badge: coalBadges["Refund / Lapse"] > 0 ? coalBadges["Refund / Lapse"] : null,
-    },
-    {
-      href: "/coal-system/sauda-scale",
-      label: "Sauda Sale",
-      icon: FileText,
-      active: location.pathname === "/coal-system/sauda-scale",
-      showFor: ["admin", "user", "HOD"],
-      module: "Coal System",
-      badge: coalBadges["Sauda Sale"] > 0 ? coalBadges["Sauda Sale"] : null,
-    },
-
-
     {
       href: "/dashboard/global-settings",
       label: "Global Settings",
@@ -2007,6 +2126,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                         {moduleName === "Nandan Smelters Pvt Ltd Report" && <FolderKanban className="h-4 w-4" />}
                         {moduleName === "Hindustan Dhaatu Ltd (Billet) Report" && <Package className="h-4 w-4" />}
                         {moduleName === "Letter" && <FileText className="h-4 w-4" />}
+                        {moduleName === "MIS Reports" && <BarChart3 className="h-4 w-4" />}
                         {moduleName === "Transport Reporting" && <Truck className="h-4 w-4" />}
                         {moduleName === "Help Slip" && <HelpCircle className="h-4 w-4" />}
                       </div>

@@ -1455,7 +1455,9 @@ const WorkOrder = () => {
               color: '#334155'
             }}
           >
-            <option value="All">Buyer (All)</option>
+            <option value="All">
+              {activeTab === 'purchase_orders' || activeTab === 'po_history' ? 'Vendor / Party (All)' : 'Buyer (All)'}
+            </option>
             {buyerOptions.filter(b => b !== 'All').map(b => (
               <option key={b} value={b}>{b}</option>
             ))}
@@ -1479,7 +1481,9 @@ const WorkOrder = () => {
               color: '#334155'
             }}
           >
-            <option value="All">Commodity (All)</option>
+            <option value="All">
+              {activeTab === 'purchase_orders' || activeTab === 'po_history' ? 'Material (All)' : 'Commodity (All)'}
+            </option>
             {commodityOptions.filter(c => c !== 'All').map(c => (
               <option key={c} value={c}>{c}</option>
             ))}

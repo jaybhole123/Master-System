@@ -589,16 +589,34 @@ export default function TruckReports() {
 
   // Turnaround (TAT) calculation based on consecutive trips for each vehicle
   const reportsWithTat = useMemo(() => {
-    // Helper to safely parse date string to timestamp, handling potential DD/MM/YYYY vs YYYY-MM-DD
-    const parseDateMs = (dStr) => {
-      if (!dStr) return 0;
+    // Helper to safely parse date string to timestamp at UTC midnight, handling potential DD/MM/YYYY vs YYYY-MM-DD
+    const parseDateUtcDays = (dStr) => {
+      if (!dStr) return null;
       const s = String(dStr).trim();
+      let year, month, day;
+      
       // If DD-MM-YYYY or DD/MM/YYYY format
       if (/^\d{1,2}[-/]\d{1,2}[-/]\d{4}$/.test(s)) {
         const parts = s.split(/[-/]/);
-        return new Date(`${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`).getTime() || 0;
+        day = parseInt(parts[0], 10);
+        month = parseInt(parts[1], 10);
+        year = parseInt(parts[2], 10);
+      } else if (/^\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(s)) {
+        // YYYY-MM-DD or YYYY/MM/DD
+        const parts = s.split(/[-/]/);
+        year = parseInt(parts[0], 10);
+        month = parseInt(parts[1], 10);
+        day = parseInt(parts[2].slice(0, 2), 10);
+      } else {
+        const d = new Date(s);
+        if (isNaN(d.getTime())) return null;
+        year = d.getFullYear();
+        month = d.getMonth() + 1;
+        day = d.getDate();
       }
-      return new Date(s).getTime() || 0;
+
+      if (!year || !month || !day) return null;
+      return Math.floor(Date.UTC(year, month - 1, day) / (1000 * 60 * 60 * 24));
     };
 
     // 1. Group all raw reports by normalized vehicle number
@@ -616,8 +634,8 @@ export default function TruckReports() {
     const tatMap = new Map(); // key: report item id -> { days, prevDate, nextDate }
     vehicleTripsMap.forEach((trips) => {
       const sorted = [...trips].sort((a, b) => {
-        const da = parseDateMs(a.date);
-        const db = parseDateMs(b.date);
+        const da = parseDateUtcDays(a.date) ?? 0;
+        const db = parseDateUtcDays(b.date) ?? 0;
         if (da !== db) return da - db;
         return (a.sNo || 0) - (b.sNo || 0);
       });
@@ -629,18 +647,19 @@ export default function TruckReports() {
           tatMap.set(curr.id, { days: null, isFirst: true, prevDate: null, nextDate: sorted[i + 1]?.date || null });
         } else {
           const prev = sorted[i - 1];
-          const currTime = parseDateMs(curr.date);
-          const prevTime = parseDateMs(prev.date);
-          if (currTime > 0 && prevTime > 0) {
-            const diffDays = Math.round((currTime - prevTime) / (1000 * 60 * 60 * 24));
+
+          const currDay = parseDateUtcDays(curr.date);
+          const prevDay = parseDateUtcDays(prev?.date);
+          if (currDay !== null && prevDay !== null) {
+            const diffDays = Math.max(0, currDay - prevDay);
             tatMap.set(curr.id, { 
-              days: Math.max(0, diffDays), 
+              days: diffDays, 
               isFirst: false, 
               prevDate: prev.date,
               nextDate: sorted[i + 1]?.date || null
             });
           } else {
-            tatMap.set(curr.id, { days: null, isFirst: false, prevDate: prev.date, nextDate: sorted[i + 1]?.date || null });
+            tatMap.set(curr.id, { days: null, isFirst: false, prevDate: prev?.date || null, nextDate: sorted[i + 1]?.date || null });
           }
         }
       }

@@ -8,6 +8,18 @@ import {
 import * as XLSX from 'xlsx';
 import supabase from '../../../SupabaseClient';
 
+// Helper: format month string like "2026-11" or "2026-10" to readable format e.g. "2026 Nov"
+const formatDisplayMonth = (m) => {
+  if (!m) return '—';
+  const match = String(m).match(/^(\d{4})-(\d{1,2})$/);
+  if (!match) return m;
+  const year = match[1];
+  const monthNum = parseInt(match[2], 10);
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const monthName = monthNames[monthNum - 1] || match[2];
+  return `${year} ${monthName}`;
+};
+
 export default function MonthlyTruckMaintenance() {
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
@@ -328,7 +340,8 @@ export default function MonthlyTruckMaintenance() {
       }
       if (searchTerm) {
         const q = searchTerm.toLowerCase();
-        if (!r.month.toLowerCase().includes(q)) {
+        const disp = formatDisplayMonth(r.month).toLowerCase();
+        if (!r.month.toLowerCase().includes(q) && !disp.includes(q)) {
           return false;
         }
       }

@@ -984,7 +984,12 @@ const MonthlyTracker = () => {
               <span className="text-[11px] font-bold text-slate-400 uppercase mr-2">Cycle:</span>
               <select
                 value={filterMonth}
-                onChange={(e) => setFilterMonth(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setFilterMonth(val);
+                  sessionStorage.setItem('rent_filter_month', val);
+                  window.dispatchEvent(new CustomEvent('rent_month_changed', { detail: val }));
+                }}
                 className="text-xs font-bold text-slate-800 bg-transparent outline-none cursor-pointer"
               >
                 <option value="">All Months</option>

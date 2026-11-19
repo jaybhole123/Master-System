@@ -111,6 +111,8 @@ import MonthlyTracker from "./pages/admin/MonthlyTracker"
 import RentDashboard from "./pages/admin/RentDashboard"
 import RentSystemFlow from "./pages/admin/RentSystemFlow"
 
+import MisReportsEmbed from "./pages/mis/MisReportsEmbed"
+
 // --- Layout & Components ---
 import AdminLayout from "./components/layout/AdminLayout"
 import RealtimeLogoutListener from "./components/RealtimeLogoutListener"
@@ -737,6 +739,51 @@ function App() {
                     <Route path="/billet-system/consumption" element={<BilletSystemWrapper><BilletConsumption /></BilletSystemWrapper>} />
                     <Route path="/billet-system/billet" element={<BilletSystemWrapper><BilletReport /></BilletSystemWrapper>} />
                     <Route path="/billet-system/mis-report" element={<BilletSystemWrapper><BilletMisReport /></BilletSystemWrapper>} />
+
+                    {/* --- MIS Reports Routes --- */}
+                    <Route path="/mis-reports" element={<Navigate to="/mis-reports/dashboard" replace />} />
+                    <Route path="/mis-reports/dashboard" element={
+                        <ProtectedRoute>
+                            <AdminLayout noPadding={true}>
+                                <MisReportsEmbed path="/mis/dashboard" />
+                            </AdminLayout>
+                        </ProtectedRoute>
+                    } />
+                    <Route path="/mis-reports/today-tasks" element={
+                        <ProtectedRoute>
+                            <AdminLayout noPadding={true}>
+                                <MisReportsEmbed path="/mis/today_tasks" />
+                            </AdminLayout>
+                        </ProtectedRoute>
+                    } />
+                    <Route path="/mis-reports/pending-tasks" element={
+                        <ProtectedRoute>
+                            <AdminLayout noPadding={true}>
+                                <MisReportsEmbed path="/mis/pending_tasks" />
+                            </AdminLayout>
+                        </ProtectedRoute>
+                    } />
+                    <Route path="/mis-reports/commitment-history" element={
+                        <ProtectedRoute>
+                            <AdminLayout noPadding={true}>
+                                <MisReportsEmbed path="/mis/history_commitment" />
+                            </AdminLayout>
+                        </ProtectedRoute>
+                    } />
+                    <Route path="/mis-reports/kpi-kra" element={
+                        <ProtectedRoute>
+                            <AdminLayout noPadding={true}>
+                                <MisReportsEmbed path="/mis/kpi_kra" />
+                            </AdminLayout>
+                        </ProtectedRoute>
+                    } />
+                    <Route path="/mis-reports/department" element={
+                        <ProtectedRoute>
+                            <AdminLayout noPadding={true}>
+                                <MisReportsEmbed path="/mis/department" />
+                            </AdminLayout>
+                        </ProtectedRoute>
+                    } />
 
                     {/* --- Backward Compatibility Redirects (From Snippet 1) --- */}
                     {/* These catch old URLs and forward them to the new structure */}

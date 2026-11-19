@@ -12,6 +12,107 @@ import { Edit, Trash, CheckCircle } from "lucide-react";
 // Point pdf.js at the correct worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
 
+// Helper to cleanly parse and split "Period of Auction" into Start & End dates/times
+function parseAuctionPeriod(periodStr) {
+  if (!periodStr || periodStr === "—" || periodStr === "-") {
+    return { start: "—", end: "—", raw: periodStr };
+  }
+
+  const cleaned = String(periodStr).trim();
+
+  // Pattern matching: e.g. "29-09-2026 14:00::29-09-2026 16:45" or "29-09-2026 14:00 to 29-09-2026 16:45" or "29-09-2026 14:00 - 29-09-2026 16:45"
+  const splitDelim = cleaned.includes("::") 
+    ? "::" 
+    : cleaned.includes(" to ") 
+      ? " to " 
+      : cleaned.includes(" - ") 
+        ? " - " 
+        : null;
+
+  if (splitDelim) {
+    const parts = cleaned.split(splitDelim).map(p => p.trim());
+    return {
+      start: parts[0] || "—",
+      end: parts[1] || "—",
+      raw: cleaned
+    };
+  }
+
+  // Check if two datetime strings are joined e.g. "29-09-2026 14:00 29-09-2026 16:45"
+  const dateMatch = cleaned.match(/^(\d{2}[-/]\d{2}[-/]\d{4}(?:\s+\d{1,2}:\d{2}(?::\d{2})?)?)\s+(?:to\s+|-|::)?\s*(\d{2}[-/]\d{2}[-/]\d{4}(?:\s+\d{1,2}:\d{2}(?::\d{2})?)?)$/i);
+  if (dateMatch) {
+    return {
+      start: dateMatch[1].trim(),
+      end: dateMatch[2].trim(),
+      raw: cleaned
+    };
+  }
+
+  return { start: cleaned, end: "—", raw: cleaned };
+}
+
+// Subcomponent to render beautiful badge for DateTime
+function DateTimeBadge({ value, label, variant = "start" }) {
+  if (!value || value === "—" || value === "-") {
+    return <span style={{ color: "#94a3b8", fontFamily: "monospace", fontSize: "12px" }}>—</span>;
+  }
+
+  // Try extracting date and time
+  const match = value.match(/^(\d{2}[-/]\d{2}[-/]\d{4})(?:\s+(\d{1,2}:\d{2}(?::\d{2})?))?/);
+  const datePart = match ? match[1] : value;
+  const timePart = match && match[2] ? match[2] : null;
+
+  const isStart = variant === "start";
+
+  return (
+    <div 
+      style={{
+        display: "inline-flex",
+        flexDirection: "column",
+        borderRadius: "8px",
+        padding: "4px 8px",
+        fontSize: "12px",
+        border: isStart ? "1px solid #fde68a" : "1px solid #bfdbfe",
+        backgroundColor: isStart ? "#fffbeb" : "#eff6ff",
+        color: isStart ? "#78350f" : "#1e3a8a",
+        minWidth: "125px",
+        boxShadow: "0 1px 2px rgba(0,0,0,0.03)"
+      }}
+    >
+      {label && (
+        <span 
+          style={{
+            fontSize: "9px",
+            fontWeight: 800,
+            textTransform: "uppercase",
+            letterSpacing: "0.6px",
+            color: isStart ? "#b45309" : "#2563eb"
+          }}
+        >
+          {label}
+        </span>
+      )}
+      <div style={{ display: "flex", alignItems: "center", gap: "6px", fontFamily: "monospace", fontWeight: 700, marginTop: "2px" }}>
+        <span>{datePart}</span>
+        {timePart && (
+          <span 
+            style={{
+              padding: "1px 5px",
+              borderRadius: "4px",
+              fontWeight: 600,
+              fontSize: "11px",
+              backgroundColor: isStart ? "#fef3c7" : "#dbeafe",
+              color: isStart ? "#92400e" : "#1d4ed8"
+            }}
+          >
+            {timePart}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function SECLFormat2Page() {
   const fileInputRef = useRef(null);
   
@@ -441,7 +542,8 @@ export default function SECLFormat2Page() {
     setDocs((prev) => prev.map(d => d.id === id ? { ...d, showRaw: !d.showRaw } : d));
   };
   const exportCols = [
-    { key: "period", label: "Period of Auction" },
+    { key: "periodStart", label: "Auction Start (Date & Time)" },
+    { key: "periodEnd", label: "Auction End (Date & Time)" },
     { key: "contact", label: "Contact Person" },
     { key: "seller", label: "Seller" },
     { key: "bidPrice", label: "Bid Price (Rs/MT)" },
@@ -476,10 +578,13 @@ export default function SECLFormat2Page() {
 
   const getExportData = () => {
     return docs.flatMap(d => {
+      const parsedPeriod = parseAuctionPeriod(d.period);
       return (d.rows || []).map(r => ({
         company: d.company || "",
         seller: r.seller || "",
         contact: d.contact || "",
+        periodStart: parsedPeriod.start,
+        periodEnd: parsedPeriod.end,
         period: d.period || "",
         bidId: r.bidId || "",
         source: r.source || "",
@@ -765,10 +870,27 @@ export default function SECLFormat2Page() {
             <div style={{ padding: 24, background: "white", border: "1px solid #e5e7eb", borderRadius: 8 }}>
               <div className="summary-table-wrap" style={{ border: "1px solid #e5e7eb" }}>
                 <table className="stable">
-                  <thead style={{ background: "#f9fafb" }}>
+                  <thead style={{ background: "#f8fafc" }}>
                     <tr>
-                      <th>#</th><th>Period of Auction</th><th>Contact Person</th><th>Seller</th><th>Bid Price (Rs/MT)</th><th>Mode</th><th>Grade</th><th>Size</th><th>Offer Quantity (MT)</th><th>Quantity Allotted (MT)</th><th>Notified Price of Source (Rs/MT)</th><th>Premium (%)</th><th>Balance Quantity (MT)</th><th>Bid ID</th><th>Source</th><th>Status</th><th>Preview</th><th>Action</th>
-
+                      <th style={{ textAlign: "center", width: "40px" }}>#</th>
+                      <th style={{ minWidth: "150px" }}>Auction Start</th>
+                      <th style={{ minWidth: "150px" }}>Auction End</th>
+                      <th style={{ minWidth: "160px" }}>Contact Person</th>
+                      <th>Seller</th>
+                      <th>Bid Price (Rs/MT)</th>
+                      <th>Mode</th>
+                      <th>Grade</th>
+                      <th>Size</th>
+                      <th>Offer Quantity (MT)</th>
+                      <th>Quantity Allotted (MT)</th>
+                      <th>Notified Price of Source (Rs/MT)</th>
+                      <th>Premium (%)</th>
+                      <th>Balance Quantity (MT)</th>
+                      <th>Bid ID</th>
+                      <th>Source</th>
+                      <th style={{ textAlign: "center" }}>Status</th>
+                      <th style={{ textAlign: "center" }}>Preview</th>
+                      <th style={{ textAlign: "center", minWidth: "220px" }}>Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -784,62 +906,88 @@ export default function SECLFormat2Page() {
                       });
 
                       if (filteredRows.length === 0) {
-                        return <tr><td colSpan="16" style={{ textAlign: "center", padding: "40px", color: "var(--muted)" }}>No matching records found.</td></tr>;
+                        return <tr><td colSpan="19" style={{ textAlign: "center", padding: "40px", color: "var(--muted)" }}>No matching records found.</td></tr>;
                       }
 
-                      return filteredRows.map((r, i) => (
-                        <tr key={i}>
-                          <td data-label="#">{i + 1}</td>
-                          <td data-label="Period of Auction">{r._doc.period}</td>
-                          <td data-label="Contact Person">{r._doc.contact}</td>
-                          <td data-label="Seller">{r.seller}</td>
-                          <td data-label="Bid Price (Rs/MT)" style={{ color: "var(--ember)", fontWeight: 500 }}>{r.bidPrice}</td>
+                      return filteredRows.map((r, i) => {
+                        const { start, end } = parseAuctionPeriod(r._doc.period);
+                        return (
+                          <tr key={i}>
+                            <td data-label="#" style={{ textAlign: "center", fontWeight: "bold", color: "#64748b" }}>{i + 1}</td>
+                            
+                            {/* Auction Start Column */}
+                            <td data-label="Auction Start">
+                              <DateTimeBadge value={start} label="Start" variant="start" />
+                            </td>
 
-                          <td data-label="Mode">{r.mode}</td>
-                          <td data-label="Grade">{r.grade}</td>
-                          <td data-label="Size">{r.size}</td>
-                          <td data-label="Offer Quantity (MT)" style={{ color: "var(--ember)", fontWeight: 500 }}>{r.offerQty}</td>
-                          <td data-label="Quantity Allotted (MT)" style={{ color: "var(--ember)", fontWeight: 500 }}>{r.qtyAllotted}</td>
+                            {/* Auction End Column */}
+                            <td data-label="Auction End">
+                              <DateTimeBadge value={end} label="End" variant="end" />
+                            </td>
 
-                          <td data-label="Notified Price of Source (Rs/MT)">{r.notifiedPrice}</td>
-                          <td data-label="Premium (%)">{r.premium}</td>
-                          <td data-label="Balance Quantity (MT)">{r.balanceQty}</td>
-                          <td data-label="Bid ID">{r.bidId}</td>
-                          <td data-label="Source">{r.source}</td>
-                          <td data-label="Status">
-                            <span style={{ 
-                              padding: "4px 12px", 
-                              borderRadius: "16px", 
-                              fontSize: "12px", 
-                              fontWeight: "600", 
-                              display: "inline-block",
-                              backgroundColor: r.status === "done" ? "#d1fae5" : "#fef3c7",
-                              color: r.status === "done" ? "#065f46" : "#92400e"
-                            }}>
-                              {r.status === "done" ? "Done" : "Pending"}
-                            </span>
-                          </td>
-                          <td data-label="Preview">
-                            {r._doc.pdfUrl ? (
-                              <a
-                                href={r._doc.pdfUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                style={{
-                                  display: "inline-flex",
-                                  flexDirection: "column",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  padding: "4px 8px",
-                                  borderRadius: "8px",
-                                  background: (/\.(jpg|jpeg|png|webp|gif|bmp)$/i.test(r._doc.fileName || r._doc.pdfUrl)) ? "#f5f3ff" : "#fff1f1",
-                                  border: `1px solid ${(/\.(jpg|jpeg|png|webp|gif|bmp)$/i.test(r._doc.fileName || r._doc.pdfUrl)) ? "#ddd6fe" : "#fed7d7"}`,
-                                  textDecoration: "none",
-                                  boxShadow: (/\.(jpg|jpeg|png|webp|gif|bmp)$/i.test(r._doc.fileName || r._doc.pdfUrl)) ? "0 1px 2px rgba(124, 58, 237, 0.12)" : "0 1px 2px rgba(220, 38, 38, 0.08)",
-                                  transition: "all 0.2s ease",
-                                  cursor: "pointer"
-                                }}
-                              >
+                            <td data-label="Contact Person" style={{ fontWeight: 600, color: "#1e293b" }}>{r._doc.contact}</td>
+                            <td data-label="Seller" style={{ fontWeight: 600 }}>{r.seller}</td>
+                            <td data-label="Bid Price (Rs/MT)" style={{ color: "var(--ember)", fontWeight: 700 }}>
+                              {r.bidPrice && r.bidPrice !== "—" ? `₹${r.bidPrice}` : "—"}
+                            </td>
+
+                            <td data-label="Mode">
+                              <span style={{ 
+                                padding: "2px 8px", 
+                                borderRadius: "6px", 
+                                fontSize: "11px", 
+                                fontWeight: "700", 
+                                background: "#f1f5f9", 
+                                color: "#334155",
+                                border: "1px solid #e2e8f0"
+                              }}>
+                                {r.mode}
+                              </span>
+                            </td>
+                            <td data-label="Grade" style={{ fontWeight: 600 }}>{r.grade}</td>
+                            <td data-label="Size">{r.size}</td>
+                            <td data-label="Offer Quantity (MT)" style={{ color: "var(--ember)", fontWeight: 600 }}>{r.offerQty}</td>
+                            <td data-label="Quantity Allotted (MT)" style={{ color: "var(--ember)", fontWeight: 600 }}>{r.qtyAllotted}</td>
+
+                            <td data-label="Notified Price of Source (Rs/MT)">{r.notifiedPrice}</td>
+                            <td data-label="Premium (%)">{r.premium}</td>
+                            <td data-label="Balance Quantity (MT)">{r.balanceQty}</td>
+                            <td data-label="Bid ID" style={{ fontFamily: "monospace", fontSize: "12px" }}>{r.bidId}</td>
+                            <td data-label="Source">{r.source}</td>
+                            <td data-label="Status" style={{ textAlign: "center" }}>
+                              <span style={{ 
+                                padding: "4px 12px", 
+                                borderRadius: "16px", 
+                                fontSize: "12px", 
+                                fontWeight: "600", 
+                                display: "inline-block",
+                                backgroundColor: r.status === "done" ? "#d1fae5" : "#fef3c7",
+                                color: r.status === "done" ? "#065f46" : "#92400e"
+                              }}>
+                                {r.status === "done" ? "Done" : "Pending"}
+                              </span>
+                            </td>
+                            <td data-label="Preview" style={{ textAlign: "center" }}>
+                              {r._doc.pdfUrl ? (
+                                <a
+                                  href={r._doc.pdfUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  style={{
+                                    display: "inline-flex",
+                                    flexDirection: "column",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    padding: "4px 8px",
+                                    borderRadius: "8px",
+                                    background: (/\.(jpg|jpeg|png|webp|gif|bmp)$/i.test(r._doc.fileName || r._doc.pdfUrl)) ? "#f5f3ff" : "#fff1f1",
+                                    border: `1px solid ${(/\.(jpg|jpeg|png|webp|gif|bmp)$/i.test(r._doc.fileName || r._doc.pdfUrl)) ? "#ddd6fe" : "#fed7d7"}`,
+                                    textDecoration: "none",
+                                    boxShadow: (/\.(jpg|jpeg|png|webp|gif|bmp)$/i.test(r._doc.fileName || r._doc.pdfUrl)) ? "0 1px 2px rgba(124, 58, 237, 0.12)" : "0 1px 2px rgba(220, 38, 38, 0.08)",
+                                    transition: "all 0.2s ease",
+                                    cursor: "pointer"
+                                  }}
+                                >
                                   {(() => {
                                     const isImg = /\.(jpg|jpeg|png|webp|gif|bmp)$/i.test(r._doc.fileName || r._doc.pdfUrl);
                                     const accent = isImg ? "#7c3aed" : "#e11d48";
@@ -857,35 +1005,36 @@ export default function SECLFormat2Page() {
                                       </span>
                                     );
                                   })()}
-                              </a>
-                            ) : (
-                              <span style={{ color: "var(--muted)" }}>-</span>
-                            )}
-                          </td>
-                          <td data-label="Action">
-                            <div style={{ display: 'flex', gap: '8px' }}>
-                              <button 
-                                onClick={() => handleMarkDone(r._dIdx, r._rIdx, r.dbId, r.status)} 
-                                style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'transparent', border: '1px solid #86efac', color: '#16a34a', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 500 }}
-                              >
-                                <CheckCircle size={14} /> {r.status === 'done' ? 'Undo' : 'Done'}
-                              </button>
-                              <button 
-                                onClick={() => openEditModal(r)} 
-                                style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'transparent', border: '1px solid #93c5fd', color: '#dc2626', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 500 }}
-                              >
-                                <Edit size={14} /> Edit
-                              </button>
-                              <button 
-                                onClick={() => handleDeleteRow(r._dIdx, r._rIdx, r.dbId)} 
-                                style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'transparent', border: '1px solid #fca5a5', color: '#dc2626', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 500 }}
-                              >
-                                <Trash size={14} /> Delete
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ));
+                                </a>
+                              ) : (
+                                <span style={{ color: "var(--muted)" }}>-</span>
+                              )}
+                            </td>
+                            <td data-label="Action" style={{ textAlign: "center" }}>
+                              <div style={{ display: 'inline-flex', gap: '8px', alignItems: 'center' }}>
+                                <button 
+                                  onClick={() => handleMarkDone(r._dIdx, r._rIdx, r.dbId, r.status)} 
+                                  style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'transparent', border: '1px solid #86efac', color: '#16a34a', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 500 }}
+                                >
+                                  <CheckCircle size={14} /> {r.status === 'done' ? 'Undo' : 'Done'}
+                                </button>
+                                <button 
+                                  onClick={() => openEditModal(r)} 
+                                  style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'transparent', border: '1px solid #93c5fd', color: '#dc2626', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 500 }}
+                                >
+                                  <Edit size={14} /> Edit
+                                </button>
+                                <button 
+                                  onClick={() => handleDeleteRow(r._dIdx, r._rIdx, r.dbId)} 
+                                  style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'transparent', border: '1px solid #fca5a5', color: '#dc2626', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 500 }}
+                                >
+                                  <Trash size={14} /> Delete
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      });
                     })()}
                   </tbody>
                 </table>

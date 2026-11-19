@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useAuthStore } from '../store/authStore';
 import supabase from '../../../SupabaseClient';
 import { isDateInRange, getTodayDate, formatDateForInput } from '../utils/helpers';
-import { Download, Calendar, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Download, Calendar, FileText, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Wallet, DollarSign } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import SearchableSelect from '../../../components/SearchableSelect';
@@ -290,6 +290,91 @@ export default function Summary() {
           </button>
         </div>
       </div>
+
+      {/* KPI Calculation Summary Cards */}
+      {(() => {
+        const totalReceived = dailySummary.reduce((acc, d) => acc + (d.received || 0), 0);
+        const totalExpense = dailySummary.reduce((acc, d) => acc + (d.expense || 0), 0);
+        const openingBal = dailySummary.length > 0 ? dailySummary[0].openingBalance : 0;
+        const closingBal = dailySummary.length > 0 ? dailySummary[dailySummary.length - 1].closingBalance : 0;
+        const netDifference = totalReceived - totalExpense;
+
+        return (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5 my-1">
+            {/* Opening Balance Card */}
+            <div className="bg-white rounded-xl p-3 sm:p-4 border border-slate-200/90 shadow-2xs hover:shadow-xs transition-all">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-500">
+                  Opening Balance
+                </span>
+                <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+                  <Wallet size={16} />
+                </div>
+              </div>
+              <div className="text-base sm:text-xl font-black text-slate-800">
+                ₹{formatNum(openingBal)}
+              </div>
+              <span className="text-[10px] text-slate-400 font-semibold mt-0.5 block">
+                {selectedDateStr ? 'Start of Day' : 'Start Period'}
+              </span>
+            </div>
+
+            {/* Total Received (Credit) */}
+            <div className="bg-white rounded-xl p-3 sm:p-4 border border-slate-200/90 shadow-2xs hover:shadow-xs transition-all">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-500">
+                  Total Received
+                </span>
+                <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600">
+                  <TrendingUp size={16} />
+                </div>
+              </div>
+              <div className="text-base sm:text-xl font-black text-emerald-600">
+                +₹{formatNum(totalReceived)}
+              </div>
+              <span className="text-[10px] text-emerald-700/80 font-semibold mt-0.5 block">
+                Total Inflow
+              </span>
+            </div>
+
+            {/* Total Expense (Debit) */}
+            <div className="bg-white rounded-xl p-3 sm:p-4 border border-slate-200/90 shadow-2xs hover:shadow-xs transition-all">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-500">
+                  Total Expense
+                </span>
+                <div className="p-1.5 rounded-lg bg-rose-50 text-rose-600">
+                  <TrendingDown size={16} />
+                </div>
+              </div>
+              <div className="text-base sm:text-xl font-black text-rose-600">
+                -₹{formatNum(totalExpense)}
+              </div>
+              <span className="text-[10px] text-rose-700/80 font-semibold mt-0.5 block">
+                Total Outflow
+              </span>
+            </div>
+
+            {/* Closing Balance Card */}
+            <div className="bg-white rounded-xl p-3 sm:p-4 border border-slate-200/90 shadow-2xs hover:shadow-xs transition-all">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-500">
+                  Closing Balance
+                </span>
+                <div className={`p-1.5 rounded-lg ${closingBal >= 0 ? 'bg-indigo-50 text-indigo-600' : 'bg-red-50 text-red-600'}`}>
+                  <DollarSign size={16} />
+                </div>
+              </div>
+              <div className={`text-base sm:text-xl font-black ${closingBal >= 0 ? 'text-indigo-700' : 'text-red-600'}`}>
+                ₹{formatNum(closingBal)}
+              </div>
+              <span className="text-[10px] text-slate-500 font-semibold mt-0.5 block">
+                Net: {netDifference >= 0 ? `+₹${formatNum(netDifference)}` : `-₹${formatNum(Math.abs(netDifference))}`}
+              </span>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Mobile View: Cards */}
       <div className="md:hidden flex flex-col gap-3 mt-2 overflow-y-auto pb-6 max-h-[calc(100vh-200px)]">

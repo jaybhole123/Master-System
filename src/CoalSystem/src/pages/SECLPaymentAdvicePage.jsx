@@ -323,6 +323,42 @@ export default function SECLPaymentAdvicePage({ state, setState }) {
     }
   };
 
+  const handleBulkUpdateStatus = async (indices, newStatus) => {
+    if (!indices || indices.length === 0) return;
+    
+    const targetIds = [];
+    setState(s => {
+      const newData = [...s.data];
+      indices.forEach(idx => {
+        if (newData[idx]) {
+          if (newData[idx].id) targetIds.push(newData[idx].id);
+          newData[idx] = {
+            ...newData[idx],
+            status: newStatus
+          };
+        }
+      });
+      return { ...s, data: newData };
+    });
+
+    if (targetIds.length > 0) {
+      try {
+        const { error } = await supabase
+          .from('secl_payment_advices')
+          .update({ status: newStatus })
+          .in('id', targetIds);
+
+        if (error) throw error;
+        showToast(`Successfully updated ${targetIds.length} records to ${newStatus === 'done' ? 'Done' : 'Pending'}!`);
+      } catch (err) {
+        console.error("Bulk Status Update Error:", err);
+        showToast("Error updating records in Supabase");
+      }
+    } else {
+      showToast(`Updated ${indices.length} local records to ${newStatus === 'done' ? 'Done' : 'Pending'}`);
+    }
+  };
+
   const handleUpdateRow = async (index, updatedRow) => {
     let rowId = null;
 
@@ -452,6 +488,7 @@ export default function SECLPaymentAdvicePage({ state, setState }) {
           onSave={handleSave}
           onDeleteRow={handleDeleteRow}
           onUpdateRow={handleUpdateRow}
+          onBulkUpdateStatus={handleBulkUpdateStatus}
           onAddManual={() => setIsModalOpen(true)}
           onPageChange={() => setCurrentPage(p => p + 1)}
           totalCount={totalCount}

@@ -423,8 +423,8 @@ export default function DispatchPage() {
             <div style={{ color: "#64748b", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "6px" }}>
               Total Dispatch Qty
             </div>
-            <div style={{ color: "#0284c7", fontSize: "28px", fontWeight: "800", lineHeight: "1.1", letterSpacing: "-0.02em" }}>
-              {stats.dispatchQty} <span style={{ fontSize: "14px", fontWeight: "700", color: "#38bdf8" }}>MT</span>
+            <div style={{ color: "#0f172a", fontSize: "28px", fontWeight: "900", lineHeight: "1.1", letterSpacing: "-0.02em", fontFamily: "var(--font-mono, monospace)" }}>
+              {stats.dispatchQty} <span style={{ fontSize: "14px", fontWeight: "800", color: "#64748b" }}>MT</span>
             </div>
             <div style={{ color: "#94a3b8", fontSize: "11px", marginTop: "4px", fontWeight: "500" }}>
               {stats.count} Record{stats.count !== 1 ? 's' : ''} in view
@@ -466,8 +466,8 @@ export default function DispatchPage() {
             <div style={{ color: "#64748b", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "6px" }}>
               Total Balance Qty
             </div>
-            <div style={{ color: "#ea580c", fontSize: "28px", fontWeight: "800", lineHeight: "1.1", letterSpacing: "-0.02em" }}>
-              {stats.balanceQty} <span style={{ fontSize: "14px", fontWeight: "700", color: "#fb923c" }}>MT</span>
+            <div style={{ color: "#0f172a", fontSize: "28px", fontWeight: "900", lineHeight: "1.1", letterSpacing: "-0.02em", fontFamily: "var(--font-mono, monospace)" }}>
+              {stats.balanceQty} <span style={{ fontSize: "14px", fontWeight: "800", color: "#64748b" }}>MT</span>
             </div>
             <div style={{ color: "#94a3b8", fontSize: "11px", marginTop: "4px", fontWeight: "500" }}>
               Pending Deliveries
@@ -509,8 +509,8 @@ export default function DispatchPage() {
             <div style={{ color: "#64748b", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "6px" }}>
               Active Vehicles
             </div>
-            <div style={{ color: "#7c3aed", fontSize: "28px", fontWeight: "800", lineHeight: "1.1", letterSpacing: "-0.02em" }}>
-              {stats.uniqueTrucks} <span style={{ fontSize: "14px", fontWeight: "600", color: "#8b5cf6" }}>Trucks</span>
+            <div style={{ color: "#0f172a", fontSize: "28px", fontWeight: "900", lineHeight: "1.1", letterSpacing: "-0.02em", fontFamily: "var(--font-mono, monospace)" }}>
+              {stats.uniqueTrucks} <span style={{ fontSize: "14px", fontWeight: "800", color: "#64748b" }}>Trucks</span>
             </div>
             <div style={{ color: "#94a3b8", fontSize: "11px", marginTop: "4px", fontWeight: "500" }}>
               Across {stats.uniqueDOs} Delivery Orders
@@ -553,7 +553,7 @@ export default function DispatchPage() {
             <div style={{ color: "#64748b", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "6px" }}>
               Total Freight
             </div>
-            <div style={{ color: "#16a34a", fontSize: "26px", fontWeight: "800", lineHeight: "1.1", letterSpacing: "-0.02em" }}>
+            <div style={{ color: "#0f172a", fontSize: "28px", fontWeight: "900", lineHeight: "1.1", letterSpacing: "-0.02em", fontFamily: "var(--font-mono, monospace)" }}>
               ₹{stats.totalFreight}
             </div>
             <div style={{ color: "#94a3b8", fontSize: "11px", marginTop: "4px", fontWeight: "500" }}>
@@ -820,22 +820,41 @@ export default function DispatchPage() {
       {/* ── TABLE CONTENT ── */}
       <div className="summary-section" style={{ marginTop: 0 }}>
         <div className="summary-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
-          <div className="summary-title" style={{ fontSize: "15px", fontWeight: "700" }}>
-            Extracted Dispatch Records ({displayData.length})
+          <div className="summary-title" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span>Extracted Dispatch Records</span>
+            <span style={{ fontSize: "12px", fontWeight: "700", background: "#f1f5f9", color: "#475569", padding: "2px 8px", borderRadius: "10px" }}>
+              {displayData.length} Records
+            </span>
           </div>
         </div>
-        <div className="summary-table-wrap">
-          <table className="stable" style={{ whiteSpace: "nowrap" }}>
-            <thead>
-              <tr>
-                {visibleCols.row_num && <th className="num-h">#</th>}
+        <div className="summary-table-wrap" style={{ border: "1px solid #e2e8f0", borderRadius: "8px", overflowX: "auto", overflowY: "visible", width: "100%", maxWidth: "100%", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
+          <table className="stable" style={{ width: "max-content", minWidth: "100%", borderCollapse: "separate", borderSpacing: 0, whiteSpace: "nowrap" }}>
+            <thead style={{ background: "#f8fafc" }}>
+              <tr style={{ borderBottom: "1px solid #e2e8f0" }}>
+                {visibleCols.row_num && <th style={{ textAlign: "center", width: "45px", color: "#64748b", fontWeight: 700, padding: "12px 8px" }}>#</th>}
                 {INITIAL_COLS.map(c => {
                   const key = c.key;
-                  return visibleCols[key] ? <th key={key}>{c.label.replace(" *", "")}</th> : null;
+                  if (!visibleCols[key]) return null;
+                  const isRight = key === "orderQty" || key === "orderRate" || key === "dispatchQty" || key === "balanceQty" || key === "freight" || key === "truckQty";
+                  return (
+                    <th 
+                      key={key}
+                      style={{ 
+                        color: "#475569", 
+                        fontWeight: 700, 
+                        fontSize: "12px", 
+                        letterSpacing: "0.5px", 
+                        padding: "12px 14px",
+                        textAlign: isRight ? "right" : "left"
+                      }}
+                    >
+                      {c.label.replace(" *", "")}
+                    </th>
+                  );
                 })}
-                {visibleCols.status && <th>Status</th>}
-                {visibleCols.pdf && <th>Preview</th>}
-                {visibleCols.action && <th>Action</th>}
+                {visibleCols.status && <th style={{ color: "#475569", fontWeight: 700, fontSize: "12px", textAlign: "center", width: "95px", padding: "12px 10px" }}>Status</th>}
+                {visibleCols.pdf && <th style={{ color: "#475569", fontWeight: 700, fontSize: "12px", textAlign: "center", width: "60px", padding: "12px 8px" }}>Preview</th>}
+                {visibleCols.action && <th style={{ color: "#475569", fontWeight: 700, fontSize: "12px", textAlign: "center", width: "160px", padding: "12px 10px" }}>Action</th>}
               </tr>
             </thead>
             <tbody>
@@ -847,147 +866,211 @@ export default function DispatchPage() {
                   </td>
                 </tr>
               ) : (
-                displayData.map((row, i) => (
-                  <tr key={row.id || i}>
-                    {visibleCols.row_num && <td className="row-num" data-label="#">{i + 1}</td>}
-                    {INITIAL_COLS.map(c => {
-                      if (!visibleCols[c.key]) return null;
-                      return (
-                        <td key={c.key} data-label={c.label.replace(" *", "")}>
-                          <HighlightText text={row[c.key] !== null && row[c.key] !== undefined ? String(row[c.key]) : "—"} highlight={searchTerm} />
+                displayData.map((row, i) => {
+                  const isEven = i % 2 === 0;
+                  return (
+                    <tr 
+                      key={row.id || i}
+                      style={{ 
+                        backgroundColor: isEven ? "#ffffff" : "#fcfcfd",
+                        transition: "background-color 0.15s ease",
+                        borderBottom: "1px solid #f1f5f9"
+                      }}
+                      onMouseOver={(e) => { e.currentTarget.style.backgroundColor = "#f8fafc"; }}
+                      onMouseOut={(e) => { e.currentTarget.style.backgroundColor = isEven ? "#ffffff" : "#fcfcfd"; }}
+                    >
+                      {visibleCols.row_num && (
+                        <td style={{ textAlign: "center", fontWeight: "700", color: "#94a3b8", fontSize: "12px", fontFamily: "monospace", padding: "10px 8px" }}>
+                          {String(i + 1).padStart(2, '0')}
                         </td>
-                      );
-                    })}
-                    
-                    {visibleCols.status && (
-                      <td data-label="Status">
-                        <span style={{
-                          display: "inline-block",
-                          padding: "3px 10px",
-                          borderRadius: "20px",
-                          fontSize: "12px",
-                          fontWeight: "700",
-                          textTransform: "capitalize",
-                          background: row.status === "done" ? "#dcfce7" : "#fef3c7",
-                          color: row.status === "done" ? "#15803d" : "#b45309",
-                          border: row.status === "done" ? "1px solid #bbf7d0" : "1px solid #fde68a"
-                        }}>
-                          {row.status === "done" ? "Done" : "Pending"}
-                        </span>
-                      </td>
-                    )}
+                      )}
+                      {INITIAL_COLS.map(c => {
+                        if (!visibleCols[c.key]) return null;
+                        const val = row[c.key] !== null && row[c.key] !== undefined ? String(row[c.key]) : "—";
 
-                    {visibleCols.pdf && (
-                      <td data-label="Preview" style={{ textAlign: "center" }}>
-                        {row.pdfUrl ? (
-                          (() => {
-                            const isImg = /\.(jpg|jpeg|png|webp|gif|bmp)$/i.test(row.pdfName || row.pdfUrl);
-                            const bg = isImg ? "#f5f3ff" : "#fff1f1";
-                            const border = isImg ? "#ddd6fe" : "#fed7d7";
-                            const accent = isImg ? "#7c3aed" : "#e11d48";
-                            const shadowRgba = isImg ? "rgba(124, 58, 237, 0.12)" : "rgba(220, 38, 38, 0.08)";
-                            const shadowHover = isImg ? "0 3px 6px rgba(124, 58, 237, 0.2)" : "0 3px 6px rgba(220, 38, 38, 0.16)";
+                        if (c.key === "doNo") {
+                          return (
+                            <td key={c.key} style={{ fontWeight: 700, color: "#0f172a", fontFamily: "monospace", padding: "10px 14px" }}>
+                              <span style={{ background: "#f1f5f9", padding: "3px 8px", borderRadius: "6px", border: "1px solid #e2e8f0" }}>
+                                <HighlightText text={val} highlight={searchTerm} />
+                              </span>
+                            </td>
+                          );
+                        }
+                        if (c.key === "truckNumber") {
+                          return (
+                            <td key={c.key} style={{ fontWeight: 700, color: "#1e293b", fontFamily: "monospace", padding: "10px 14px" }}>
+                              <span style={{ background: "#f8fafc", padding: "2px 7px", borderRadius: "4px", border: "1px solid #e2e8f0" }}>
+                                <HighlightText text={val} highlight={searchTerm} />
+                              </span>
+                            </td>
+                          );
+                        }
+                        if (c.key === "dispatchQty") {
+                          return (
+                            <td key={c.key} style={{ textAlign: "right", fontWeight: 800, color: "#0284c7", fontFamily: "monospace", padding: "10px 14px" }}>
+                              <HighlightText text={val} highlight={searchTerm} />
+                            </td>
+                          );
+                        }
+                        if (c.key === "balanceQty") {
+                          return (
+                            <td key={c.key} style={{ textAlign: "right", fontWeight: 800, color: "#ea580c", fontFamily: "monospace", padding: "10px 14px" }}>
+                              <HighlightText text={val} highlight={searchTerm} />
+                            </td>
+                          );
+                        }
+                        if (c.key === "freight") {
+                          return (
+                            <td key={c.key} style={{ textAlign: "right", fontWeight: 800, color: "#16a34a", fontFamily: "monospace", padding: "10px 14px" }}>
+                              {val !== "—" && !val.startsWith("₹") ? `₹${val}` : <HighlightText text={val} highlight={searchTerm} />}
+                            </td>
+                          );
+                        }
+                        if (c.key === "orderQty" || c.key === "orderRate" || c.key === "truckQty") {
+                          return (
+                            <td key={c.key} style={{ textAlign: "right", fontWeight: 600, color: "#334155", fontFamily: "monospace", padding: "10px 14px" }}>
+                              <HighlightText text={val} highlight={searchTerm} />
+                            </td>
+                          );
+                        }
 
-                            return (
-                              <a
-                                href={row.pdfUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                title={isImg ? "View Image" : "View PDF"}
-                                style={{
-                                  display: "inline-flex",
-                                  flexDirection: "column",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  padding: "2px 5px",
-                                  borderRadius: "6px",
-                                  background: bg,
-                                  border: `1px solid ${border}`,
-                                  textDecoration: "none",
-                                  boxShadow: `0 1px 2px ${shadowRgba}`,
-                                  transition: "all 0.15s ease",
-                                  cursor: "pointer"
-                                }}
-                                onMouseOver={(e) => {
-                                  e.currentTarget.style.transform = "translateY(-1px)";
-                                  e.currentTarget.style.boxShadow = shadowHover;
-                                }}
-                                onMouseOut={(e) => {
-                                  e.currentTarget.style.transform = "translateY(0)";
-                                  e.currentTarget.style.boxShadow = `0 1px 2px ${shadowRgba}`;
-                                }}
-                              >
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={accent} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                  <polyline points="14 2 14 8 20 8"></polyline>
-                                  <line x1="9" y1="13" x2="15" y2="13"></line>
-                                  <line x1="9" y1="17" x2="15" y2="17"></line>
-                                </svg>
-                                <span style={{
-                                  fontSize: "7.5px",
-                                  fontWeight: "800",
-                                  color: accent,
-                                  letterSpacing: "0.3px",
-                                  lineHeight: 1,
-                                  marginTop: "1.5px"
-                                }}>
-                                  {isImg ? "IMG" : "PDF"}
-                                </span>
-                              </a>
-                            );
-                          })()
-                        ) : (
-                          <span style={{ color: "var(--muted)" }}>—</span>
-                        )}
-                      </td>
-                    )}
+                        return (
+                          <td key={c.key} style={{ padding: "10px 14px", color: "#334155" }}>
+                            <HighlightText text={val} highlight={searchTerm} />
+                          </td>
+                        );
+                      })}
+                      
+                      {visibleCols.status && (
+                        <td data-label="Status" style={{ textAlign: "center", padding: "10px 8px" }}>
+                          <span style={{
+                            display: "inline-block",
+                            padding: "3px 10px",
+                            borderRadius: "20px",
+                            fontSize: "12px",
+                            fontWeight: "700",
+                            textTransform: "capitalize",
+                            background: row.status === "done" ? "#dcfce7" : "#fef3c7",
+                            color: row.status === "done" ? "#15803d" : "#b45309",
+                            border: row.status === "done" ? "1px solid #bbf7d0" : "1px solid #fde68a"
+                          }}>
+                            {row.status === "done" ? "Done" : "Pending"}
+                          </span>
+                        </td>
+                      )}
 
-                    {visibleCols.action && (
-                      <td data-label="Action">
-                        <div style={{ display: "flex", gap: "6px", justifyContent: "flex-end" }}>
-                          {activeTab === "pending" && (
-                            <button 
-                              onClick={() => handleMarkDone(row.id)} 
-                              style={{ 
-                                display: "inline-flex", alignItems: "center", gap: "4px", padding: "4px 8px", 
-                                fontSize: "11px", fontWeight: "600", color: "#16a34a", background: "#f0fdf4", 
-                                border: "1px solid #dcfce7", borderRadius: "4px", cursor: "pointer" 
-                              }}
-                              title="Mark as Done"
-                            >
-                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                              Done
-                            </button>
+                      {visibleCols.pdf && (
+                        <td data-label="Preview" style={{ textAlign: "center", padding: "10px 8px" }}>
+                          {row.pdfUrl ? (
+                            (() => {
+                              const isImg = /\.(jpg|jpeg|png|webp|gif|bmp)$/i.test(row.pdfName || row.pdfUrl);
+                              const bg = isImg ? "#f5f3ff" : "#fff1f1";
+                              const border = isImg ? "#ddd6fe" : "#fed7d7";
+                              const accent = isImg ? "#7c3aed" : "#dc2626";
+
+                              return (
+                                <a
+                                  href={row.pdfUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  title={isImg ? "View Image" : "View PDF"}
+                                  style={{
+                                    display: "inline-flex",
+                                    flexDirection: "column",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    padding: "3px 6px",
+                                    borderRadius: "6px",
+                                    background: bg,
+                                    border: `1px solid ${border}`,
+                                    textDecoration: "none",
+                                    boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+                                    transition: "all 0.15s ease",
+                                    cursor: "pointer"
+                                  }}
+                                >
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={accent} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                    <line x1="9" y1="13" x2="15" y2="13"></line>
+                                    <line x1="9" y1="17" x2="15" y2="17"></line>
+                                  </svg>
+                                  <span style={{
+                                    fontSize: "7.5px",
+                                    fontWeight: "800",
+                                    color: accent,
+                                    letterSpacing: "0.3px",
+                                    lineHeight: 1,
+                                    marginTop: "1.5px"
+                                  }}>
+                                    {isImg ? "IMG" : "PDF"}
+                                  </span>
+                                </a>
+                              );
+                            })()
+                          ) : (
+                            <span style={{ color: "#94a3b8" }}>—</span>
                           )}
-                          <button 
-                            onClick={() => handleEditClick(data.findIndex(d => d.id === row.id))} 
-                            style={{ 
-                              display: "inline-flex", alignItems: "center", gap: "4px", padding: "4px 8px", 
-                              fontSize: "11px", fontWeight: "600", color: "#2563eb", background: "#eff6ff", 
-                              border: "1px solid #dbeafe", borderRadius: "4px", cursor: "pointer" 
-                            }}
-                            title="Edit"
-                          >
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                            Edit
-                          </button>
-                          <button 
-                            onClick={() => handleDelete(data.findIndex(d => d.id === row.id))} 
-                            style={{ 
-                              display: "inline-flex", alignItems: "center", gap: "4px", padding: "4px 8px", 
-                              fontSize: "11px", fontWeight: "600", color: "#dc2626", background: "#fef2f2", 
-                              border: "1px solid #fee2e2", borderRadius: "4px", cursor: "pointer" 
-                            }}
-                            title="Delete"
-                          >
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                    )}
-                  </tr>
-                ))
+                        </td>
+                      )}
+
+                      {visibleCols.action && (
+                        <td data-label="Action" style={{ textAlign: "center", padding: "10px 8px" }}>
+                          <div style={{ display: "inline-flex", gap: "6px", alignItems: "center", justifyContent: "center" }}>
+                            {activeTab === "pending" && (
+                              <button 
+                                onClick={() => handleMarkDone(row.id)} 
+                                style={{ 
+                                  display: "inline-flex", alignItems: "center", gap: "4px", padding: "5px 9px", 
+                                  fontSize: "11px", fontWeight: "600", color: "#16a34a", background: "#f0fdf4", 
+                                  border: "1px solid #bbf7d0", borderRadius: "6px", cursor: "pointer",
+                                  boxShadow: "0 1px 2px rgba(0,0,0,0.03)", transition: "all 0.15s ease"
+                                }}
+                                onMouseOver={(e) => { e.currentTarget.style.background = "#dcfce7"; }}
+                                onMouseOut={(e) => { e.currentTarget.style.background = "#f0fdf4"; }}
+                                title="Mark as Done"
+                              >
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                Done
+                              </button>
+                            )}
+                            <button 
+                              onClick={() => handleEditClick(data.findIndex(d => d.id === row.id))} 
+                              style={{ 
+                                display: "inline-flex", alignItems: "center", gap: "4px", padding: "5px 9px", 
+                                fontSize: "11px", fontWeight: "600", color: "#1d4ed8", background: "#eff6ff", 
+                                border: "1px solid #bfdbfe", borderRadius: "6px", cursor: "pointer",
+                                boxShadow: "0 1px 2px rgba(0,0,0,0.03)", transition: "all 0.15s ease"
+                              }}
+                              onMouseOver={(e) => { e.currentTarget.style.background = "#dbeafe"; }}
+                              onMouseOut={(e) => { e.currentTarget.style.background = "#eff6ff"; }}
+                              title="Edit"
+                            >
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                              Edit
+                            </button>
+                            <button 
+                              onClick={() => handleDelete(data.findIndex(d => d.id === row.id))} 
+                              style={{ 
+                                display: "inline-flex", alignItems: "center", gap: "4px", padding: "5px 9px", 
+                                fontSize: "11px", fontWeight: "600", color: "#dc2626", background: "#fef2f2", 
+                                border: "1px solid #fecaca", borderRadius: "6px", cursor: "pointer",
+                                boxShadow: "0 1px 2px rgba(0,0,0,0.03)", transition: "all 0.15s ease"
+                              }}
+                              onMouseOver={(e) => { e.currentTarget.style.background = "#fee2e2"; }}
+                              onMouseOut={(e) => { e.currentTarget.style.background = "#fef2f2"; }}
+                              title="Delete"
+                            >
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

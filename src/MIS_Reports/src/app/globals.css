@@ -1,0 +1,506 @@
+/* docs: https://tailwindcss.com/docs (v4.x, checked 2026-01-04) */
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* Dark mode variant */
+
+@custom-variant dark (&:is(.dark *));
+
+/* Hide MIS Portal internal sidebar and mobile header when embedded */
+html.is-embedded aside,
+html.is-embedded header,
+body.is-embedded aside,
+body.is-embedded header {
+  display: none !important;
+}
+
+html.is-embedded main,
+body.is-embedded main {
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+:root {
+  --font-inter:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-lexend: Lexend, var(--font-inter);
+  --font-geist-sans: Geist, var(--font-inter);
+  --font-geist-mono:
+    "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    monospace;
+
+  /* Botivate 2.0 Unified Professional Design Tokens (Indigo / Slate) */
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.141 0.005 285.823);
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.141 0.005 285.823);
+
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.141 0.005 285.823);
+
+  /* Primary: Professional Modern Red aligned with Master System */
+  --primary: oklch(0.55 0.22 25);
+  --primary-foreground: oklch(0.985 0 0);
+
+  /* Secondary / Muted / Accent: Neutral Slates */
+  --secondary: oklch(0.967 0.001 286.375);
+  --secondary-foreground: oklch(0.141 0.005 285.823);
+
+  --muted: oklch(0.967 0.001 286.375);
+  --muted-foreground: oklch(0.552 0.016 285.938);
+
+  --accent: oklch(0.967 0.001 286.375);
+  --accent-foreground: oklch(0.141 0.005 285.823);
+
+  /* Status Colors (Standard Professional) */
+  --success: oklch(0.627 0.265 149.214);
+  --success-foreground: oklch(0.985 0 0);
+
+  --warning: oklch(0.769 0.188 70.08);
+  --warning-foreground: oklch(0.985 0 0);
+
+  --danger: oklch(0.577 0.245 27.325);
+  --danger-foreground: oklch(0.985 0 0);
+
+  --info: oklch(0.488 0.243 264.376);
+  --info-foreground: oklch(0.985 0 0);
+
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.985 0 0);
+
+  --border: oklch(0.92 0.004 286.32);
+  --input: oklch(0.92 0.004 286.32);
+  --ring: oklch(0.488 0.243 264.376);
+
+  /* Chart Colors (Professional Palette) */
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.646 0.222 126.783);
+  --chart-3: oklch(0.373 0.145 253.268);
+  --chart-4: oklch(0.58 0.233 11.713);
+  --chart-5: oklch(0.741 0.16 64.93);
+
+  /* Sidebar Tokens */
+  --sidebar-background: oklch(1 0 0);
+  --sidebar-foreground: oklch(0.141 0.005 285.823);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.967 0.001 286.375);
+  --sidebar-accent-foreground: oklch(0.488 0.243 264.376);
+  --sidebar-border: oklch(0.92 0.004 286.32);
+  --sidebar-ring: oklch(0.488 0.243 264.376);
+
+  /* Aggressive Roundness (Premium UX) */
+  --radius: 1rem;
+  --radius-card: 2rem;
+  --radius-button: 9999px;
+  --radius-4xl: 2.5rem;
+
+  /* Shadows */
+  --shadow-premium: 0 20px 50px -12px oklch(0.488 0.243 264.376 / 0.1);
+}
+
+.dark {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.141 0.005 285.823);
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.141 0.005 285.823);
+
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.141 0.005 285.823);
+
+  --primary: oklch(0.55 0.22 25);
+  --primary-foreground: oklch(0.985 0 0);
+
+  --secondary: oklch(0.967 0.001 286.375);
+  --secondary-foreground: oklch(0.141 0.005 285.823);
+
+  --muted: oklch(0.967 0.001 286.375);
+  --muted-foreground: oklch(0.552 0.016 285.938);
+
+  --accent: oklch(0.967 0.001 286.375);
+  --accent-foreground: oklch(0.141 0.005 285.823);
+
+  --destructive: oklch(0.396 0.141 25.723);
+  --destructive-foreground: oklch(0.985 0 0);
+
+  --border: oklch(0.269 0.006 285.723);
+  --input: oklch(0.269 0.006 285.723);
+  --ring: oklch(0.488 0.243 264.376);
+
+  --sidebar-background: oklch(0.141 0.005 285.823);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0.006 285.723);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(0.327 0.005 285.634);
+  --sidebar-ring: oklch(0.488 0.243 264.376);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --color-sidebar: var(--sidebar-background);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: var(--radius-4xl);
+
+  --shadow-premium: var(--shadow-premium);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-geist-mono);
+}
+
+@keyframes accordion-down {
+  from {
+    height: 0;
+  }
+
+  to {
+    height: var(--radix-accordion-content-height);
+  }
+}
+
+@keyframes accordion-up {
+  from {
+    height: var(--radix-accordion-content-height);
+  }
+
+  to {
+    height: 0;
+  }
+}
+
+/* Notification bell — vibrates while there's an unread notification, stops
+   once the user opens the panel/marks it read (unreadCount back to 0). */
+@keyframes bell-shake {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+
+  10%,
+  30% {
+    transform: rotate(-12deg);
+  }
+
+  20%,
+  40% {
+    transform: rotate(12deg);
+  }
+
+  50% {
+    transform: rotate(-8deg);
+  }
+
+  60% {
+    transform: rotate(8deg);
+  }
+
+  70% {
+    transform: rotate(0deg);
+  }
+}
+
+.notification-bell-shake {
+  animation: bell-shake 1.4s ease-in-out infinite;
+  transform-origin: top center;
+}
+
+@keyframes whatsnew-arrow-draw {
+  from {
+    stroke-dashoffset: 100;
+  }
+
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.whatsnew-arrow-line {
+  stroke-dasharray: 100;
+  animation: whatsnew-arrow-draw 0.9s ease-out both;
+}
+
+.whatsnew-arrow-head {
+  stroke-dasharray: 100;
+  animation: whatsnew-arrow-draw 0.35s ease-out 0.8s both;
+}
+
+/* ---------------------------
+   BASE LAYER
+---------------------------- */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  /* Browsers don't give <button>/[role="button"] a pointer cursor by
+     default (only <a> gets that natively) — most buttons across this app
+     never set cursor-pointer individually, so clicking/hovering them showed
+     the plain arrow cursor. Set it once, globally, instead of touching
+     every button. Disabled controls are excluded so they still read as
+     non-interactive. */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  select:not(:disabled),
+  summary {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [role="button"][aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+}
+
+/* ================================
+   SIDEBAR CUSTOM STYLES
+================================ */
+
+/* Custom Scrollbar for Sidebar */
+.sidebar-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--muted);
+  border-radius: 10px;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in oklch, var(--muted-foreground) 30%, transparent);
+}
+
+/* Hide scrollbar when not hovering */
+.sidebar-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.sidebar-scrollbar:hover {
+  scrollbar-color: var(--muted) transparent;
+}
+
+/* Smooth scrolling */
+.smooth-scroll {
+  scroll-behavior: smooth;
+}
+
+/* Glass morphism effect for mobile sidebar */
+.glass-effect {
+  background: color-mix(in oklch, var(--background) 95%, transparent);
+  backdrop-filter: blur-sm(20px);
+  -webkit-backdrop-filter: blur-sm(20px);
+}
+
+/* Sidebar gradient backgrounds */
+.sidebar-gradient {
+  background: linear-gradient(
+    180deg,
+    var(--sidebar-background) 0%,
+    color-mix(in oklch, var(--sidebar-background) 97%, transparent) 100%
+  );
+}
+
+/* Mobile bottom safe area */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .mobile-safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Prevent text selection during drag */
+.no-select {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+@layer utility {
+  .hideScrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .hideScrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* ================================
+   REACT FLOW DARK MODE OVERRIDES
+================================ */
+.dark .react-flow__controls {
+  background: var(--card);
+  border-color: var(--border);
+}
+
+.dark .react-flow__controls-button {
+  background: var(--card);
+  color: var(--foreground);
+  border-color: var(--border);
+  fill: var(--foreground);
+}
+
+.dark .react-flow__controls-button:hover {
+  background: var(--muted);
+}
+
+.dark .react-flow__controls-button svg {
+  fill: var(--foreground);
+}
+
+.dark .react-flow__minimap {
+  background: var(--card);
+}
+
+.dark .react-flow__minimap-mask {
+  fill: oklch(0.141 0.005 285.823 / 0.4);
+}
+
+.dark .react-flow__edge-textbg {
+  fill: var(--card);
+}
+
+/* Prevent mouse-wheel scroll from incrementing/decrementing number inputs.
+   Firefox: -moz-appearance disables the native number semantics entirely.
+   Chromium/WebKit (Chrome, Edge, Brave, Safari) ignore this at the CSS level —
+   they still change the value on wheel-scroll while focused; blur the input
+   on wheel via JS (see input.blur() on onWheel) for full cross-browser coverage. */
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Radix ScrollArea's Viewport hardcodes an inline `display: table` wrapper
+   around its children (see @radix-ui/react-scroll-area Viewport.tsx) to
+   measure scrollable content size. Table auto-layout sizes to fit its
+   widest descendant's intrinsic (min-content) width — including a
+   `white-space: nowrap` truncate span's full unwrapped text length, or a
+   long unbroken word — completely bypassing every flex/grid `min-width: 0`
+   containment trick applied to elements below it. Forcing it back to a
+   normal block box lets ordinary width/truncate/wrap rules take effect. */
+[data-radix-scroll-area-viewport] > div {
+  display: block;
+  min-width: 0;
+}
+
+/* Date input placeholder — phones only. Date/time inputs can't take a
+   `placeholder`, and phone browsers (iOS Safari especially) render an empty
+   one as a blank box. DateInputPlaceholder (root layout) keeps `data-empty`
+   on every date/time input; while empty and not focused we draw a grey
+   "Select date" hint as a background (starts after the input's padding, so
+   inline "FROM"/"TO" labels still fit) and hide Chrome's own dd-mm-yyyy so
+   they don't overlap. !important beats inline `background` shorthands.
+   Firefox is skipped: it can't hide its own hint. */
+@media (max-width: 767px) {
+  @supports not (-moz-appearance: none) {
+    input[type="date"][data-empty]:not(:focus),
+    input[type="month"][data-empty]:not(:focus),
+    input[type="datetime-local"][data-empty]:not(:focus),
+    input[type="time"][data-empty]:not(:focus) {
+      background-repeat: no-repeat;
+      background-position: left center;
+      background-origin: content-box;
+      background-size: auto;
+    }
+    input[type="date"][data-empty]:not(:focus),
+    input[type="month"][data-empty]:not(:focus),
+    input[type="datetime-local"][data-empty]:not(:focus) {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='16'%3E%3Ctext x='0' y='12' font-family='system-ui,-apple-system,Segoe UI,Roboto,sans-serif' font-size='12' fill='%239ca3af'%3ESelect date%3C/text%3E%3C/svg%3E");
+    }
+    input[type="time"][data-empty]:not(:focus) {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='16'%3E%3Ctext x='0' y='12' font-family='system-ui,-apple-system,Segoe UI,Roboto,sans-serif' font-size='12' fill='%239ca3af'%3ESelect time%3C/text%3E%3C/svg%3E");
+    }
+    /* Hide the browser's own dd-mm-yyyy (Chrome/Edge/Android) under the hint */
+    input[data-empty]:not(:focus)::-webkit-datetime-edit {
+      color: transparent;
+    }
+    input[data-empty]:not(:focus)::-webkit-datetime-edit-fields-wrapper {
+      color: transparent;
+    }
+    input[data-empty]:not(:focus)::-webkit-datetime-edit-text {
+      color: transparent;
+    }
+    input[data-empty]:not(:focus)::-webkit-datetime-edit-day-field {
+      color: transparent;
+    }
+    input[data-empty]:not(:focus)::-webkit-datetime-edit-month-field {
+      color: transparent;
+    }
+    input[data-empty]:not(:focus)::-webkit-datetime-edit-year-field {
+      color: transparent;
+    }
+    input[data-empty]:not(:focus)::-webkit-datetime-edit-hour-field {
+      color: transparent;
+    }
+    input[data-empty]:not(:focus)::-webkit-datetime-edit-minute-field {
+      color: transparent;
+    }
+    input[data-empty]:not(:focus)::-webkit-datetime-edit-ampm-field {
+      color: transparent;
+    }
+  }
+}
