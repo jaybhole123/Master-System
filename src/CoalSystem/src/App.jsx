@@ -191,7 +191,7 @@ export default function App({ page, hideNavigation }) {
         {!hideNavigation && (
           <Topbar activePage={activePage} onMenuClick={() => setIsSidebarOpen(true)} />
         )}
-        <main className="page-content" id="main-content" style={{ padding: hideNavigation ? '20px 24px' : undefined, marginTop: hideNavigation ? 0 : undefined }}>
+        <main className="page-content" id="main-content" style={{ padding: hideNavigation ? '14px 16px' : undefined, marginTop: hideNavigation ? 0 : undefined, width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
           {renderPage()}
         </main>
       </div>

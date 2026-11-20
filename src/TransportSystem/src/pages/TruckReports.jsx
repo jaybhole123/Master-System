@@ -589,91 +589,89 @@ export default function TruckReports() {
 
   // Turnaround (TAT) calculation based on consecutive trips for each vehicle
   const reportsWithTat = useMemo(() => {
-    // Helper to safely parse date string to timestamp at UTC midnight, handling potential DD/MM/YYYY vs YYYY-MM-DD
-    const parseDateUtcDays = (dStr) => {
-      if (!dStr) return null;
-      const s = String(dStr).trim();
-      let year, month, day;
-      
-      // If DD-MM-YYYY or DD/MM/YYYY format
-      if (/^\d{1,2}[-/]\d{1,2}[-/]\d{4}$/.test(s)) {
-        const parts = s.split(/[-/]/);
-        day = parseInt(parts[0], 10);
-        month = parseInt(parts[1], 10);
-        year = parseInt(parts[2], 10);
-      } else if (/^\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(s)) {
-        // YYYY-MM-DD or YYYY/MM/DD
-        const parts = s.split(/[-/]/);
-        year = parseInt(parts[0], 10);
-        month = parseInt(parts[1], 10);
-        day = parseInt(parts[2].slice(0, 2), 10);
-      } else {
-        const d = new Date(s);
-        if (isNaN(d.getTime())) return null;
-        year = d.getFullYear();
-        month = d.getMonth() + 1;
-        day = d.getDate();
-      }
-
-      if (!year || !month || !day) return null;
-      return Math.floor(Date.UTC(year, month - 1, day) / (1000 * 60 * 60 * 24));
+    // Helper to extract clean YYYY-MM-DD
+    const extractYMD = (dateVal) => {
+      if (!dateVal) return '';
+      const s = String(dateVal).trim();
+      const match = s.match(/\d{4}-\d{2}-\d{2}/);
+      return match ? match[0] : '';
     };
 
-    // 1. Group all raw reports by normalized vehicle number
-    const vehicleTripsMap = new Map();
-    reportsData.forEach(item => {
-      const vKey = String(item.vehicleNo || '').toUpperCase().replace(/[\s-]/g, '');
-      if (!vKey) return;
-      if (!vehicleTripsMap.has(vKey)) {
-        vehicleTripsMap.set(vKey, []);
-      }
-      vehicleTripsMap.get(vKey).push(item);
+    // 1. Group trips by normalized vehicle number
+    const vMap = new Map();
+    reportsData.forEach((r, idx) => {
+      const k = String(r.vehicleNo || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+      if (!k) return;
+      if (!vMap.has(k)) vMap.set(k, []);
+      vMap.get(k).push({ ...r, _origIdx: idx });
     });
 
-    // 2. Sort trips of each vehicle chronologically by Date
-    const tatMap = new Map(); // key: report item id -> { days, prevDate, nextDate }
-    vehicleTripsMap.forEach((trips) => {
+    const tatMap = new Map();
+
+    vMap.forEach(trips => {
+      // Sort trips chronologically by calendar date, then original order / sNo
       const sorted = [...trips].sort((a, b) => {
-        const da = parseDateUtcDays(a.date) ?? 0;
-        const db = parseDateUtcDays(b.date) ?? 0;
-        if (da !== db) return da - db;
-        return (a.sNo || 0) - (b.sNo || 0);
+        const ymdA = extractYMD(a.date);
+        const ymdB = extractYMD(b.date);
+        if (ymdA && ymdB && ymdA !== ymdB) {
+          return ymdA.localeCompare(ymdB);
+        }
+        return (Number(a.sNo) || a._origIdx || 0) - (Number(b.sNo) || b._origIdx || 0);
       });
 
+      // Filter distinct date trips or track previous distinct date for gap calculation
       for (let i = 0; i < sorted.length; i++) {
         const curr = sorted[i];
-        if (i === 0) {
-          // First recorded trip for this vehicle
-          tatMap.set(curr.id, { days: null, isFirst: true, prevDate: null, nextDate: sorted[i + 1]?.date || null });
-        } else {
-          const prev = sorted[i - 1];
+        const currYMD = extractYMD(curr.date);
 
-          const currDay = parseDateUtcDays(curr.date);
-          const prevDay = parseDateUtcDays(prev?.date);
-          if (currDay !== null && prevDay !== null) {
-            const diffDays = Math.max(0, currDay - prevDay);
-            tatMap.set(curr.id, { 
-              days: diffDays, 
-              isFirst: false, 
-              prevDate: prev.date,
-              nextDate: sorted[i + 1]?.date || null
+        // Find the previous trip with a DIFFERENT date, or the immediate preceding trip
+        let prevTrip = null;
+        for (let j = i - 1; j >= 0; j--) {
+          const checkYMD = extractYMD(sorted[j].date);
+          if (checkYMD && currYMD && checkYMD !== currYMD) {
+            prevTrip = sorted[j];
+            break;
+          } else if (j === i - 1) {
+            // If previous trip was on same date
+            prevTrip = sorted[j];
+          }
+        }
+
+        if (i === 0 || !prevTrip) {
+          tatMap.set(curr.id, { days: null, isFirst: true, prevDate: null });
+        } else {
+          const prevYMD = extractYMD(prevTrip.date);
+
+          if (currYMD && prevYMD) {
+            const [y1, m1, d1] = currYMD.split('-').map(Number);
+            const [y2, m2, d2] = prevYMD.split('-').map(Number);
+            const currUTC = Date.UTC(y1, m1 - 1, d1);
+            const prevUTC = Date.UTC(y2, m2 - 1, d2);
+            const diffDays = Math.round((currUTC - prevUTC) / 86400000);
+
+            tatMap.set(curr.id, {
+              days: Math.max(0, diffDays),
+              isFirst: false,
+              prevDate: prevYMD
             });
           } else {
-            tatMap.set(curr.id, { days: null, isFirst: false, prevDate: prev?.date || null, nextDate: sorted[i + 1]?.date || null });
+            tatMap.set(curr.id, {
+              days: null,
+              isFirst: false,
+              prevDate: prevYMD || null
+            });
           }
         }
       }
     });
 
-    // 3. Attach dateTat to filteredData items
     return filteredData.map(row => {
       const info = tatMap.get(row.id);
       return {
         ...row,
         dateTatDays: info ? info.days : null,
         dateTatIsFirst: info ? info.isFirst : false,
-        dateTatPrevDate: info ? info.prevDate : null,
-        dateTatNextDate: info ? info.nextDate : null
+        dateTatPrevDate: info ? info.prevDate : null
       };
     });
   }, [reportsData, filteredData]);
@@ -2260,7 +2258,7 @@ export default function TruckReports() {
                 <th className="py-3.5 px-3.5 text-center whitespace-nowrap bg-indigo-50/70 text-indigo-800">
                   <div className="flex items-center justify-center gap-1">
                     <Timer size={13} />
-                    <span>Turnaround (TAT)</span>
+                    <span>GAP (DAYS) / TAT</span>
                   </div>
                 </th>
                 <th className="py-3.5 px-3.5 whitespace-nowrap">Vehicle No.</th>
@@ -2334,17 +2332,23 @@ export default function TruckReports() {
                       <td className="py-3.5 px-3.5 text-center whitespace-nowrap bg-indigo-50/20">
                         {row.dateTatDays !== null && row.dateTatDays !== undefined ? (
                           <div className="inline-flex flex-col items-center">
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-black bg-indigo-100 text-indigo-800 font-mono shadow-2xs border border-indigo-200">
-                              <Timer size={12} className="text-indigo-600" />
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-black font-mono shadow-2xs border ${
+                              row.dateTatDays === 0 
+                                ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
+                                : row.dateTatDays > 3 
+                                ? 'bg-amber-100 text-amber-900 border-amber-300' 
+                                : 'bg-indigo-100 text-indigo-800 border-indigo-200'
+                            }`}>
+                              <Timer size={12} className={row.dateTatDays === 0 ? 'text-emerald-600' : 'text-indigo-600'} />
                               {row.dateTatDays} {row.dateTatDays === 1 ? 'Day' : 'Days'}
                             </span>
-                            <span className="text-[10px] text-slate-400 font-semibold mt-0.5" title={`Previous trip: ${row.dateTatPrevDate}`}>
-                              TAT • Prev: {row.dateTatPrevDate}
+                            <span className="text-[10px] text-slate-500 font-semibold mt-0.5" title={`Previous trip date: ${row.dateTatPrevDate}`}>
+                              Prev: {row.dateTatPrevDate}
                             </span>
                           </div>
                         ) : row.dateTatIsFirst ? (
                           <div className="inline-flex flex-col items-center">
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-300">
                               Start Trip
                             </span>
                             <span className="text-[10px] text-slate-400 font-medium mt-0.5">

@@ -141,51 +141,50 @@ export default function InvoiceResults({ data, fileName, onReset, onAddFiles, on
 
   return (
     <section id="results" style={{ marginTop: "8px" }}>
-      {/* ── Modern KPI Summary Cards ── */}
+      {/* ── Modern Compact KPI Summary Cards ── */}
       <div style={{
         display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))",
-        gap: "16px",
-        marginBottom: "24px"
+        gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+        gap: "12px",
+        marginBottom: "16px"
       }}>
         {/* Card 1: Total Invoices */}
         <div style={{
           background: "#ffffff",
           border: "1px solid #e2e8f0",
-          borderRadius: "14px",
-          padding: "20px 22px",
+          borderRadius: "12px",
+          padding: "10px 14px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03)",
+          boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
           position: "relative",
           overflow: "hidden"
         }}>
           <div>
-            <div style={{ color: "#64748b", fontSize: "11px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "6px" }}>
+            <div style={{ color: "#64748b", fontSize: "10px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "2px" }}>
               Total Invoices
             </div>
-            <div style={{ color: "#0f172a", fontSize: "28px", fontWeight: "900", lineHeight: "1.1", letterSpacing: "-0.02em", fontFamily: "var(--font-mono, monospace)" }}>
+            <div style={{ color: "#0f172a", fontSize: "20px", fontWeight: "900", lineHeight: "1.1", letterSpacing: "-0.02em", fontFamily: "var(--font-mono, monospace)" }}>
               {stats.count}
             </div>
-            <div style={{ color: "#94a3b8", fontSize: "12px", marginTop: "6px", fontWeight: "500", display: "flex", alignItems: "center", gap: "5px" }}>
-              <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#2563eb", display: "inline-block" }}></span>
+            <div style={{ color: "#94a3b8", fontSize: "10.5px", marginTop: "3px", fontWeight: "500", display: "flex", alignItems: "center", gap: "4px" }}>
+              <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: "#2563eb", display: "inline-block" }}></span>
               {selectedDate ? "Filtered Date" : "All Processed"}
             </div>
           </div>
           <div style={{
-            width: "48px",
-            height: "48px",
-            borderRadius: "12px",
+            width: "36px",
+            height: "36px",
+            borderRadius: "10px",
             background: "#eff6ff",
             border: "1px solid #dbeafe",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            color: "#2563eb",
-            boxShadow: "0 1px 2px rgba(37, 99, 235, 0.08)"
+            color: "#2563eb"
           }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
               <polyline points="14 2 14 8 20 8"></polyline>
               <line x1="16" y1="13" x2="8" y2="13"></line>
@@ -199,40 +198,39 @@ export default function InvoiceResults({ data, fileName, onReset, onAddFiles, on
         <div style={{
           background: "#ffffff",
           border: "1px solid #e2e8f0",
-          borderRadius: "14px",
-          padding: "20px 22px",
+          borderRadius: "12px",
+          padding: "10px 14px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03)",
+          boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
           position: "relative",
           overflow: "hidden"
         }}>
           <div>
-            <div style={{ color: "#64748b", fontSize: "11px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "6px" }}>
+            <div style={{ color: "#64748b", fontSize: "10px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "2px" }}>
               Total Quantity
             </div>
-            <div style={{ color: "#0f172a", fontSize: "28px", fontWeight: "900", lineHeight: "1.1", letterSpacing: "-0.02em", fontFamily: "var(--font-mono, monospace)" }}>
-              {stats.totalQty} <span style={{ fontSize: "14px", fontWeight: "800", color: "#64748b" }}>MT</span>
+            <div style={{ color: "#0f172a", fontSize: "20px", fontWeight: "900", lineHeight: "1.1", letterSpacing: "-0.02em", fontFamily: "var(--font-mono, monospace)" }}>
+              {stats.totalQty} <span style={{ fontSize: "11px", fontWeight: "700", color: "#64748b" }}>MT</span>
             </div>
-            <div style={{ color: "#94a3b8", fontSize: "12px", marginTop: "6px", fontWeight: "500", display: "flex", alignItems: "center", gap: "5px" }}>
-              <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#7c3aed", display: "inline-block" }}></span>
+            <div style={{ color: "#94a3b8", fontSize: "10.5px", marginTop: "3px", fontWeight: "500", display: "flex", alignItems: "center", gap: "4px" }}>
+              <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: "#7c3aed", display: "inline-block" }}></span>
               Dispatched Weight
             </div>
           </div>
           <div style={{
-            width: "48px",
-            height: "48px",
-            borderRadius: "12px",
+            width: "36px",
+            height: "36px",
+            borderRadius: "10px",
             background: "#f5f3ff",
             border: "1px solid #ede9fe",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            color: "#7c3aed",
-            boxShadow: "0 1px 2px rgba(124, 58, 237, 0.08)"
+            color: "#7c3aed"
           }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="1" y="3" width="15" height="13"></rect>
               <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
               <circle cx="5.5" cy="18.5" r="2.5"></circle>
@@ -245,40 +243,39 @@ export default function InvoiceResults({ data, fileName, onReset, onAddFiles, on
         <div style={{
           background: "#ffffff",
           border: "1px solid #e2e8f0",
-          borderRadius: "14px",
-          padding: "20px 22px",
+          borderRadius: "12px",
+          padding: "10px 14px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03)",
+          boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
           position: "relative",
           overflow: "hidden"
         }}>
           <div>
-            <div style={{ color: "#64748b", fontSize: "11px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "6px" }}>
+            <div style={{ color: "#64748b", fontSize: "10px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "2px" }}>
               Total Amount
             </div>
-            <div style={{ color: "#0f172a", fontSize: "28px", fontWeight: "900", lineHeight: "1.1", letterSpacing: "-0.02em", fontFamily: "var(--font-mono, monospace)" }}>
+            <div style={{ color: "#16a34a", fontSize: "20px", fontWeight: "900", lineHeight: "1.1", letterSpacing: "-0.02em", fontFamily: "var(--font-mono, monospace)" }}>
               ₹{stats.totalAmt}
             </div>
-            <div style={{ color: "#94a3b8", fontSize: "12px", marginTop: "6px", fontWeight: "500", display: "flex", alignItems: "center", gap: "5px" }}>
-              <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#16a34a", display: "inline-block" }}></span>
+            <div style={{ color: "#94a3b8", fontSize: "10.5px", marginTop: "3px", fontWeight: "500", display: "flex", alignItems: "center", gap: "4px" }}>
+              <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: "#16a34a", display: "inline-block" }}></span>
               Gross Invoice Value
             </div>
           </div>
           <div style={{
-            width: "48px",
-            height: "48px",
-            borderRadius: "12px",
+            width: "36px",
+            height: "36px",
+            borderRadius: "10px",
             background: "#f0fdf4",
             border: "1px solid #dcfce7",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            color: "#16a34a",
-            boxShadow: "0 1px 2px rgba(22, 163, 74, 0.08)"
+            color: "#16a34a"
           }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="12" y1="1" x2="12" y2="23"></line>
               <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
             </svg>
@@ -289,40 +286,39 @@ export default function InvoiceResults({ data, fileName, onReset, onAddFiles, on
         <div style={{
           background: "#ffffff",
           border: "1px solid #e2e8f0",
-          borderRadius: "14px",
-          padding: "20px 22px",
+          borderRadius: "12px",
+          padding: "10px 14px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03)",
+          boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
           position: "relative",
           overflow: "hidden"
         }}>
           <div>
-            <div style={{ color: "#64748b", fontSize: "11px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "6px" }}>
+            <div style={{ color: "#64748b", fontSize: "10px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "2px" }}>
               Parties / Network
             </div>
-            <div style={{ color: "#0f172a", fontSize: "28px", fontWeight: "900", lineHeight: "1.1", letterSpacing: "-0.02em", fontFamily: "var(--font-mono, monospace)" }}>
-              {stats.buyersCount} <span style={{ fontSize: "14px", fontWeight: "800", color: "#64748b" }}>Buyers</span>
+            <div style={{ color: "#ea580c", fontSize: "20px", fontWeight: "900", lineHeight: "1.1", letterSpacing: "-0.02em", fontFamily: "var(--font-mono, monospace)" }}>
+              {stats.buyersCount} <span style={{ fontSize: "11px", fontWeight: "700", color: "#64748b" }}>Buyers</span>
             </div>
-            <div style={{ color: "#94a3b8", fontSize: "12px", marginTop: "6px", fontWeight: "500", display: "flex", alignItems: "center", gap: "5px" }}>
-              <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#ea580c", display: "inline-block" }}></span>
+            <div style={{ color: "#94a3b8", fontSize: "10.5px", marginTop: "3px", fontWeight: "500", display: "flex", alignItems: "center", gap: "4px" }}>
+              <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: "#ea580c", display: "inline-block" }}></span>
               {stats.suppliersCount} Supplier{stats.suppliersCount !== 1 ? 's' : ''} Active
             </div>
           </div>
           <div style={{
-            width: "48px",
-            height: "48px",
-            borderRadius: "12px",
+            width: "36px",
+            height: "36px",
+            borderRadius: "10px",
             background: "#fff7ed",
             border: "1px solid #ffedd5",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            color: "#ea580c",
-            boxShadow: "0 1px 2px rgba(234, 88, 12, 0.08)"
+            color: "#ea580c"
           }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
               <circle cx="9" cy="7" r="4"></circle>
               <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>

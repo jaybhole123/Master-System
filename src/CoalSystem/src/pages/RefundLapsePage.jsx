@@ -465,41 +465,41 @@ export default function RefundLapsePage() {
         </div>
       </div>
 
-      {/* ── 4 KPI SUMMARY CARDS ── */}
+      {/* ── 4 COMPACT KPI SUMMARY CARDS ── */}
       <div style={{
         display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-        gap: "16px",
-        marginBottom: "24px"
+        gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+        gap: "12px",
+        marginBottom: "16px"
       }}>
         {/* Card 1: Total Allocated DO Qty */}
         <div style={{
           background: "#ffffff",
           border: "1px solid #e2e8f0",
-          borderRadius: "14px",
-          padding: "18px 20px",
+          borderRadius: "12px",
+          padding: "10px 14px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          boxShadow: "0 2px 8px rgba(15, 23, 42, 0.04)",
+          boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
           position: "relative",
           overflow: "hidden"
         }}>
           <div>
-            <div style={{ color: "#64748b", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "6px" }}>
+            <div style={{ color: "#64748b", fontSize: "10px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "2px" }}>
               Total DO Quantity
             </div>
-            <div style={{ color: "#1e40af", fontSize: "28px", fontWeight: "800", lineHeight: "1.1", letterSpacing: "-0.02em" }}>
-              {stats.doQty} <span style={{ fontSize: "14px", fontWeight: "700", color: "#3b82f6" }}>MT</span>
+            <div style={{ color: "#1e40af", fontSize: "20px", fontWeight: "900", lineHeight: "1.1", letterSpacing: "-0.02em", fontFamily: "var(--font-mono, monospace)" }}>
+              {stats.doQty} <span style={{ fontSize: "11px", fontWeight: "700", color: "#3b82f6" }}>MT</span>
             </div>
-            <div style={{ color: "#94a3b8", fontSize: "11px", marginTop: "4px", fontWeight: "500" }}>
+            <div style={{ color: "#94a3b8", fontSize: "10.5px", marginTop: "3px", fontWeight: "500" }}>
               Across {stats.dosCount} Delivery Orders
             </div>
           </div>
           <div style={{
-            width: "48px",
-            height: "48px",
-            borderRadius: "12px",
+            width: "36px",
+            height: "36px",
+            borderRadius: "10px",
             background: "linear-gradient(135deg, rgba(37, 99, 235, 0.12) 0%, rgba(37, 99, 235, 0.04) 100%)",
             border: "1px solid rgba(37, 99, 235, 0.15)",
             display: "flex",
@@ -507,7 +507,7 @@ export default function RefundLapsePage() {
             justifyContent: "center",
             color: "#2563eb"
           }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
               <polyline points="14 2 14 8 20 8"></polyline>
               <line x1="16" y1="13" x2="8" y2="13"></line>
@@ -520,30 +520,30 @@ export default function RefundLapsePage() {
         <div style={{
           background: "#ffffff",
           border: "1px solid #e2e8f0",
-          borderRadius: "14px",
-          padding: "18px 20px",
+          borderRadius: "12px",
+          padding: "10px 14px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          boxShadow: "0 2px 8px rgba(15, 23, 42, 0.04)",
+          boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
           position: "relative",
           overflow: "hidden"
         }}>
           <div>
-            <div style={{ color: "#64748b", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "6px" }}>
+            <div style={{ color: "#64748b", fontSize: "10px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "2px" }}>
               Total Lifted Qty
             </div>
-            <div style={{ color: "#15803d", fontSize: "28px", fontWeight: "800", lineHeight: "1.1", letterSpacing: "-0.02em" }}>
-              {stats.liftedQty} <span style={{ fontSize: "14px", fontWeight: "700", color: "#22c55e" }}>MT</span>
+            <div style={{ color: "#15803d", fontSize: "20px", fontWeight: "900", lineHeight: "1.1", letterSpacing: "-0.02em", fontFamily: "var(--font-mono, monospace)" }}>
+              {stats.liftedQty} <span style={{ fontSize: "11px", fontWeight: "700", color: "#22c55e" }}>MT</span>
             </div>
-            <div style={{ color: "#94a3b8", fontSize: "11px", marginTop: "4px", fontWeight: "500" }}>
+            <div style={{ color: "#94a3b8", fontSize: "10.5px", marginTop: "3px", fontWeight: "500" }}>
               Successfully Dispatched
             </div>
           </div>
           <div style={{
-            width: "48px",
-            height: "48px",
-            borderRadius: "12px",
+            width: "36px",
+            height: "36px",
+            borderRadius: "10px",
             background: "linear-gradient(135deg, rgba(22, 163, 74, 0.12) 0%, rgba(22, 163, 74, 0.04) 100%)",
             border: "1px solid rgba(22, 163, 74, 0.15)",
             display: "flex",
@@ -551,7 +551,7 @@ export default function RefundLapsePage() {
             justifyContent: "center",
             color: "#16a34a"
           }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="20 6 9 17 4 12"></polyline>
             </svg>
           </div>
@@ -561,30 +561,30 @@ export default function RefundLapsePage() {
         <div style={{
           background: "#ffffff",
           border: "1px solid #e2e8f0",
-          borderRadius: "14px",
-          padding: "18px 20px",
+          borderRadius: "12px",
+          padding: "10px 14px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          boxShadow: "0 2px 8px rgba(15, 23, 42, 0.04)",
+          boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
           position: "relative",
           overflow: "hidden"
         }}>
           <div>
-            <div style={{ color: "#64748b", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "6px" }}>
+            <div style={{ color: "#64748b", fontSize: "10px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "2px" }}>
               Total Lapsed Qty
             </div>
-            <div style={{ color: "#dc2626", fontSize: "28px", fontWeight: "800", lineHeight: "1.1", letterSpacing: "-0.02em" }}>
-              {stats.lapsedQty} <span style={{ fontSize: "14px", fontWeight: "700", color: "#ef4444" }}>MT</span>
+            <div style={{ color: "#dc2626", fontSize: "20px", fontWeight: "900", lineHeight: "1.1", letterSpacing: "-0.02em", fontFamily: "var(--font-mono, monospace)" }}>
+              {stats.lapsedQty} <span style={{ fontSize: "11px", fontWeight: "700", color: "#ef4444" }}>MT</span>
             </div>
-            <div style={{ color: "#94a3b8", fontSize: "11px", marginTop: "4px", fontWeight: "500" }}>
+            <div style={{ color: "#94a3b8", fontSize: "10.5px", marginTop: "3px", fontWeight: "500" }}>
               Unlifted Weight
             </div>
           </div>
           <div style={{
-            width: "48px",
-            height: "48px",
-            borderRadius: "12px",
+            width: "36px",
+            height: "36px",
+            borderRadius: "10px",
             background: "linear-gradient(135deg, rgba(220, 38, 38, 0.12) 0%, rgba(220, 38, 38, 0.04) 100%)",
             border: "1px solid rgba(220, 38, 38, 0.15)",
             display: "flex",
@@ -592,7 +592,7 @@ export default function RefundLapsePage() {
             justifyContent: "center",
             color: "#dc2626"
           }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10"></circle>
               <line x1="15" y1="9" x2="9" y2="15"></line>
               <line x1="9" y1="9" x2="15" y2="15"></line>
@@ -604,30 +604,30 @@ export default function RefundLapsePage() {
         <div style={{
           background: "#ffffff",
           border: "1px solid #e2e8f0",
-          borderRadius: "14px",
-          padding: "18px 20px",
+          borderRadius: "12px",
+          padding: "10px 14px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          boxShadow: "0 2px 8px rgba(15, 23, 42, 0.04)",
+          boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
           position: "relative",
           overflow: "hidden"
         }}>
           <div>
-            <div style={{ color: "#64748b", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "6px" }}>
+            <div style={{ color: "#64748b", fontSize: "10px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "2px" }}>
               Refund Amount
             </div>
-            <div style={{ color: "#b45309", fontSize: "26px", fontWeight: "800", lineHeight: "1.1", letterSpacing: "-0.02em" }}>
+            <div style={{ color: "#b45309", fontSize: "20px", fontWeight: "900", lineHeight: "1.1", letterSpacing: "-0.02em", fontFamily: "var(--font-mono, monospace)" }}>
               ₹{stats.refundAmt}
             </div>
-            <div style={{ color: "#94a3b8", fontSize: "11px", marginTop: "4px", fontWeight: "500" }}>
+            <div style={{ color: "#94a3b8", fontSize: "10.5px", marginTop: "3px", fontWeight: "500" }}>
               Estimated Coal Refund
             </div>
           </div>
           <div style={{
-            width: "48px",
-            height: "48px",
-            borderRadius: "12px",
+            width: "36px",
+            height: "36px",
+            borderRadius: "10px",
             background: "linear-gradient(135deg, rgba(217, 119, 6, 0.12) 0%, rgba(217, 119, 6, 0.04) 100%)",
             border: "1px solid rgba(217, 119, 6, 0.15)",
             display: "flex",
@@ -635,7 +635,7 @@ export default function RefundLapsePage() {
             justifyContent: "center",
             color: "#d97706"
           }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="12" y1="1" x2="12" y2="23"></line>
               <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
             </svg>

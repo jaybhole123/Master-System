@@ -388,21 +388,36 @@ export default function MonthlyTruckMaintenance() {
     XLSX.writeFile(wb, `Monthly_Truck_Maintenance_Records.xlsx`);
   };
 
+  // Top KPI aggregates across filtered records
+  const kpiStats = useMemo(() => {
+    const totalFleet = filteredTableData.length > 0 ? Math.max(...filteredTableData.map(r => r.fleet || 0)) : 0;
+    const totalTrips = filteredTableData.reduce((acc, r) => acc + (r.tripsCount || 0), 0);
+    const totalRevenue = filteredTableData.reduce((acc, r) => acc + (r.revenue || 0), 0);
+    const totalExpenses = filteredTableData.reduce((acc, r) => acc + (r.totalExp || 0), 0);
+    const netProfitLoss = totalRevenue - totalExpenses;
+    return { totalFleet, totalTrips, totalRevenue, totalExpenses, netProfitLoss };
+  }, [filteredTableData]);
+
   return (
-    <div className="min-h-screen bg-slate-50/60 p-4 sm:p-6 lg:p-8 font-sans antialiased text-slate-800">
+    <div className="min-h-screen bg-slate-50/70 p-3 sm:p-5 lg:p-7 font-sans antialiased text-slate-800 space-y-6">
       
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-rose-600 to-red-500 text-white flex items-center justify-center shadow-lg shadow-red-500/20">
-            <Truck size={24} />
+      {/* ══════════ TOP HEADER & STATS BAR ══════════ */}
+      <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/80 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+        <div className="flex items-center gap-4">
+          <div className="w-13 h-13 rounded-2xl bg-gradient-to-br from-red-500 to-rose-600 text-white flex items-center justify-center shadow-lg shadow-red-500/25 shrink-0">
+            <Truck size={28} className="stroke-[2.2]" />
           </div>
           <div>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              Monthly Truck Maintenance
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-400 font-medium">
-              Month-wise Fleet Expenses, Revenue & Profit/Loss Statement Records
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                Monthly Truck Maintenance
+              </h1>
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-red-50 text-red-700 border border-red-200 uppercase tracking-wider">
+                Fleet P&L
+              </span>
+            </div>
+            <p className="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">
+              Month-wise Fleet Expenses, Auto Trip Freight Revenue & Net Profit/Loss Statement
             </p>
           </div>
         </div>
@@ -412,43 +427,110 @@ export default function MonthlyTruckMaintenance() {
           {/* Add / Edit Form Button */}
           <button
             onClick={() => setIsFormModalOpen(true)}
-            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-md shadow-red-500/20 transition-all active:scale-95 cursor-pointer"
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 bg-gradient-to-r from-red-600 via-rose-600 to-red-600 hover:opacity-95 text-white px-4.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-red-500/25 transition-all active:scale-95 cursor-pointer"
           >
-            <Plus size={16} />
+            <Plus size={16} className="stroke-[2.5]" />
             <span>Add Month Expense</span>
           </button>
 
           {/* Export Full Table */}
           <button
             onClick={handleExportFullExcel}
-            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold shadow-sm shadow-emerald-600/20 transition-all hover:shadow active:scale-95 cursor-pointer"
+            className="flex items-center gap-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all hover:shadow-xs active:scale-95 cursor-pointer"
           >
-            <Download size={16} />
+            <Download size={15} className="stroke-[2.5]" />
             <span>Export Excel</span>
           </button>
         </div>
       </div>
 
+      {/* ══════════ METRIC KPI CARDS ══════════ */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5">
+        {/* Card 1: Total Trips */}
+        <div className="bg-white rounded-2xl px-4 py-3 border border-slate-200/90 shadow-2xs hover:shadow-xs transition-shadow">
+          <div className="flex items-center justify-between text-slate-400">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Total Trips (Recorded)</span>
+            <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+              <Layers size={14} />
+            </div>
+          </div>
+          <div className="text-lg sm:text-xl font-black text-slate-900 font-mono mt-0.5">
+            {kpiStats.totalTrips.toLocaleString('en-IN')}
+          </div>
+          <div className="text-[10px] text-slate-400 font-medium">
+            Across {filteredTableData.length} active month cycles
+          </div>
+        </div>
+
+        {/* Card 2: Gross Revenue */}
+        <div className="bg-white rounded-2xl px-4 py-3 border border-slate-200/90 shadow-2xs hover:shadow-xs transition-shadow">
+          <div className="flex items-center justify-between text-slate-400">
+            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700">Gross Revenue</span>
+            <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <TrendingUp size={14} />
+            </div>
+          </div>
+          <div className="text-lg sm:text-xl font-black text-emerald-700 font-mono mt-0.5">
+            ₹{kpiStats.totalRevenue.toLocaleString('en-IN')}
+          </div>
+          <div className="text-[10px] text-slate-400 font-medium">
+            Calculated from auto trip freight
+          </div>
+        </div>
+
+        {/* Card 3: Total Expenses */}
+        <div className="bg-white rounded-2xl px-4 py-3 border border-slate-200/90 shadow-2xs hover:shadow-xs transition-shadow">
+          <div className="flex items-center justify-between text-slate-400">
+            <span className="text-[10px] font-black uppercase tracking-wider text-rose-700">Total Expenses</span>
+            <div className="w-7 h-7 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
+              <TrendingDown size={14} />
+            </div>
+          </div>
+          <div className="text-lg sm:text-xl font-black text-rose-700 font-mono mt-0.5">
+            ₹{kpiStats.totalExpenses.toLocaleString('en-IN')}
+          </div>
+          <div className="text-[10px] text-slate-400 font-medium">
+            EMI, AMC, Salaries & Overheads
+          </div>
+        </div>
+
+        {/* Card 4: Net P&L */}
+        <div className="bg-white rounded-2xl px-4 py-3 border border-slate-200/90 shadow-2xs hover:shadow-xs transition-shadow">
+          <div className="flex items-center justify-between text-slate-400">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-700">Net Profit / Loss</span>
+            <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${kpiStats.netProfitLoss >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
+              <DollarSign size={14} />
+            </div>
+          </div>
+          <div className={`text-lg sm:text-xl font-black font-mono mt-0.5 ${kpiStats.netProfitLoss >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
+            {kpiStats.netProfitLoss >= 0 ? '+' : ''}₹{kpiStats.netProfitLoss.toLocaleString('en-IN')}
+          </div>
+          <div className="text-[10px] text-slate-400 font-medium">
+            Overall cumulative balance
+          </div>
+        </div>
+      </div>
+
       {/* Main Content: Data Table Card */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-3xl border border-slate-200/90 shadow-xs overflow-hidden">
         
         {/* Table Topbar: Search, Calendar Month Picker & Stats */}
-        <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-50/40">
+        <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-50/50">
           <div className="flex flex-wrap items-center gap-2.5">
             {/* Search Input */}
-            <div className="relative w-full sm:w-60">
+            <div className="relative w-full sm:w-64">
               <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <input 
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search Month (e.g. 2026-11)..."
-                className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold focus:border-red-500 focus:ring-1 focus:ring-red-100 outline-none transition-all placeholder:text-slate-300"
+                className="w-full pl-9 pr-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold focus:border-red-500 focus:ring-2 focus:ring-red-100 outline-none transition-all placeholder:text-slate-400 shadow-2xs"
               />
             </div>
 
             {/* Calendar Month Picker */}
-            <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 shadow-2xs hover:border-slate-300 transition-colors">
+            <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl px-3 py-1.5 shadow-2xs hover:border-slate-300 transition-colors">
               <Calendar size={14} className="text-red-600 shrink-0" />
               <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider hidden xs:inline">Month:</span>
               <input 
@@ -468,7 +550,7 @@ export default function MonthlyTruckMaintenance() {
                   setSearchTerm('');
                   setCalendarMonthFilter('');
                 }}
-                className="text-xs text-red-600 hover:text-red-700 hover:bg-red-50 font-bold px-2.5 py-1.5 rounded-lg border border-red-200 transition-all cursor-pointer flex items-center gap-1"
+                className="text-xs text-red-600 hover:text-red-700 hover:bg-red-50 font-bold px-3 py-1.5 rounded-xl border border-red-200 transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
               >
                 <X size={13} />
                 <span>Reset</span>
@@ -477,27 +559,29 @@ export default function MonthlyTruckMaintenance() {
           </div>
 
           <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
-            <span>Total Records: <strong className="text-slate-900">{filteredTableData.length} Months</strong></span>
+            <span className="px-3 py-1 bg-slate-100 rounded-lg border border-slate-200">
+              Total Records: <strong className="text-slate-900">{filteredTableData.length} Months</strong>
+            </span>
           </div>
         </div>
 
         {/* Table */}
         <div className="overflow-x-auto custom-sidebar-scroll">
-          <table className="w-full text-left border-collapse min-w-[1000px]">
+          <table className="w-full text-left border-collapse min-w-[1050px]">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-xs font-black text-slate-500 uppercase tracking-wider">
-                <th className="py-3.5 px-3 text-center w-12">S.No.</th>
-                <th className="py-3.5 px-4 text-center w-14">Action</th>
-                <th className="py-3.5 px-4">Month</th>
-                <th className="py-3.5 px-4 text-center">Fleet</th>
-                <th className="py-3.5 px-4 text-center">Trips</th>
-                <th className="py-3.5 px-4 text-right">Other Exp. (₹)</th>
-                <th className="py-3.5 px-4 text-right">AMC EMI (₹)</th>
-                <th className="py-3.5 px-4 text-right">Staff & Driver (₹)</th>
-                <th className="py-3.5 px-4 text-right">Monthly EMI (₹)</th>
-                <th className="py-3.5 px-4 text-right bg-rose-50/50 text-rose-800">Total Exp. (₹)</th>
-                <th className="py-3.5 px-4 text-right bg-emerald-50/50 text-emerald-800">Gross Revenue (₹)</th>
-                <th className="py-3.5 px-4 text-right bg-slate-100/80 text-slate-800">Net Profit / Loss (₹)</th>
+              <tr className="bg-slate-50/80 border-b border-slate-200 text-xs font-black text-slate-600 uppercase tracking-wider">
+                <th className="py-3.5 px-3 text-center w-12 whitespace-nowrap">S.No.</th>
+                <th className="py-3.5 px-3 text-center w-20 whitespace-nowrap">Action</th>
+                <th className="py-3.5 px-4 whitespace-nowrap">Month</th>
+                <th className="py-3.5 px-3 text-center whitespace-nowrap">Fleet</th>
+                <th className="py-3.5 px-3 text-center whitespace-nowrap">Trips</th>
+                <th className="py-3.5 px-3 text-right whitespace-nowrap">Other Exp. (₹)</th>
+                <th className="py-3.5 px-3 text-right whitespace-nowrap">AMC EMI (₹)</th>
+                <th className="py-3.5 px-3 text-right whitespace-nowrap">Staff & Driver (₹)</th>
+                <th className="py-3.5 px-3 text-right whitespace-nowrap">Monthly EMI (₹)</th>
+                <th className="py-3.5 px-4 text-right bg-rose-50/70 text-rose-800 whitespace-nowrap">Total Exp. (₹)</th>
+                <th className="py-3.5 px-4 text-right bg-emerald-50/70 text-emerald-800 whitespace-nowrap">Gross Revenue (₹)</th>
+                <th className="py-3.5 px-4 text-right bg-slate-100/90 text-slate-800 whitespace-nowrap">Net Profit / Loss (₹)</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-sm">
@@ -507,95 +591,109 @@ export default function MonthlyTruckMaintenance() {
                   return (
                     <tr 
                       key={row.month} 
-                      className={`hover:bg-slate-50/70 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/20'}`}
+                      className="hover:bg-slate-50/80 transition-colors group"
                     >
                       {/* S.No. */}
-                      <td className="py-3.5 px-3 text-center font-mono font-bold text-slate-500 text-xs">
+                      <td className="py-3 px-3 text-center font-mono font-bold text-slate-400 text-xs whitespace-nowrap">
                         {idx + 1}
                       </td>
 
                       {/* Action: Eye Button */}
-                      <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                      <td className="py-3 px-3 text-center whitespace-nowrap">
                         <div className="inline-flex items-center gap-1.5">
                           <button
                             type="button"
                             onClick={() => handleOpenDetailModal(row)}
                             title="View Month Statement Details"
-                            className="w-8 h-8 rounded-lg bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition-all flex items-center justify-center shadow-xs cursor-pointer"
+                            className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all flex items-center justify-center shadow-2xs border border-emerald-200/60 cursor-pointer"
                           >
-                            <Eye size={15} />
+                            <Eye size={14} />
                           </button>
                           <button
                             type="button"
                             onClick={() => handleOpenEditMonth(row.month)}
                             title="Edit this month parameters"
-                            className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-900 hover:text-white transition-all flex items-center justify-center shadow-xs cursor-pointer"
+                            className="w-7 h-7 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-800 hover:text-white transition-all flex items-center justify-center shadow-2xs border border-slate-200 cursor-pointer"
                           >
-                            <Edit3 size={14} />
+                            <Edit3 size={13} />
                           </button>
                         </div>
                       </td>
 
                       {/* Month */}
-                      <td className="py-3.5 px-4 font-bold text-slate-900 whitespace-nowrap">
-                        <span className="flex items-center gap-2">
-                          <span className={`w-2 h-2 rounded-full ${row.hasSavedForm ? 'bg-emerald-500' : 'bg-slate-300'}`}></span>
-                          {row.month}
-                        </span>
+                      <td className="py-3 px-4 font-bold text-slate-800 whitespace-nowrap">
+                        <div className="inline-flex items-center gap-2">
+                          <span className={`w-2 h-2 rounded-full shrink-0 ${row.hasSavedForm ? 'bg-emerald-500 shadow-xs shadow-emerald-500/50' : 'bg-slate-300'}`}></span>
+                          <span className="font-mono text-xs font-black px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200/80 text-slate-700 whitespace-nowrap">
+                            {row.month}
+                          </span>
+                          <span className="text-xs text-slate-400 font-medium whitespace-nowrap">
+                            ({formatDisplayMonth(row.month)})
+                          </span>
+                        </div>
                       </td>
 
                       {/* Fleet */}
-                      <td className="py-3.5 px-4 text-center font-mono font-bold text-slate-700">
-                        {row.fleet}
+                      <td className="py-3 px-3 text-center whitespace-nowrap">
+                        <span className="inline-block px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-700 font-mono font-bold text-xs border border-slate-200 whitespace-nowrap">
+                          {row.fleet}
+                        </span>
                       </td>
 
                       {/* Trips */}
-                      <td className="py-3.5 px-4 text-center font-mono font-bold text-blue-600">
-                        {row.tripsCount}
+                      <td className="py-3 px-3 text-center whitespace-nowrap">
+                        <span className="inline-block px-3 py-0.5 rounded-full bg-blue-50 text-blue-700 font-mono font-bold text-xs border border-blue-200 whitespace-nowrap">
+                          {row.tripsCount}
+                        </span>
                       </td>
 
                       {/* Other Exp */}
-                      <td className="py-3.5 px-4 text-right font-mono font-medium text-slate-700">
-                        {row.otherExp ? `₹${row.otherExp.toLocaleString('en-IN')}` : '—'}
+                      <td className="py-3 px-3 text-right font-mono font-semibold text-slate-600 whitespace-nowrap">
+                        {row.otherExp ? `₹${row.otherExp.toLocaleString('en-IN')}` : <span className="text-slate-300">—</span>}
                       </td>
 
                       {/* AMC EMI */}
-                      <td className="py-3.5 px-4 text-right font-mono font-medium text-slate-700">
-                        {row.amc ? `₹${row.amc.toLocaleString('en-IN')}` : '—'}
+                      <td className="py-3 px-3 text-right font-mono font-semibold text-slate-600 whitespace-nowrap">
+                        {row.amc ? `₹${row.amc.toLocaleString('en-IN')}` : <span className="text-slate-300">—</span>}
                       </td>
 
                       {/* Staff & Driver */}
-                      <td className="py-3.5 px-4 text-right font-mono font-medium text-slate-700">
-                        {staffAndDriver ? `₹${staffAndDriver.toLocaleString('en-IN')}` : '—'}
+                      <td className="py-3 px-3 text-right font-mono font-semibold text-slate-600 whitespace-nowrap">
+                        {staffAndDriver ? `₹${staffAndDriver.toLocaleString('en-IN')}` : <span className="text-slate-300">—</span>}
                       </td>
 
                       {/* Monthly EMI */}
-                      <td className="py-3.5 px-4 text-right font-mono font-medium text-red-600">
-                        {row.emi ? `₹${row.emi.toLocaleString('en-IN')}` : '—'}
+                      <td className="py-3 px-3 text-right font-mono font-bold text-rose-600 whitespace-nowrap">
+                        {row.emi ? `₹${row.emi.toLocaleString('en-IN')}` : <span className="text-slate-300">—</span>}
                       </td>
 
                       {/* Total Exp */}
-                      <td className="py-3.5 px-4 text-right font-mono font-bold text-rose-700 bg-rose-50/30 whitespace-nowrap">
+                      <td className="py-3 px-4 text-right font-mono font-black text-rose-700 bg-rose-50/30 whitespace-nowrap">
                         ₹{row.totalExp.toLocaleString('en-IN')}
                       </td>
 
                       {/* Gross Revenue */}
-                      <td className="py-3.5 px-4 text-right font-mono font-bold text-emerald-700 bg-emerald-50/30 whitespace-nowrap">
+                      <td className="py-3 px-4 text-right font-mono font-black text-emerald-700 bg-emerald-50/30 whitespace-nowrap">
                         ₹{row.revenue.toLocaleString('en-IN')}
                       </td>
 
                       {/* Net Profit / Loss */}
-                      <td className="py-3.5 px-4 text-right font-mono font-black whitespace-nowrap bg-slate-50/50">
-                        <span className={`px-2.5 py-1 rounded-md text-xs inline-block ${
+                      <td className="py-3 px-4 text-right font-mono font-black whitespace-nowrap bg-slate-50/50">
+                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold inline-flex items-center gap-1 shadow-2xs border whitespace-nowrap ${
                           row.totalExp === 0 && row.revenue === 0
-                            ? 'text-slate-400 bg-slate-100'
+                            ? 'text-slate-400 bg-slate-100 border-slate-200'
                             : row.isLoss 
-                              ? 'text-red-700 bg-red-100/70' 
-                              : 'text-emerald-700 bg-emerald-100/70'
+                              ? 'text-rose-700 bg-rose-50 border-rose-200' 
+                              : 'text-emerald-800 bg-emerald-50 border-emerald-200'
                         }`}>
-                          {row.totalExp > 0 || row.revenue > 0 
-                            ? `${row.isLoss ? '-' : '+'}₹${Math.abs(row.profitLoss).toLocaleString('en-IN')}` 
-                            : '₹0'}
+                          {row.totalExp > 0 || row.revenue > 0 ? (
+                            <>
+                              {row.isLoss ? <ArrowDownRight size={13} className="text-rose-600" /> : <ArrowUpRight size={13} className="text-emerald-600" />}
+                              <span>{row.isLoss ? '-' : '+'}₹{Math.abs(row.profitLoss).toLocaleString('en-IN')}</span>
+                            </>
+                          ) : (
+                            '₹0'
+                          )}
                         </span>
                       </td>
 
@@ -605,7 +703,9 @@ export default function MonthlyTruckMaintenance() {
               ) : (
                 <tr>
                   <td colSpan={12} className="py-12 text-center text-slate-400">
-                    No monthly records found. Click <strong>"Add Month Expense"</strong> to add one.
+                    <Truck className="w-8 h-8 mx-auto text-slate-300 mb-2" />
+                    <p className="font-bold text-slate-700 text-sm">No monthly records found</p>
+                    <p className="text-xs text-slate-400 mt-0.5">Click "Add Month Expense" to create a new monthly statement.</p>
                   </td>
                 </tr>
               )}

@@ -92,19 +92,6 @@ const getHeaderTitle = (pathname, routes) => {
     const match = flat.find(r => r.href && pathname === r.href);
     return { module: "Daily Scheduler", page: match?.label || "Daily Scheduler" };
   }
-  // Check MIS Reports routes
-  if (pathname.startsWith("/mis-reports")) {
-    const misRoutes = [
-      { href: "/mis-reports/dashboard", label: "Dashboard" },
-      { href: "/mis-reports/today-tasks", label: "Today's Tasks" },
-      { href: "/mis-reports/pending-tasks", label: "Pending Tasks" },
-      { href: "/mis-reports/commitment-history", label: "Commitment History" },
-      { href: "/mis-reports/kpi-kra", label: "KPI / KRA" },
-      { href: "/mis-reports/department", label: "Department" },
-    ];
-    const match = misRoutes.find(r => pathname === r.href);
-    return { module: "MIS Reports", page: match?.label || "Dashboard" };
-  }
   // Check Plant routes
   if (pathname.startsWith("/plant")) {
     const plantRoutes = [
@@ -682,8 +669,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       "Nandan Smelters Pvt Ltd Report": path.startsWith("/nandan-smelter"),
       "Hindustan Dhaatu Ltd (Billet) Report": path.startsWith("/billet-system"),
       "Transport Reporting": path.startsWith("/transport-system"),
-      "Letter": path.startsWith("/letter"),
-      "MIS Reports": path.startsWith("/mis-reports")
+      "Letter": path.startsWith("/letter")
     };
     try {
       const saved = sessionStorage.getItem('sidebar_open_modules');
@@ -1643,56 +1629,6 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       showFor: ["admin", "user", "HOD"],
       module: "Coal System",
       badge: coalBadges["Sauda Sale"] > 0 ? coalBadges["Sauda Sale"] : null,
-    },
-
-    // --- MIS Reports Module Routes ---
-    {
-      href: "/mis-reports/dashboard",
-      label: "Dashboard",
-      icon: LayoutDashboard,
-      active: location.pathname === "/mis-reports/dashboard" || location.pathname === "/mis-reports",
-      showFor: ["admin", "user", "HOD"],
-      module: "MIS Reports",
-    },
-    {
-      href: "/mis-reports/today-tasks",
-      label: "Today's Tasks",
-      icon: CalendarCheck,
-      active: location.pathname === "/mis-reports/today-tasks",
-      showFor: ["admin", "user", "HOD"],
-      module: "MIS Reports",
-    },
-    {
-      href: "/mis-reports/pending-tasks",
-      label: "Pending Tasks",
-      icon: List,
-      active: location.pathname === "/mis-reports/pending-tasks",
-      showFor: ["admin", "user", "HOD"],
-      module: "MIS Reports",
-    },
-    {
-      href: "/mis-reports/commitment-history",
-      label: "Commitment History",
-      icon: RefreshCw,
-      active: location.pathname === "/mis-reports/commitment-history",
-      showFor: ["admin", "user", "HOD"],
-      module: "MIS Reports",
-    },
-    {
-      href: "/mis-reports/kpi-kra",
-      label: "KPI / KRA",
-      icon: BarChart3,
-      active: location.pathname === "/mis-reports/kpi-kra",
-      showFor: ["admin", "user", "HOD"],
-      module: "MIS Reports",
-    },
-    {
-      href: "/mis-reports/department",
-      label: "Department",
-      icon: Building2,
-      active: location.pathname === "/mis-reports/department",
-      showFor: ["admin", "user", "HOD"],
-      module: "MIS Reports",
     },
 
     // --- Hindustan Dhaatu Ltd (Sponge) Report Module Routes ---

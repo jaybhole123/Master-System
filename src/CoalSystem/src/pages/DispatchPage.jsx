@@ -4,6 +4,7 @@ import { downloadBlob } from "../utils/pdfParser";
 import { supabase } from "../utils/supabase";
 import { exportToExcel, exportToPDF } from "../utils/exportHelpers";
 import HighlightText from "../components/HighlightText";
+import TruckDispatchTab from "./TruckDispatchTab";
 
 const INITIAL_COLS = [
   { key: "doNo", label: "DO No *" },
@@ -25,7 +26,7 @@ export default function DispatchPage() {
   const [columns, setColumns] = useState(INITIAL_COLS);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingIndex, setEditingIndex] = useState(null);
-  const [activeTab, setActiveTab] = useState("pending");
+  const [activeTab, setActiveTab] = useState("truck-dispatch");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedReceiver, setSelectedReceiver] = useState("ALL");
@@ -324,7 +325,7 @@ export default function DispatchPage() {
   };
 
   return (
-    <div className="page-content" style={{ padding: "24px 28px 56px" }}>
+    <div className="dispatch-page-container" style={{ padding: "16px 20px", width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
       {/* ── TOP HEADER ── */}
       <div style={{
         display: "flex",
@@ -399,193 +400,224 @@ export default function DispatchPage() {
         </div>
       </div>
 
-      {/* ── 4 KPI SUMMARY CARDS ── */}
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-        gap: "16px",
-        marginBottom: "24px"
-      }}>
-        {/* Card 1: Total Dispatch Qty */}
-        <div style={{
-          background: "#ffffff",
-          border: "1px solid #e2e8f0",
-          borderRadius: "14px",
-          padding: "18px 20px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          boxShadow: "0 2px 8px rgba(15, 23, 42, 0.04)",
-          position: "relative",
-          overflow: "hidden"
-        }}>
-          <div>
-            <div style={{ color: "#64748b", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "6px" }}>
-              Total Dispatch Qty
-            </div>
-            <div style={{ color: "#0f172a", fontSize: "28px", fontWeight: "900", lineHeight: "1.1", letterSpacing: "-0.02em", fontFamily: "var(--font-mono, monospace)" }}>
-              {stats.dispatchQty} <span style={{ fontSize: "14px", fontWeight: "800", color: "#64748b" }}>MT</span>
-            </div>
-            <div style={{ color: "#94a3b8", fontSize: "11px", marginTop: "4px", fontWeight: "500" }}>
-              {stats.count} Record{stats.count !== 1 ? 's' : ''} in view
-            </div>
-          </div>
+      {/* ── 4 KPI SUMMARY CARDS (SHOW ONLY FOR PENDING / HISTORY TABS) ── */}
+      {activeTab !== "truck-dispatch" && (
+        <div className="dispatch-cards-grid">
+          {/* Card 1: Total Dispatch Qty */}
           <div style={{
-            width: "48px",
-            height: "48px",
+            background: "#ffffff",
+            border: "1px solid #e2e8f0",
             borderRadius: "12px",
-            background: "linear-gradient(135deg, rgba(2, 132, 199, 0.12) 0%, rgba(2, 132, 199, 0.04) 100%)",
-            border: "1px solid rgba(2, 132, 199, 0.15)",
+            padding: "10px 14px",
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
-            color: "#0284c7"
+            justifyContent: "space-between",
+            boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
+            position: "relative",
+            overflow: "hidden"
           }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 9l7 7 7-7"></path>
-              <path d="M12 3v13"></path>
-              <path d="M3 21h18"></path>
-            </svg>
+            <div>
+              <div style={{ color: "#64748b", fontSize: "10px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "2px", whiteSpace: "nowrap" }}>
+                Total Dispatch Qty
+              </div>
+              <div style={{ color: "#0f172a", fontSize: "20px", fontWeight: "900", lineHeight: "1.1", letterSpacing: "-0.02em", fontFamily: "var(--font-mono, monospace)", whiteSpace: "nowrap" }}>
+                {stats.dispatchQty} <span style={{ fontSize: "12px", fontWeight: "800", color: "#64748b" }}>MT</span>
+              </div>
+              <div style={{ color: "#94a3b8", fontSize: "10px", marginTop: "2px", fontWeight: "500", whiteSpace: "nowrap" }}>
+                {stats.count} Record{stats.count !== 1 ? 's' : ''} in view
+              </div>
+            </div>
+            <div style={{
+              width: "36px",
+              height: "36px",
+              borderRadius: "10px",
+              background: "linear-gradient(135deg, rgba(2, 132, 199, 0.12) 0%, rgba(2, 132, 199, 0.04) 100%)",
+              border: "1px solid rgba(2, 132, 199, 0.15)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#0284c7",
+              flexShrink: 0
+            }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 9l7 7 7-7"></path>
+                <path d="M12 3v13"></path>
+                <path d="M3 21h18"></path>
+              </svg>
+            </div>
           </div>
-        </div>
 
-        {/* Card 2: Total Balance Qty */}
-        <div style={{
-          background: "#ffffff",
-          border: "1px solid #e2e8f0",
-          borderRadius: "14px",
-          padding: "18px 20px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          boxShadow: "0 2px 8px rgba(15, 23, 42, 0.04)",
-          position: "relative",
-          overflow: "hidden"
-        }}>
-          <div>
-            <div style={{ color: "#64748b", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "6px" }}>
-              Total Balance Qty
-            </div>
-            <div style={{ color: "#0f172a", fontSize: "28px", fontWeight: "900", lineHeight: "1.1", letterSpacing: "-0.02em", fontFamily: "var(--font-mono, monospace)" }}>
-              {stats.balanceQty} <span style={{ fontSize: "14px", fontWeight: "800", color: "#64748b" }}>MT</span>
-            </div>
-            <div style={{ color: "#94a3b8", fontSize: "11px", marginTop: "4px", fontWeight: "500" }}>
-              Pending Deliveries
-            </div>
-          </div>
+          {/* Card 2: Total Balance Qty */}
           <div style={{
-            width: "48px",
-            height: "48px",
+            background: "#ffffff",
+            border: "1px solid #e2e8f0",
             borderRadius: "12px",
-            background: "linear-gradient(135deg, rgba(234, 88, 12, 0.12) 0%, rgba(234, 88, 12, 0.04) 100%)",
-            border: "1px solid rgba(234, 88, 12, 0.15)",
+            padding: "10px 14px",
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
-            color: "#ea580c"
+            justifyContent: "space-between",
+            boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
+            position: "relative",
+            overflow: "hidden"
           }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="12" y1="8" x2="12" y2="12"></line>
-              <line x1="12" y1="16" x2="12.01" y2="16"></line>
-            </svg>
+            <div>
+              <div style={{ color: "#64748b", fontSize: "10px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "2px", whiteSpace: "nowrap" }}>
+                Total Balance Qty
+              </div>
+              <div style={{ color: "#0f172a", fontSize: "20px", fontWeight: "900", lineHeight: "1.1", letterSpacing: "-0.02em", fontFamily: "var(--font-mono, monospace)", whiteSpace: "nowrap" }}>
+                {stats.balanceQty} <span style={{ fontSize: "12px", fontWeight: "800", color: "#64748b" }}>MT</span>
+              </div>
+              <div style={{ color: "#94a3b8", fontSize: "10px", marginTop: "2px", fontWeight: "500", whiteSpace: "nowrap" }}>
+                Pending Deliveries
+              </div>
+            </div>
+            <div style={{
+              width: "36px",
+              height: "36px",
+              borderRadius: "10px",
+              background: "linear-gradient(135deg, rgba(234, 88, 12, 0.12) 0%, rgba(234, 88, 12, 0.04) 100%)",
+              border: "1px solid rgba(234, 88, 12, 0.15)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#ea580c",
+              flexShrink: 0
+            }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+            </div>
           </div>
-        </div>
 
-        {/* Card 3: Active Trucks / Loads */}
-        <div style={{
-          background: "#ffffff",
-          border: "1px solid #e2e8f0",
-          borderRadius: "14px",
-          padding: "18px 20px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          boxShadow: "0 2px 8px rgba(15, 23, 42, 0.04)",
-          position: "relative",
-          overflow: "hidden"
-        }}>
-          <div>
-            <div style={{ color: "#64748b", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "6px" }}>
-              Active Vehicles
-            </div>
-            <div style={{ color: "#0f172a", fontSize: "28px", fontWeight: "900", lineHeight: "1.1", letterSpacing: "-0.02em", fontFamily: "var(--font-mono, monospace)" }}>
-              {stats.uniqueTrucks} <span style={{ fontSize: "14px", fontWeight: "800", color: "#64748b" }}>Trucks</span>
-            </div>
-            <div style={{ color: "#94a3b8", fontSize: "11px", marginTop: "4px", fontWeight: "500" }}>
-              Across {stats.uniqueDOs} Delivery Orders
-            </div>
-          </div>
+          {/* Card 3: Active Trucks / Loads */}
           <div style={{
-            width: "48px",
-            height: "48px",
+            background: "#ffffff",
+            border: "1px solid #e2e8f0",
             borderRadius: "12px",
-            background: "linear-gradient(135deg, rgba(124, 58, 237, 0.12) 0%, rgba(124, 58, 237, 0.04) 100%)",
-            border: "1px solid rgba(124, 58, 237, 0.15)",
+            padding: "10px 14px",
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
-            color: "#7c3aed"
+            justifyContent: "space-between",
+            boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
+            position: "relative",
+            overflow: "hidden"
           }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="1" y="3" width="15" height="13"></rect>
-              <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
-              <circle cx="5.5" cy="18.5" r="2.5"></circle>
-              <circle cx="18.5" cy="18.5" r="2.5"></circle>
-            </svg>
+            <div>
+              <div style={{ color: "#64748b", fontSize: "10px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "2px", whiteSpace: "nowrap" }}>
+                Active Vehicles
+              </div>
+              <div style={{ color: "#0f172a", fontSize: "20px", fontWeight: "900", lineHeight: "1.1", letterSpacing: "-0.02em", fontFamily: "var(--font-mono, monospace)", whiteSpace: "nowrap" }}>
+                {stats.uniqueTrucks} <span style={{ fontSize: "12px", fontWeight: "800", color: "#64748b" }}>Trucks</span>
+              </div>
+              <div style={{ color: "#94a3b8", fontSize: "10px", marginTop: "2px", fontWeight: "500", whiteSpace: "nowrap" }}>
+                Across {stats.uniqueDOs} Delivery Orders
+              </div>
+            </div>
+            <div style={{
+              width: "36px",
+              height: "36px",
+              borderRadius: "10px",
+              background: "linear-gradient(135deg, rgba(124, 58, 237, 0.12) 0%, rgba(124, 58, 237, 0.04) 100%)",
+              border: "1px solid rgba(124, 58, 237, 0.15)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#7c3aed",
+              flexShrink: 0
+            }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="1" y="3" width="15" height="13"></rect>
+                <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+                <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                <circle cx="18.5" cy="18.5" r="2.5"></circle>
+              </svg>
+            </div>
           </div>
-        </div>
 
-        {/* Card 4: Freight Recorded */}
-        <div style={{
-          background: "#ffffff",
-          border: "1px solid #e2e8f0",
-          borderRadius: "14px",
-          padding: "18px 20px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          boxShadow: "0 2px 8px rgba(15, 23, 42, 0.04)",
-          position: "relative",
-          overflow: "hidden"
-        }}>
-          <div>
-            <div style={{ color: "#64748b", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "6px" }}>
-              Total Freight
-            </div>
-            <div style={{ color: "#0f172a", fontSize: "28px", fontWeight: "900", lineHeight: "1.1", letterSpacing: "-0.02em", fontFamily: "var(--font-mono, monospace)" }}>
-              ₹{stats.totalFreight}
-            </div>
-            <div style={{ color: "#94a3b8", fontSize: "11px", marginTop: "4px", fontWeight: "500" }}>
-              Transportation Cost
-            </div>
-          </div>
+          {/* Card 4: Freight Recorded */}
           <div style={{
-            width: "48px",
-            height: "48px",
+            background: "#ffffff",
+            border: "1px solid #e2e8f0",
             borderRadius: "12px",
-            background: "linear-gradient(135deg, rgba(22, 163, 74, 0.12) 0%, rgba(22, 163, 74, 0.04) 100%)",
-            border: "1px solid rgba(22, 163, 74, 0.15)",
+            padding: "10px 14px",
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
-            color: "#16a34a"
+            justifyContent: "space-between",
+            boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
+            position: "relative",
+            overflow: "hidden"
           }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="1" x2="12" y2="23"></line>
-              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-            </svg>
+            <div>
+              <div style={{ color: "#64748b", fontSize: "10px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "2px", whiteSpace: "nowrap" }}>
+                Total Freight
+              </div>
+              <div style={{ color: "#0f172a", fontSize: "20px", fontWeight: "900", lineHeight: "1.1", letterSpacing: "-0.02em", fontFamily: "var(--font-mono, monospace)", whiteSpace: "nowrap" }}>
+                ₹{stats.totalFreight}
+              </div>
+              <div style={{ color: "#94a3b8", fontSize: "10px", marginTop: "2px", fontWeight: "500", whiteSpace: "nowrap" }}>
+                Transportation Cost
+              </div>
+            </div>
+            <div style={{
+              width: "36px",
+              height: "36px",
+              borderRadius: "10px",
+              background: "linear-gradient(135deg, rgba(22, 163, 74, 0.12) 0%, rgba(22, 163, 74, 0.04) 100%)",
+              border: "1px solid rgba(22, 163, 74, 0.15)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#16a34a",
+              flexShrink: 0
+            }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="1" x2="12" y2="23"></line>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+              </svg>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* ── ACTION / TOOLBAR WRAPPER ── */}
-      <div style={{ padding: "0", borderBottom: "1px solid var(--line, #e2e8f0)", marginBottom: "20px" }}>
+      <div style={{ padding: "0", borderBottom: "1px solid var(--line, #e2e8f0)", marginBottom: activeTab === "truck-dispatch" ? "12px" : "20px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px", paddingBottom: "16px" }}>
           
           {/* TABS & QUICK EXPORTS */}
           <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
             <div style={{ display: "flex", background: "#f1f5f9", padding: "4px", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
+              <button
+                onClick={() => setActiveTab("truck-dispatch")}
+                style={{
+                  background: activeTab === "truck-dispatch" ? "#ffffff" : "transparent",
+                  border: "none",
+                  padding: "6px 16px",
+                  fontSize: "13px",
+                  fontWeight: activeTab === "truck-dispatch" ? "700" : "500",
+                  color: activeTab === "truck-dispatch" ? "#0284c7" : "#64748b",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  boxShadow: activeTab === "truck-dispatch" ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
+                  transition: "all 0.15s ease",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px"
+                }}
+              >
+                <span>Truck Dispatch</span>
+                <span style={{
+                  fontSize: "10px",
+                  padding: "1px 6px",
+                  borderRadius: "999px",
+                  background: activeTab === "truck-dispatch" ? "#e0f2fe" : "#e2e8f0",
+                  color: activeTab === "truck-dispatch" ? "#0369a1" : "#475569",
+                  fontWeight: "800"
+                }}>
+                  Excel
+                </span>
+              </button>
               <button
                 onClick={() => setActiveTab("pending")}
                 style={{
@@ -622,54 +654,59 @@ export default function DispatchPage() {
               </button>
             </div>
 
-            <button 
-              className="btn ghost" 
-              onClick={handleExportExcel} 
-              style={{ 
-                borderColor: "#107c41", 
-                color: "#107c41", 
-                display: "inline-flex", 
-                alignItems: "center", 
-                gap: "6px",
-                background: "rgba(16, 124, 65, 0.04)",
-                padding: "6px 12px",
-                fontSize: "13px"
-              }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                <polyline points="14 2 14 8 20 8"></polyline>
-                <line x1="8" y1="13" x2="16" y2="13"></line>
-                <line x1="8" y1="17" x2="16" y2="17"></line>
-              </svg>
-              EXCEL
-            </button>
+            {activeTab !== "truck-dispatch" && (
+              <>
+                <button 
+                  className="btn ghost" 
+                  onClick={handleExportExcel} 
+                  style={{ 
+                    borderColor: "#107c41", 
+                    color: "#107c41", 
+                    display: "inline-flex", 
+                    alignItems: "center", 
+                    gap: "6px",
+                    background: "rgba(16, 124, 65, 0.04)",
+                    padding: "6px 12px",
+                    fontSize: "13px"
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="8" y1="13" x2="16" y2="13"></line>
+                    <line x1="8" y1="17" x2="16" y2="17"></line>
+                  </svg>
+                  EXCEL
+                </button>
 
-            <button 
-              className="btn ghost" 
-              onClick={handleExportPdf}
-              style={{ 
-                borderColor: "#d6251b", 
-                color: "#d6251b", 
-                display: "inline-flex", 
-                alignItems: "center", 
-                gap: "6px",
-                background: "rgba(214, 37, 27, 0.04)",
-                padding: "6px 12px",
-                fontSize: "13px"
-              }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                <polyline points="14 2 14 8 20 8"></polyline>
-                <path d="M9 15h1a2 2 0 0 0 0-4H9v4Z"></path>
-              </svg>
-              PDF
-            </button>
+                <button 
+                  className="btn ghost" 
+                  onClick={handleExportPdf}
+                  style={{ 
+                    borderColor: "#d6251b", 
+                    color: "#d6251b", 
+                    display: "inline-flex", 
+                    alignItems: "center", 
+                    gap: "6px",
+                    background: "rgba(214, 37, 27, 0.04)",
+                    padding: "6px 12px",
+                    fontSize: "13px"
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <path d="M9 15h1a2 2 0 0 0 0-4H9v4Z"></path>
+                  </svg>
+                  PDF
+                </button>
+              </>
+            )}
           </div>
 
           {/* FILTERS & SEARCH */}
-          <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+          {activeTab !== "truck-dispatch" && (
+            <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
             
             {/* RECEIVER PARTY DROPDOWN FILTER */}
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
@@ -814,9 +851,15 @@ export default function DispatchPage() {
               + Add Form
             </button>
           </div>
+          )}
         </div>
       </div>
 
+      {/* ── CONDITIONAL RENDERING: TRUCK DISPATCH TAB VS EXTRACTED DISPATCH ── */}
+      {activeTab === "truck-dispatch" ? (
+        <TruckDispatchTab />
+      ) : (
+      <>
       {/* ── TABLE CONTENT ── */}
       <div className="summary-section" style={{ marginTop: 0 }}>
         <div className="summary-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
@@ -1085,6 +1128,8 @@ export default function DispatchPage() {
         initialData={editingIndex !== null ? data[editingIndex] : {}}
         columns={columns}
       />
+      </>
+      )}
     </div>
   );
 }

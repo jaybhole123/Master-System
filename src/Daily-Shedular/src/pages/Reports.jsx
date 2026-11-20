@@ -327,7 +327,7 @@ const Reports = () => {
           {/* Filter Controls Row */}
           <div className="flex items-center gap-2.5 flex-wrap">
             {/* Search Input */}
-            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 flex-1 min-w-[240px] focus-within:bg-white focus-within:ring-2 focus-within:ring-red-500/20 focus-within:border-red-500 transition-all">
+            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 w-[260px] shrink-0 focus-within:bg-white focus-within:ring-2 focus-within:ring-red-500/20 focus-within:border-red-500 transition-all">
               <Search size={15} className="text-slate-400 shrink-0" />
               <input 
                 type="text" 
@@ -337,63 +337,63 @@ const Reports = () => {
                 className="bg-transparent text-xs sm:text-sm text-slate-800 placeholder-slate-400 w-full outline-none font-medium"
               />
               {searchQuery && (
-                <button onClick={() => setSearchQuery('')} className="text-slate-400 hover:text-slate-600">
+                <button onClick={() => setSearchQuery('')} className="text-slate-400 hover:text-slate-600 shrink-0">
                   <XCircle size={14} />
                 </button>
               )}
             </div>
 
             {/* Quick Day Navigator */}
-            <div className="flex items-center bg-slate-50 border border-slate-200/90 rounded-xl p-1 gap-1">
+            <div className="flex items-center bg-slate-50 border border-slate-200/90 rounded-xl p-1 gap-1 shrink-0">
               <button 
                 onClick={handlePrevDay} 
-                className="p-1 text-slate-500 hover:text-slate-800 hover:bg-white rounded-lg transition-colors cursor-pointer"
+                className="p-1 text-slate-500 hover:text-slate-800 hover:bg-white rounded-lg transition-colors cursor-pointer shrink-0"
                 title="Previous Day"
               >
                 <ChevronLeft size={16} />
               </button>
               <button 
                 onClick={handleToday} 
-                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer ${startDate && startDate === endDate && startDate === format(new Date(), 'yyyy-MM-dd') ? 'bg-white text-red-600 shadow-2xs' : 'text-red-600 hover:bg-white'}`}
+                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer shrink-0 ${startDate && startDate === endDate && startDate === format(new Date(), 'yyyy-MM-dd') ? 'bg-white text-red-600 shadow-2xs' : 'text-red-600 hover:bg-white'}`}
               >
                 Today
               </button>
               <button 
                 onClick={handleNextDay} 
-                className="p-1 text-slate-500 hover:text-slate-800 hover:bg-white rounded-lg transition-colors cursor-pointer"
+                className="p-1 text-slate-500 hover:text-slate-800 hover:bg-white rounded-lg transition-colors cursor-pointer shrink-0"
                 title="Next Day"
               >
                 <ChevronRight size={16} />
               </button>
               <button 
                 onClick={() => { setStartDate(''); setEndDate(''); }}
-                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer ${!startDate && !endDate ? 'bg-white text-blue-600 shadow-2xs' : 'text-slate-600 hover:bg-white'}`}
+                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer shrink-0 ${!startDate && !endDate ? 'bg-white text-blue-600 shadow-2xs' : 'text-slate-600 hover:bg-white'}`}
                 title="Show All Dates"
               >
                 All
               </button>
-              <div className="h-4 w-px bg-slate-200 mx-1"></div>
-              <div className="flex items-center gap-1.5 px-2 text-xs font-bold text-slate-700 whitespace-nowrap">
-                <Calendar size={13} className="text-red-500" />
-                <span>{getDisplayDate()}</span>
+              <div className="h-4 w-px bg-slate-200 mx-1 shrink-0"></div>
+              <div className="flex items-center justify-center gap-1.5 px-2 text-xs font-bold text-slate-700 whitespace-nowrap w-[115px] shrink-0 text-center">
+                <Calendar size={13} className="text-red-500 shrink-0" />
+                <span className="truncate">{getDisplayDate()}</span>
               </div>
             </div>
 
             {/* Date Range Inputs */}
-            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/90 rounded-xl px-2.5 py-1.5">
+            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/90 rounded-xl px-2.5 py-1.5 shrink-0 w-[240px] justify-between">
               <input 
                 type="date" 
                 value={startDate} 
                 onChange={e => setStartDate(e.target.value)} 
-                className="bg-transparent text-xs text-slate-700 font-medium outline-none cursor-pointer" 
+                className="bg-transparent text-xs text-slate-700 font-medium outline-none cursor-pointer w-[98px] shrink-0" 
                 title="Start Date"
               />
-              <span className="text-slate-400 text-xs font-bold">to</span>
+              <span className="text-slate-400 text-xs font-bold shrink-0">to</span>
               <input 
                 type="date" 
                 value={endDate} 
                 onChange={e => setEndDate(e.target.value)} 
-                className="bg-transparent text-xs text-slate-700 font-medium outline-none cursor-pointer" 
+                className="bg-transparent text-xs text-slate-700 font-medium outline-none cursor-pointer w-[98px] shrink-0" 
                 title="End Date"
               />
             </div>
@@ -402,7 +402,7 @@ const Reports = () => {
             <select 
               value={statusFilter} 
               onChange={e => setStatusFilter(e.target.value)} 
-              className="px-3 py-2 bg-slate-50 border border-slate-200/90 rounded-xl text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 cursor-pointer"
+              className="px-3 py-2 bg-slate-50 border border-slate-200/90 rounded-xl text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 cursor-pointer shrink-0 w-[115px]"
             >
               <option value="All">All Status</option>
               <option value="Pending">Pending</option>
@@ -416,7 +416,7 @@ const Reports = () => {
               <select 
                 value={staffFilter} 
                 onChange={e => setStaffFilter(e.target.value)} 
-                className="px-3 py-2 bg-slate-50 border border-slate-200/90 rounded-xl text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 cursor-pointer"
+                className="px-3 py-2 bg-slate-50 border border-slate-200/90 rounded-xl text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 cursor-pointer shrink-0 w-[120px]"
               >
                 <option value="All">All Staff</option>
                 {uniqueStaff.map(name => (
@@ -429,7 +429,7 @@ const Reports = () => {
             {(startDate || endDate || statusFilter !== 'All' || staffFilter !== 'All' || searchQuery) && (
               <button 
                 onClick={() => { setStartDate(''); setEndDate(''); setStatusFilter('All'); setStaffFilter('All'); setSearchQuery(''); }}
-                className="px-3 py-2 bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 rounded-xl text-xs font-black transition-all flex items-center gap-1 cursor-pointer"
+                className="px-3 py-2 bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 rounded-xl text-xs font-black transition-all flex items-center gap-1 cursor-pointer shrink-0"
                 title="Reset Filters"
               >
                 <RotateCcw size={13} />

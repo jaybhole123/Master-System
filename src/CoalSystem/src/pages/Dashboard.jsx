@@ -23,16 +23,19 @@ import {
   Calendar,
   Layers,
   ArrowRight,
+  ArrowUpRight,
   BarChart3,
   PieChart as PieChartIcon,
   Activity,
   ShieldCheck,
   ChevronRight,
   Wallet,
-  Sparkles
+  Sparkles,
+  DollarSign,
+  Briefcase
 } from "lucide-react";
 
-const PIE_COLORS = ["#2563eb", "#ef4444", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899", "#06b6d4", "#f97316"];
+const PIE_COLORS = ["#ef4444", "#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899", "#06b6d4", "#f97316"];
 
 export default function Dashboard({ onNavigate }) {
   const [loading, setLoading] = useState(true);
@@ -90,7 +93,7 @@ export default function Dashboard({ onNavigate }) {
     today.setHours(0, 0, 0, 0);
     const { salesOrders, invoices, paymentAdvices, seclF1, seclF2, cmpdcil, auctions, auctionItems, dispatch } = raw;
 
-    // Sales Orders
+    // Sales Orders (DO)
     let soValid = 0, soExpired = 0, soTotalQty = 0, soTotalAmt = 0;
     salesOrders.forEach(s => {
       soTotalQty += Number(s.quantity) || 0;
@@ -162,16 +165,16 @@ export default function Dashboard({ onNavigate }) {
     const seclTotalPending = f1Pending + f2Pending + clPending;
     const seclTotalDone = f1Done + f2Done + clDone;
 
-    // Pie chart data
+    // Pie chart distribution
     let distData = [
-      { name: "Sales Orders", value: salesOrders.length },
+      { name: "Sales Orders (DO)", value: salesOrders.length },
       { name: "Invoices", value: invoices.length },
       { name: "Payment Advices", value: paymentAdvices.length },
       { name: "M-junction", value: seclF1.length },
       { name: "MSTC", value: seclF2.length },
       { name: "CMPDCIL", value: cmpdcil.length },
       { name: "Auctions", value: auctions.length },
-      { name: "Dispatch", value: dispatch.length }
+      { name: "Dispatches", value: dispatch.length }
     ].filter(d => d.value > 0);
     if (distData.length === 0) distData = [{ name: "No Data", value: 1 }];
 
@@ -243,190 +246,245 @@ export default function Dashboard({ onNavigate }) {
   };
 
   if (loading) return (
-    <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3">
+    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
       <div className="h-10 w-10 border-3 border-red-200 border-t-red-600 rounded-full animate-spin"></div>
-      <p className="text-sm font-semibold text-slate-500 animate-pulse">Loading Coal Intelligence Dashboard...</p>
+      <p className="text-sm font-bold text-slate-600 animate-pulse">Loading Coal Intelligence Dashboard...</p>
     </div>
   );
 
   return (
-    <div className="w-full px-2.5 sm:px-5 lg:px-6 py-2 space-y-5 sm:space-y-8 animate-in fade-in duration-300">
+    <div className="w-full space-y-6 font-sans text-slate-800 animate-in fade-in duration-200">
       
-      {/* ═══════════ HEADER ═══════════ */}
-      <div className="flex flex-col gap-3 sm:gap-4 pb-4 border-b border-slate-200/80 bg-gradient-to-r from-red-500/5 via-slate-50 to-transparent p-4 rounded-3xl">
-        {/* Title Row */}
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-          <div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-red-500 to-rose-600 text-white text-xs font-black uppercase tracking-wider shadow-sm mb-2">
-              <Flame className="h-3.5 w-3.5 shrink-0" />
-              <span>Coal Intelligence &amp; Operations</span>
+      {/* ═══════════ TOP EXECUTIVE BANNER ═══════════ */}
+      <div className="relative overflow-hidden bg-white rounded-3xl p-5 sm:p-7 border border-slate-200/90 shadow-xs">
+        <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-gradient-to-br from-red-500/10 via-rose-500/5 to-transparent pointer-events-none blur-2xl"></div>
+
+        <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-red-600 via-rose-600 to-red-500 text-white flex items-center justify-center shadow-lg shadow-red-500/25 shrink-0">
+              <Flame size={30} className="stroke-[2.2]" />
             </div>
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">
-              Dashboard Overview
-            </h1>
-            <p className="text-xs sm:text-base text-slate-500 mt-1 flex items-center gap-2">
-              <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 ring-4 ring-emerald-100 shrink-0"></span>
-              Real-time analytics across all Coal System modules
-            </p>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-red-100/70 text-red-700 border border-red-200">
+                  Operations & Intelligence
+                </span>
+                <span className="inline-flex items-center gap-1.5 text-xs text-emerald-600 font-bold">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                  Live Connected
+                </span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mt-1">
+                Coal System Command Center
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-500 font-medium">
+                Comprehensive overview of Sales Orders, SECL Intimations, Payment Advices & Dispatch Pipeline
+              </p>
+            </div>
           </div>
 
-          {/* Top Metric Capsules with Gradient Glow */}
-          <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-3">
-            <div className="flex items-center gap-3 bg-white px-4 py-3 rounded-2xl border border-red-200/90 shadow-sm min-w-0 hover:shadow-md transition-shadow">
-              <div className="p-2.5 bg-gradient-to-br from-red-500 to-rose-600 text-white rounded-xl shrink-0 shadow-xs">
-                <Database className="h-5 w-5" />
-              </div>
-              <div className="min-w-0">
-                <div className="text-[10px] sm:text-xs font-extrabold uppercase tracking-wider text-slate-400 whitespace-nowrap">Total Records</div>
-                <div className="text-base sm:text-xl font-black text-slate-900 leading-tight font-mono">{stats.totalDocs}</div>
-              </div>
+          {/* Key High-Level Stats */}
+          <div className="grid grid-cols-3 gap-2.5 w-full lg:w-auto">
+            <div className="bg-slate-50/90 rounded-2xl px-3.5 py-2.5 border border-slate-200/80 flex flex-col justify-center min-w-[130px]">
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 whitespace-nowrap">Total Records</span>
+              <span className="text-base sm:text-lg font-black text-slate-900 font-mono mt-0.5 whitespace-nowrap">{stats.totalDocs}</span>
+              <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">Across all tables</span>
             </div>
 
-            <div className="flex items-center gap-3 bg-white px-4 py-3 rounded-2xl border border-emerald-200/90 shadow-sm min-w-0 hover:shadow-md transition-shadow">
-              <div className="p-2.5 bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-xl shrink-0 shadow-xs">
-                <TrendingUp className="h-5 w-5" />
-              </div>
-              <div className="min-w-0">
-                <div className="text-[10px] sm:text-xs font-extrabold uppercase tracking-wider text-slate-400 whitespace-nowrap">Total Valuation</div>
-                <div className="text-base sm:text-xl font-black text-emerald-600 leading-tight font-mono">{fmtCurrency(stats.totalValue)}</div>
-              </div>
+            <div className="bg-slate-50/90 rounded-2xl px-3.5 py-2.5 border border-slate-200/80 flex flex-col justify-center min-w-[145px]">
+              <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 whitespace-nowrap">Total Valuation</span>
+              <span className="text-base sm:text-lg font-black text-emerald-700 font-mono mt-0.5 whitespace-nowrap">{fmtCurrency(stats.totalValue)}</span>
+              <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">SO + Inv + Advices</span>
+            </div>
+
+            <div className="bg-slate-50/90 rounded-2xl px-3.5 py-2.5 border border-slate-200/80 flex flex-col justify-center min-w-[155px]">
+              <span className="text-[10px] font-black uppercase tracking-wider text-blue-600 whitespace-nowrap">Total Coal Qty</span>
+              <span className="text-base sm:text-lg font-black text-blue-700 font-mono mt-0.5 whitespace-nowrap">{fmtNum(stats.soTotalQty + stats.seclTotalQty)} MT</span>
+              <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">Allotted & SO Volume</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ═══════════ SECTION 1: SECL INTIMATION ═══════════ */}
-      <section>
-        <SectionTitle title="SECL Intimation" icon={FileText} onNavigate={() => onNavigate("secl-intimation")} />
+      {/* ═══════════ SECTION 1: SALES ORDER (DO) ═══════════ */}
+      <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-slate-200/90 shadow-xs space-y-3">
+        <SectionHeader 
+          title="Sales Order (DO)" 
+          subtitle="Contract allocations, active validity & tonnage tracking"
+          icon={FileSpreadsheet} 
+          count={stats.soCount}
+          onNavigate={() => onNavigate("sales-order")} 
+        />
         
-        {/* Top KPI Cards */}
-        <div className="grid grid-cols-3 gap-1.5 sm:gap-3.5 mb-3">
-          <MiniCard label="Total Allotted" value={`${fmtNum(stats.seclTotalQty)} MT`} icon={Boxes} colorScheme="blue" />
-          <MiniCard label="Total Pending" value={stats.seclTotalPending} badge="Pending" colorScheme="amber" />
-          <MiniCard label="Total Done" value={stats.seclTotalDone} badge="Done" colorScheme="emerald" />
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5 sm:gap-3">
+          <StatBox label="Total DOs" value={stats.soCount} subtext="Registered orders" color="blue" icon={FileText} />
+          <StatBox label="Active DOs" value={stats.soValid} badge="Valid" subtext="In validity period" color="emerald" />
+          <StatBox label="Expired DOs" value={stats.soExpired} badge="Expired" subtext="Elapsed validity" color="rose" />
+          <StatBox label="Total Quantity" value={`${fmtNum(stats.soTotalQty)} MT`} subtext="Combined DO tonnage" color="purple" icon={Boxes} />
+          <StatBox label="Total Amount" value={fmtCurrency(stats.soTotalAmt)} subtext="Financial contract value" color="amber" icon={TrendingUp} />
+        </div>
+      </div>
+
+      {/* ═══════════ SECTION 2: SECL PAYMENT ADVICE ═══════════ */}
+      <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-slate-200/90 shadow-xs space-y-3">
+        <SectionHeader 
+          title="SECL Payment Advice" 
+          subtitle="Due dates, approved payment advices & total financial commitments"
+          icon={Wallet} 
+          count={stats.paCount}
+          onNavigate={() => onNavigate("secl-payment-advice")} 
+        />
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3">
+          <StatBox label="Total Advices" value={stats.paCount} subtext="Bank advices generated" color="blue" icon={Receipt} />
+          <StatBox label="Active" value={stats.paValid} badge="Valid" subtext="Within payment window" color="emerald" />
+          <StatBox label="Expired" value={stats.paExpired} badge="Expired" subtext="Past due date" color="rose" />
+          <StatBox label="Grand Total" value={fmtCurrency(stats.paTotalAmt)} subtext="Cumulative payment value" color="amber" icon={TrendingUp} />
+        </div>
+      </div>
+
+      {/* ═══════════ SECTION 3: SECL INTIMATION BREAKDOWN ═══════════ */}
+      <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-slate-200/90 shadow-xs space-y-3">
+        <SectionHeader 
+          title="SECL Intimation Formats" 
+          subtitle="M-Junction, MSTC Auction allotments & CMPDCIL allocations"
+          icon={FileText} 
+          count={stats.f1Count + stats.f2Count + stats.clCount}
+          onNavigate={() => onNavigate("secl-intimation")} 
+        />
+
+        {/* Aggregate Strip */}
+        <div className="grid grid-cols-3 gap-2.5 sm:gap-3 bg-slate-50/70 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border border-slate-200/70">
+          <div className="text-center">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 whitespace-nowrap">Total Allotted Qty</span>
+            <div className="text-base sm:text-lg font-black text-slate-900 font-mono whitespace-nowrap">{fmtNum(stats.seclTotalQty)} MT</div>
+          </div>
+          <div className="text-center border-x border-slate-200">
+            <span className="text-[10px] font-black uppercase tracking-wider text-amber-600 whitespace-nowrap">Pending Execution</span>
+            <div className="text-base sm:text-lg font-black text-amber-700 font-mono whitespace-nowrap">{stats.seclTotalPending}</div>
+          </div>
+          <div className="text-center">
+            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 whitespace-nowrap">Completed (Done)</span>
+            <div className="text-base sm:text-lg font-black text-emerald-700 font-mono whitespace-nowrap">{stats.seclTotalDone}</div>
+          </div>
         </div>
 
-        {/* Sub-breakdown: M-junction, MSTC, CMPDCIL */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3.5">
-          <SubSection 
-            title="M-Junction" 
+        {/* 3 Formats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <FormatCard 
+            title="M-Junction (Format 1)"
+            count={stats.f1Count}
+            qty={`${fmtNum(stats.f1Qty)} MT`}
+            value={fmtCurrency(stats.f1Bid)}
+            valueLabel="Winning Bid Rate"
+            pending={stats.f1Pending}
+            done={stats.f1Done}
             color="blue"
-            items={[
-              { label: "Records", value: stats.f1Count },
-              { label: "Qty Allotted", value: `${fmtNum(stats.f1Qty)} MT` },
-              { label: "Winning Bid", value: fmtCurrency(stats.f1Bid) },
-              { label: "Pending", value: stats.f1Pending },
-              { label: "Done", value: stats.f1Done }
-            ]} 
           />
-          <SubSection 
-            title="MSTC" 
+          <FormatCard 
+            title="MSTC (Format 2)"
+            count={stats.f2Count}
+            qty={`${fmtNum(stats.f2Qty)} MT`}
+            value={fmtCurrency(stats.f2Bid)}
+            valueLabel="Bid Price Rate"
+            pending={stats.f2Pending}
+            done={stats.f2Done}
             color="purple"
-            items={[
-              { label: "Records", value: stats.f2Count },
-              { label: "Qty Allotted", value: `${fmtNum(stats.f2Qty)} MT` },
-              { label: "Bid Price", value: fmtCurrency(stats.f2Bid) },
-              { label: "Pending", value: stats.f2Pending },
-              { label: "Done", value: stats.f2Done }
-            ]} 
           />
-          <SubSection 
-            title="CMPDCIL" 
+          <FormatCard 
+            title="CMPDCIL"
+            count={stats.clCount}
+            qty={`${fmtNum(stats.clQty)} MT`}
+            value={fmtCurrency(stats.clValue)}
+            valueLabel="Allocated Value"
+            pending={stats.clPending}
+            done={stats.clDone}
             color="teal"
-            items={[
-              { label: "Records", value: stats.clCount },
-              { label: "Allocated", value: `${fmtNum(stats.clQty)} MT` },
-              { label: "Value", value: fmtCurrency(stats.clValue) },
-              { label: "Pending", value: stats.clPending },
-              { label: "Done", value: stats.clDone }
-            ]} 
           />
         </div>
-      </section>
-
-      {/* ═══════════ SECTION 2: SALES ORDER (DO) ═══════════ */}
-      <section>
-        <SectionTitle title="Sales Order (DO)" icon={FileSpreadsheet} onNavigate={() => onNavigate("sales-order")} />
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
-          <MiniCard label="Total DOs" value={stats.soCount} icon={FileText} colorScheme="blue" />
-          <MiniCard label="Active DOs" value={stats.soValid} badge="Valid" colorScheme="emerald" />
-          <MiniCard label="Expired DOs" value={stats.soExpired} badge="Expired" colorScheme="red" />
-          <MiniCard label="Total Quantity" value={`${fmtNum(stats.soTotalQty)} MT`} icon={Boxes} colorScheme="purple" />
-          <MiniCard label="Total Amount" value={fmtCurrency(stats.soTotalAmt)} icon={TrendingUp} colorScheme="amber" />
-        </div>
-      </section>
-
-      {/* ═══════════ SECTION 3: SECL PAYMENT ADVICE ═══════════ */}
-      <section>
-        <SectionTitle title="SECL Payment Advice" icon={Wallet} onNavigate={() => onNavigate("secl-payment-advice")} />
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-          <MiniCard label="Total Advices" value={stats.paCount} icon={FileText} colorScheme="blue" />
-          <MiniCard label="Active" value={stats.paValid} badge="Valid" colorScheme="emerald" />
-          <MiniCard label="Expired" value={stats.paExpired} badge="Expired" colorScheme="red" />
-          <MiniCard label="Grand Total" value={fmtCurrency(stats.paTotalAmt)} icon={TrendingUp} colorScheme="amber" />
-        </div>
-      </section>
+      </div>
 
       {/* ═══════════ SECTION 4: INVOICE, AUCTION & DISPATCH ROW ═══════════ */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
         
-        {/* INVOICE */}
-        <section className="space-y-2.5 sm:space-y-3">
-          <SectionTitle title="Invoice" icon={Receipt} onNavigate={() => onNavigate("invoice")} />
-          <div className="grid grid-cols-2 gap-2 sm:gap-3">
-            <MiniCard label="Total Invoices" value={stats.invCount} icon={Receipt} colorScheme="blue" />
-            <MiniCard label="Total Amount" value={fmtCurrency(stats.invTotal)} icon={TrendingUp} colorScheme="emerald" />
+        {/* INVOICE CARD */}
+        <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-slate-200/90 shadow-xs flex flex-col justify-between space-y-3">
+          <SectionHeader 
+            title="Invoice" 
+            subtitle="Commercial billing & tax invoices"
+            icon={Receipt} 
+            count={stats.invCount}
+            onNavigate={() => onNavigate("invoice")} 
+          />
+          <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
+            <StatBox label="Total Invoices" value={stats.invCount} subtext="Generated invoices" color="blue" icon={Receipt} />
+            <StatBox label="Total Amount" value={fmtCurrency(stats.invTotal)} subtext="Tax invoice amount" color="emerald" icon={TrendingUp} />
           </div>
-        </section>
+        </div>
 
-        {/* AUCTION */}
-        <section className="space-y-2.5 sm:space-y-3">
-          <SectionTitle title="Auction / Deal" icon={Gavel} onNavigate={() => onNavigate("auction")} />
-          <div className="grid grid-cols-2 gap-2 sm:gap-3">
-            <MiniCard label="Total Auctions" value={stats.aucCount} icon={Gavel} colorScheme="purple" />
-            <MiniCard label="Qty Offered" value={`${fmtNum(stats.aucTotalQty)} MT`} icon={Boxes} colorScheme="amber" />
+        {/* AUCTION CARD */}
+        <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-slate-200/90 shadow-xs flex flex-col justify-between space-y-3">
+          <SectionHeader 
+            title="Auction / Deal" 
+            subtitle="SECL e-Auction notices & lots"
+            icon={Gavel} 
+            count={stats.aucCount}
+            onNavigate={() => onNavigate("auction")} 
+          />
+          <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
+            <StatBox label="Total Auctions" value={stats.aucCount} subtext="Bidding notices" color="purple" icon={Gavel} />
+            <StatBox label="Qty Offered" value={`${fmtNum(stats.aucTotalQty)} MT`} subtext="Volume on block" color="amber" icon={Boxes} />
           </div>
-        </section>
+        </div>
 
-        {/* DISPATCH */}
-        <section className="space-y-2.5 sm:space-y-3 sm:col-span-2 lg:col-span-1">
-          <SectionTitle title="Dispatch Tracking" icon={Truck} onNavigate={() => onNavigate("dispatch")} />
-          <div className="grid grid-cols-3 gap-1.5 sm:gap-3">
-            <MiniCard label="Dispatches" value={stats.dispCount} icon={Truck} colorScheme="blue" />
-            <MiniCard label="Total Qty" value={`${fmtNum(stats.dispQty)} MT`} colorScheme="emerald" />
-            <MiniCard label="Freight" value={fmtCurrency(stats.dispFreight)} colorScheme="amber" />
+        {/* DISPATCH CARD */}
+        <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-slate-200/90 shadow-xs flex flex-col justify-between space-y-3">
+          <SectionHeader 
+            title="Dispatch Tracking" 
+            subtitle="Physical truck dispatches from mines"
+            icon={Truck} 
+            count={stats.dispCount}
+            onNavigate={() => onNavigate("dispatch")} 
+          />
+          <div className="grid grid-cols-3 gap-2">
+            <StatBox label="Dispatches" value={stats.dispCount} subtext="Truck records" color="blue" />
+            <StatBox label="Total Qty" value={`${fmtNum(stats.dispQty)} MT`} subtext="Lifted tonnage" color="emerald" />
+            <StatBox label="Freight" value={fmtCurrency(stats.dispFreight)} subtext="Transport cost" color="amber" />
           </div>
-        </section>
+        </div>
 
       </div>
 
-      {/* ═══════════ CHARTS & NAVIGATION ROW ═══════════ */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 pt-2">
+      {/* ═══════════ SECTION 5: ANALYTICS & QUICK NAVIGATION ═══════════ */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         
         {/* Document Distribution Pie Chart */}
-        <div className="lg:col-span-2 bg-white rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200/80 shadow-xs">
+        <div className="lg:col-span-2 bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/90 shadow-xs">
           <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
-            <div className="flex items-center gap-2.5">
-              <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-                <PieChartIcon className="h-4.5 w-4.5" />
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                <PieChartIcon size={18} />
               </div>
-              <h3 className="text-sm sm:text-base font-extrabold uppercase tracking-wide text-slate-800">
-                Document Distribution
-              </h3>
+              <div>
+                <h3 className="text-sm sm:text-base font-black text-slate-900 tracking-tight">
+                  Document Volume Distribution
+                </h3>
+                <p className="text-xs text-slate-400 font-medium">Proportion of files across all functional areas</p>
+              </div>
             </div>
-            <span className="text-xs sm:text-sm font-semibold text-slate-500">
-              Total {stats.totalDocs} Records
+            <span className="px-3 py-1 bg-slate-100 rounded-lg text-xs font-mono font-black text-slate-700 border border-slate-200">
+              Total: {stats.totalDocs}
             </span>
           </div>
 
-          <div className="h-60 sm:h-72 w-full flex justify-center items-center">
+          <div className="h-64 sm:h-72 w-full flex justify-center items-center">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie 
                   data={stats.distData} 
-                  innerRadius={55} 
-                  outerRadius={90} 
-                  paddingAngle={3} 
+                  innerRadius={65} 
+                  outerRadius={100} 
+                  paddingAngle={4} 
                   dataKey="value" 
                   stroke="none"
                 >
@@ -435,119 +493,129 @@ export default function Dashboard({ onNavigate }) {
                 <RechartsTooltip 
                   contentStyle={{ 
                     backgroundColor: "#ffffff", 
-                    borderRadius: "12px", 
+                    borderRadius: "14px", 
                     border: "1px solid #e2e8f0", 
-                    boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)", 
-                    fontSize: "13px",
-                    fontWeight: "600"
+                    boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.08)", 
+                    fontSize: "12px",
+                    fontWeight: "700"
                   }} 
                 />
-                <Legend iconType="circle" wrapperStyle={{ fontSize: 12, paddingTop: 14 }} />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: 12, paddingTop: 16 }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         {/* Quick Links Navigation */}
-        <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200/80 shadow-xs flex flex-col justify-between">
+        <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/90 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100">
-            <div className="flex items-center gap-2.5">
-              <div className="p-2 bg-red-50 text-red-600 rounded-lg">
-                <Layers className="h-4.5 w-4.5" />
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-red-50 text-red-600 flex items-center justify-center">
+                <Layers size={18} />
               </div>
-              <h3 className="text-sm sm:text-base font-extrabold uppercase tracking-wide text-slate-800">
-                Quick Navigation
-              </h3>
+              <div>
+                <h3 className="text-sm sm:text-base font-black text-slate-900 tracking-tight">
+                  Quick Navigation
+                </h3>
+                <p className="text-xs text-slate-400 font-medium">Direct module access</p>
+              </div>
             </div>
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              Shortcuts
-            </span>
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Shortcuts</span>
           </div>
 
-          <div className="flex flex-col gap-2 overflow-y-auto max-h-[260px] sm:max-h-[300px] pr-1">
-            <QuickLink title="Auction / Deal" icon={Gavel} count={stats.aucCount} onClick={() => onNavigate("auction")} />
-            <QuickLink title="SECL Intimation" icon={FileText} count={stats.f1Count + stats.f2Count + stats.clCount} onClick={() => onNavigate("secl-intimation")} />
-            <QuickLink title="SECL Payment Advice" icon={Wallet} count={stats.paCount} onClick={() => onNavigate("secl-payment-advice")} />
-            <QuickLink title="Sales Order (DO)" icon={FileSpreadsheet} count={stats.soCount} onClick={() => onNavigate("sales-order")} />
-            <QuickLink title="Invoice" icon={Receipt} count={stats.invCount} onClick={() => onNavigate("invoice")} />
-            <QuickLink title="Dispatch" icon={Truck} count={stats.dispCount} onClick={() => onNavigate("dispatch")} />
-            <QuickLink title="Refund / Lapse" icon={RotateCcw} count="" onClick={() => onNavigate("refund-lapse")} />
+          <div className="flex flex-col gap-2 overflow-y-auto max-h-[300px] pr-1">
+            <QuickNavItem title="Sales Order (DO)" icon={FileSpreadsheet} count={stats.soCount} onClick={() => onNavigate("sales-order")} />
+            <QuickNavItem title="SECL Payment Advice" icon={Wallet} count={stats.paCount} onClick={() => onNavigate("secl-payment-advice")} />
+            <QuickNavItem title="SECL Intimation" icon={FileText} count={stats.f1Count + stats.f2Count + stats.clCount} onClick={() => onNavigate("secl-intimation")} />
+            <QuickNavItem title="Invoice" icon={Receipt} count={stats.invCount} onClick={() => onNavigate("invoice")} />
+            <QuickNavItem title="Auction / Deal" icon={Gavel} count={stats.aucCount} onClick={() => onNavigate("auction")} />
+            <QuickNavItem title="Dispatch Tracking" icon={Truck} count={stats.dispCount} onClick={() => onNavigate("dispatch")} />
+            <QuickNavItem title="Sauda Scale (Buy/Sell)" icon={Briefcase} count="" onClick={() => onNavigate("sauda-scale")} />
+            <QuickNavItem title="Refund / Lapse" icon={RotateCcw} count="" onClick={() => onNavigate("refund-lapse")} />
           </div>
         </div>
 
       </div>
 
-      {/* ═══════════ TREND & ACTIVITY ═══════════ */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 pt-2 pb-6">
+      {/* ═══════════ SECTION 6: TREND & ACTIVITY ═══════════ */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 pb-6">
         
         {/* Monthly Trend */}
-        <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200/80 shadow-xs">
+        <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/90 shadow-xs">
           <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
-            <div className="flex items-center gap-2.5">
-              <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-                <BarChart3 className="h-4.5 w-4.5" />
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                <BarChart3 size={18} />
               </div>
-              <h3 className="text-sm sm:text-base font-extrabold uppercase tracking-wide text-slate-800">
-                Monthly Trend
-              </h3>
+              <div>
+                <h3 className="text-sm sm:text-base font-black text-slate-900 tracking-tight">
+                  Monthly Intake Trend
+                </h3>
+                <p className="text-xs text-slate-400 font-medium">Document volume (last 6 months)</p>
+              </div>
             </div>
-            <span className="text-xs sm:text-sm text-slate-500 font-medium">Last 6 Months</span>
+            <span className="text-xs font-bold text-slate-500">Last 6 Months</span>
           </div>
 
-          <div className="h-52 sm:h-64 w-full">
+          <div className="h-56 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={stats.trendData}>
                 <defs>
                   <linearGradient id="gradDocs" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#2563eb" stopOpacity={0.25} />
-                    <stop offset="95%" stopColor="#2563eb" stopOpacity={0.02} />
+                    <stop offset="5%" stopColor="#ef4444" stopOpacity={0.25} />
+                    <stop offset="95%" stopColor="#ef4444" stopOpacity={0.0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#64748b" }} axisLine={{ stroke: '#e2e8f0' }} tickLine={false} />
-                <YAxis tick={{ fontSize: 12, fill: "#64748b" }} allowDecimals={false} axisLine={false} tickLine={false} width={32} />
+                <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#64748b" }} axisLine={{ stroke: '#e2e8f0' }} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: "#64748b" }} allowDecimals={false} axisLine={false} tickLine={false} width={32} />
                 <RechartsTooltip 
                   contentStyle={{ 
                     backgroundColor: "#ffffff", 
-                    borderRadius: "12px", 
+                    borderRadius: "14px", 
                     border: "1px solid #e2e8f0", 
-                    boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)", 
-                    fontSize: "13px" 
+                    boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.08)", 
+                    fontSize: "12px",
+                    fontWeight: "600"
                   }} 
                 />
-                <Area type="monotone" dataKey="documents" stroke="#2563eb" fill="url(#gradDocs)" strokeWidth={2.5} />
+                <Area type="monotone" dataKey="documents" stroke="#ef4444" fill="url(#gradDocs)" strokeWidth={2.5} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         {/* Weekly Activity */}
-        <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200/80 shadow-xs">
+        <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/90 shadow-xs">
           <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
-            <div className="flex items-center gap-2.5">
-              <div className="p-2 bg-red-50 text-red-600 rounded-lg">
-                <Activity className="h-4.5 w-4.5" />
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-red-50 text-red-600 flex items-center justify-center">
+                <Activity size={18} />
               </div>
-              <h3 className="text-sm sm:text-base font-extrabold uppercase tracking-wide text-slate-800">
-                Weekly Activity
-              </h3>
+              <div>
+                <h3 className="text-sm sm:text-base font-black text-slate-900 tracking-tight">
+                  7-Day Operational Activity
+                </h3>
+                <p className="text-xs text-slate-400 font-medium">Daily document logs processed</p>
+              </div>
             </div>
-            <span className="text-xs sm:text-sm text-slate-500 font-medium">Last 7 Days</span>
+            <span className="text-xs font-bold text-slate-500">Last 7 Days</span>
           </div>
 
-          <div className="h-52 sm:h-64 w-full">
+          <div className="h-56 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={stats.activityData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#64748b" }} axisLine={{ stroke: '#e2e8f0' }} tickLine={false} />
-                <YAxis tick={{ fontSize: 12, fill: "#64748b" }} allowDecimals={false} axisLine={false} tickLine={false} width={32} />
+                <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#64748b" }} axisLine={{ stroke: '#e2e8f0' }} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: "#64748b" }} allowDecimals={false} axisLine={false} tickLine={false} width={32} />
                 <RechartsTooltip 
                   contentStyle={{ 
                     backgroundColor: "#ffffff", 
-                    borderRadius: "12px", 
+                    borderRadius: "14px", 
                     border: "1px solid #e2e8f0", 
-                    boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)", 
-                    fontSize: "13px" 
+                    boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.08)", 
+                    fontSize: "12px",
+                    fontWeight: "600"
                   }} 
                 />
                 <Bar dataKey="processed" fill="#dc2626" radius={[6, 6, 0, 0]} barSize={26} />
@@ -563,122 +631,117 @@ export default function Dashboard({ onNavigate }) {
 }
 
 /* ═════════════════════════════════════════════════
-   SUB-COMPONENTS (Clean & Professional)
+   HELPER SUB-COMPONENTS
 ═════════════════════════════════════════════════ */
 
-function SectionTitle({ title, icon: Icon, onNavigate }) {
+function SectionHeader({ title, subtitle, icon: Icon, count, onNavigate }) {
   return (
-    <div className="flex items-center justify-between mb-2.5 sm:mb-3 mt-0 gap-2">
-      <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
-        <div className="p-1.5 sm:p-2 rounded-xl bg-red-50 text-red-600 border border-red-200/70 shadow-2xs shrink-0">
-          <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
+    <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+      <div className="flex items-center gap-2.5 sm:gap-3">
+        <div className="w-8 h-8 sm:w-8.5 sm:h-8.5 rounded-xl bg-red-50 text-red-600 flex items-center justify-center border border-red-200/80 shadow-2xs shrink-0">
+          <Icon size={16} className="stroke-[2.2]" />
         </div>
-        <h3 className="text-xs sm:text-base font-extrabold text-slate-900 tracking-wide uppercase break-words">
-          {title}
-        </h3>
+        <div>
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm sm:text-base font-black text-slate-900 tracking-tight">
+              {title}
+            </h3>
+            {count !== undefined && (
+              <span className="px-2 py-0.5 rounded-full text-[11px] font-black font-mono bg-slate-100 text-slate-700 border border-slate-200">
+                {count}
+              </span>
+            )}
+          </div>
+          {subtitle && (
+            <p className="text-[11px] text-slate-400 font-medium">
+              {subtitle}
+            </p>
+          )}
+        </div>
       </div>
+
       {onNavigate && (
         <button
           onClick={onNavigate}
-          className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl text-xs sm:text-sm font-bold text-slate-600 bg-white hover:bg-slate-50 border border-slate-200/80 hover:border-red-200 hover:text-red-600 transition-all shadow-2xs group cursor-pointer shrink-0"
+          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-50 hover:bg-red-50 text-slate-600 hover:text-red-600 border border-slate-200 hover:border-red-200 text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-95 whitespace-nowrap"
         >
           <span>View All</span>
-          <ArrowRight className="h-3 w-3 sm:h-3.5 sm:w-3.5 group-hover:translate-x-0.5 transition-transform" />
+          <ArrowUpRight size={13} />
         </button>
       )}
     </div>
   );
 }
 
-function MiniCard({ label, value, colorScheme = "blue", badge, icon: Icon, subtext }) {
-  const schemeMap = {
+function StatBox({ label, value, subtext, badge, color = "blue", icon: Icon }) {
+  const colorMap = {
     blue: {
-      gradient: "from-blue-500/10 via-blue-500/5 to-transparent",
-      border: "border-blue-200/80 hover:border-blue-400",
-      iconBg: "bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-blue-500/20 shadow-md",
-      accent: "text-blue-600",
-      badgeBg: "bg-blue-100/80 text-blue-800 border-blue-300 shadow-xs",
-      pill: "bg-blue-500"
+      bg: "bg-blue-50/50 hover:bg-blue-50/80",
+      border: "border-blue-100 hover:border-blue-200",
+      label: "text-blue-900",
+      value: "text-blue-950",
+      iconBg: "bg-blue-100 text-blue-700",
+      badge: "bg-blue-100 text-blue-800 border-blue-200"
     },
     emerald: {
-      gradient: "from-emerald-500/10 via-emerald-500/5 to-transparent",
-      border: "border-emerald-200/80 hover:border-emerald-400",
-      iconBg: "bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-emerald-500/20 shadow-md",
-      accent: "text-emerald-600",
-      badgeBg: "bg-emerald-100/80 text-emerald-800 border-emerald-300 shadow-xs",
-      pill: "bg-emerald-500"
+      bg: "bg-emerald-50/50 hover:bg-emerald-50/80",
+      border: "border-emerald-100 hover:border-emerald-200",
+      label: "text-emerald-900",
+      value: "text-emerald-900",
+      iconBg: "bg-emerald-100 text-emerald-700",
+      badge: "bg-emerald-100 text-emerald-800 border-emerald-200"
     },
-    amber: {
-      gradient: "from-amber-500/10 via-amber-500/5 to-transparent",
-      border: "border-amber-200/80 hover:border-amber-400",
-      iconBg: "bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-amber-500/20 shadow-md",
-      accent: "text-amber-600",
-      badgeBg: "bg-amber-100/80 text-amber-800 border-amber-300 shadow-xs",
-      pill: "bg-amber-500"
-    },
-    red: {
-      gradient: "from-rose-500/10 via-rose-500/5 to-transparent",
-      border: "border-rose-200/80 hover:border-rose-400",
-      iconBg: "bg-gradient-to-br from-rose-500 to-red-600 text-white shadow-rose-500/20 shadow-md",
-      accent: "text-rose-600",
-      badgeBg: "bg-rose-100/80 text-rose-800 border-rose-300 shadow-xs",
-      pill: "bg-rose-500"
+    rose: {
+      bg: "bg-rose-50/50 hover:bg-rose-50/80",
+      border: "border-rose-100 hover:border-rose-200",
+      label: "text-rose-900",
+      value: "text-rose-950",
+      iconBg: "bg-rose-100 text-rose-700",
+      badge: "bg-rose-100 text-rose-800 border-rose-200"
     },
     purple: {
-      gradient: "from-purple-500/10 via-purple-500/5 to-transparent",
-      border: "border-purple-200/80 hover:border-purple-400",
-      iconBg: "bg-gradient-to-br from-purple-500 to-violet-600 text-white shadow-purple-500/20 shadow-md",
-      accent: "text-purple-600",
-      badgeBg: "bg-purple-100/80 text-purple-800 border-purple-300 shadow-xs",
-      pill: "bg-purple-500"
+      bg: "bg-purple-50/50 hover:bg-purple-50/80",
+      border: "border-purple-100 hover:border-purple-200",
+      label: "text-purple-900",
+      value: "text-purple-950",
+      iconBg: "bg-purple-100 text-purple-700",
+      badge: "bg-purple-100 text-purple-800 border-purple-200"
     },
-    teal: {
-      gradient: "from-teal-500/10 via-teal-500/5 to-transparent",
-      border: "border-teal-200/80 hover:border-teal-400",
-      iconBg: "bg-gradient-to-br from-teal-500 to-cyan-600 text-white shadow-teal-500/20 shadow-md",
-      accent: "text-teal-600",
-      badgeBg: "bg-teal-100/80 text-teal-800 border-teal-300 shadow-xs",
-      pill: "bg-teal-500"
-    },
-    slate: {
-      gradient: "from-slate-500/10 via-slate-500/5 to-transparent",
-      border: "border-slate-200/80 hover:border-slate-400",
-      iconBg: "bg-gradient-to-br from-slate-600 to-slate-800 text-white shadow-slate-500/20 shadow-md",
-      accent: "text-slate-600",
-      badgeBg: "bg-slate-100 text-slate-800 border-slate-300 shadow-xs",
-      pill: "bg-slate-500"
+    amber: {
+      bg: "bg-amber-50/50 hover:bg-amber-50/80",
+      border: "border-amber-100 hover:border-amber-200",
+      label: "text-amber-900",
+      value: "text-amber-950",
+      iconBg: "bg-amber-100 text-amber-700",
+      badge: "bg-amber-100 text-amber-800 border-amber-200"
     }
   };
-  const current = schemeMap[colorScheme] || schemeMap.blue;
+
+  const style = colorMap[color] || colorMap.blue;
 
   return (
-    <div className={`relative overflow-hidden bg-white rounded-2xl p-3 sm:p-4 border ${current.border} shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-200 flex flex-col justify-between group min-w-0`}>
-      {/* Top subtle gradient highlight */}
-      <div className={`absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r ${current.gradient.replace('to-transparent', '')} opacity-90`}></div>
-      <div className={`absolute -right-8 -top-8 w-24 h-24 rounded-full bg-gradient-to-br ${current.gradient} pointer-events-none blur-xl`}></div>
-
-      <div className="flex items-start justify-between gap-1.5 mb-2.5 min-w-0">
-        <span className="text-[10px] min-[400px]:text-[11px] sm:text-xs font-extrabold uppercase tracking-wider text-slate-500 leading-tight break-words flex-1 min-w-0" title={label}>
+    <div className={`px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-xl border ${style.border} ${style.bg} transition-all flex flex-col justify-between`}>
+      <div className="flex items-center justify-between gap-1 mb-1">
+        <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 whitespace-nowrap">
           {label}
         </span>
         {badge ? (
-          <span className={`text-[9px] min-[400px]:text-[10px] sm:text-[11px] font-black px-2 py-0.5 rounded-full border shrink-0 whitespace-nowrap ml-1 ${current.badgeBg}`}>
+          <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full border ${style.badge} whitespace-nowrap`}>
             {badge}
           </span>
         ) : Icon ? (
-          <div className={`p-1.5 sm:p-2 rounded-xl shrink-0 ${current.iconBg} ml-1 group-hover:scale-110 transition-transform`}>
-            <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+          <div className={`w-5 h-5 rounded-md ${style.iconBg} flex items-center justify-center shrink-0`}>
+            <Icon size={11} />
           </div>
         ) : null}
       </div>
 
-      <div className="relative z-10">
-        <div className="text-sm min-[400px]:text-base sm:text-xl lg:text-2xl font-black text-slate-900 tracking-tight leading-tight group-hover:text-red-600 transition-colors break-words font-mono" title={String(value)}>
+      <div>
+        <div className="text-sm sm:text-base lg:text-lg font-black font-mono text-slate-900 leading-tight whitespace-nowrap overflow-hidden text-ellipsis">
           {value}
         </div>
         {subtext && (
-          <div className="text-[9px] sm:text-xs text-slate-500 mt-1 font-semibold break-words flex items-center gap-1">
-            <span className={`w-1.5 h-1.5 rounded-full ${current.pill}`}></span>
+          <div className="text-[10px] text-slate-400 font-medium mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis">
             {subtext}
           </div>
         )}
@@ -687,114 +750,63 @@ function MiniCard({ label, value, colorScheme = "blue", badge, icon: Icon, subte
   );
 }
 
-function SubSection({ title, items, color = "blue" }) {
-  const pendingItem = items.find(it => it.label.toLowerCase() === 'pending');
-  const doneItem = items.find(it => it.label.toLowerCase() === 'done');
-  const regularItems = items.filter(it => it.label.toLowerCase() !== 'pending' && it.label.toLowerCase() !== 'done');
-
-  const colorStyles = {
-    blue: {
-      gradient: "from-blue-600 to-indigo-700",
-      headerBg: "bg-gradient-to-r from-blue-50/80 to-indigo-50/50",
-      dot: "bg-blue-600",
-      tagBg: "bg-blue-100 text-blue-800 border-blue-200",
-      border: "border-blue-200/90 hover:border-blue-400 hover:shadow-blue-500/10",
-      activeText: "text-blue-700"
-    },
-    purple: {
-      gradient: "from-purple-600 to-fuchsia-700",
-      headerBg: "bg-gradient-to-r from-purple-50/80 to-fuchsia-50/50",
-      dot: "bg-purple-600",
-      tagBg: "bg-purple-100 text-purple-800 border-purple-200",
-      border: "border-purple-200/90 hover:border-purple-400 hover:shadow-purple-500/10",
-      activeText: "text-purple-700"
-    },
-    teal: {
-      gradient: "from-teal-600 to-emerald-700",
-      headerBg: "bg-gradient-to-r from-teal-50/80 to-emerald-50/50",
-      dot: "bg-teal-600",
-      tagBg: "bg-teal-100 text-teal-800 border-teal-200",
-      border: "border-teal-200/90 hover:border-teal-400 hover:shadow-teal-500/10",
-      activeText: "text-teal-700"
-    }
-  };
-  const theme = colorStyles[color] || colorStyles.blue;
-
+function FormatCard({ title, count, qty, value, valueLabel, pending, done, color = "blue" }) {
   return (
-    <div className={`relative overflow-hidden bg-white rounded-2xl border ${theme.border} shadow-sm hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between min-w-0`}>
-      {/* Top Accent Line */}
-      <div className={`h-1.5 w-full bg-gradient-to-r ${theme.gradient}`}></div>
+    <div className="bg-slate-50/70 rounded-xl sm:rounded-2xl p-3 sm:p-3.5 border border-slate-200/90 hover:border-slate-300 transition-all flex flex-col justify-between space-y-2.5">
+      <div className="flex items-center justify-between border-b border-slate-200/70 pb-1.5">
+        <span className="text-xs font-black text-slate-800 uppercase tracking-wide">{title}</span>
+        <span className="px-2 py-0.5 rounded-md bg-white text-slate-700 text-[10px] font-mono font-black border border-slate-200 whitespace-nowrap">
+          {count} Entries
+        </span>
+      </div>
 
-      <div className="p-3.5 sm:p-4.5">
-        {/* Header with Styled Container */}
-        <div className={`flex items-center justify-between p-2.5 rounded-xl ${theme.headerBg} border border-slate-100 mb-3.5 gap-2`}>
-          <div className="flex items-center gap-2 min-w-0">
-            <span className={`w-2.5 h-2.5 rounded-full ring-4 ring-white shrink-0 ${theme.dot}`}></span>
-            <h4 className="text-xs sm:text-sm font-black text-slate-900 tracking-wide uppercase break-words">
-              {title}
-            </h4>
-          </div>
-          <span className={`text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded-md border uppercase tracking-wider shrink-0 ${theme.tagBg} shadow-2xs`}>
-            Format
-          </span>
+      <div className="space-y-1 text-xs font-medium">
+        <div className="flex justify-between py-0.5">
+          <span className="text-slate-500">Quantity Allotted</span>
+          <span className="font-mono font-bold text-slate-900 whitespace-nowrap">{qty}</span>
         </div>
-
-        {/* Regular Metric Rows */}
-        <div className="space-y-1.5">
-          {regularItems.map((item, i) => (
-            <div key={i} className="flex items-center justify-between text-xs sm:text-[13px] py-1 px-2 rounded-lg hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100">
-              <span className="text-slate-600 font-bold break-words">{item.label}</span>
-              <span className="font-black text-slate-900 font-mono text-xs sm:text-sm shrink-0 ml-1">
-                {item.value}
-              </span>
-            </div>
-          ))}
+        <div className="flex justify-between py-0.5">
+          <span className="text-slate-500">{valueLabel}</span>
+          <span className="font-mono font-bold text-emerald-700 whitespace-nowrap">{value}</span>
         </div>
       </div>
 
-      {/* Status Footer Pill with enhanced contrast */}
-      {(pendingItem || doneItem) && (
-        <div className="p-3 bg-slate-50/70 border-t border-slate-100 flex items-center justify-between gap-2 text-[10px] sm:text-xs">
-          {pendingItem && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-900 border border-amber-300 font-extrabold flex-1 justify-center shadow-2xs">
-              <Clock className="h-3.5 w-3.5 text-amber-600 shrink-0" />
-              <span>Pending: {pendingItem.value}</span>
-            </div>
-          )}
-          {doneItem && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-900 border border-emerald-300 font-extrabold flex-1 justify-center shadow-2xs">
-              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-              <span>Done: {doneItem.value}</span>
-            </div>
-          )}
-        </div>
-      )}
+      <div className="pt-1.5 border-t border-slate-200/70 flex items-center justify-between text-[11px] font-bold">
+        <span className="px-2 py-0.5 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 flex items-center gap-1 whitespace-nowrap">
+          <Clock size={11} className="text-amber-600" />
+          Pending: {pending}
+        </span>
+        <span className="px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1 whitespace-nowrap">
+          <CheckCircle2 size={11} className="text-emerald-600" />
+          Done: {done}
+        </span>
+      </div>
     </div>
   );
 }
 
-function QuickLink({ title, icon: Icon, count, onClick }) {
+function QuickNavItem({ title, icon: Icon, count, onClick }) {
   return (
     <div
       onClick={onClick}
-      className="flex items-center justify-between p-2.5 sm:p-3 rounded-xl bg-slate-50/70 hover:bg-red-50/40 border border-slate-200/70 hover:border-red-200 transition-all cursor-pointer group"
+      className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 hover:bg-red-50/50 border border-slate-200/70 hover:border-red-200 transition-all cursor-pointer group"
     >
-      <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-        <div className="p-1.5 sm:p-2 bg-white rounded-lg border border-slate-200/60 text-slate-600 group-hover:text-red-600 transition-colors shadow-2xs shrink-0">
-          <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+      <div className="flex items-center gap-3">
+        <div className="w-7 h-7 rounded-lg bg-white border border-slate-200 text-slate-600 group-hover:text-red-600 flex items-center justify-center shrink-0 shadow-2xs">
+          <Icon size={14} />
         </div>
-        <span className="text-xs sm:text-sm font-bold text-slate-700 group-hover:text-slate-900 break-words">
+        <span className="text-xs font-bold text-slate-700 group-hover:text-slate-900">
           {title}
         </span>
       </div>
-      
-      <div className="flex items-center gap-2 shrink-0">
+
+      <div className="flex items-center gap-2">
         {count !== "" && (
-          <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-slate-200/70 group-hover:bg-red-100 group-hover:text-red-700 text-slate-600 transition-colors">
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-black bg-slate-200/70 group-hover:bg-red-100 group-hover:text-red-700 text-slate-700">
             {count}
           </span>
         )}
-        <ChevronRight className="h-4.5 w-4.5 text-slate-400 group-hover:text-red-600 group-hover:translate-x-0.5 transition-all" />
+        <ChevronRight size={14} className="text-slate-400 group-hover:text-red-600 group-hover:translate-x-0.5 transition-transform" />
       </div>
     </div>
   );
