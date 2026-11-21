@@ -58,7 +58,9 @@ import {
   Factory,
   FolderKanban,
   Wrench,
-  BarChart3
+  BarChart3,
+  Clock,
+  Target
 } from "lucide-react";
 
 // Helper: get module & page title from current pathname
@@ -128,6 +130,19 @@ const getHeaderTitle = (pathname, routes) => {
     ];
     const match = billetRoutes.find(r => pathname === r.href);
     return { module: "Hindustan Dhaatu Ltd (Billet) Report", page: match?.label || "Hindustan Dhaatu Ltd (Billet) Report" };
+  }
+  // Check MIS Reports routes
+  if (pathname.startsWith("/mis-reports")) {
+    const misRoutes = [
+      { href: "/mis-reports/dashboard", label: "Dashboard" },
+      { href: "/mis-reports/today-tasks", label: "Today's Tasks" },
+      { href: "/mis-reports/pending-tasks", label: "Pending Tasks" },
+      { href: "/mis-reports/history-commitment", label: "Commitment History" },
+      { href: "/mis-reports/kpi-kra", label: "KPI / KRA" },
+      { href: "/mis-reports/department", label: "Department" },
+    ];
+    const match = misRoutes.find(r => pathname === r.href);
+    return { module: "MIS Reports", page: match?.label || "MIS Reports" };
   }
   // Check Coal System routes
   if (pathname.startsWith("/coal-system")) {
@@ -447,9 +462,24 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
 
         let dispatchCount = 0;
         try {
-          const dispatchData = JSON.parse(localStorage.getItem('dispatch_data') || '[]');
-          dispatchCount = dispatchData.length;
-        } catch(e) {}
+          const { count: truckCount } = await supabase
+            .from('coal_truck_dispatches')
+            .select('*', { count: 'exact', head: true });
+          
+          if (truckCount !== null && truckCount !== undefined) {
+            dispatchCount = truckCount;
+          } else {
+            const { count: recordCount } = await supabase
+              .from('dispatch_records')
+              .select('*', { count: 'exact', head: true });
+            dispatchCount = recordCount || 0;
+          }
+        } catch(e) {
+          try {
+            const dispatchData = JSON.parse(localStorage.getItem('dispatch_data') || '[]');
+            dispatchCount = dispatchData.length;
+          } catch(err) {}
+        }
 
         if (isMounted) {
           setCoalBadges({
@@ -1778,6 +1808,33 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       showFor: ["admin", "user", "HOD"],
       module: "Hindustan Dhaatu Ltd (Billet) Report",
     },
+
+    // --- MIS Reports Routes ---
+    {
+      href: "/mis-reports/dashboard",
+      label: "Dashboard",
+      icon: LayoutDashboard,
+      active: location.pathname === "/mis-reports/dashboard" || location.pathname === "/mis-reports",
+      showFor: ["admin", "user", "HOD"],
+      module: "MIS Reports",
+    },
+    {
+      href: "/mis-reports/history-commitment",
+      label: "Commitment History",
+      icon: BookmarkCheck,
+      active: location.pathname === "/mis-reports/history-commitment",
+      showFor: ["admin", "user", "HOD"],
+      module: "MIS Reports",
+    },
+    {
+      href: "/mis-reports/kpi-kra",
+      label: "KPI / KRA",
+      icon: Target,
+      active: location.pathname === "/mis-reports/kpi-kra",
+      showFor: ["admin", "user", "HOD"],
+      module: "MIS Reports",
+    },
+
     {
       href: "/dashboard/global-settings",
       label: "Global Settings",

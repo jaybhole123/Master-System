@@ -313,7 +313,7 @@ const MODULES = [
   {
     id: 'MIS Reports',
     name: 'MIS Reports',
-    pages: ['Dashboard', "Today's Tasks", 'Pending Tasks', 'Commitment History', 'KPI / KRA', 'Department']
+    pages: ['Dashboard', 'Commitment History', 'KPI / KRA']
   },
   {
     id: 'Global Settings',

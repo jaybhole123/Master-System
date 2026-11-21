@@ -17,6 +17,8 @@ export default function TruckDispatchTab() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [visibleCount, setVisibleCount] = useState(50); // Initial 50 records, then infinite load in chunks of 50
+  const [selectedIds, setSelectedIds] = useState(new Set()); // Bulk delete selection
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -407,6 +409,11 @@ export default function TruckDispatchTab() {
     const updated = data.filter(d => d.id !== item.id);
     updated.forEach((d, idx) => { d.sNo = idx + 1; });
     await saveData(updated);
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.delete(item.id);
+      return next;
+    });
 
     // Remove from DB if exists
     try {
@@ -415,6 +422,54 @@ export default function TruckDispatchTab() {
       }
     } catch (e) {
       console.warn("DB delete error:", e);
+    }
+  };
+
+  // Bulk Selection Handlers
+  const handleToggleSelectAll = () => {
+    if (selectedIds.size === filteredData.length && filteredData.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredData.map(d => d.id)));
+    }
+  };
+
+  const handleToggleSelectRow = (id) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  // Bulk Delete Selected Records
+  const handleBulkDelete = async () => {
+    const count = selectedIds.size;
+    if (count === 0) return;
+
+    if (!window.confirm(`Are you sure you want to permanently delete ${count} selected records? This action cannot be undone.`)) {
+      return;
+    }
+
+    setIsBulkDeleting(true);
+    const idsToDelete = Array.from(selectedIds);
+    const updated = data.filter(d => !selectedIds.has(d.id));
+    updated.forEach((d, idx) => { d.sNo = idx + 1; });
+    await saveData(updated);
+    setSelectedIds(new Set());
+
+    // Delete from Supabase in batches of 100
+    try {
+      const realDbIds = idsToDelete.filter(id => id && !String(id).startsWith("rec_"));
+      for (let i = 0; i < realDbIds.length; i += 100) {
+        const batch = realDbIds.slice(i, i + 100);
+        await supabase.from("coal_truck_dispatches").delete().in("id", batch);
+      }
+    } catch (e) {
+      console.warn("Bulk DB delete error:", e);
+    } finally {
+      setIsBulkDeleting(false);
     }
   };
 
@@ -849,6 +904,37 @@ export default function TruckDispatchTab() {
             >
               Export PDF
             </button>
+
+            {/* Bulk Delete Button when items selected */}
+            {selectedIds.size > 0 && (
+              <button
+                onClick={handleBulkDelete}
+                disabled={isBulkDeleting}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  background: "#dc2626",
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: "8px",
+                  padding: "7px 14px",
+                  fontSize: "12px",
+                  fontWeight: "700",
+                  cursor: isBulkDeleting ? "not-allowed" : "pointer",
+                  boxShadow: "0 2px 6px rgba(220, 38, 38, 0.35)",
+                  transition: "all 0.15s ease"
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  <line x1="10" y1="11" x2="10" y2="17"></line>
+                  <line x1="14" y1="11" x2="14" y2="17"></line>
+                </svg>
+                {isBulkDeleting ? "Deleting..." : `Delete Selected (${selectedIds.size})`}
+              </button>
+            )}
           </div>
 
           {/* Upload Status / Total Count Indicator */}
@@ -1012,10 +1098,20 @@ export default function TruckDispatchTab() {
           <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", whiteSpace: "nowrap" }}>
             <thead style={{ background: "#f8fafc", position: "sticky", top: 0, zIndex: 10, borderBottom: "1px solid #e2e8f0" }}>
               <tr>
-                <th style={{ padding: "10px 14px", fontSize: "11.5px", fontWeight: "800", color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px", textAlign: "center", width: "55px" }}>
+                {/* Select All Checkbox */}
+                <th style={{ padding: "10px 10px", width: "40px", textAlign: "center" }}>
+                  <input
+                    type="checkbox"
+                    checked={filteredData.length > 0 && selectedIds.size === filteredData.length}
+                    onChange={handleToggleSelectAll}
+                    style={{ cursor: "pointer", width: "15px", height: "15px", accentColor: "#dc2626" }}
+                    title="Select All"
+                  />
+                </th>
+                <th style={{ padding: "10px 10px", fontSize: "11.5px", fontWeight: "800", color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px", textAlign: "center", width: "50px" }}>
                   S.NO.
                 </th>
-                <th style={{ padding: "10px 12px", fontSize: "11.5px", fontWeight: "800", color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px", textAlign: "center", width: "65px" }}>
+                <th style={{ padding: "10px 10px", fontSize: "11.5px", fontWeight: "800", color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px", textAlign: "center", width: "60px" }}>
                   VIEW
                 </th>
                 <th style={{ padding: "10px 14px", fontSize: "11.5px", fontWeight: "800", color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" }}>
@@ -1043,18 +1139,28 @@ export default function TruckDispatchTab() {
                     style={{
                       borderBottom: "1px solid #f1f5f9",
                       transition: "background 0.15s ease",
-                      background: idx % 2 === 0 ? "#ffffff" : "#fafafa"
+                      background: selectedIds.has(row.id) ? "#fef2f2" : (idx % 2 === 0 ? "#ffffff" : "#fafafa")
                     }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = "#f1f5f9"; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = idx % 2 === 0 ? "#ffffff" : "#fafafa"; }}
+                    onMouseEnter={(e) => { if (!selectedIds.has(row.id)) e.currentTarget.style.background = "#f1f5f9"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = selectedIds.has(row.id) ? "#fef2f2" : (idx % 2 === 0 ? "#ffffff" : "#fafafa"); }}
                   >
+                    {/* Checkbox */}
+                    <td style={{ padding: "10px 10px", textAlign: "center" }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(row.id)}
+                        onChange={() => handleToggleSelectRow(row.id)}
+                        style={{ cursor: "pointer", width: "15px", height: "15px", accentColor: "#dc2626" }}
+                      />
+                    </td>
+
                     {/* S.No */}
-                    <td style={{ padding: "10px 14px", textAlign: "center", fontWeight: "700", color: "#64748b", fontFamily: "var(--font-mono, monospace)" }}>
+                    <td style={{ padding: "10px 10px", textAlign: "center", fontWeight: "700", color: "#64748b", fontFamily: "var(--font-mono, monospace)" }}>
                       {idx + 1}
                     </td>
 
                     {/* View Eye Button */}
-                    <td style={{ padding: "10px 12px", textAlign: "center" }}>
+                    <td style={{ padding: "10px 10px", textAlign: "center" }}>
                       <button
                         onClick={() => { setViewingItem(row); setIsViewModalOpen(true); }}
                         style={{
@@ -1116,7 +1222,6 @@ export default function TruckDispatchTab() {
                     {/* Actions: Edit & Delete */}
                     <td style={{ padding: "10px 14px", textAlign: "center" }}>
                       <div style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>
-                        {/* Edit Button */}
                         <button
                           onClick={() => handleOpenEdit(row)}
                           style={{
@@ -1133,8 +1238,6 @@ export default function TruckDispatchTab() {
                         >
                           Edit
                         </button>
-
-                        {/* Delete Button */}
                         <button
                           onClick={() => handleDelete(row)}
                           style={{
@@ -1157,7 +1260,7 @@ export default function TruckDispatchTab() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={7} style={{ padding: "40px", textAlign: "center", color: "#94a3b8" }}>
+                  <td colSpan={8} style={{ padding: "40px", textAlign: "center", color: "#94a3b8" }}>
                     <div style={{ fontSize: "14px", fontWeight: "700", color: "#64748b", marginBottom: "4px" }}>
                       No Truck Dispatch Records Found
                     </div>
@@ -1174,24 +1277,72 @@ export default function TruckDispatchTab() {
 
       {/* ── MOBILE CARDS VIEW (RESPONSIVE CARDS FOR MOBILE) ── */}
       <div className="truck-mobile-cards-view">
+        {/* Mobile Select All Bar */}
+        {filteredData.length > 0 && (
+          <div style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            background: "#ffffff",
+            padding: "8px 12px",
+            borderRadius: "10px",
+            border: "1px solid #e2e8f0"
+          }}>
+            <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "12px", fontWeight: "700", color: "#475569" }}>
+              <input
+                type="checkbox"
+                checked={selectedIds.size === filteredData.length && filteredData.length > 0}
+                onChange={handleToggleSelectAll}
+                style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "#dc2626" }}
+              />
+              <span>Select All ({selectedIds.size}/{filteredData.length})</span>
+            </label>
+            {selectedIds.size > 0 && (
+              <button
+                onClick={handleBulkDelete}
+                disabled={isBulkDeleting}
+                style={{
+                  background: "#dc2626",
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: "6px",
+                  padding: "4px 10px",
+                  fontSize: "11.5px",
+                  fontWeight: "700",
+                  cursor: "pointer"
+                }}
+              >
+                Delete ({selectedIds.size})
+              </button>
+            )}
+          </div>
+        )}
+
         {paginatedData.length > 0 ? (
           paginatedData.map((row, idx) => (
             <div
               key={row.id || idx}
               style={{
-                background: "#ffffff",
-                border: "1px solid #e2e8f0",
+                background: selectedIds.has(row.id) ? "#fef2f2" : "#ffffff",
+                border: selectedIds.has(row.id) ? "1.5px solid #f87171" : "1px solid #e2e8f0",
                 borderRadius: "12px",
                 padding: "12px 14px",
                 boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
                 display: "flex",
                 flexDirection: "column",
-                gap: "8px"
+                gap: "8px",
+                transition: "all 0.15s ease"
               }}
             >
-              {/* Header: S.No + Truck No + Qty */}
+              {/* Header: Checkbox + S.No + Truck No + Qty */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(row.id)}
+                    onChange={() => handleToggleSelectRow(row.id)}
+                    style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "#dc2626" }}
+                  />
                   <span style={{ fontSize: "11px", fontWeight: "800", color: "#64748b", background: "#f1f5f9", padding: "2px 6px", borderRadius: "4px", fontFamily: "var(--font-mono, monospace)" }}>
                     #{idx + 1}
                   </span>

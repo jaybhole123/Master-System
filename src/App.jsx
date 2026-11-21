@@ -293,6 +293,29 @@ import BilletConsumption from './Hindustan_Billet/src/Consumption';
 import BilletReport from './Hindustan_Billet/src/Billet';
 import BilletMisReport from './Hindustan_Billet/src/MisReport';
 
+// --- MIS System Imports ---
+import { AuthProvider as MisAuthProvider } from './MIS_System/src/contexts/AuthContext';
+import MisDashboard from './MIS_System/src/pages/admin/Dashboard';
+import MisHistoryCommitment from './MIS_System/src/pages/admin/HistoryCommitment';
+import MisTodayTasks from './MIS_System/src/pages/admin/TodayTasks';
+import MisPendingTasks from './MIS_System/src/pages/admin/PendingTasks';
+import MisKpiKra from './MIS_System/src/pages/admin/KpiKra';
+import MisDepartmentReport from './MIS_System/src/pages/admin/Report';
+
+const MisSystemWrapper = ({ children }) => (
+    <ProtectedRoute>
+        <AdminLayout noPadding={true}>
+            <MisAuthProvider>
+                <div className="mis-system-root flex flex-col flex-1 w-full min-h-full bg-slate-50 overflow-x-hidden">
+                    <div className="mis-content flex-1 p-4 sm:p-6 lg:p-8">
+                        {children}
+                    </div>
+                </div>
+            </MisAuthProvider>
+        </AdminLayout>
+    </ProtectedRoute>
+);
+
 function App() {
     return (
         <MagicToastProvider>
@@ -737,6 +760,15 @@ function App() {
                     <Route path="/billet-system/consumption" element={<BilletSystemWrapper><BilletConsumption /></BilletSystemWrapper>} />
                     <Route path="/billet-system/billet" element={<BilletSystemWrapper><BilletReport /></BilletSystemWrapper>} />
                     <Route path="/billet-system/mis-report" element={<BilletSystemWrapper><BilletMisReport /></BilletSystemWrapper>} />
+
+                    {/* --- MIS Reports Routes --- */}
+                    <Route path="/mis-reports" element={<Navigate to="/mis-reports/dashboard" replace />} />
+                    <Route path="/mis-reports/dashboard" element={<MisSystemWrapper><MisDashboard /></MisSystemWrapper>} />
+                    <Route path="/mis-reports/today-tasks" element={<MisSystemWrapper><MisTodayTasks /></MisSystemWrapper>} />
+                    <Route path="/mis-reports/pending-tasks" element={<MisSystemWrapper><MisPendingTasks /></MisSystemWrapper>} />
+                    <Route path="/mis-reports/history-commitment" element={<MisSystemWrapper><MisHistoryCommitment /></MisSystemWrapper>} />
+                    <Route path="/mis-reports/kpi-kra" element={<MisSystemWrapper><MisKpiKra /></MisSystemWrapper>} />
+                    <Route path="/mis-reports/department" element={<MisSystemWrapper><MisDepartmentReport /></MisSystemWrapper>} />
 
                     {/* --- Backward Compatibility Redirects (From Snippet 1) --- */}
                     {/* These catch old URLs and forward them to the new structure */}

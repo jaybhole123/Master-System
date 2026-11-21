@@ -1,0 +1,303 @@
+-- ==============================================================================
+-- MIS SYSTEM - SUPABASE DATABASE SCHEMA & PAGE-WISE QUERIES
+-- ==============================================================================
+-- You can run these queries directly in Supabase -> SQL Editor.
+-- Every section is organized page-by-page with CREATE TABLE, SAMPLE DATA, and SELECT/INSERT/UPDATE queries.
+-- ==============================================================================
+
+
+-- ==============================================================================
+-- SECTION 0: BASE USERS TABLE (Used for Auth, Layout & Profile)
+-- ==============================================================================
+
+-- 0.1 Create Users Table
+CREATE TABLE IF NOT EXISTS public.users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    username TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL, -- In production, hash passwords or use Supabase Auth
+    name TEXT NOT NULL,
+    email TEXT UNIQUE,
+    phone TEXT,
+    department TEXT NOT NULL,
+    designation TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'user', -- 'admin', 'superadmin', 'hod', 'user'
+    reported_by TEXT, -- Manager/HOD name or ID
+    image_url TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 0.2 Enable Row Level Security (RLS)
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public read-write for demo" ON public.users FOR ALL USING (true);
+
+-- 0.3 Sample Users Seed
+INSERT INTO public.users (username, password, name, email, phone, department, designation, role, reported_by, image_url)
+VALUES 
+('admin', 'admin123', 'Administrator', 'admin@chemplast.com', '9876543210', 'Management', 'System Administrator', 'admin', '', 'https://ui-avatars.com/api/?name=Admin&background=0D8ABC&color=fff'),
+('pratap', 'user123', 'Pratap Kumar', 'pratap@chemplast.com', '9876543211', 'Engineering', 'CRM', 'user', 'Administrator', 'https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg?auto=compress&cs=tinysrgb&w=600'),
+('chetan', 'user123', 'Chetan Sharma', 'chetan@chemplast.com', '9876543212', 'Design', 'PURCHASER', 'user', 'Administrator', 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=600'),
+('digendra', 'user123', 'Digendra Patel', 'digendra@chemplast.com', '9876543213', 'Marketing', 'HR', 'hod', 'Administrator', 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=600')
+ON CONFLICT (username) DO NOTHING;
+
+
+
+-- ==============================================================================
+-- SECTION 1: PAGE - DASHBOARD (/admin/dashboard)
+-- ==============================================================================
+
+-- 1.1 Create Current Week Employee Performance Table
+CREATE TABLE IF NOT EXISTS public.dashboard_employee_performance (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    employee_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+    employee_name TEXT NOT NULL,
+    designation TEXT,
+    department TEXT,
+    image_url TEXT,
+    date_start DATE NOT NULL,
+    date_end DATE NOT NULL,
+    target NUMERIC DEFAULT 100,
+    actual_work_done NUMERIC DEFAULT 0,
+    weekly_work_done_pct NUMERIC DEFAULT 0,
+    weekly_work_done_on_time_pct NUMERIC DEFAULT 0,
+    total_work_done NUMERIC DEFAULT 0,
+    week_pending NUMERIC DEFAULT 0,
+    all_pending_till_date NUMERIC DEFAULT 0,
+    planned_work_not_done NUMERIC DEFAULT 0,
+    planned_work_not_done_on_time NUMERIC DEFAULT 0,
+    last_week_commitment NUMERIC DEFAULT 0,
+    next_week_planned_not_done NUMERIC DEFAULT 0,
+    next_week_planned_not_done_on_time NUMERIC DEFAULT 0,
+    next_week_commitment NUMERIC DEFAULT 0,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 1.2 Create Department Scores Table (For Dashboard Graph)
+CREATE TABLE IF NOT EXISTS public.department_scores (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    department_name TEXT UNIQUE NOT NULL,
+    work_not_done_pct NUMERIC DEFAULT 0,
+    not_done_on_time_pct NUMERIC DEFAULT 0,
+    pending_works INTEGER DEFAULT 0,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 1.3 Sample Seed Data for Dashboard
+INSERT INTO public.department_scores (department_name, work_not_done_pct, not_done_on_time_pct, pending_works)
+VALUES 
+('Engineering', 12.5, 8.0, 5),
+('Design', 15.0, 10.2, 4),
+('Marketing', 9.8, 6.4, 3),
+('Sales', 18.2, 12.0, 6),
+('Operations', 14.0, 9.5, 4)
+ON CONFLICT (department_name) DO UPDATE 
+SET work_not_done_pct = EXCLUDED.work_not_done_pct,
+    not_done_on_time_pct = EXCLUDED.not_done_on_time_pct,
+    pending_works = EXCLUDED.pending_works;
+
+INSERT INTO public.dashboard_employee_performance 
+(employee_name, designation, department, image_url, date_start, date_end, target, actual_work_done, weekly_work_done_pct, weekly_work_done_on_time_pct, total_work_done, week_pending, all_pending_till_date, planned_work_not_done, planned_work_not_done_on_time, last_week_commitment, next_week_planned_not_done, next_week_planned_not_done_on_time, next_week_commitment)
+VALUES
+('Pratap Kumar', 'CRM', 'Engineering', 'https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg?auto=compress&cs=tinysrgb&w=600', '2025-05-01', '2025-05-07', 100, 85, 88.0, 90.0, 88, 2, 5, 12.0, 8.0, 95, 10, 6, 98),
+('Chetan Sharma', 'PURCHASER', 'Design', 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=600', '2025-05-01', '2025-05-07', 95, 82, 84.0, 85.0, 84, 3, 6, 15.0, 10.0, 90, 12, 8, 92),
+('Digendra Patel', 'HR', 'Marketing', 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=600', '2025-05-01', '2025-05-07', 90, 81, 90.0, 92.0, 90, 1, 3, 8.0, 5.0, 92, 7, 4, 94);
+
+-- 1.4 DASHBOARD QUERIES (Used in Frontend React):
+
+-- QUERY 1: Fetch All Employees for Dashboard Table
+-- SELECT * FROM public.dashboard_employee_performance ORDER BY employee_name ASC;
+
+-- QUERY 2: Fetch Department Scores for Chart
+-- SELECT * FROM public.department_scores ORDER BY department_name ASC;
+
+-- QUERY 3: Fetch Top Best Performers (Highest On-Time %)
+-- SELECT employee_name, weekly_work_done_pct, weekly_work_done_on_time_pct, all_pending_till_date 
+-- FROM public.dashboard_employee_performance 
+-- ORDER BY weekly_work_done_on_time_pct DESC LIMIT 5;
+
+-- QUERY 4: Fetch Top Worst Performers (Highest Work Delay)
+-- SELECT employee_name, planned_work_not_done, planned_work_not_done_on_time, all_pending_till_date 
+-- FROM public.dashboard_employee_performance 
+-- ORDER BY planned_work_not_done_on_time DESC LIMIT 5;
+
+-- QUERY 5: Update Next Week Commitments (When User Clicks Save)
+-- UPDATE public.dashboard_employee_performance 
+-- SET next_week_planned_not_done = 5,
+--     next_week_planned_not_done_on_time = 2,
+--     next_week_commitment = 98,
+--     updated_at = now()
+-- WHERE employee_name = 'Pratap Kumar';
+
+
+
+-- ==============================================================================
+-- SECTION 2: PAGE - HISTORY & COMMITMENTS (/admin/history-commitment)
+-- ==============================================================================
+
+-- 2.1 Create Historical Records Table
+CREATE TABLE IF NOT EXISTS public.history_records (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    date_start DATE NOT NULL,
+    date_end DATE NOT NULL,
+    employee_name TEXT NOT NULL,
+    target NUMERIC DEFAULT 0,
+    actual_work_done NUMERIC DEFAULT 0,
+    work_not_done NUMERIC DEFAULT 0,
+    work_not_done_on_time NUMERIC DEFAULT 0,
+    total_work_done NUMERIC DEFAULT 0,
+    week_pending NUMERIC DEFAULT 0,
+    all_pending_till_date NUMERIC DEFAULT 0,
+    last_week_planned_not_done NUMERIC DEFAULT 0,
+    last_week_planned_not_done_on_time NUMERIC DEFAULT 0,
+    last_week_commitment NUMERIC DEFAULT 0,
+    next_week_planned_not_done NUMERIC DEFAULT 0,
+    next_week_planned_not_done_on_time NUMERIC DEFAULT 0,
+    next_week_commitment NUMERIC DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 2.2 Sample Seed Data for History
+INSERT INTO public.history_records 
+(date_start, date_end, employee_name, target, actual_work_done, work_not_done, work_not_done_on_time, total_work_done, week_pending, all_pending_till_date, last_week_planned_not_done, last_week_planned_not_done_on_time, last_week_commitment, next_week_planned_not_done, next_week_planned_not_done_on_time, next_week_commitment)
+VALUES
+('2025-04-24', '2025-04-30', 'Pratap Kumar', 100, 82, 15, 9, 85, 3, 6, 12, 8, 92, 10, 6, 95),
+('2025-04-17', '2025-04-23', 'Pratap Kumar', 100, 80, 18, 12, 82, 4, 7, 15, 10, 90, 12, 8, 92),
+('2025-04-24', '2025-04-30', 'Chetan Sharma', 95, 80, 16, 11, 82, 4, 7, 14, 9, 88, 12, 8, 90),
+('2025-04-24', '2025-04-30', 'Digendra Patel', 90, 78, 12, 7, 88, 2, 4, 10, 6, 90, 8, 5, 92);
+
+-- 2.3 HISTORY PAGE QUERIES:
+
+-- QUERY 1: Fetch All History Records (Sorted by latest date)
+-- SELECT * FROM public.history_records ORDER BY date_start DESC, employee_name ASC;
+
+-- QUERY 2: Filter History by Employee Name and Date Range
+-- SELECT * FROM public.history_records 
+-- WHERE employee_name = 'Pratap Kumar'
+--   AND date_start >= '2025-04-01'
+-- ORDER BY date_start DESC;
+
+-- QUERY 3: Get Summary Counts (Total Records and Unique Persons)
+-- SELECT COUNT(*) AS total_records, COUNT(DISTINCT employee_name) AS unique_persons FROM public.history_records;
+
+
+
+-- ==============================================================================
+-- SECTION 3: PAGE - KPI & KRA (/admin/kpi-kra)
+-- ==============================================================================
+
+-- 3.1 Create KPI/KRA Role Details Table
+CREATE TABLE IF NOT EXISTS public.kpi_kra_roles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    designation TEXT UNIQUE NOT NULL, -- CRM, PURCHASER, HR, EA, SALES, etc.
+    actual_role_summary TEXT,
+    total_daily_tasks_text TEXT DEFAULT '5 daily tasks',
+    communication_team TEXT,
+    key_person TEXT,
+    how_to_communicate TEXT,
+    youtube_link TEXT,
+    instagram_link TEXT,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 3.2 Create KPI/KRA Systems & Resources Table
+CREATE TABLE IF NOT EXISTS public.kpi_kra_systems (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    designation TEXT NOT NULL, -- References designation or 'All'
+    system_name TEXT NOT NULL,
+    task_name TEXT NOT NULL,
+    description TEXT,
+    system_link TEXT,
+    db_link TEXT,
+    training_video TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 3.3 Sample Seed Data for KPI & KRA
+INSERT INTO public.kpi_kra_roles 
+(designation, actual_role_summary, total_daily_tasks_text, communication_team, key_person, how_to_communicate, youtube_link, instagram_link)
+VALUES
+('CRM', 'Responsible for customer relationship management, timely ticket resolution, and lead tracking.', '6 daily tasks', 'Sales, Support, Operations', 'Head of Customer Relations', 'Daily morning call & CRM portal updates', 'https://youtube.com', 'https://instagram.com'),
+('PURCHASER', 'Responsible for vendor comparison, purchase indent processing, and material dispatch audits.', '5 daily tasks', 'Store, Accounts, Management', 'Purchase Manager', 'Purchase portal & email PO approvals', 'https://youtube.com', 'https://instagram.com'),
+('HR', 'Responsible for daily attendance tracking, recruitment pipeline, and performance audit.', '4 daily tasks', 'Department Heads, Management', 'HR Director', 'Slack / HR portal & biometric log checks', 'https://youtube.com', 'https://instagram.com'),
+('All', 'Standard general organizational responsibilities and MIS daily performance reporting.', '5 daily tasks', 'Management, Operations Team, Coordination Desk', 'Operations Head / Admin', 'Daily MIS review & team communication channel', 'https://youtube.com', 'https://instagram.com')
+ON CONFLICT (designation) DO NOTHING;
+
+INSERT INTO public.kpi_kra_systems 
+(designation, system_name, task_name, description, system_link, db_link, training_video)
+VALUES
+('CRM', 'Lead Management System', 'Daily Calling & Follow-up', 'Follow up with all leads assigned in CRM portal', 'https://crm.chemplast.com', 'https://db.chemplast.com', 'https://youtube.com/watch?v=demo1'),
+('CRM', 'Customer Grievance Portal', 'Ticket Resolution', 'Resolve open customer tickets within SLA of 24h', 'https://support.chemplast.com', 'https://db.chemplast.com', 'https://youtube.com/watch?v=demo2'),
+('PURCHASER', 'PO Tracking Module', 'Vendor Quotation Comparison', 'Compare minimum 3 vendor quotes for each open indent', 'https://purchase.chemplast.com', 'https://db.chemplast.com', 'https://youtube.com/watch?v=demo3'),
+('HR', 'Attendance Portal', 'Daily Attendance Audit', 'Check punch-in/out records for all warehouse & office staff', 'https://hr.chemplast.com', 'https://db.chemplast.com', 'https://youtube.com/watch?v=demo4'),
+('All', 'MIS Daily Performance Tracker', 'Task Completion Logging', 'Update planned vs actual work done daily before 7 PM', 'https://mis.chemplast.com', 'https://db.chemplast.com', 'https://youtube.com/watch?v=demo5');
+
+-- 3.4 KPI & KRA QUERIES:
+
+-- QUERY 1: Fetch Role Details for a specific Designation
+-- SELECT * FROM public.kpi_kra_roles WHERE designation = 'CRM';
+
+-- QUERY 2: Fetch Systems & Resources for a specific Designation (including 'All')
+-- SELECT * FROM public.kpi_kra_systems WHERE designation = 'CRM' OR designation = 'All' ORDER BY created_at ASC;
+
+-- QUERY 3: Update Role Brief by Admin
+-- UPDATE public.kpi_kra_roles 
+-- SET actual_role_summary = 'Updated responsibility description',
+--     communication_team = 'Sales & Operations',
+--     updated_at = now()
+-- WHERE designation = 'CRM';
+
+
+
+-- ==============================================================================
+-- SECTION 4: PAGE - TODAY'S TASKS (/admin/today-tasks)
+-- ==============================================================================
+
+-- 4.1 Create Today's Tasks Table
+CREATE TABLE IF NOT EXISTS public.tasks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    employee_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
+    person_name TEXT NOT NULL,
+    department TEXT,
+    designation TEXT,
+    fms_name TEXT NOT NULL, -- e.g. "Gate Entry FMS", "Project Alpha"
+    task_name TEXT NOT NULL,
+    description TEXT,
+    planned_date DATE NOT NULL,
+    planned_time TIME,
+    actual_date DATE,
+    actual_time TIME,
+    delay_duration TEXT,
+    status TEXT DEFAULT 'pending', -- 'completed', 'in-progress', 'pending', 'delayed'
+    priority TEXT DEFAULT 'medium', -- 'high', 'medium', 'low'
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 4.2 Sample Seed Data for Tasks
+INSERT INTO public.tasks 
+(person_name, department, designation, fms_name, task_name, description, planned_date, planned_time, actual_date, actual_time, delay_duration, status, priority)
+VALUES
+('Pratap Kumar', 'Engineering', 'CRM', 'FMS 1 - Client Onboarding', 'Verification of client documents', CURRENT_DATE, '10:00:00', CURRENT_DATE, '10:30:00', '00:30:00', 'completed', 'high'),
+('Pratap Kumar', 'Engineering', 'CRM', 'FMS 2 - Ticket Support', 'Close pending critical ticket #1042', CURRENT_DATE, '14:00:00', NULL, NULL, NULL, 'in-progress', 'high'),
+('Chetan Sharma', 'Design', 'PURCHASER', 'FMS 3 - Purchase Indent', 'Vendor negotiation for chemical raw material', CURRENT_DATE, '11:00:00', CURRENT_DATE, '11:15:00', '00:15:00', 'completed', 'medium'),
+('Digendra Patel', 'Marketing', 'HR', 'FMS 4 - Recruitment', 'Interview candidate for Senior Executive role', CURRENT_DATE, '16:00:00', NULL, NULL, NULL, 'pending', 'medium');
+
+-- 4.3 TODAY'S TASKS QUERIES:
+
+-- QUERY 1: Fetch all tasks scheduled for TODAY grouped by employee
+-- SELECT person_name, department, designation, COUNT(*) AS today_planned_count 
+-- FROM public.tasks 
+-- WHERE planned_date = CURRENT_DATE 
+-- GROUP BY person_name, department, designation;
+
+-- QUERY 2: Drill-down tasks for a specific person scheduled for today
+-- SELECT task_name, fms_name, planned_date, planned_time, actual_date, actual_time, status, delay_duration 
+-- FROM public.tasks 
+-- WHERE person_name = 'Pratap Kumar' AND planned_date = CURRENT_DATE 
+-- ORDER BY planned_time ASC;
+
+-- QUERY 3: Mark a task as completed with actual timestamp
+-- UPDATE public.tasks 
+-- SET status = 'completed',
+--     actual_date = CURRENT_DATE,
+--     actual_time = CURRENT_TIME
+-- WHERE id = 'YOUR_TASK_ID';
+

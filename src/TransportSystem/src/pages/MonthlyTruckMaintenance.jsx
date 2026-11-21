@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Truck, DollarSign, Calendar, Calculator, Download, 
   TrendingUp, TrendingDown, Save, RefreshCw, FileSpreadsheet,
@@ -19,6 +19,9 @@ const formatDisplayMonth = (m) => {
   const monthName = monthNames[monthNum - 1] || match[2];
   return `${year} ${monthName}`;
 };
+
+// Default Preset calculation for Monthly EMI: (98,776 + 42,645) * 20 = 28,28,420
+const DEFAULT_MONTHLY_EMI = '28,28,420';
 
 export default function MonthlyTruckMaintenance() {
   const [selectedMonth, setSelectedMonth] = useState(() => {
@@ -45,7 +48,7 @@ export default function MonthlyTruckMaintenance() {
     officeRent: '',
     staffSalary: '',
     driverSalaryPerTruck: '',
-    monthlyEmi: '',
+    monthlyEmi: DEFAULT_MONTHLY_EMI,
     manualRevenue: ''
   });
 
@@ -64,7 +67,29 @@ export default function MonthlyTruckMaintenance() {
     return map;
   });
 
-  // Load trucks and trips
+  // Dynamic Options for Form Fields (fetched from DB / saved records with custom additions)
+  const [dbOptions, setDbOptions] = useState({
+    amcEmiPerTruck: ['5,066', '6,000', '7,500'],
+    officeRent: ['5,000', '10,000', '15,000'],
+    staffSalary: ['30,000', '35,000', '40,000', '50,000'],
+    driverSalaryPerTruck: ['15,000', '18,000', '20,000']
+  });
+  const [openDropdownField, setOpenDropdownField] = useState(null);
+  const [newOptionInputs, setNewOptionInputs] = useState({});
+  const dropdownContainerRef = useRef(null);
+
+  // Close dropdown on outside click anywhere on screen
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (dropdownContainerRef.current && !dropdownContainerRef.current.contains(e.target)) {
+        setOpenDropdownField(null);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
+  // Load trucks, trips and extract existing historical values for dropdowns
   useEffect(() => {
     let isMounted = true;
     async function loadData() {
@@ -78,6 +103,27 @@ export default function MonthlyTruckMaintenance() {
         if (isMounted) {
           if (trucksRes.data) setRegisteredTrucksCount(trucksRes.data.length);
           if (reportsRes.data) setTripsData(reportsRes.data);
+
+          // Extract past values from localStorage records & custom options
+          const customStorage = JSON.parse(localStorage.getItem('truck_expense_custom_options') || '{}');
+          const amcSet = new Set(['5,066', '6,000', '7,500', ...(customStorage.amcEmiPerTruck || [])]);
+          const rentSet = new Set(['5,000', '10,000', '15,000', ...(customStorage.officeRent || [])]);
+          const staffSet = new Set(['30,000', '35,000', '40,000', '50,000', ...(customStorage.staffSalary || [])]);
+          const driverSet = new Set(['15,000', '18,000', '20,000', ...(customStorage.driverSalaryPerTruck || [])]);
+
+          Object.values(savedRecordsMap).forEach(rec => {
+            if (rec?.amcEmiPerTruck) amcSet.add(formatWithCommas(rec.amcEmiPerTruck));
+            if (rec?.officeRent) rentSet.add(formatWithCommas(rec.officeRent));
+            if (rec?.staffSalary) staffSet.add(formatWithCommas(rec.staffSalary));
+            if (rec?.driverSalaryPerTruck) driverSet.add(formatWithCommas(rec.driverSalaryPerTruck));
+          });
+
+          setDbOptions({
+            amcEmiPerTruck: Array.from(amcSet).filter(Boolean),
+            officeRent: Array.from(rentSet).filter(Boolean),
+            staffSalary: Array.from(staffSet).filter(Boolean),
+            driverSalaryPerTruck: Array.from(driverSet).filter(Boolean)
+          });
         }
       } catch (err) {
         console.error('Error fetching data:', err);
@@ -87,14 +133,36 @@ export default function MonthlyTruckMaintenance() {
     }
     loadData();
     return () => { isMounted = false; };
-  }, []);
+  }, [savedRecordsMap]);
+
+  // Handler to add a new custom option into a field's dropdown list
+  const handleAddNewOption = (field) => {
+    const rawVal = newOptionInputs[field];
+    if (!rawVal || !String(rawVal).trim()) return;
+    const formattedVal = formatWithCommas(rawVal.trim());
+
+    setDbOptions(prev => {
+      const existing = prev[field] || [];
+      if (!existing.includes(formattedVal)) {
+        const updated = [...existing, formattedVal];
+        const customStorage = JSON.parse(localStorage.getItem('truck_expense_custom_options') || '{}');
+        customStorage[field] = [...(customStorage[field] || []), formattedVal];
+        localStorage.setItem('truck_expense_custom_options', JSON.stringify(customStorage));
+        return { ...prev, [field]: updated };
+      }
+      return prev;
+    });
+
+    handleInputChange(field, formattedVal);
+    setNewOptionInputs(prev => ({ ...prev, [field]: '' }));
+    setOpenDropdownField(null);
+  };
 
   // Format with Indian commas
   const formatWithCommas = (val) => {
     if (val === undefined || val === null || val === '') return '';
     const str = String(val).trim();
     if (!str) return '';
-    if (/[+\-*/()]/.test(str)) return str;
     const cleanNum = str.replace(/,/g, '');
     if (isNaN(Number(cleanNum))) return str;
     const parts = cleanNum.split('.');
@@ -173,7 +241,7 @@ export default function MonthlyTruckMaintenance() {
       officeRent: '',
       staffSalary: '',
       driverSalaryPerTruck: '',
-      monthlyEmi: '',
+      monthlyEmi: DEFAULT_MONTHLY_EMI,
       manualRevenue: ''
     });
   }, [selectedMonth, registeredTrucksCount]);
@@ -212,6 +280,11 @@ export default function MonthlyTruckMaintenance() {
     setFormData(prev => {
       const val = prev[field];
       if (!val) return prev;
+      // If formula, evaluate and format result
+      if (/[+\-*/()]/.test(String(val))) {
+        const calculated = parseAmount(val);
+        return { ...prev, [field]: formatWithCommas(calculated) };
+      }
       return { ...prev, [field]: formatWithCommas(val) };
     });
   };
@@ -826,73 +899,245 @@ export default function MonthlyTruckMaintenance() {
                 </div>
               </div>
 
-              {/* Row 2: AMC EMI & Office Rent */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">
-                    AMC EMI / Truck (₹)
-                  </label>
-                  <input 
-                    type="text"
-                    value={formData.amcEmiPerTruck}
-                    onChange={(e) => handleInputChange('amcEmiPerTruck', e.target.value)}
-                    onBlur={() => handleBlurFormat('amcEmiPerTruck')}
-                    placeholder="e.g. 5,066"
-                    className="w-full px-3.5 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-semibold focus:bg-white focus:border-red-500 outline-none"
-                  />
+              {/* Row 2 & 3: Database Dropdowns Container */}
+              <div ref={dropdownContainerRef} className="space-y-4.5">
+                {/* Row 2: AMC EMI & Office Rent with DB Dropdown */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* AMC EMI / Truck */}
+                  <div className="space-y-1.5 relative">
+                    <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block">
+                      AMC EMI / Truck (₹)
+                    </label>
+                    <div className="relative">
+                      <input 
+                        type="text"
+                        value={formData.amcEmiPerTruck}
+                        onChange={(e) => handleInputChange('amcEmiPerTruck', e.target.value)}
+                        onFocus={() => setOpenDropdownField('amcEmiPerTruck')}
+                        onBlur={() => handleBlurFormat('amcEmiPerTruck')}
+                        placeholder="e.g. 5,066"
+                        className="w-full px-3.5 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-semibold focus:bg-white focus:border-red-500 outline-none"
+                      />
+                      {openDropdownField === 'amcEmiPerTruck' && (
+                        <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-2 space-y-2">
+                          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1">Select from Database:</div>
+                          <div className="max-h-36 overflow-y-auto space-y-1 custom-sidebar-scroll">
+                            {(dbOptions.amcEmiPerTruck || []).map((opt, i) => (
+                              <button
+                                key={i}
+                                type="button"
+                                onClick={() => {
+                                  handleInputChange('amcEmiPerTruck', opt);
+                                  setOpenDropdownField(null);
+                                }}
+                                className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:bg-red-50 hover:text-red-700 transition-colors"
+                              >
+                                ₹{opt}
+                              </button>
+                            ))}
+                          </div>
+                          <div className="pt-2 border-t border-slate-100 flex items-center gap-1.5">
+                            <input 
+                              type="text"
+                              placeholder="New amount (₹)..."
+                              value={newOptionInputs['amcEmiPerTruck'] || ''}
+                              onChange={(e) => setNewOptionInputs(prev => ({ ...prev, amcEmiPerTruck: e.target.value }))}
+                              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddNewOption('amcEmiPerTruck'); } }}
+                              className="flex-1 px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold outline-none focus:border-red-500"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleAddNewOption('amcEmiPerTruck')}
+                              className="px-2.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold"
+                            >
+                              +Add
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Office Rent */}
+                  <div className="space-y-1.5 relative">
+                    <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block">
+                      Office Rent (₹)
+                    </label>
+                    <div className="relative">
+                      <input 
+                        type="text"
+                        value={formData.officeRent}
+                        onChange={(e) => handleInputChange('officeRent', e.target.value)}
+                        onFocus={() => setOpenDropdownField('officeRent')}
+                        onBlur={() => handleBlurFormat('officeRent')}
+                        placeholder="e.g. 5,000"
+                        className="w-full px-3.5 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-semibold focus:bg-white focus:border-red-500 outline-none"
+                      />
+                      {openDropdownField === 'officeRent' && (
+                        <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-2 space-y-2">
+                          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1">Select from Database:</div>
+                          <div className="max-h-36 overflow-y-auto space-y-1 custom-sidebar-scroll">
+                            {(dbOptions.officeRent || []).map((opt, i) => (
+                              <button
+                                key={i}
+                                type="button"
+                                onClick={() => {
+                                  handleInputChange('officeRent', opt);
+                                  setOpenDropdownField(null);
+                                }}
+                                className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:bg-red-50 hover:text-red-700 transition-colors"
+                              >
+                                ₹{opt}
+                              </button>
+                            ))}
+                          </div>
+                          <div className="pt-2 border-t border-slate-100 flex items-center gap-1.5">
+                            <input 
+                              type="text"
+                              placeholder="New amount (₹)..."
+                              value={newOptionInputs['officeRent'] || ''}
+                              onChange={(e) => setNewOptionInputs(prev => ({ ...prev, officeRent: e.target.value }))}
+                              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddNewOption('officeRent'); } }}
+                              className="flex-1 px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold outline-none focus:border-red-500"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleAddNewOption('officeRent')}
+                              className="px-2.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold"
+                            >
+                              +Add
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">
-                    Office Rent (₹)
-                  </label>
-                  <input 
-                    type="text"
-                    value={formData.officeRent}
-                    onChange={(e) => handleInputChange('officeRent', e.target.value)}
-                    onBlur={() => handleBlurFormat('officeRent')}
-                    placeholder="e.g. 5,000"
-                    className="w-full px-3.5 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-semibold focus:bg-white focus:border-red-500 outline-none"
-                  />
-                </div>
-              </div>
+                {/* Row 3: Staff Salary & Driver Salary with DB Dropdown */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Staff Salary */}
+                  <div className="space-y-1.5 relative">
+                    <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block">
+                      Staff Salary (₹)
+                    </label>
+                    <div className="relative">
+                      <input 
+                        type="text"
+                        value={formData.staffSalary}
+                        onChange={(e) => handleInputChange('staffSalary', e.target.value)}
+                        onFocus={() => setOpenDropdownField('staffSalary')}
+                        onBlur={() => handleBlurFormat('staffSalary')}
+                        placeholder="e.g. 30,000"
+                        className="w-full px-3.5 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-semibold focus:bg-white focus:border-red-500 outline-none"
+                      />
+                      {openDropdownField === 'staffSalary' && (
+                        <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-2 space-y-2">
+                          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1">Select from Database:</div>
+                          <div className="max-h-36 overflow-y-auto space-y-1 custom-sidebar-scroll">
+                            {(dbOptions.staffSalary || []).map((opt, i) => (
+                              <button
+                                key={i}
+                                type="button"
+                                onClick={() => {
+                                  handleInputChange('staffSalary', opt);
+                                  setOpenDropdownField(null);
+                                }}
+                                className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:bg-red-50 hover:text-red-700 transition-colors"
+                              >
+                                ₹{opt}
+                              </button>
+                            ))}
+                          </div>
+                          <div className="pt-2 border-t border-slate-100 flex items-center gap-1.5">
+                            <input 
+                              type="text"
+                              placeholder="New amount (₹)..."
+                              value={newOptionInputs['staffSalary'] || ''}
+                              onChange={(e) => setNewOptionInputs(prev => ({ ...prev, staffSalary: e.target.value }))}
+                              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddNewOption('staffSalary'); } }}
+                              className="flex-1 px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold outline-none focus:border-red-500"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleAddNewOption('staffSalary')}
+                              className="px-2.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold"
+                            >
+                              +Add
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
 
-              {/* Row 3: Staff Salary & Driver Salary */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">
-                    Staff Salary (₹)
-                  </label>
-                  <input 
-                    type="text"
-                    value={formData.staffSalary}
-                    onChange={(e) => handleInputChange('staffSalary', e.target.value)}
-                    onBlur={() => handleBlurFormat('staffSalary')}
-                    placeholder="e.g. 30,000"
-                    className="w-full px-3.5 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-semibold focus:bg-white focus:border-red-500 outline-none"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">
-                    Driver Salary / Truck (₹)
-                  </label>
-                  <input 
-                    type="text"
-                    value={formData.driverSalaryPerTruck}
-                    onChange={(e) => handleInputChange('driverSalaryPerTruck', e.target.value)}
-                    onBlur={() => handleBlurFormat('driverSalaryPerTruck')}
-                    placeholder="e.g. 15,000"
-                    className="w-full px-3.5 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-semibold focus:bg-white focus:border-red-500 outline-none"
-                  />
+                  {/* Driver Salary / Truck */}
+                  <div className="space-y-1.5 relative">
+                    <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block">
+                      Driver Salary / Truck (₹)
+                    </label>
+                    <div className="relative">
+                      <input 
+                        type="text"
+                        value={formData.driverSalaryPerTruck}
+                        onChange={(e) => handleInputChange('driverSalaryPerTruck', e.target.value)}
+                        onFocus={() => setOpenDropdownField('driverSalaryPerTruck')}
+                        onBlur={() => handleBlurFormat('driverSalaryPerTruck')}
+                        placeholder="e.g. 15,000"
+                        className="w-full px-3.5 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-semibold focus:bg-white focus:border-red-500 outline-none"
+                      />
+                      {openDropdownField === 'driverSalaryPerTruck' && (
+                        <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-2 space-y-2">
+                          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1">Select from Database:</div>
+                          <div className="max-h-36 overflow-y-auto space-y-1 custom-sidebar-scroll">
+                            {(dbOptions.driverSalaryPerTruck || []).map((opt, i) => (
+                              <button
+                                key={i}
+                                type="button"
+                                onClick={() => {
+                                  handleInputChange('driverSalaryPerTruck', opt);
+                                  setOpenDropdownField(null);
+                                }}
+                                className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:bg-red-50 hover:text-red-700 transition-colors"
+                              >
+                                ₹{opt}
+                              </button>
+                            ))}
+                          </div>
+                          <div className="pt-2 border-t border-slate-100 flex items-center gap-1.5">
+                            <input 
+                              type="text"
+                              placeholder="New amount (₹)..."
+                              value={newOptionInputs['driverSalaryPerTruck'] || ''}
+                              onChange={(e) => setNewOptionInputs(prev => ({ ...prev, driverSalaryPerTruck: e.target.value }))}
+                              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddNewOption('driverSalaryPerTruck'); } }}
+                              className="flex-1 px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold outline-none focus:border-red-500"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleAddNewOption('driverSalaryPerTruck')}
+                              className="px-2.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold"
+                            >
+                              +Add
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
 
               {/* Row 4: Monthly EMI */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-red-600 uppercase tracking-wider">
-                  Monthly EMI (Total ₹)
-                </label>
+                <div className="flex flex-wrap items-center justify-between gap-1">
+                  <label className="text-xs font-bold text-red-600 uppercase tracking-wider">
+                    Monthly EMI (Total ₹)
+                  </label>
+                  <span className="text-[11px] font-semibold text-slate-500 bg-red-50 border border-red-100 px-2 py-0.5 rounded-md">
+                    Calculation: <span className="text-red-700 font-mono font-bold">(₹98,776 + ₹42,645) × 20 = ₹28,28,420</span>
+                  </span>
+                </div>
                 <input 
                   type="text"
                   value={formData.monthlyEmi}
@@ -901,6 +1146,9 @@ export default function MonthlyTruckMaintenance() {
                   placeholder="Enter EMI amount or formula (e.g. 98,776 + 42,645)"
                   className="w-full px-3.5 py-2.5 bg-red-50/30 border border-red-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-red-500 outline-none"
                 />
+                <p className="text-[10px] text-slate-400 font-medium">
+                  Formula applied: (₹98,776 + ₹42,645) = ₹1,41,421 per unit × 20 Trucks = ₹28,28,420 total EMI.
+                </p>
               </div>
 
               {/* Row 5: Revenue */}
