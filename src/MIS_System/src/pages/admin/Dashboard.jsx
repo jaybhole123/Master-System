@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { LayoutDashboard, Users, Calendar, Clock, AlertTriangle, Search, ChevronDown, Download, Filter, MessageSquare, Briefcase, TrendingUp, X, MapPin, Phone, Mail, User, Info, Loader2, CheckCircle2, Target, AlertCircle } from 'lucide-react';
+import supabase from "../../../../SupabaseClient";
 import { getDisplayableImageUrl } from '../../utils/imageUtils';
 import {
   employees,
@@ -220,19 +221,84 @@ const AdminDashboard = () => {
     handleEmployeeSelect(employeeId);
   };
 
-  // Initialize Data locally without Google Sheets
+  // Initialize Data from Supabase with mockData fallback
   useEffect(() => {
-    setLoading(true);
-    setSheetEmployees(employees);
-    const defaultScores = [
-      { name: 'Engineering', workNotDonePct: 12, notDoneOnTimePct: 8, pendingWorks: 5 },
-      { name: 'Design', workNotDonePct: 15, notDoneOnTimePct: 10, pendingWorks: 4 },
-      { name: 'Marketing', workNotDonePct: 10, notDoneOnTimePct: 6, pendingWorks: 3 },
-      { name: 'Sales', workNotDonePct: 18, notDoneOnTimePct: 12, pendingWorks: 6 },
-      { name: 'Operations', workNotDonePct: 14, notDoneOnTimePct: 9, pendingWorks: 4 }
-    ];
-    setDepartmentScores(defaultScores);
-    setLoading(false);
+    let isMounted = true;
+    const fetchMISData = async () => {
+      setLoading(true);
+      try {
+        // 1. Fetch Performance & Employees from Supabase
+        const { data: perfData, error: perfErr } = await supabase
+          .from("mis_employee_performance")
+          .select("*")
+          .order("target", { ascending: false });
+
+        // 2. Fetch Department Scores from Supabase
+        const { data: deptData, error: deptErr } = await supabase
+          .from("mis_department_scores")
+          .select("*");
+
+        if (isMounted) {
+          if (!perfErr && perfData && perfData.length > 0) {
+            const mappedEmployees = perfData.map((row) => ({
+              id: row.id,
+              name: row.employee_name,
+              designation: row.designation || "EXECUTIVE",
+              department: row.department || "General",
+              target: Number(row.target) || 0,
+              actualWorkDone: Number(row.actual_work_done) || 0,
+              weeklyWorkDone: Number(row.weekly_work_done_pct) || 0,
+              weeklyWorkDoneOnTime: Number(row.weekly_work_done_on_time_pct) || 0,
+              totalWorkDone: Number(row.total_work_done) || Number(row.actual_work_done) || 0,
+              weekPending: Number(row.week_pending) || 0,
+              allPendingTillDate: Number(row.all_pending_till_date) || 0,
+              plannedWorkNotDone: Number(row.planned_work_not_done) || 0,
+              plannedWorkNotDoneOnTime: Number(row.planned_work_not_done_on_time) || 0,
+              lastWeekCommitment: Number(row.last_week_commitment) || 0,
+              nextWeekPlannedWorkNotDone: Number(row.next_week_planned_not_done) || 0,
+              nextWeekPlannedWorkNotDoneOnTime: Number(row.next_week_planned_not_done_on_time) || 0,
+              nextWeekCommitment: row.next_week_commitment || "",
+              dateStart: row.date_start,
+              dateEnd: row.date_end
+            }));
+            setSheetEmployees(mappedEmployees);
+          } else {
+            // Fallback to local employees
+            setSheetEmployees(employees);
+          }
+
+          if (!deptErr && deptData && deptData.length > 0) {
+            setDepartmentScores(
+              deptData.map((d) => ({
+                name: d.department_name,
+                workNotDonePct: Number(d.work_not_done_pct) || 0,
+                notDoneOnTimePct: Number(d.not_done_on_time_pct) || 0,
+                pendingWorks: Number(d.pending_works) || 0
+              }))
+            );
+          } else {
+            const defaultScores = [
+              { name: 'Engineering', workNotDonePct: 12, notDoneOnTimePct: 8, pendingWorks: 5 },
+              { name: 'Design', workNotDonePct: 15, notDoneOnTimePct: 10, pendingWorks: 4 },
+              { name: 'Marketing', workNotDonePct: 10, notDoneOnTimePct: 6, pendingWorks: 3 },
+              { name: 'Sales', workNotDonePct: 18, notDoneOnTimePct: 12, pendingWorks: 6 },
+              { name: 'Operations', workNotDonePct: 14, notDoneOnTimePct: 9, pendingWorks: 4 }
+            ];
+            setDepartmentScores(defaultScores);
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching MIS Supabase data:", err);
+        if (isMounted) {
+          setSheetEmployees(employees);
+        }
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    fetchMISData();
+    return () => { isMounted = false; };
   }, []);
 
   useEffect(() => {
@@ -664,24 +730,90 @@ Management Information System`;
     }
 
     setMainSubmitting(true);
-    setSheetEmployees(prev => prev.map(emp => {
-      const inputs = editableData[emp.id];
-      if (inputs) {
-        return {
-          ...emp,
-          nextWeekPlannedWorkNotDone: inputs.nextWeekPlannedNotDone || emp.nextWeekPlannedWorkNotDone,
-          nextWeekPlannedWorkNotDoneOnTime: inputs.nextWeekPlannedNotDoneOnTime || emp.nextWeekPlannedWorkNotDoneOnTime,
-          nextWeekCommitment: inputs.nextWeekCommitment || emp.nextWeekCommitment
-        };
-      }
-      return emp;
-    }));
+    try {
+      const updates = [];
+      const historyInserts = [];
 
-    alert("Saved successfully ✅");
-    setSelectedEmployees([]);
-    setEditableData({});
-    setSelectAll(false);
-    setMainSubmitting(false);
+      selectedEmployees.forEach(empId => {
+        const emp = sheetEmployees.find(e => e.id === empId);
+        const inputs = editableData[empId];
+        if (!emp || !inputs) return;
+
+        const nextPlannedNotDone = inputs.nextWeekPlannedNotDone !== undefined && inputs.nextWeekPlannedNotDone !== "" 
+          ? Number(inputs.nextWeekPlannedNotDone) 
+          : emp.nextWeekPlannedWorkNotDone;
+        const nextPlannedNotDoneOnTime = inputs.nextWeekPlannedNotDoneOnTime !== undefined && inputs.nextWeekPlannedNotDoneOnTime !== "" 
+          ? Number(inputs.nextWeekPlannedNotDoneOnTime) 
+          : emp.nextWeekPlannedWorkNotDoneOnTime;
+        const nextCommitment = inputs.nextWeekCommitment !== undefined && inputs.nextWeekCommitment !== "" 
+          ? String(inputs.nextWeekCommitment) 
+          : emp.nextWeekCommitment;
+
+        // 1. Update in mis_employee_performance
+        updates.push(
+          supabase
+            .from("mis_employee_performance")
+            .update({
+              next_week_planned_not_done: nextPlannedNotDone,
+              next_week_planned_not_done_on_time: nextPlannedNotDoneOnTime,
+              next_week_commitment: nextCommitment,
+              updated_at: new Date().toISOString()
+            })
+            .eq("id", empId)
+        );
+
+        // 2. Audit Snapshot into mis_commitment_history
+        historyInserts.push({
+          employee_id: emp.employee_id || null,
+          employee_name: emp.name,
+          date_start: startDate || dateRange.start,
+          date_end: endDate || dateRange.end,
+          target: emp.target || 0,
+          actual_work_done: emp.actualWorkDone || 0,
+          work_not_done: emp.plannedWorkNotDone || 0,
+          work_not_done_on_time: emp.plannedWorkNotDoneOnTime || 0,
+          total_work_done: emp.totalWorkDone || 0,
+          week_pending: emp.weekPending || 0,
+          all_pending_till_date: emp.allPendingTillDate || 0,
+          last_week_planned_not_done: emp.plannedWorkNotDone || 0,
+          last_week_planned_not_done_on_time: emp.plannedWorkNotDoneOnTime || 0,
+          last_week_commitment: emp.commitment || 0,
+          next_week_planned_not_done: nextPlannedNotDone,
+          next_week_planned_not_done_on_time: nextPlannedNotDoneOnTime,
+          next_week_commitment: nextCommitment
+        });
+      });
+
+      if (updates.length > 0) {
+        await Promise.all(updates);
+      }
+      if (historyInserts.length > 0) {
+        await supabase.from("mis_commitment_history").insert(historyInserts);
+      }
+
+      setSheetEmployees(prev => prev.map(emp => {
+        const inputs = editableData[emp.id];
+        if (inputs) {
+          return {
+            ...emp,
+            nextWeekPlannedWorkNotDone: inputs.nextWeekPlannedNotDone !== undefined && inputs.nextWeekPlannedNotDone !== "" ? inputs.nextWeekPlannedNotDone : emp.nextWeekPlannedWorkNotDone,
+            nextWeekPlannedWorkNotDoneOnTime: inputs.nextWeekPlannedNotDoneOnTime !== undefined && inputs.nextWeekPlannedNotDoneOnTime !== "" ? inputs.nextWeekPlannedNotDoneOnTime : emp.nextWeekPlannedWorkNotDoneOnTime,
+            nextWeekCommitment: inputs.nextWeekCommitment !== undefined && inputs.nextWeekCommitment !== "" ? inputs.nextWeekCommitment : emp.nextWeekCommitment
+          };
+        }
+        return emp;
+      }));
+
+      alert("Saved to Database successfully ✅");
+    } catch (err) {
+      console.error("Error saving commitment to Supabase:", err);
+      alert("Error saving data: " + (err.message || "Unknown error"));
+    } finally {
+      setSelectedEmployees([]);
+      setEditableData({});
+      setSelectAll(false);
+      setMainSubmitting(false);
+    }
   };
 
   // Calculate High-level Dashboard KPI Statistics

@@ -228,6 +228,13 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
     "Coal Supply Offer Letter": 0,
     "Letter Head": 0
   });
+  const [transportBadges, setTransportBadges] = useState({
+    "Purchase Truck": 0,
+    "Fastag": 0,
+    "Challan": 0,
+    "Truck Reports": 0,
+    "Monthly Truck Maintenance": 0
+  });
 
   useEffect(() => {
     let isMounted = true;
@@ -569,6 +576,70 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
     return () => {
       isMounted = false;
       supabase.removeChannel(channel1);
+    };
+  }, [isSuperAdmin, systemAccess]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchTransportCounts = async () => {
+      if (!isSuperAdmin && !systemAccess.includes("Transport Reporting") && !systemAccess.includes("Transport System")) return;
+      try {
+        const fetchCount = async (table, filterCol, filterVal) => {
+          try {
+            let query = supabase.from(table).select('id', { count: 'exact', head: true });
+            if (filterCol && filterVal) {
+              query = query.eq(filterCol, filterVal);
+            }
+            const { count, error } = await query;
+            if (error) return 0;
+            return count || 0;
+          } catch (e) {
+            return 0;
+          }
+        };
+
+        const [truckCount, fastagCount, challanCount, reportsCount] = await Promise.all([
+          fetchCount('trucks'),
+          fetchCount('fastags'),
+          // For challans, count pending challans; fallback to all if no status match
+          (async () => {
+            try {
+              const { count, error } = await supabase.from('challans').select('id', { count: 'exact', head: true }).ilike('status', '%pending%');
+              if (!error && count !== null) return count;
+              const { count: allCount } = await supabase.from('challans').select('id', { count: 'exact', head: true });
+              return allCount || 0;
+            } catch(e) { return 0; }
+          })(),
+          fetchCount('truck_reports')
+        ]);
+
+        if (isMounted) {
+          setTransportBadges({
+            "Purchase Truck": truckCount || 0,
+            "Fastag": fastagCount || 0,
+            "Challan": challanCount || 0,
+            "Truck Reports": reportsCount || 0,
+            "Monthly Truck Maintenance": 0
+          });
+        }
+      } catch (err) {
+        console.error("Error fetching transport badge counts:", err);
+      }
+    };
+
+    fetchTransportCounts();
+
+    const transportChannel = supabase
+      .channel('realtime:transport_badges')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'trucks' }, () => fetchTransportCounts())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'fastags' }, () => fetchTransportCounts())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'challans' }, () => fetchTransportCounts())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'truck_reports' }, () => fetchTransportCounts())
+      .subscribe();
+
+    return () => {
+      isMounted = false;
+      supabase.removeChannel(transportChannel);
     };
   }, [isSuperAdmin, systemAccess]);
 
@@ -1567,6 +1638,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/transport-system/purchase-truck",
       showFor: ["admin", "user", "HOD"],
       module: "Transport Reporting",
+      badge: transportBadges["Purchase Truck"] > 0 ? transportBadges["Purchase Truck"] : null,
     },
     {
       href: "/transport-system/fastag",
@@ -1575,6 +1647,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/transport-system/fastag",
       showFor: ["admin", "user", "HOD"],
       module: "Transport Reporting",
+      badge: transportBadges["Fastag"] > 0 ? transportBadges["Fastag"] : null,
     },
     {
       href: "/transport-system/Challan",
@@ -1583,6 +1656,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/transport-system/Challan",
       showFor: ["admin", "user", "HOD"],
       module: "Transport Reporting",
+      badge: transportBadges["Challan"] > 0 ? transportBadges["Challan"] : null,
     },
     {
       href: "/transport-system/truck-reports",
@@ -1591,6 +1665,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/transport-system/truck-reports",
       showFor: ["admin", "user", "HOD"],
       module: "Transport Reporting",
+      badge: transportBadges["Truck Reports"] > 0 ? transportBadges["Truck Reports"] : null,
     },
     {
       href: "/transport-system/monthly-truck-maintenance",
@@ -1599,6 +1674,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       active: location.pathname === "/transport-system/monthly-truck-maintenance",
       showFor: ["admin", "user", "HOD"],
       module: "Transport Reporting",
+      badge: transportBadges["Monthly Truck Maintenance"] > 0 ? transportBadges["Monthly Truck Maintenance"] : null,
     },
 
     // --- Coal System Module Routes ---

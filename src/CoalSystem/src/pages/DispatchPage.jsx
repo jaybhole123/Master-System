@@ -1596,14 +1596,14 @@ function DispatchPageContent() {
           </div>
 
           {/* Filter Bar Just Above DO Master Table - Single Line on Mobile */}
-          <div className="flex items-center justify-between gap-2 bg-white border border-slate-200/90 p-2.5 sm:p-3 rounded-2xl shadow-2xs">
+          <div className="flex items-center justify-between gap-2 bg-white border border-slate-200/90 p-2.5 sm:p-3 rounded-lg shadow-2xs">
             <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
               <span className="text-[11px] sm:text-xs font-bold text-slate-700 whitespace-nowrap">Filter:</span>
               <div className="relative min-w-0">
                 <select
                   value={selectedCompanyFilter}
                   onChange={(e) => setSelectedCompanyFilter(e.target.value)}
-                  className="px-2.5 sm:px-3.5 py-1.5 pr-7 sm:pr-8 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-slate-50 text-[11px] sm:text-xs font-bold text-slate-800 shadow-2xs focus:outline-none focus:ring-2 focus:ring-red-200 cursor-pointer appearance-none transition-colors truncate max-w-[150px] sm:max-w-xs"
+                  className="px-2.5 sm:px-3.5 py-1.5 pr-7 sm:pr-8 rounded-lg border border-slate-200 bg-slate-50/70 hover:bg-slate-50 text-[11px] sm:text-xs font-bold text-slate-800 shadow-2xs focus:outline-none focus:ring-2 focus:ring-red-200 cursor-pointer appearance-none transition-colors truncate max-w-[150px] sm:max-w-xs"
                 >
                   <option value="ALL">All Companies ({(store?.dos || []).length} DOs)</option>
                   {uniqueCompanies.map((co) => (
@@ -1618,14 +1618,14 @@ function DispatchPageContent() {
 
             <div className="text-[11px] sm:text-xs text-slate-500 font-medium whitespace-nowrap flex items-center gap-1 shrink-0">
               <span className="hidden sm:inline">Showing DOs for:</span>
-              <span className="font-bold text-slate-800 bg-slate-100 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg truncate max-w-[110px] sm:max-w-none text-[10px] sm:text-xs">
+              <span className="font-bold text-slate-800 bg-slate-100 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md truncate max-w-[110px] sm:max-w-none text-[10px] sm:text-xs">
                 {selectedCompanyFilter === "ALL" ? "All Companies" : selectedCompanyFilter}
               </span>
             </div>
           </div>
 
           {/* DO Master Table - Desktop View */}
-          <div className="hidden md:block overflow-x-auto rounded-2xl border border-slate-200/90 bg-white shadow-xs">
+          <div className="hidden md:block overflow-x-auto rounded-lg border border-slate-200/90 bg-white shadow-xs">
             <table className="w-full text-left border-collapse min-w-[700px]">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200/90 text-xs font-bold text-slate-500 uppercase tracking-wider">
@@ -1847,14 +1847,14 @@ function DispatchPageContent() {
           </div>
 
           {/* Filter Bar Just Above Party Table - Single Line on Mobile */}
-          <div className="flex items-center justify-between gap-2 bg-white border border-slate-200/90 p-2.5 sm:p-3 rounded-2xl shadow-2xs">
+          <div className="flex items-center justify-between gap-2 bg-white border border-slate-200/90 p-2.5 sm:p-3 rounded-lg shadow-2xs">
             <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
               <span className="text-[11px] sm:text-xs font-bold text-slate-700 whitespace-nowrap">Filter:</span>
               <div className="relative min-w-0">
                 <select
                   value={selectedCompanyFilter}
                   onChange={(e) => handleSelectCompanyInPartyTab(e.target.value)}
-                  className="px-2.5 sm:px-3.5 py-1.5 pr-7 sm:pr-8 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-slate-50 text-[11px] sm:text-xs font-bold text-slate-800 shadow-2xs focus:outline-none focus:ring-2 focus:ring-red-200 cursor-pointer appearance-none transition-colors truncate max-w-[130px] sm:max-w-xs"
+                  className="px-2.5 sm:px-3.5 py-1.5 pr-7 sm:pr-8 rounded-lg border border-slate-200 bg-slate-50/70 hover:bg-slate-50 text-[11px] sm:text-xs font-bold text-slate-800 shadow-2xs focus:outline-none focus:ring-2 focus:ring-red-200 cursor-pointer appearance-none transition-colors truncate max-w-[130px] sm:max-w-xs"
                 >
                   <option value="ALL">All Companies ({(store?.dos || []).length} DOs)</option>
                   {uniqueCompanies.map((co) => (
@@ -1877,7 +1877,7 @@ function DispatchPageContent() {
                         const targetId = parseInt(e.target.value);
                         setStore((prev) => ({ ...prev, act: targetId }));
                       }}
-                      className="px-3 py-1.5 pr-8 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-800 shadow-2xs focus:outline-none focus:ring-2 focus:ring-red-200 cursor-pointer appearance-none transition-colors"
+                      className="px-3 py-1.5 pr-8 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-800 shadow-2xs focus:outline-none focus:ring-2 focus:ring-red-200 cursor-pointer appearance-none transition-colors"
                     >
                       {(selectedCompanyFilter === "ALL"
                         ? store?.dos || []
@@ -1896,14 +1896,14 @@ function DispatchPageContent() {
 
             <div className="text-[11px] sm:text-xs text-slate-500 font-medium whitespace-nowrap flex items-center gap-1 shrink-0">
               <span className="hidden sm:inline">Active DO:</span>
-              <span className="font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg text-[10px] sm:text-xs whitespace-nowrap">
+              <span className="font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md text-[10px] sm:text-xs whitespace-nowrap">
                 {currentDO?.co ? `${currentDO.co}: ` : ""}{getDOName(currentDO)} ({formatNumber(currentDO?.tot || 0)} MT)
               </span>
             </div>
           </div>
 
           {/* Party Table - Desktop View */}
-          <div className="hidden md:block overflow-x-auto rounded-2xl border border-slate-200/90 bg-white shadow-xs">
+          <div className="hidden md:block overflow-x-auto rounded-lg border border-slate-200/90 bg-white shadow-xs">
             <table className="w-full text-left border-collapse table-auto">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200/90 text-xs font-bold text-slate-500 uppercase tracking-wider">
@@ -2230,7 +2230,7 @@ function DispatchPageContent() {
           )}
 
           {/* Trucks Table - Desktop View */}
-          <div className="hidden md:block overflow-x-auto rounded-2xl border border-slate-200/90 bg-white shadow-xs">
+          <div className="hidden md:block overflow-x-auto rounded-lg border border-slate-200/90 bg-white shadow-xs">
             <table className="w-full text-left border-collapse min-w-[700px]">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200/90 text-xs font-bold text-slate-500 uppercase tracking-wider">
@@ -2472,97 +2472,100 @@ function DispatchPageContent() {
             if (e.target === e.currentTarget) closeModal();
           }}
         >
-          <div className="bg-white rounded-2xl w-full max-w-md max-h-[92vh] overflow-hidden shadow-2xl border border-slate-200 flex flex-col">
+          <div className={`bg-white rounded-2xl w-full ${modalConfig.type === "confirm" ? "max-w-sm" : "max-w-2xl"} max-h-[92vh] overflow-hidden shadow-2xl border border-slate-200 flex flex-col transition-all`}>
             {/* Modal Header */}
-            <div className="px-5 py-4 bg-gradient-to-r from-[#8f0009] via-[#e7000b] to-[#ff4d57] text-white flex items-center justify-between shrink-0">
+            <div className="px-6 py-4 bg-gradient-to-r from-[#8f0009] via-[#e7000b] to-[#ff4d57] text-white flex items-center justify-between shrink-0">
               <h3 className="font-bold text-base tracking-tight">{modalConfig.title}</h3>
               <button
                 onClick={closeModal}
-                className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-colors"
+                className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Modal Content */}
-            <div className="p-5 overflow-y-auto space-y-4 text-xs">
+            <div className="p-6 overflow-y-auto space-y-4 text-xs">
               {/* DO Form */}
               {modalConfig.type === "doForm" && (
-                <div className="space-y-3.5">
-                  <div>
-                    <label className="font-semibold text-slate-700 block mb-1">Company</label>
-                    <div className="relative">
-                      <select
-                        value={formData.co || ""}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          if (val === "__new__") {
-                            setQuickAddModal({
-                              isOpen: true,
-                              title: "Add New Company",
-                              label: "Company Name *",
-                              placeholder: "e.g. Jindal Steel & Power",
-                              value: "",
-                              onConfirm: (val) => setFormData((prev) => ({ ...prev, co: val }))
-                            });
-                          } else {
-                            setFormData({ ...formData, co: val });
-                          }
-                        }}
-                        className="w-full px-3.5 py-2.5 pr-8 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-200 text-xs font-semibold text-slate-800 transition-colors shadow-2xs cursor-pointer appearance-none"
-                      >
-                        <option value="">Select Company</option>
-                        {uniqueCompanies.map((c) => (
-                          <option key={c} value={c}>
-                            {c}
-                          </option>
-                        ))}
-                        <option value="__new__">+ Add New Company...</option>
-                      </select>
-                      <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="font-semibold text-slate-700 block mb-1.5">Company</label>
+                      <div className="relative">
+                        <select
+                          value={formData.co || ""}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === "__new__") {
+                              setQuickAddModal({
+                                isOpen: true,
+                                title: "Add New Company",
+                                label: "Company Name *",
+                                placeholder: "e.g. Jindal Steel & Power",
+                                value: "",
+                                onConfirm: (val) => setFormData((prev) => ({ ...prev, co: val }))
+                              });
+                            } else {
+                              setFormData({ ...formData, co: val });
+                            }
+                          }}
+                          className="w-full px-3.5 py-2.5 pr-8 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-200 text-xs font-semibold text-slate-800 transition-colors shadow-2xs cursor-pointer appearance-none"
+                        >
+                          <option value="">Select Company</option>
+                          {uniqueCompanies.map((c) => (
+                            <option key={c} value={c}>
+                              {c}
+                            </option>
+                          ))}
+                          <option value="__new__">+ Add New Company...</option>
+                        </select>
+                        <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="font-semibold text-slate-700 block mb-1.5">DO No. *</label>
+                      <input
+                        type="text"
+                        value={formData.no || ""}
+                        onChange={(e) => setFormData({ ...formData, no: e.target.value })}
+                        placeholder="e.g. DO-12345"
+                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50/50 hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-200 text-xs font-bold text-slate-900 transition-colors shadow-2xs"
+                      />
                     </div>
                   </div>
 
-                  <div>
-                    <label className="font-semibold text-slate-700 block mb-1">DO No. *</label>
-                    <input
-                      type="text"
-                      value={formData.no || ""}
-                      onChange={(e) => setFormData({ ...formData, no: e.target.value })}
-                      placeholder="e.g. DO-12345"
-                      className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50/50 hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-200 text-xs font-bold text-slate-900 transition-colors shadow-2xs"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="font-semibold text-slate-700 block mb-1">DO Qty (MT) *</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={formData.tot || ""}
-                      onChange={(e) => setFormData({ ...formData, tot: e.target.value })}
-                      placeholder="e.g. 500.00"
-                      className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50/50 hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-200 text-xs font-semibold text-slate-800 transition-colors shadow-2xs"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                      <label className="font-semibold text-slate-700 block mb-1">Valid From</label>
+                      <label className="font-semibold text-slate-700 block mb-1.5">DO Qty (MT) *</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={formData.tot || ""}
+                        onChange={(e) => setFormData({ ...formData, tot: e.target.value })}
+                        placeholder="e.g. 500.00"
+                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50/50 hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-200 text-xs font-semibold text-slate-800 transition-colors shadow-2xs"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="font-semibold text-slate-700 block mb-1.5">Valid From</label>
                       <input
                         type="date"
                         value={formData.vf || ""}
                         onChange={(e) => setFormData({ ...formData, vf: e.target.value })}
-                        className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50/50 hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-200 text-xs font-medium text-slate-700 cursor-pointer shadow-2xs"
+                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50/50 hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-200 text-xs font-medium text-slate-700 cursor-pointer shadow-2xs"
                       />
                     </div>
+
                     <div>
-                      <label className="font-semibold text-slate-700 block mb-1">Valid To</label>
+                      <label className="font-semibold text-slate-700 block mb-1.5">Valid To</label>
                       <input
                         type="date"
                         value={formData.vt || ""}
                         onChange={(e) => setFormData({ ...formData, vt: e.target.value })}
-                        className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50/50 hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-200 text-xs font-medium text-slate-700 cursor-pointer shadow-2xs"
+                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50/50 hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-200 text-xs font-medium text-slate-700 cursor-pointer shadow-2xs"
                       />
                     </div>
                   </div>
@@ -2642,10 +2645,10 @@ function DispatchPageContent() {
                 const balance = (selectedDO?.tot || 0) - getDODispatched(selectedDO);
 
                 return (
-                  <div className="space-y-3.5">
-                    <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="font-semibold text-slate-700 block mb-1">Company</label>
+                        <label className="font-semibold text-slate-700 block mb-1.5">Company</label>
                         <div className="relative">
                           <select
                             value={selectedDO?.co || ""}
@@ -2656,7 +2659,7 @@ function DispatchPageContent() {
                                 setFormData({ ...formData, doId: firstMatchingDO.id });
                               }
                             }}
-                            className="w-full px-3 py-2 pr-8 border border-slate-200 rounded-xl bg-white text-slate-800 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-red-200 cursor-pointer appearance-none shadow-2xs"
+                            className="w-full px-3.5 py-2.5 pr-8 border border-slate-200 rounded-xl bg-white text-slate-800 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-red-200 cursor-pointer appearance-none shadow-2xs"
                           >
                             {uniqueCompanies.map((co) => (
                               <option key={co} value={co}>
@@ -2669,14 +2672,14 @@ function DispatchPageContent() {
                       </div>
 
                       <div>
-                        <label className="font-semibold text-slate-700 block mb-1">DO Number</label>
+                        <label className="font-semibold text-slate-700 block mb-1.5">DO Number</label>
                         <div className="relative">
                           <select
                             value={selectedDO?.id || ""}
                             onChange={(e) => {
                               setFormData({ ...formData, doId: parseInt(e.target.value) });
                             }}
-                            className="w-full px-3 py-2 pr-8 border border-slate-200 rounded-xl bg-white text-slate-800 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-red-200 cursor-pointer appearance-none shadow-2xs"
+                            className="w-full px-3.5 py-2.5 pr-8 border border-slate-200 rounded-xl bg-white text-slate-800 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-red-200 cursor-pointer appearance-none shadow-2xs"
                           >
                             {(companyDOs.length ? companyDOs : store?.dos || []).map((d) => (
                               <option key={d.id} value={d.id}>
@@ -2689,71 +2692,73 @@ function DispatchPageContent() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="font-semibold text-slate-700 block mb-1">Available DO Qty (MT)</label>
+                        <label className="font-semibold text-slate-700 block mb-1.5">Available DO Qty (MT)</label>
                         <input
                           type="text"
                           value={`${formatNumber(available)} MT`}
                           disabled
-                          className="w-full px-3 py-2 border border-emerald-200 rounded-xl bg-emerald-50 text-emerald-800 text-xs font-bold cursor-not-allowed"
+                          className="w-full px-3.5 py-2.5 border border-emerald-200 rounded-xl bg-emerald-50 text-emerald-800 text-xs font-bold cursor-not-allowed"
                         />
                       </div>
                       <div>
-                        <label className="font-semibold text-slate-700 block mb-1">DO Balance Qty (MT)</label>
+                        <label className="font-semibold text-slate-700 block mb-1.5">DO Balance Qty (MT)</label>
                         <input
                           type="text"
                           value={`${formatNumber(balance)} MT`}
                           disabled
-                          className="w-full px-3 py-2 border border-amber-200 rounded-xl bg-amber-50 text-amber-800 text-xs font-bold cursor-not-allowed"
+                          className="w-full px-3.5 py-2.5 border border-amber-200 rounded-xl bg-amber-50 text-amber-800 text-xs font-bold cursor-not-allowed"
                         />
                       </div>
                     </div>
 
-                    <div>
-                      <label className="font-semibold text-slate-700 block mb-1">Party Name *</label>
-                      <div className="relative">
-                        <select
-                          value={formData.partyName || ""}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            if (val === "__new__") {
-                              setQuickAddModal({
-                                isOpen: true,
-                                title: "Add New Party",
-                                label: "Party Name *",
-                                placeholder: "e.g. Shyam Traders",
-                                value: "",
-                                onConfirm: (val) => setFormData((prev) => ({ ...prev, partyName: val }))
-                              });
-                            } else {
-                              setFormData({ ...formData, partyName: val });
-                            }
-                          }}
-                          className="w-full px-3.5 py-2.5 pr-8 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-200 text-xs font-semibold text-slate-800 transition-colors shadow-2xs cursor-pointer appearance-none"
-                        >
-                          <option value="">Select Party</option>
-                          {uniquePartyNames.map((p) => (
-                            <option key={p} value={p}>
-                              {p}
-                            </option>
-                          ))}
-                          <option value="__new__">+ Add New Party...</option>
-                        </select>
-                        <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="font-semibold text-slate-700 block mb-1.5">Party Name *</label>
+                        <div className="relative">
+                          <select
+                            value={formData.partyName || ""}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val === "__new__") {
+                                setQuickAddModal({
+                                  isOpen: true,
+                                  title: "Add New Party",
+                                  label: "Party Name *",
+                                  placeholder: "e.g. Shyam Traders",
+                                  value: "",
+                                  onConfirm: (val) => setFormData((prev) => ({ ...prev, partyName: val }))
+                                });
+                              } else {
+                                setFormData({ ...formData, partyName: val });
+                              }
+                            }}
+                            className="w-full px-3.5 py-2.5 pr-8 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-200 text-xs font-semibold text-slate-800 transition-colors shadow-2xs cursor-pointer appearance-none"
+                          >
+                            <option value="">Select Party</option>
+                            {uniquePartyNames.map((p) => (
+                              <option key={p} value={p}>
+                                {p}
+                              </option>
+                            ))}
+                            <option value="__new__">+ Add New Party...</option>
+                          </select>
+                          <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        </div>
                       </div>
-                    </div>
 
-                    <div>
-                      <label className="font-semibold text-slate-700 block mb-1">Order Qty (MT) *</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={formData.qty || ""}
-                        onChange={(e) => setFormData({ ...formData, qty: e.target.value })}
-                        placeholder="e.g. 150.00"
-                        className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-200 text-xs font-semibold"
-                      />
+                      <div>
+                        <label className="font-semibold text-slate-700 block mb-1.5">Order Qty (MT) *</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={formData.qty || ""}
+                          onChange={(e) => setFormData({ ...formData, qty: e.target.value })}
+                          placeholder="e.g. 150.00"
+                          className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50/50 hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-200 text-xs font-semibold text-slate-900 transition-colors shadow-2xs"
+                        />
+                      </div>
                     </div>
                   </div>
                 );
@@ -2808,15 +2813,15 @@ function DispatchPageContent() {
                 const partyBal = selectedParty ? selectedParty.qty - getPartyDispatched(selectedParty.id) : 0;
 
                 return (
-                  <div className="space-y-3.5">
-                    <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="font-semibold text-slate-700 block mb-1">Party *</label>
+                        <label className="font-semibold text-slate-700 block mb-1.5">Party *</label>
                         <div className="relative">
                           <select
                             value={formData.pid || (selectedParty?.id || "")}
                             onChange={(e) => setFormData({ ...formData, pid: e.target.value })}
-                            className="w-full px-3 py-2 pr-8 border border-slate-200 rounded-xl bg-white text-slate-800 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-red-200 cursor-pointer appearance-none shadow-2xs"
+                            className="w-full px-3.5 py-2.5 pr-8 border border-slate-200 rounded-xl bg-white text-slate-800 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-red-200 cursor-pointer appearance-none shadow-2xs"
                           >
                             {(currentDO.parties || []).map((p) => (
                               <option key={p.id} value={p.id}>
@@ -2829,80 +2834,82 @@ function DispatchPageContent() {
                       </div>
 
                       <div>
-                        <label className="font-semibold text-slate-700 block mb-1">Party Balance Qty (MT)</label>
+                        <label className="font-semibold text-slate-700 block mb-1.5">Party Balance Qty (MT)</label>
                         <input
                           type="text"
                           value={`${formatNumber(partyBal)} MT`}
                           disabled
-                          className="w-full px-3 py-2 border border-amber-200 rounded-xl bg-amber-50 text-amber-800 text-xs font-bold cursor-not-allowed"
+                          className="w-full px-3.5 py-2.5 border border-amber-200 rounded-xl bg-amber-50 text-amber-800 text-xs font-bold cursor-not-allowed"
                         />
                       </div>
                     </div>
 
-                    <div>
-                      <label className="font-semibold text-slate-700 block mb-1">Truck No. *</label>
-                      <div className="relative">
-                        <select
-                          value={formData.truckNo || ""}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            if (val === "__new__") {
-                              setQuickAddModal({
-                                isOpen: true,
-                                title: "Add New Truck",
-                                label: "Truck Number *",
-                                placeholder: "e.g. CG04 AB 1234",
-                                value: "",
-                                onConfirm: (val) => setFormData((prev) => ({ ...prev, truckNo: val.toUpperCase() }))
-                              });
-                            } else {
-                              setFormData({ ...formData, truckNo: val });
-                            }
-                          }}
-                          className="w-full px-3.5 py-2.5 pr-8 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-200 text-xs font-bold text-slate-900 transition-colors shadow-2xs cursor-pointer appearance-none uppercase"
-                        >
-                          <option value="">Select Truck No.</option>
-                          {uniqueTruckNumbers.map((no) => (
-                            <option key={no} value={no}>
-                              {no}
-                            </option>
-                          ))}
-                          <option value="__new__">+ Add New Truck...</option>
-                        </select>
-                        <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="font-semibold text-slate-700 block mb-1.5">Truck No. *</label>
+                        <div className="relative">
+                          <select
+                            value={formData.truckNo || ""}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val === "__new__") {
+                                setQuickAddModal({
+                                  isOpen: true,
+                                  title: "Add New Truck",
+                                  label: "Truck Number *",
+                                  placeholder: "e.g. CG04 AB 1234",
+                                  value: "",
+                                  onConfirm: (val) => setFormData((prev) => ({ ...prev, truckNo: val.toUpperCase() }))
+                                });
+                              } else {
+                                setFormData({ ...formData, truckNo: val });
+                              }
+                            }}
+                            className="w-full px-3.5 py-2.5 pr-8 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-200 text-xs font-bold text-slate-900 transition-colors shadow-2xs cursor-pointer appearance-none uppercase"
+                          >
+                            <option value="">Select Truck No.</option>
+                            {uniqueTruckNumbers.map((no) => (
+                              <option key={no} value={no}>
+                                {no}
+                              </option>
+                            ))}
+                            <option value="__new__">+ Add New Truck...</option>
+                          </select>
+                          <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="font-semibold text-slate-700 block mb-1.5">TP No.</label>
+                        <input
+                          type="text"
+                          value={formData.tp || ""}
+                          onChange={(e) => setFormData({ ...formData, tp: e.target.value })}
+                          placeholder="Transit pass / TP number"
+                          className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50/50 hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-200 text-xs font-medium text-slate-800 transition-colors shadow-2xs"
+                        />
                       </div>
                     </div>
 
-                    <div>
-                      <label className="font-semibold text-slate-700 block mb-1">TP No.</label>
-                      <input
-                        type="text"
-                        value={formData.tp || ""}
-                        onChange={(e) => setFormData({ ...formData, tp: e.target.value })}
-                        placeholder="Transit pass / TP number"
-                        className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-200 text-xs"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="font-semibold text-slate-700 block mb-1">Date</label>
+                        <label className="font-semibold text-slate-700 block mb-1.5">Date</label>
                         <input
                           type="date"
                           value={formData.date || ""}
                           onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                          className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-200 text-xs font-medium cursor-pointer"
+                          className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50/50 hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-200 text-xs font-medium text-slate-700 cursor-pointer shadow-2xs"
                         />
                       </div>
                       <div>
-                        <label className="font-semibold text-slate-700 block mb-1">Net Wt (MT) *</label>
+                        <label className="font-semibold text-slate-700 block mb-1.5">Net Wt (MT) *</label>
                         <input
                           type="number"
                           step="0.01"
                           value={formData.qty || ""}
                           onChange={(e) => setFormData({ ...formData, qty: e.target.value })}
                           placeholder="e.g. 35.40"
-                          className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-200 text-xs font-bold"
+                          className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50/50 hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-200 text-xs font-bold text-slate-900 shadow-2xs"
                         />
                       </div>
                     </div>

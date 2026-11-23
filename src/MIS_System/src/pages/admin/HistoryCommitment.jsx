@@ -1,36 +1,88 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Search, Loader2, History } from "lucide-react";
+import supabase from "../../../../SupabaseClient";
 import { useAuth } from "../../contexts/AuthContext";
 import { employees } from "../../data/mockData";
 
 const AdminHistoryCommitment = () => {
     const { user } = useAuth();
-    const [loading, setLoading] = useState(false);
-    const [records, setRecords] = useState(() => {
-        return employees.map((emp, idx) => ({
-            id: idx,
-            dateStart: emp.dateStart || "2025-01-01",
-            dateEnd: emp.dateEnd || "2025-12-31",
-            name: emp.name || "",
-            target: emp.target || 100,
-            actualWorkDone: emp.actualWorkDone || 85,
-            workNotDone: emp.plannedWorkNotDone || 10,
-            workNotDoneOnTime: emp.plannedWorkNotDoneOnTime || 5,
-            totalWorkDone: emp.totalWorkDone || 88,
-            weekPending: emp.weekPending || 2,
-            allPendingTillDate: emp.allPendingTillDate || 5,
-            lastWeekPlannedNotDone: emp.plannedWorkNotDone || 10,
-            lastWeekPlannedNotDoneOnTime: emp.plannedWorkNotDoneOnTime || 5,
-            lastWeekCommitment: emp.commitment || 90,
-            linkWithName: "",
-            nextWeekPlannedNotDone: emp.nextWeekPlannedWorkNotDone || 8,
-            nextWeekPlannedNotDoneOnTime: emp.nextWeekPlannedWorkNotDoneOnTime || 4,
-            nextWeekCommitment: emp.nextWeekCommitment || 95
-        }));
-    });
+    const [loading, setLoading] = useState(true);
+    const [records, setRecords] = useState([]);
     const [searchQuery, setSearchQuery] = useState("");
     const [nameFilter, setNameFilter] = useState("all");
     const [dateFilter, setDateFilter] = useState("all");
+
+    // Fetch from Supabase mis_commitment_history table
+    useEffect(() => {
+        let isMounted = true;
+        const fetchHistory = async () => {
+            setLoading(true);
+            try {
+                const { data, error } = await supabase
+                    .from("mis_commitment_history")
+                    .select("*")
+                    .order("created_at", { ascending: false });
+
+                if (isMounted) {
+                    if (!error && data && data.length > 0) {
+                        const mapped = data.map(item => ({
+                            id: item.id,
+                            dateStart: item.date_start ? String(item.date_start).split("T")[0] : "",
+                            dateEnd: item.date_end ? String(item.date_end).split("T")[0] : "",
+                            name: item.employee_name || "",
+                            target: item.target || 0,
+                            actualWorkDone: item.actual_work_done || 0,
+                            workNotDone: item.work_not_done || 0,
+                            workNotDoneOnTime: item.work_not_done_on_time || 0,
+                            totalWorkDone: item.total_work_done || 0,
+                            weekPending: item.week_pending || 0,
+                            allPendingTillDate: item.all_pending_till_date || 0,
+                            lastWeekPlannedNotDone: item.last_week_planned_not_done || 0,
+                            lastWeekPlannedNotDoneOnTime: item.last_week_planned_not_done_on_time || 0,
+                            lastWeekCommitment: item.last_week_commitment || 0,
+                            nextWeekPlannedNotDone: item.next_week_planned_not_done || 0,
+                            nextWeekPlannedNotDoneOnTime: item.next_week_planned_not_done_on_time || 0,
+                            nextWeekCommitment: item.next_week_commitment || 0
+                        }));
+                        setRecords(mapped);
+                    } else {
+                        // Fallback to initial mock if database table is empty
+                        const fallback = employees.map((emp, idx) => ({
+                            id: idx,
+                            dateStart: emp.dateStart || "2025-01-01",
+                            dateEnd: emp.dateEnd || "2025-12-31",
+                            name: emp.name || "",
+                            target: emp.target || 100,
+                            actualWorkDone: emp.actualWorkDone || 85,
+                            workNotDone: emp.plannedWorkNotDone || 10,
+                            workNotDoneOnTime: emp.plannedWorkNotDoneOnTime || 5,
+                            totalWorkDone: emp.totalWorkDone || 88,
+                            weekPending: emp.weekPending || 2,
+                            allPendingTillDate: emp.allPendingTillDate || 5,
+                            lastWeekPlannedNotDone: emp.plannedWorkNotDone || 10,
+                            lastWeekPlannedNotDoneOnTime: emp.plannedWorkNotDoneOnTime || 5,
+                            lastWeekCommitment: emp.commitment || 90,
+                            linkWithName: "",
+                            nextWeekPlannedNotDone: emp.nextWeekPlannedWorkNotDone || 8,
+                            nextWeekPlannedNotDoneOnTime: emp.nextWeekPlannedWorkNotDoneOnTime || 4,
+                            nextWeekCommitment: emp.nextWeekCommitment || 95
+                        }));
+                        setRecords(fallback);
+                    }
+                }
+            } catch (err) {
+                console.error("Error fetching commitment history from Supabase:", err);
+                if (isMounted) {
+                    setRecords([]);
+                }
+            } finally {
+                if (isMounted) setLoading(false);
+            }
+        };
+
+        fetchHistory();
+        return () => { isMounted = false; };
+    }, []);
 
     const uniqueNames = useMemo(() => {
         return [...new Set(records.map(r => r.name))].sort();
