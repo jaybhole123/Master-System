@@ -1,5 +1,6 @@
 // ============ DASHBOARD PAGE ============
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { Link } from "react-router-dom";
 import { LayoutDashboard, Users, Calendar, Clock, AlertTriangle, Search, ChevronDown, Download, Filter, MessageSquare, Briefcase, TrendingUp, X, MapPin, Phone, Mail, User, Info, Loader2, CheckCircle2, Target, AlertCircle } from 'lucide-react';
 import { getDisplayableImageUrl } from '../../utils/imageUtils';
 import {
@@ -736,9 +737,9 @@ Management Information System`;
         dataSheetRows={dataSheetRows}
       />
 
-      {/* Advanced Filter Toolbar (No horizontal scroll, compact widths, 2-line clean layout) */}
-      <div className="bg-white text-slate-800 rounded-2xl p-3 sm:p-4 border border-slate-200/90 shadow-xs space-y-3">
-        {/* Row 1: Filters (Compact widths so all fit perfectly without side-scrolling) */}
+      {/* Advanced Filter Toolbar (Single clean row on desktop / responsive) */}
+      <div className="bg-white text-slate-800 rounded-2xl p-3 sm:p-3.5 border border-slate-200/90 shadow-xs space-y-2.5">
+        {/* Row 1: All Primary Controls & Toggles in a single smooth line */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
           {/* Date Range Picker */}
           <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl px-2 py-1 shadow-2xs hover:border-slate-300 transition-colors">
@@ -759,7 +760,7 @@ Management Information System`;
           </div>
 
           {/* Weekly / Monthly Toggle */}
-          <div className="flex items-center bg-slate-100 border border-slate-200 rounded-xl p-0.5">
+          <div className="flex items-center bg-slate-100 border border-slate-200 rounded-xl p-0.5 shrink-0">
             <button
               type="button"
               onClick={() => setPeriodType("Weekly")}
@@ -785,7 +786,7 @@ Management Information System`;
           </div>
 
           {/* Designation / Users Filter */}
-          <div className="relative">
+          <div className="relative shrink-0">
             <select
               value={filterDepartment}
               onChange={(e) => setFilterDepartment(e.target.value)}
@@ -805,7 +806,7 @@ Management Information System`;
           <button
             type="button"
             onClick={() => setScoreFilter(prev => prev === "positive" ? "all" : "positive")}
-            className={`px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+            className={`px-2 py-1.5 rounded-xl text-[11px] font-bold border transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 ${
               scoreFilter === "positive"
                 ? "bg-emerald-50 text-emerald-700 border-emerald-400 shadow-2xs ring-1 ring-emerald-300"
                 : "bg-slate-50 text-slate-600 border-slate-200 hover:border-emerald-300 hover:text-emerald-700"
@@ -818,7 +819,7 @@ Management Information System`;
           <button
             type="button"
             onClick={() => setScoreFilter(prev => prev === "negative" ? "all" : "negative")}
-            className={`px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+            className={`px-2 py-1.5 rounded-xl text-[11px] font-bold border transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 ${
               scoreFilter === "negative"
                 ? "bg-rose-50 text-rose-700 border-rose-400 shadow-2xs ring-1 ring-rose-300"
                 : "bg-slate-50 text-slate-600 border-slate-200 hover:border-rose-300 hover:text-rose-700"
@@ -828,20 +829,20 @@ Management Information System`;
             <span>Score: Negative (-)</span>
           </button>
 
-          {/* Auto Submit Score Toggle */}
-          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 shadow-2xs">
-            <Clock className="w-3.5 h-3.5 text-blue-600" />
+          {/* Auto Submit Score Toggle (single line alongside Weekly/Monthly) */}
+          <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2 py-1 shadow-2xs shrink-0">
+            <Clock className="w-3.5 h-3.5 text-blue-600 shrink-0" />
             <span className="text-[11px] text-slate-600 font-semibold whitespace-nowrap">Auto submit score</span>
             <button
               type="button"
               onClick={() => setAutoSubmitScore(!autoSubmitScore)}
-              className={`w-8 h-4.5 flex items-center rounded-full p-0.5 transition-colors cursor-pointer ${
+              className={`w-7 h-4 flex items-center rounded-full p-0.5 transition-colors cursor-pointer shrink-0 ${
                 autoSubmitScore ? "bg-blue-600 justify-end" : "bg-slate-300 justify-start"
               }`}
             >
-              <div className="w-3.5 h-3.5 rounded-full bg-white shadow-xs"></div>
+              <div className="w-3 h-3 rounded-full bg-white shadow-xs"></div>
             </button>
-            <div className="flex items-center bg-slate-200/80 rounded-lg p-0.5 ml-0.5">
+            <div className="flex items-center bg-slate-200/80 rounded-lg p-0.5 ml-0.5 shrink-0">
               <button
                 type="button"
                 onClick={() => setAutoSubmitFrequency("Weekly")}
@@ -864,15 +865,15 @@ Management Information System`;
           </div>
         </div>
 
-        {/* Row 2: Performance history (Dedicated on second line as requested) */}
+        {/* Row 2: Performance history */}
         <div className="flex items-center pt-1 border-t border-slate-100">
-          <a
-            href="/admin/history-commitment"
+          <Link
+            to="/mis-reports/history-commitment"
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-50/70 border border-blue-200/80 px-3.5 py-1.5 rounded-xl hover:bg-blue-50 transition-all shadow-2xs whitespace-nowrap"
           >
             <TrendingUp className="w-3.5 h-3.5" />
             Performance history
-          </a>
+          </Link>
         </div>
       </div>
 

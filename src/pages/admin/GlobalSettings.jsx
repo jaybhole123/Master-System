@@ -316,6 +316,11 @@ const MODULES = [
     pages: ['Dashboard', 'Commitment History', 'KPI / KRA']
   },
   {
+    id: 'Inventory (IMS)',
+    name: 'Inventory (IMS)',
+    pages: ['Dashboard', 'Inventory (IMS)', 'Transactions', 'Re-Orders', 'Reports', 'Masters']
+  },
+  {
     id: 'Global Settings',
     name: 'Global Settings',
     pages: ['Global Settings']

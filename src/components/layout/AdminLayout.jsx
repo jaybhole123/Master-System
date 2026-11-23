@@ -60,7 +60,9 @@ import {
   Wrench,
   BarChart3,
   Clock,
-  Target
+  Target,
+  Boxes,
+  ArrowLeftRight
 } from "lucide-react";
 
 // Helper: get module & page title from current pathname
@@ -149,6 +151,12 @@ const getHeaderTitle = (pathname, routes) => {
     const flat = (routes || []).flatMap(r => r.subItems ? r.subItems : [r]);
     const match = flat.find(r => r.href && pathname === r.href);
     return { module: "Coal System", page: match?.label || "Coal System" };
+  }
+  // Check Inventory (IMS) routes
+  if (pathname.startsWith("/inventory-system")) {
+    const flat = (routes || []).flatMap(r => r.subItems ? r.subItems : [r]);
+    const match = flat.find(r => r.href && pathname === r.href);
+    return { module: "Inventory (IMS)", page: match?.label || "Inventory (IMS)" };
   }
   // Check Document & Substruction routes (including Document Vault)
   if (
@@ -462,22 +470,43 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
 
         let dispatchCount = 0;
         try {
-          const { count: truckCount } = await supabase
-            .from('coal_truck_dispatches')
+          // Check do_master or truck_dispatch or fallback tables
+          const { count: doCount } = await supabase
+            .from('do_master')
             .select('*', { count: 'exact', head: true });
-          
-          if (truckCount !== null && truckCount !== undefined) {
-            dispatchCount = truckCount;
+
+          if (doCount !== null && doCount !== undefined && doCount > 0) {
+            dispatchCount = doCount;
           } else {
-            const { count: recordCount } = await supabase
-              .from('dispatch_records')
+            const { count: truckCount } = await supabase
+              .from('truck_dispatch')
               .select('*', { count: 'exact', head: true });
-            dispatchCount = recordCount || 0;
+
+            if (truckCount !== null && truckCount !== undefined && truckCount > 0) {
+              dispatchCount = truckCount;
+            } else {
+              const { count: legacyTruckCount } = await supabase
+                .from('coal_truck_dispatches')
+                .select('*', { count: 'exact', head: true });
+              
+              if (legacyTruckCount !== null && legacyTruckCount !== undefined && legacyTruckCount > 0) {
+                dispatchCount = legacyTruckCount;
+              } else {
+                const { count: recordCount } = await supabase
+                  .from('dispatch_records')
+                  .select('*', { count: 'exact', head: true });
+                dispatchCount = recordCount || 0;
+              }
+            }
           }
         } catch(e) {
           try {
-            const dispatchData = JSON.parse(localStorage.getItem('dispatch_data') || '[]');
-            dispatchCount = dispatchData.length;
+            const localData = JSON.parse(localStorage.getItem('coalDispatchV2') || '{}');
+            dispatchCount = (localData?.dos || []).length || (localData?.trucks || []).length || 0;
+            if (!dispatchCount) {
+              const dispatchData = JSON.parse(localStorage.getItem('dispatch_data') || '[]');
+              dispatchCount = dispatchData.length;
+            }
           } catch(err) {}
         }
 
@@ -699,6 +728,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       "Nandan Smelters Pvt Ltd Report": path.startsWith("/nandan-smelter"),
       "Hindustan Dhaatu Ltd (Billet) Report": path.startsWith("/billet-system"),
       "Transport Reporting": path.startsWith("/transport-system"),
+      "Inventory (IMS)": path.startsWith("/inventory-system"),
       "Letter": path.startsWith("/letter")
     };
     try {
@@ -1661,6 +1691,74 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       badge: coalBadges["Sauda Sale"] > 0 ? coalBadges["Sauda Sale"] : null,
     },
 
+    // --- MIS Reports Routes ---
+    {
+      href: "/mis-reports/dashboard",
+      label: "Dashboard",
+      icon: LayoutDashboard,
+      active: location.pathname === "/mis-reports/dashboard" || location.pathname === "/mis-reports",
+      showFor: ["admin", "user", "HOD"],
+      module: "MIS Reports",
+    },
+    {
+      href: "/mis-reports/history-commitment",
+      label: "Commitment History",
+      icon: BookmarkCheck,
+      active: location.pathname === "/mis-reports/history-commitment",
+      showFor: ["admin", "user", "HOD"],
+      module: "MIS Reports",
+    },
+
+    // --- Inventory System (IMS) Module Routes ---
+    {
+      href: "/inventory-system/dashboard",
+      label: "Dashboard",
+      icon: LayoutDashboard,
+      active: location.pathname === "/inventory-system/dashboard" || location.pathname === "/inventory-system",
+      showFor: ["admin", "user", "HOD"],
+      module: "Inventory (IMS)",
+    },
+    {
+      href: "/inventory-system/ims",
+      label: "Inventory (IMS)",
+      icon: Boxes,
+      active: location.pathname === "/inventory-system/ims" || location.pathname.startsWith("/inventory-system/item"),
+      showFor: ["admin", "user", "HOD"],
+      module: "Inventory (IMS)",
+    },
+    {
+      href: "/inventory-system/txns",
+      label: "Transactions",
+      icon: ArrowLeftRight,
+      active: location.pathname === "/inventory-system/txns",
+      showFor: ["admin", "user", "HOD"],
+      module: "Inventory (IMS)",
+    },
+    {
+      href: "/inventory-system/reorder",
+      label: "Re-Orders",
+      icon: RefreshCw,
+      active: location.pathname === "/inventory-system/reorder",
+      showFor: ["admin", "user", "HOD"],
+      module: "Inventory (IMS)",
+    },
+    {
+      href: "/inventory-system/reports",
+      label: "Reports",
+      icon: FileText,
+      active: location.pathname === "/inventory-system/reports",
+      showFor: ["admin", "user", "HOD"],
+      module: "Inventory (IMS)",
+    },
+    {
+      href: "/inventory-system/masters",
+      label: "Masters",
+      icon: Users,
+      active: location.pathname === "/inventory-system/masters",
+      showFor: ["admin", "user", "HOD"],
+      module: "Inventory (IMS)",
+    },
+
     // --- Hindustan Dhaatu Ltd (Sponge) Report Module Routes ---
     {
       label: "Stock Management",
@@ -1807,32 +1905,6 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
       badge: null,
       showFor: ["admin", "user", "HOD"],
       module: "Hindustan Dhaatu Ltd (Billet) Report",
-    },
-
-    // --- MIS Reports Routes ---
-    {
-      href: "/mis-reports/dashboard",
-      label: "Dashboard",
-      icon: LayoutDashboard,
-      active: location.pathname === "/mis-reports/dashboard" || location.pathname === "/mis-reports",
-      showFor: ["admin", "user", "HOD"],
-      module: "MIS Reports",
-    },
-    {
-      href: "/mis-reports/history-commitment",
-      label: "Commitment History",
-      icon: BookmarkCheck,
-      active: location.pathname === "/mis-reports/history-commitment",
-      showFor: ["admin", "user", "HOD"],
-      module: "MIS Reports",
-    },
-    {
-      href: "/mis-reports/kpi-kra",
-      label: "KPI / KRA",
-      icon: Target,
-      active: location.pathname === "/mis-reports/kpi-kra",
-      showFor: ["admin", "user", "HOD"],
-      module: "MIS Reports",
     },
 
     {
@@ -2121,6 +2193,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                         {moduleName === "Letter" && <FileText className="h-4 w-4" />}
                         {moduleName === "MIS Reports" && <BarChart3 className="h-4 w-4" />}
                         {moduleName === "Transport Reporting" && <Truck className="h-4 w-4" />}
+                        {moduleName === "Inventory (IMS)" && <Boxes className="h-4 w-4" />}
                         {moduleName === "Help Slip" && <HelpCircle className="h-4 w-4" />}
                       </div>
                       {!isCollapsed && <span className="text-left leading-tight break-words">{moduleName}</span>}
@@ -2393,6 +2466,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                             {moduleName === "Hindustan Dhaatu Ltd (Billet) Report" && <Package className="h-4 w-4" />}
                             {moduleName === "Letter" && <FileText className="h-4 w-4" />}
                             {moduleName === "Transport Reporting" && <Truck className="h-4 w-4" />}
+                            {moduleName === "Inventory (IMS)" && <Boxes className="h-4 w-4" />}
                             {moduleName === "Help Slip" && <HelpCircle className="h-4 w-4" />}
                           </div>
                           <span className="text-left leading-tight break-words">{moduleName}</span>

@@ -116,8 +116,8 @@ export const fetchDelegationData = async (page = 0, pageSize = 50, nameFilter = 
     let query = supabase
       .from('delegation')
       .select('*')
-      .is('submission_date', null)
-      .order('task_start_date', { ascending: true })
+      .or('submission_date.is.null,status.neq.done')
+      .order('planned_date', { ascending: true })
       .limit(FETCH_LIMIT);
 
     if (role === 'hod' && username) {
@@ -130,6 +130,7 @@ export const fetchDelegationData = async (page = 0, pageSize = 50, nameFilter = 
     } else if (role === 'user' && username) {
       query = query.eq('name', username);
     }
+    // For admin / superadmin, no user filter is applied
 
     if (nameFilter) {
       query = query.or(`task_description.ilike.%${nameFilter}%,name.ilike.%${nameFilter}%`);
@@ -142,23 +143,15 @@ export const fetchDelegationData = async (page = 0, pageSize = 50, nameFilter = 
       return { data: [], total: 0 };
     }
 
-    // Deduplicate: keep only first occurrence of each task_description + name combo
-    const seen = new Set();
-    const uniqueRows = (data || []).filter(row => {
-      const key = `${(row.department || '').trim()}::${(row.task_description || '').trim()}::${(row.name || '').trim()}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-
-    const mapped = uniqueRows.map(row => ({
+    // Map rows and assign id (same as delegationApi.js)
+    const mapped = (data || []).map(row => ({
       ...row,
-      id: row.task_id,
+      id: row.task_id || row.id,
       given_by: parseJsonIfNeeded(row.given_by),
       name: parseJsonIfNeeded(row.name)
     }));
 
-    // Paginate the deduplicated result
+    // Paginate the result
     const start = page * pageSize;
     const paginated = mapped.slice(start, start + pageSize);
 

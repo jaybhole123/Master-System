@@ -1779,7 +1779,7 @@ export default function EmployeeMaster() {
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                     <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase' }}>Email Address</span>
-                    <span style={{ fontSize: '0.92rem', fontWeight: '600', color: '#0f172a', wordBreak: 'break-all' }}>{viewEmployeeModal.email || '-'}</span>
+                    <span style={{ fontSize: '0.92rem', fontWeight: '600', color: '#0f172a', wordBreak: 'break-all' }}>{viewEmployeeModal.email_id || viewEmployeeModal.email || '-'}</span>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                     <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase' }}>Father's Name</span>
@@ -1787,8 +1787,40 @@ export default function EmployeeMaster() {
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                     <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase' }}>Date of Birth</span>
-                    <span style={{ fontSize: '0.92rem', fontWeight: '700', color: '#0f172a' }}>{viewEmployeeModal.dob ? formatDisplayDate(viewEmployeeModal.dob) : '-'}</span>
+                    <span style={{ fontSize: '0.92rem', fontWeight: '700', color: '#0f172a' }}>
+                      {viewEmployeeModal.date_of_birth ? formatDisplayDate(viewEmployeeModal.date_of_birth) : (viewEmployeeModal.dob ? formatDisplayDate(viewEmployeeModal.dob) : '-')}
+                    </span>
                   </div>
+                  {viewEmployeeModal.alternate_phone && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase' }}>Alternate Phone</span>
+                      <span style={{ fontSize: '0.92rem', fontWeight: '700', color: '#0f172a' }}>{viewEmployeeModal.alternate_phone}</span>
+                    </div>
+                  )}
+                  {viewEmployeeModal.blood_group && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase' }}>Blood Group</span>
+                      <span style={{ fontSize: '0.92rem', fontWeight: '700', color: '#ef4444' }}>{viewEmployeeModal.blood_group}</span>
+                    </div>
+                  )}
+                  {viewEmployeeModal.marital_status && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase' }}>Marital Status</span>
+                      <span style={{ fontSize: '0.92rem', fontWeight: '600', color: '#0f172a' }}>{viewEmployeeModal.marital_status}</span>
+                    </div>
+                  )}
+                  {viewEmployeeModal.health_issues && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase' }}>Health Issues</span>
+                      <span style={{ fontSize: '0.92rem', fontWeight: '600', color: '#eab308' }}>{viewEmployeeModal.health_issues}</span>
+                    </div>
+                  )}
+                  {viewEmployeeModal.driving_licence && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase' }}>Driving Licence</span>
+                      <span style={{ fontSize: '0.92rem', fontWeight: '600', color: '#0f172a' }}>{viewEmployeeModal.driving_licence}</span>
+                    </div>
+                  )}
                   {viewEmployeeModal.address && (
                     <div style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', gap: '2px', paddingTop: '4px' }}>
                       <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase' }}>Residential Address</span>
@@ -1850,6 +1882,14 @@ export default function EmployeeMaster() {
                     <span style={{ fontSize: '0.92rem', fontWeight: '700', color: '#0f172a', letterSpacing: '0.04em' }}>{viewEmployeeModal.aadhar_no || '-'}</span>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase' }}>PAN Card No</span>
+                    <span style={{ fontSize: '0.92rem', fontWeight: '700', color: '#0f172a', letterSpacing: '0.04em' }}>{viewEmployeeModal.pan_no || '-'}</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase' }}>Bank Name</span>
+                    <span style={{ fontSize: '0.92rem', fontWeight: '700', color: '#0f172a' }}>{viewEmployeeModal.bank_name || '-'}</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                     <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase' }}>Bank Account No</span>
                     <span style={{ fontSize: '0.92rem', fontWeight: '700', color: '#0f172a', letterSpacing: '0.04em' }}>{viewEmployeeModal.account_no || '-'}</span>
                   </div>
@@ -1861,36 +1901,51 @@ export default function EmployeeMaster() {
                     <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase' }}>Branch Name</span>
                     <span style={{ fontSize: '0.92rem', fontWeight: '700', color: '#0f172a' }}>{viewEmployeeModal.branch_name || '-'}</span>
                   </div>
+                  {viewEmployeeModal.base_salary && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase' }}>Base Salary</span>
+                      <span style={{ fontSize: '0.92rem', fontWeight: '700', color: '#059669' }}>₹{Number(viewEmployeeModal.base_salary).toLocaleString('en-IN')}</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Uploaded Documents Quick Access if available */}
-                {(viewEmployeeModal.aadhar_doc || viewEmployeeModal.pan_doc || viewEmployeeModal.account_doc) && (
+                {(viewEmployeeModal.aadhar_doc_url || viewEmployeeModal.aadhar_doc || viewEmployeeModal.pan_doc_url || viewEmployeeModal.pan_doc || viewEmployeeModal.account_doc_url || viewEmployeeModal.account_doc || viewEmployeeModal.dl_doc_url || viewEmployeeModal.dl_doc) && (
                   <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px dashed #e2e8f0', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                    {viewEmployeeModal.aadhar_doc && (
+                    {(viewEmployeeModal.aadhar_doc_url || viewEmployeeModal.aadhar_doc) && (
                       <button 
                         type="button" 
-                        onClick={() => setPreviewModalImg(viewEmployeeModal.aadhar_doc)} 
+                        onClick={() => setPreviewModalImg(viewEmployeeModal.aadhar_doc_url || viewEmployeeModal.aadhar_doc)} 
                         style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: '600', padding: '5px 12px', borderRadius: '8px', background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', cursor: 'pointer' }}
                       >
                         <FileText size={13} /> View Aadhar
                       </button>
                     )}
-                    {viewEmployeeModal.pan_doc && (
+                    {(viewEmployeeModal.pan_doc_url || viewEmployeeModal.pan_doc) && (
                       <button 
                         type="button" 
-                        onClick={() => setPreviewModalImg(viewEmployeeModal.pan_doc)} 
+                        onClick={() => setPreviewModalImg(viewEmployeeModal.pan_doc_url || viewEmployeeModal.pan_doc)} 
                         style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: '600', padding: '5px 12px', borderRadius: '8px', background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', cursor: 'pointer' }}
                       >
                         <FileText size={13} /> View PAN
                       </button>
                     )}
-                    {viewEmployeeModal.account_doc && (
+                    {(viewEmployeeModal.account_doc_url || viewEmployeeModal.account_doc) && (
                       <button 
                         type="button" 
-                        onClick={() => setPreviewModalImg(viewEmployeeModal.account_doc)} 
+                        onClick={() => setPreviewModalImg(viewEmployeeModal.account_doc_url || viewEmployeeModal.account_doc)} 
                         style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: '600', padding: '5px 12px', borderRadius: '8px', background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', cursor: 'pointer' }}
                       >
                         <FileText size={13} /> View Passbook
+                      </button>
+                    )}
+                    {(viewEmployeeModal.dl_doc_url || viewEmployeeModal.dl_doc) && (
+                      <button 
+                        type="button" 
+                        onClick={() => setPreviewModalImg(viewEmployeeModal.dl_doc_url || viewEmployeeModal.dl_doc)} 
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: '600', padding: '5px 12px', borderRadius: '8px', background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', cursor: 'pointer' }}
+                      >
+                        <FileText size={13} /> View DL
                       </button>
                     )}
                   </div>

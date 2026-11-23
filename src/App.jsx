@@ -83,6 +83,10 @@ import FastagSystem from "./TransportSystem/src/pages/FastagSystem"
 import ChallanSystem from "./TransportSystem/src/pages/ChallanSystem"
 import MonthlyTruckMaintenance from "./TransportSystem/src/pages/MonthlyTruckMaintenance"
 
+// --- Inventory System (IMS) Imports ---
+import { AppProvider as InventoryProvider } from "./Inventory_System/src/context/AppContext"
+import InventoryApp from "./Inventory_System/src/App"
+
 // --- Document Vault Imports ---
 import "./DocumentVault/src/index.css"
 import DocumentVaultSystemFlow from "./DocumentVault/src/pages/DocumentVaultSystemFlow"
@@ -221,6 +225,18 @@ const DocumentVaultWrapper = ({ children }) => (
                     {children}
                 </div>
             </VaultProvider>
+        </AdminLayout>
+    </ProtectedRoute>
+);
+
+const InventorySystemWrapper = ({ children }) => (
+    <ProtectedRoute>
+        <AdminLayout noPadding={true}>
+            <InventoryProvider>
+                <div className="ims-system-container flex flex-col flex-1 w-full min-h-full">
+                    {children}
+                </div>
+            </InventoryProvider>
         </AdminLayout>
     </ProtectedRoute>
 );
@@ -732,6 +748,15 @@ function App() {
                     <Route path="/document-vault/system-flow" element={<DocumentVaultWrapper><DocumentVaultSystemFlow /></DocumentVaultWrapper>} />
                     <Route path="/document-vault" element={<DocumentVaultWrapper><DocumentVaultApp /></DocumentVaultWrapper>} />
                     <Route path="/document-vault/company" element={<DocumentVaultWrapper><CompanyVaultPage /></DocumentVaultWrapper>} />
+
+                    {/* --- Inventory System (IMS) Routes --- */}
+                    <Route path="/inventory-system" element={<Navigate to="/inventory-system/dashboard" replace />} />
+                    <Route path="/inventory-system/dashboard" element={<InventorySystemWrapper><InventoryApp page="dashboard" hideNavigation={true} /></InventorySystemWrapper>} />
+                    <Route path="/inventory-system/ims" element={<InventorySystemWrapper><InventoryApp page="ims" hideNavigation={true} /></InventorySystemWrapper>} />
+                    <Route path="/inventory-system/txns" element={<InventorySystemWrapper><InventoryApp page="txns" hideNavigation={true} /></InventorySystemWrapper>} />
+                    <Route path="/inventory-system/reorder" element={<InventorySystemWrapper><InventoryApp page="reorder" hideNavigation={true} /></InventorySystemWrapper>} />
+                    <Route path="/inventory-system/reports" element={<InventorySystemWrapper><InventoryApp page="reports" hideNavigation={true} /></InventorySystemWrapper>} />
+                    <Route path="/inventory-system/masters" element={<InventorySystemWrapper><InventoryApp page="masters" hideNavigation={true} /></InventorySystemWrapper>} />
 
                     {/* --- Plant (Hindustan Datthu) System Routes --- */}
                     <Route path="/plant" element={<Navigate to="/plant/stock" replace />} />
