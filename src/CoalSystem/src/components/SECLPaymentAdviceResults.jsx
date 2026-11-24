@@ -3,8 +3,10 @@ import * as XLSX from "xlsx";
 import EditModal from "./EditModal";
 import { exportToPDF } from "../utils/exportHelpers";
 import HighlightText from "./HighlightText";
+import { usePagePermission } from "../../../hooks/usePagePermission";
 
 export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAddFiles, onSave, onDeleteRow, onUpdateRow, onBulkUpdateStatus, onAddManual, onPageChange, totalCount, isFetching }) {
+  const { canWrite } = usePagePermission("Coal System", "SECL Payment Advice");
   const fileInputRef = useRef(null);
   const observerRef = useRef(null);
   const [activeTab, setActiveTab] = useState("pending");
@@ -435,8 +437,12 @@ export default function SECLPaymentAdviceResults({ data, fileName, onReset, onAd
             </button>
             
             <input type="file" multiple ref={fileInputRef} onChange={handleFileChange} style={{ display: "none" }} accept=".pdf" />
-            <button className="btn outline" onClick={onAddManual}>+ MANUAL ENTRY</button>
-            <button className="btn" onClick={() => fileInputRef.current?.click()}>UPLOAD PDF</button>
+            {canWrite && (
+              <>
+                <button className="btn outline" onClick={onAddManual}>+ MANUAL ENTRY</button>
+                <button className="btn" onClick={() => fileInputRef.current?.click()}>UPLOAD PDF</button>
+              </>
+            )}
           </div>
         </div>
 

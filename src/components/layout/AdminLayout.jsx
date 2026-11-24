@@ -1,7 +1,8 @@
 "use client";
 
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import usePagePermission from "../../hooks/usePagePermission";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchNotifications } from "../../redux/slice/notificationSlice";
@@ -857,7 +858,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
     setUserEmail(storedEmail);
     setIsSuperAdmin(storedUsername.toLowerCase() === "admin" || (storedRole || "").toLowerCase() === "superadmin");
 
-    // Centralized Security Guard for User Role
+    // Centralized Security Guard for User Role - only redirect if user has no permissions at all
     const path = location.pathname;
     const restrictedPages = [
       "/dashboard/assign-task",
@@ -873,7 +874,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
     ];
 
     const storedRoleLower = (storedRole || "user").toLowerCase();
-    const hasCustomPermissions = !!localStorage.getItem("system_access");
+    const hasCustomPermissions = !!(localStorage.getItem("system_access") || localStorage.getItem("page_access"));
 
     if (!hasCustomPermissions && storedRoleLower === "user" && restrictedPages.some(p => path.startsWith(p))) {
       navigate("/dashboard/admin");
@@ -972,13 +973,25 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
              localStorage.setItem("system_access", sysAccess.join(','));
           } catch(e) {}
           try {
-             let pgAccess = [];
-             if (typeof data.page_access === 'string') {
-                 if (data.page_access.trim().startsWith('[')) pgAccess = JSON.parse(data.page_access);
-                 else pgAccess = data.page_access.split(',').filter(Boolean);
-             } else { pgAccess = data.page_access || []; }
-             setPageAccess(pgAccess);
-             localStorage.setItem("page_access", pgAccess.join(','));
+             let pgAccess = data.page_access;
+             if (typeof pgAccess === 'string') {
+                 if (pgAccess.trim().startsWith('{') || pgAccess.trim().startsWith('[')) {
+                     // Keep valid JSON format
+                     localStorage.setItem("page_access", pgAccess);
+                     setPageAccess(pgAccess);
+                 } else {
+                     const arr = pgAccess.split(',').filter(Boolean);
+                     setPageAccess(arr);
+                     localStorage.setItem("page_access", pgAccess);
+                 }
+             } else if (typeof pgAccess === 'object' && pgAccess !== null) {
+                 const str = JSON.stringify(pgAccess);
+                 setPageAccess(str);
+                 localStorage.setItem("page_access", str);
+             } else {
+                 setPageAccess([]);
+                 localStorage.setItem("page_access", "");
+             }
           } catch(e) {}
         }
       } catch (err) {
@@ -2022,12 +2035,25 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
     if (rawPg) {
       if (rawPg.trim().startsWith('[')) {
         try { pgList = JSON.parse(rawPg); } catch(e) {}
+      } else if (rawPg.trim().startsWith('{')) {
+        try {
+          const parsedObj = JSON.parse(rawPg);
+          pgList = Object.entries(parsedObj)
+            .filter(([_, v]) => v === true || v?.read === true || v?.write === true || v?.mis === true)
+            .map(([k]) => k);
+        } catch(e) {}
       } else {
         pgList = rawPg.split(',').map(s => s.trim()).filter(Boolean);
       }
     }
-    if (pgList.length === 0 && Array.isArray(pageAccess)) {
-      pgList = pageAccess;
+    if (pgList.length === 0) {
+      if (Array.isArray(pageAccess)) {
+        pgList = pageAccess;
+      } else if (pageAccess && typeof pageAccess === 'object') {
+        pgList = Object.entries(pageAccess)
+          .filter(([_, v]) => v === true || v?.read === true || v?.write === true || v?.mis === true)
+          .map(([k]) => k);
+      }
     }
     
     return routes
@@ -2062,7 +2088,10 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                    let mappedLabel = sub.label;
                    if (sub.label === "Holiday List" || sub.label === "Working Day Calendar") mappedLabel = "Holiday";
                    const pageKey = `${route.module}::${mappedLabel}`;
-                   return pgList.includes(pageKey);
+                   return pgList.some(k => {
+                     const cleanK = (k || "").trim().toLowerCase();
+                     return cleanK === pageKey.toLowerCase() || cleanK.endsWith(`::${mappedLabel.toLowerCase()}`) || cleanK === mappedLabel.toLowerCase();
+                   });
                });
            } 
 
@@ -2099,7 +2128,16 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
            }
 
            const pageKey = `${mappedModule}::${mappedLabel}`;
-           return pgList.includes(pageKey);
+           return pgList.some(k => {
+             const cleanK = (k || "").trim().toLowerCase();
+             const cleanExact = pageKey.toLowerCase();
+             const cleanLabel = mappedLabel.toLowerCase();
+             return (
+               cleanK === cleanExact ||
+               cleanK.endsWith(`::${cleanLabel}`) ||
+               cleanK === cleanLabel
+             );
+           });
         }
 
         // If user is a normal staff member and permissions list exists, hide other pages
@@ -2132,7 +2170,10 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                     if (sub.label === "Holiday List" || sub.label === "Working Day Calendar") mappedLabel = "Holiday";
 
                     const pageKey = `${route.module}::${mappedLabel}`;
-                    return pgList.includes(pageKey);
+                    return pgList.some(k => {
+                      const cleanK = (k || "").trim().toLowerCase();
+                      return cleanK === pageKey.toLowerCase() || cleanK.endsWith(`::${mappedLabel.toLowerCase()}`) || cleanK === mappedLabel.toLowerCase();
+                    });
                 }
                 if (sysList.length > 0) return false;
                 if (!sub.showFor || !Array.isArray(sub.showFor)) return true;
@@ -2541,6 +2582,7 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
                             {moduleName === "Nandan Smelters Pvt Ltd Report" && <FolderKanban className="h-4 w-4" />}
                             {moduleName === "Hindustan Dhaatu Ltd (Billet) Report" && <Package className="h-4 w-4" />}
                             {moduleName === "Letter" && <FileText className="h-4 w-4" />}
+                            {moduleName === "MIS Reports" && <BarChart3 className="h-4 w-4" />}
                             {moduleName === "Transport Reporting" && <Truck className="h-4 w-4" />}
                             {moduleName === "Inventory (IMS)" && <Boxes className="h-4 w-4" />}
                             {moduleName === "Help Slip" && <HelpCircle className="h-4 w-4" />}
@@ -2761,9 +2803,52 @@ export default function AdminLayout({ children, darkMode, toggleDarkMode, showLa
           </div>
         </header>
 
-        <main className={`flex-1 overflow-y-auto overflow-x-hidden ${noPadding ? 'pb-5' : 'px-4 pb-4 md:px-6 md:pb-6'} bg-gradient-to-br from-red-50/50 to-red-50/50 ${noPadding ? '' : 'pb-24 md:pb-6'}`}>
-          {children}
-        </main>
+        {(() => {
+          const { module: activeModule, page: activePage } = getHeaderTitle(location.pathname, accessibleRoutes || routes);
+          const isUserAdminOrSuper = isSuperAdmin || (username || '').toLowerCase() === 'admin';
+          
+          let isReadOnly = false;
+          if (!isUserAdminOrSuper && activeModule && activePage) {
+            try {
+              const rawPg = localStorage.getItem('page_access') || '';
+              if (rawPg.trim().startsWith('{')) {
+                const map = JSON.parse(rawPg);
+                const exactKey = `${activeModule}::${activePage}`;
+                let perm = map[exactKey];
+                if (!perm) {
+                  const foundKey = Object.keys(map).find(k => 
+                    k.toLowerCase() === exactKey.toLowerCase() ||
+                    k.toLowerCase().endsWith(`::${activePage.toLowerCase()}`) ||
+                    k.toLowerCase() === activePage.toLowerCase()
+                  );
+                  if (foundKey) perm = map[foundKey];
+                }
+                if (perm && typeof perm === 'object') {
+                  if (perm.read && !perm.write) {
+                    isReadOnly = true;
+                  }
+                }
+              }
+            } catch(e) {}
+          }
+
+          return (
+            <main className={`flex-1 overflow-y-auto overflow-x-hidden ${noPadding ? 'pb-5' : 'px-4 pb-4 md:px-6 md:pb-6'} bg-gradient-to-br from-red-50/50 to-red-50/50 ${noPadding ? '' : 'pb-24 md:pb-6'} ${isReadOnly ? 'global-read-only-mode' : ''}`}>
+              {isReadOnly && (
+                <div className="mb-3 px-3.5 py-1.5 bg-amber-50 border border-amber-200/80 rounded-xl text-amber-800 text-xs font-bold flex items-center justify-between shadow-2xs">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                    <span>View-Only Mode: You have READ permissions for this page. Editing and Deleting actions are restricted.</span>
+                  </div>
+                  <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 bg-amber-200/60 rounded-md font-black">
+                    Read Only
+                  </span>
+                </div>
+              )}
+              {children}
+            </main>
+          );
+        })()}
 
         <div className="bg-gradient-to-r from-red-600 to-red-700 h-5 flex items-center justify-center px-4 shadow-md z-40">
           <a

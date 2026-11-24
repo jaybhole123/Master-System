@@ -6,12 +6,14 @@ import EditModal from "../components/EditModal";
 import { extractTextFromFile, parseSalesOrder, toCSVSalesOrder, downloadBlob } from "../utils/salesOrderParser";
 import { extractSalesOrderFromImage } from "../utils/openaiOcr";
 import { supabase } from "../utils/supabase";
+import { usePagePermission } from "../../../hooks/usePagePermission";
 
 /**
  * SalesOrderPage — owns the upload/result state for this page.
  * Props: state & setState passed from App so navigating away and back preserves data.
  */
 export default function SalesOrderPage({ state, setState }) {
+  const { canWrite } = usePagePermission("Coal System", "Sales Order");
   const PAGE_SIZE = 50;
   const { view, loading, loadingName, error, data, fileName } = state;
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -656,8 +658,12 @@ export default function SalesOrderPage({ state, setState }) {
             accept="application/pdf,.pdf,image/*"
           />
           <div style={{ textAlign: "center", marginTop: 20 }}>
-            <span style={{ color: "var(--muted)", marginRight: 15, fontSize: "14px" }}>Or enter data manually</span>
-            <button className="btn outline" onClick={() => setIsModalOpen(true)}>+ Add Form</button>
+            {canWrite && (
+              <>
+                <span style={{ color: "var(--muted)", marginRight: 15, fontSize: "14px" }}>Or enter data manually</span>
+                <button className="btn outline" onClick={() => setIsModalOpen(true)}>+ Add Form</button>
+              </>
+            )}
           </div>
           <div className="table-card" style={{ marginTop: 40, opacity: 0.6, pointerEvents: "none" }}>
             <div className="table-header">

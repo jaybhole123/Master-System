@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import supabase from "../../../SupabaseClient";
 import { exportToExcel, exportToPDF } from "../utils/exportHelpers";
+import { usePagePermission } from "../../../hooks/usePagePermission";
 import {
   Truck,
   Package,
@@ -73,6 +74,7 @@ class DispatchErrorBoundary extends React.Component {
 }
 
 function DispatchPageContent() {
+  const { canWrite } = usePagePermission("Coal System", "Dispatch");
   const [store, setStore] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -1586,12 +1588,14 @@ function DispatchPageContent() {
                 <FileText className="w-3.5 h-3.5 text-rose-600" />
                 <span>PDF</span>
               </button>
-              <button
-                onClick={() => openDOForm(0)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-[#ff3340] to-[#e7000b] hover:brightness-105 text-white transition-all shadow-xs active:scale-95 cursor-pointer"
-              >
-                <Plus className="w-4 h-4" /> New DO Add
-              </button>
+              {canWrite && (
+                <button
+                  onClick={() => openDOForm(0)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-[#ff3340] to-[#e7000b] hover:brightness-105 text-white transition-all shadow-xs active:scale-95 cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" /> New DO Add
+                </button>
+              )}
             </div>
           </div>
 
@@ -1678,22 +1682,26 @@ function DispatchPageContent() {
                           </button>
                         </td>
                         <td className="py-3.5 px-4 text-right">
-                          <div className="inline-flex items-center gap-1.5 justify-end">
-                            <button
-                              onClick={() => openDOForm(d.id)}
-                              className="w-8 h-8 rounded-full bg-white hover:bg-slate-50 text-[#e7000b] border border-red-200 inline-flex items-center justify-center transition-colors cursor-pointer"
-                              title="Edit DO"
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => deleteDO(d.id)}
-                              className="w-8 h-8 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 inline-flex items-center justify-center transition-colors cursor-pointer"
-                              title="Delete DO"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
+                          {canWrite ? (
+                            <div className="inline-flex items-center gap-1.5 justify-end">
+                              <button
+                                onClick={() => openDOForm(d.id)}
+                                className="w-8 h-8 rounded-full bg-white hover:bg-slate-50 text-[#e7000b] border border-red-200 inline-flex items-center justify-center transition-colors cursor-pointer"
+                                title="Edit DO"
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => deleteDO(d.id)}
+                                className="w-8 h-8 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 inline-flex items-center justify-center transition-colors cursor-pointer"
+                                title="Delete DO"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-slate-400 text-xs italic">View Only</span>
+                          )}
                         </td>
                       </tr>
                     );
@@ -1837,12 +1845,14 @@ function DispatchPageContent() {
                 <FileText className="w-3.5 h-3.5 text-rose-600" />
                 <span>PDF</span>
               </button>
-              <button
-                onClick={() => openPartyForm(0)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-[#ff3340] to-[#e7000b] hover:brightness-105 text-white transition-all shadow-xs active:scale-95 cursor-pointer"
-              >
-                <Plus className="w-4 h-4" /> Add Party
-              </button>
+              {canWrite && (
+                <button
+                  onClick={() => openPartyForm(0)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-[#ff3340] to-[#e7000b] hover:brightness-105 text-white transition-all shadow-xs active:scale-95 cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" /> Add Party
+                </button>
+              )}
             </div>
           </div>
 
@@ -1961,22 +1971,26 @@ function DispatchPageContent() {
                           </button>
                         </td>
                         <td className="py-3.5 px-4 text-right">
-                          <div className="inline-flex items-center gap-1.5 justify-end">
-                            <button
-                              onClick={() => openPartyForm(p.id)}
-                              className="w-8 h-8 rounded-full bg-white hover:bg-slate-50 text-[#e7000b] border border-red-200 inline-flex items-center justify-center transition-colors cursor-pointer"
-                              title="Edit Party"
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => deleteParty(p.id)}
-                              className="w-8 h-8 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 inline-flex items-center justify-center transition-colors cursor-pointer"
-                              title="Delete Party"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
+                          {canWrite ? (
+                            <div className="inline-flex items-center gap-1.5 justify-end">
+                              <button
+                                onClick={() => openPartyForm(p.id)}
+                                className="w-8 h-8 rounded-full bg-white hover:bg-slate-50 text-[#e7000b] border border-red-200 inline-flex items-center justify-center transition-colors cursor-pointer"
+                                title="Edit Party"
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => deleteParty(p.id)}
+                                className="w-8 h-8 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 inline-flex items-center justify-center transition-colors cursor-pointer"
+                                title="Delete Party"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-slate-400 text-xs italic">View Only</span>
+                          )}
                         </td>
                       </tr>
                     );
@@ -2144,12 +2158,14 @@ function DispatchPageContent() {
                 <span>PDF</span>
               </button>
 
-              <button
-                onClick={() => openTruckForm(0)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-[#ff3340] to-[#e7000b] hover:brightness-105 text-white transition-all shadow-xs active:scale-95 cursor-pointer"
-              >
-                <Plus className="w-4 h-4" /> Add Truck
-              </button>
+              {canWrite && (
+                <button
+                  onClick={() => openTruckForm(0)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-[#ff3340] to-[#e7000b] hover:brightness-105 text-white transition-all shadow-xs active:scale-95 cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" /> Add Truck
+                </button>
+              )}
             </div>
           </div>
 
@@ -2289,37 +2305,41 @@ function DispatchPageContent() {
                           </button>
                         </td>
                         <td className="py-3.5 px-4 text-right">
-                          <div className="inline-flex items-center gap-1.5 justify-end">
-                            {t.done ? (
+                          {canWrite ? (
+                            <div className="inline-flex items-center gap-1.5 justify-end">
+                              {t.done ? (
+                                <button
+                                  onClick={() => setTruckStatus(t.id, false)}
+                                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold bg-white hover:bg-amber-50 text-amber-700 border border-amber-200 transition-colors cursor-pointer"
+                                >
+                                  <RotateCcw className="w-3.5 h-3.5" /> Undo
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => setTruckStatus(t.id, true)}
+                                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition-colors cursor-pointer"
+                                >
+                                  <Check className="w-3.5 h-3.5" /> Done
+                                </button>
+                              )}
                               <button
-                                onClick={() => setTruckStatus(t.id, false)}
-                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold bg-white hover:bg-amber-50 text-amber-700 border border-amber-200 transition-colors cursor-pointer"
+                                onClick={() => openTruckForm(t.id)}
+                                className="w-8 h-8 rounded-full bg-white hover:bg-slate-50 text-[#e7000b] border border-red-200 inline-flex items-center justify-center transition-colors cursor-pointer"
+                                title="Edit Truck"
                               >
-                                <RotateCcw className="w-3.5 h-3.5" /> Undo
+                                <Pencil className="w-4 h-4" />
                               </button>
-                            ) : (
                               <button
-                                onClick={() => setTruckStatus(t.id, true)}
-                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition-colors cursor-pointer"
+                                onClick={() => deleteTruck(t.id)}
+                                className="w-8 h-8 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 inline-flex items-center justify-center transition-colors cursor-pointer"
+                                title="Delete Truck"
                               >
-                                <Check className="w-3.5 h-3.5" /> Done
+                                <Trash2 className="w-4 h-4" />
                               </button>
-                            )}
-                            <button
-                              onClick={() => openTruckForm(t.id)}
-                              className="w-8 h-8 rounded-full bg-white hover:bg-slate-50 text-[#e7000b] border border-red-200 inline-flex items-center justify-center transition-colors cursor-pointer"
-                              title="Edit Truck"
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => deleteTruck(t.id)}
-                              className="w-8 h-8 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 inline-flex items-center justify-center transition-colors cursor-pointer"
-                              title="Delete Truck"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
+                            </div>
+                          ) : (
+                            <span className="text-slate-400 text-xs italic">View Only</span>
+                          )}
                         </td>
                       </tr>
                     );

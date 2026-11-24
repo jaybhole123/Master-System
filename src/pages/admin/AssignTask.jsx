@@ -8,10 +8,7 @@ export default function AssignTask() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const role = (localStorage.getItem("role") || "").toLowerCase();
-    if (role === "user") {
-      navigate("/dashboard/admin");
-    }
+    // Rely on page_access and ProtectedRoute instead of hardcoded role redirect
   }, [navigate]);
 
   const role = (localStorage.getItem("role") || "").toLowerCase();

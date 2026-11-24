@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContext';
 import GenericPageLayout from '../components/GenericPageLayout';
 import { fmt, SvgIcon, IC } from '../utils/helpers';
 import Modal from '../components/Modal';
+import { usePagePermission } from '../../../hooks/usePagePermission';
 
 const MASTER_CONFIG = {
   firms: [
@@ -42,6 +43,7 @@ const MASTER_CONFIG = {
 };
 
 export default function MastersPage() {
+  const { canWrite } = usePagePermission("Inventory (IMS)", "Masters");
   const { data, setData, activeTabs, setActiveTabs, cx, nextId, showToast, showError } = useApp();
 
   const currentTab = activeTabs.masters || 'firms';
@@ -378,13 +380,15 @@ export default function MastersPage() {
         <GenericPageLayout
           title={`${tTitle} Master`}
           buttons={
-            <button type="button" className="b1" onClick={() => setModalRecord({})}>
-              <SvgIcon path={IC.plus} /> Add {tTitle}
-            </button>
+            canWrite ? (
+              <button type="button" className="b1" onClick={() => setModalRecord({})}>
+                <SvgIcon path={IC.plus} /> Add {tTitle}
+              </button>
+            ) : null
           }
           cols={cols}
           data={getTableRows}
-          act={x => (
+          act={canWrite ? (x => (
             <>
               <button
                 type="button"
@@ -403,7 +407,7 @@ export default function MastersPage() {
                 <SvgIcon path={IC.trash} />
               </button>
             </>
-          )}
+          )) : null}
         />
       )}
 

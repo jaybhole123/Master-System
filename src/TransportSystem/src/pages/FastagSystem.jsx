@@ -7,6 +7,7 @@ import Select from 'react-select';
 import VehicleProfileModal from '../components/VehicleProfileModal';
 import './PurchaseTruck.css';
 import supabase from '../../../SupabaseClient';
+import { usePagePermission } from '../../../hooks/usePagePermission';
 
 const idOf = v => String(v || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 const inr = n => "₹" + Number(n || 0).toLocaleString("en-IN");
@@ -28,6 +29,7 @@ function fstat(r) {
 const cls = s => ["ACTIVE", "PAID"].includes(s) ? "ACTIVE" : ["EXPIRED", "BLOCKED"].includes(s) ? "EXPIRED" : "DUE";
 
 export default function FastagSystem() {
+  const { canWrite } = usePagePermission("Transport Reporting", "Fastag");
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   
@@ -450,9 +452,15 @@ export default function FastagSystem() {
                     <td data-label="Document">{t.document_url ? <a href={t.document_url} target="_blank" rel="noreferrer" className="lk">View</a> : "—"}</td>
                     <td data-label="Remarks">{t.remarks}</td>
                     <td data-label="Action">
-                      <button className="btn s" onClick={() => { setRechargeModal(t); setRechargeAmt(''); setRechargeDate(iso(new Date())); }}>Recharge</button>
-                      <button className="btn s" onClick={() => { setFormData(t); setIsModalOpen(true); }}>Edit</button>
-                      <button className="btn s d" onClick={() => handleDelete(t.id)}>Delete</button>
+                      {canWrite ? (
+                        <>
+                          <button className="btn s" onClick={() => { setRechargeModal(t); setRechargeAmt(''); setRechargeDate(iso(new Date())); }}>Recharge</button>
+                          <button className="btn s" onClick={() => { setFormData(t); setIsModalOpen(true); }}>Edit</button>
+                          <button className="btn s d" onClick={() => handleDelete(t.id)}>Delete</button>
+                        </>
+                      ) : (
+                        <span className="text-gray-400 text-xs italic">View Only</span>
+                      )}
                     </td>
                   </tr>
                 );

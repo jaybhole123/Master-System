@@ -227,20 +227,63 @@ const AdminDashboard = () => {
     const fetchMISData = async () => {
       setLoading(true);
       try {
-        // 1. Fetch Performance & Employees from Supabase
+        // 1. Fetch Users to filter only those who have MIS permission enabled (YES)
+        const { data: usersData } = await supabase
+          .from("users")
+          .select("user_name, page_access, status");
+
+        // Set of user names that have MIS enabled in any section/module
+        const misEnabledUserNames = new Set();
+        if (usersData && usersData.length > 0) {
+          usersData.forEach((u) => {
+            if (!u.page_access) return;
+            try {
+              let perms = {};
+              if (typeof u.page_access === "object") {
+                perms = u.page_access;
+              } else if (typeof u.page_access === "string") {
+                if (u.page_access.trim().startsWith("{")) {
+                  perms = JSON.parse(u.page_access);
+                } else {
+                  u.page_access.split(",").forEach(item => {
+                    const parts = item.trim().split(":");
+                    if (parts[0] === "mis") {
+                      perms[parts.slice(1).join(":")] = { mis: true };
+                    }
+                  });
+                }
+              }
+
+              // Check if any section has mis === true
+              const hasMis = Object.values(perms).some((p) => p && (p.mis === true || p.mis === "true" || p.mis === 1));
+              if (hasMis && u.user_name) {
+                misEnabledUserNames.add(u.user_name.trim().toLowerCase());
+              }
+            } catch (e) {
+              // ignore parse errors
+            }
+          });
+        }
+
+        // 2. Fetch Performance & Employees from Supabase
         const { data: perfData, error: perfErr } = await supabase
           .from("mis_employee_performance")
           .select("*")
           .order("target", { ascending: false });
 
-        // 2. Fetch Department Scores from Supabase
+        // 3. Fetch Department Scores from Supabase
         const { data: deptData, error: deptErr } = await supabase
           .from("mis_department_scores")
           .select("*");
 
         if (isMounted) {
           if (!perfErr && perfData && perfData.length > 0) {
-            const mappedEmployees = perfData.map((row) => ({
+            // Filter by MIS permission if any users have MIS configured; otherwise show all
+            const filteredPerfData = misEnabledUserNames.size > 0 
+              ? perfData.filter(row => misEnabledUserNames.has(String(row.employee_name || "").trim().toLowerCase()))
+              : perfData;
+
+            const mappedEmployees = filteredPerfData.map((row) => ({
               id: row.id,
               name: row.employee_name,
               designation: row.designation || "EXECUTIVE",
@@ -264,7 +307,10 @@ const AdminDashboard = () => {
             setSheetEmployees(mappedEmployees);
           } else {
             // Fallback to local employees
-            setSheetEmployees(employees);
+            const fallbackList = misEnabledUserNames.size > 0
+              ? employees.filter(emp => misEnabledUserNames.has(String(emp.name || "").trim().toLowerCase()))
+              : employees;
+            setSheetEmployees(fallbackList.length > 0 ? fallbackList : employees);
           }
 
           if (!deptErr && deptData && deptData.length > 0) {

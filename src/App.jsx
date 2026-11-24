@@ -127,7 +127,8 @@ export const ProtectedRoute = ({ children, allowedRoles = [] }) => {
     
     // Custom Permission Bypass
     const sysAccessStr = localStorage.getItem("system_access");
-    const hasCustomPermissions = sysAccessStr && sysAccessStr.length > 0;
+    const pageAccessStr = localStorage.getItem("page_access");
+    const hasCustomPermissions = (sysAccessStr && sysAccessStr.length > 0) || (pageAccessStr && pageAccessStr.length > 0);
 
     if (!username) {
         return <Navigate to="/login" replace />

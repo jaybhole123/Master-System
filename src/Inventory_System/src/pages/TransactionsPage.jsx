@@ -5,6 +5,7 @@ import { TT, TS } from '../utils/constants';
 import { fmt, inr, dfmt, SvgIcon, IC } from '../utils/helpers';
 import TransactionModal from '../components/TransactionModal';
 import VoucherModal from '../components/VoucherModal';
+import { usePagePermission } from '../../../hooks/usePagePermission';
 
 const TTAB = [
   ['OUT', '↑', 'Sale', ''],
@@ -16,6 +17,7 @@ const TTAB = [
 ];
 
 export default function TransactionsPage() {
+  const { canWrite } = usePagePermission("Inventory (IMS)", "Transactions");
   const {
     data,
     setData,
@@ -165,7 +167,7 @@ export default function TransactionsPage() {
       <GenericPageLayout
         title="Transactions"
         sub="Sale, purchase, job card, sales return, purchase return and transfer entries."
-        buttons={topButtons}
+        buttons={canWrite ? topButtons : null}
         filterDefs={filterDefinitions}
         showDateRange={true}
         cardsData={cardsData}
@@ -173,7 +175,7 @@ export default function TransactionsPage() {
         data={rows}
         sumCols={['qty', 'val']}
         onClickRow={row => setActiveVoucherId(row.id)}
-        act={x => (
+        act={canWrite ? (x => (
           <>
             {x.type !== 'ADJ' && (
               <button
@@ -194,7 +196,7 @@ export default function TransactionsPage() {
               <SvgIcon path={IC.trash} />
             </button>
           </>
-        )}
+        )) : null}
       />
 
       {activeTxnModalParams && (

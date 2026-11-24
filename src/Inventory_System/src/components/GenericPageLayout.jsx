@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react';
+  import React, { useState, useMemo } from 'react';
 import { SvgIcon, IC } from '../utils/helpers';
 import DataTable from './DataTable';
 import { exportData } from '../utils/excel';
+import { usePagePermission } from '../../../hooks/usePagePermission';
 
 export default function GenericPageLayout({
   title,
@@ -20,6 +21,7 @@ export default function GenericPageLayout({
   rowStyle,
   initialFilters = {}
 }) {
+  const { canWrite } = usePagePermission("Inventory (IMS)", title || "Inventory");
   const [localFilters, setLocalFilters] = useState(initialFilters);
   const [searchQuery, setSearchQuery] = useState('');
   const [fromDate, setFromDate] = useState(initialFilters.from || '');
@@ -84,7 +86,7 @@ export default function GenericPageLayout({
           <h2>{title}</h2>
           {sub && <div className="lg" style={{ marginTop: '2px' }}>{sub}</div>}
         </div>
-        <div className="btns">{buttons}</div>
+        {canWrite && <div className="btns">{buttons}</div>}
       </div>
 
       {cards && cards.length > 0 && (
@@ -176,7 +178,7 @@ export default function GenericPageLayout({
           cols={cols}
           rows={filteredRows}
           sumCols={sumCols}
-          act={act}
+          act={canWrite ? act : null}
           onClickRow={onClickRow}
           rowStyle={rowStyle}
         />

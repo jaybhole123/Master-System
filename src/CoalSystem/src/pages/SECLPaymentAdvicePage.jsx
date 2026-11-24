@@ -5,8 +5,10 @@ import SECLPaymentAdviceResults from "../components/SECLPaymentAdviceResults";
 import EditModal from "../components/EditModal";
 import { parseSECLPaymentAdvice } from "../utils/seclPaymentAdviceParser";
 import { supabase } from "../utils/supabase";
+import { usePagePermission } from "../../../hooks/usePagePermission";
 
 export default function SECLPaymentAdvicePage({ state, setState }) {
+  const { canWrite } = usePagePermission("Coal System", "SECL Payment Advice");
   const PAGE_SIZE = 50;
   const { view, loading, loadingName, error, data, fileName } = state;
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -447,8 +449,12 @@ export default function SECLPaymentAdvicePage({ state, setState }) {
             icon="📑"
           />
           <div style={{ textAlign: "center", marginTop: 20 }}>
-            <span style={{ color: "var(--muted)", marginRight: 15, fontSize: "14px" }}>Or enter data manually</span>
-            <button className="btn outline" onClick={() => setIsModalOpen(true)}>+ Add Form</button>
+            {canWrite && (
+              <>
+                <span style={{ color: "var(--muted)", marginRight: 15, fontSize: "14px" }}>Or enter data manually</span>
+                <button className="btn outline" onClick={() => setIsModalOpen(true)}>+ Add Form</button>
+              </>
+            )}
           </div>
           <div className="summary-section" style={{ marginTop: 40, opacity: 0.6, pointerEvents: "none" }}>
             <div className="summary-header">

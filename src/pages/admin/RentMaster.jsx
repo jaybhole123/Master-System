@@ -12,8 +12,10 @@ import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import supabase from '../../SupabaseClient';
 import toast from 'react-hot-toast';
+import { usePagePermission } from '../../hooks/usePagePermission';
 
 const RentMaster = () => {
+  const { canWrite } = usePagePermission("Rent Management Tracker", "Rent Master");
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -861,20 +863,22 @@ const RentMaster = () => {
               <span>Excel</span>
             </button>
 
-            <button 
-              onClick={() => {
-                setEditingId(null);
-                setDocumentFiles([]);
-                setFormData({
-                  propertyName: '', tenantName: '', tenantContact: '', ownerName: '', monthlyRent: '', securityDeposit: '', agreementStart: '', agreementEnd: '', rentDueDateStart: '', rentDueDateEnd: '', paymentMode: 'Cash', bankDetails: '', electricity: 'Exclude', maintenance: 'Exclude', remarks: '', document: []
-                });
-                setIsModalOpen(true);
-              }}
-              className="flex items-center gap-1.5 px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs shrink-0"
-            >
-              <Plus className="h-4 w-4" />
-              <span>Add Record</span>
-            </button>
+            {canWrite && (
+              <button 
+                onClick={() => {
+                  setEditingId(null);
+                  setDocumentFiles([]);
+                  setFormData({
+                    propertyName: '', tenantName: '', tenantContact: '', ownerName: '', monthlyRent: '', securityDeposit: '', agreementStart: '', agreementEnd: '', rentDueDateStart: '', rentDueDateEnd: '', paymentMode: 'Cash', bankDetails: '', electricity: 'Exclude', maintenance: 'Exclude', remarks: '', document: []
+                  });
+                  setIsModalOpen(true);
+                }}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs shrink-0"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Add Record</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -1174,37 +1178,41 @@ const RentMaster = () => {
                       )}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium action-cell">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); openRenewalModal(record); }} 
-                          title="Renew Agreement (Update End Date & Rent)" 
-                          className="p-1.5 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-100 transition-colors shadow-2xs group flex items-center gap-1 font-bold text-[11px]"
-                        >
-                          <RotateCw className="h-3.5 w-3.5" />
-                          <span className="hidden xl:inline">Renew</span>
-                        </button>
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); generateMonthlyTrackerRecords(record, true); }} 
-                          title="Generate/Sync Monthly Tracker for Entire Agreement Period" 
-                          className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors shadow-2xs group flex items-center gap-1"
-                        >
-                          <CalendarIcon className="h-3.5 w-3.5" />
-                        </button>
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); handleUpdate(record.id); }} 
-                          title="Update Profile" 
-                          className="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors shadow-2xs"
-                        >
-                          <Edit className="h-3.5 w-3.5" />
-                        </button>
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); handleDelete(record.id); }} 
-                          title="Delete Record" 
-                          className="p-1.5 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-100 transition-colors shadow-2xs"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
+                      {canWrite ? (
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); openRenewalModal(record); }} 
+                            title="Renew Agreement (Update End Date & Rent)" 
+                            className="p-1.5 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-100 transition-colors shadow-2xs group flex items-center gap-1 font-bold text-[11px]"
+                          >
+                            <RotateCw className="h-3.5 w-3.5" />
+                            <span className="hidden xl:inline">Renew</span>
+                          </button>
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); generateMonthlyTrackerRecords(record, true); }} 
+                            title="Generate/Sync Monthly Tracker for Entire Agreement Period" 
+                            className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors shadow-2xs group flex items-center gap-1"
+                          >
+                            <CalendarIcon className="h-3.5 w-3.5" />
+                          </button>
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); handleUpdate(record.id); }} 
+                            title="Update Profile" 
+                            className="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors shadow-2xs"
+                          >
+                            <Edit className="h-3.5 w-3.5" />
+                          </button>
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); handleDelete(record.id); }} 
+                            title="Delete Record" 
+                            className="p-1.5 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-100 transition-colors shadow-2xs"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-slate-400 text-xs italic">View Only</span>
+                      )}
                     </td>
                   </tr>
                 )))}

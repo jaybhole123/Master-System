@@ -225,6 +225,62 @@ const parseAccessValue = (value) => {
   return [];
 };
 
+const parsePagePermissions = (value) => {
+  if (!value) return {};
+  if (typeof value === 'object' && !Array.isArray(value)) return value;
+  if (Array.isArray(value)) {
+    const map = {};
+    value.forEach(item => {
+      if (typeof item === 'string') {
+        const parts = item.split(':');
+        if (parts.length >= 2) {
+          const action = parts[0];
+          const pageKey = parts.slice(1).join(':');
+          if (!map[pageKey]) map[pageKey] = { read: true, write: false, mis: false };
+          if (action === 'read' || action === 'r') map[pageKey].read = true;
+          if (action === 'write' || action === 'w') map[pageKey].write = true;
+          if (action === 'mis' || action === 'm') map[pageKey].mis = true;
+        } else {
+          map[item] = { read: true, write: false, mis: false };
+        }
+      }
+    });
+    return map;
+  }
+  if (typeof value === 'string') {
+    if (value.trim().startsWith('{')) {
+      try {
+        return JSON.parse(value);
+      } catch (e) {
+        return {};
+      }
+    }
+    const map = {};
+    value.split(',').forEach(raw => {
+      const item = raw.trim();
+      if (!item) return;
+      if (item.includes(':')) {
+        const parts = item.split(':');
+        const action = parts[0];
+        const pageKey = parts.slice(1).join(':');
+        if (!map[pageKey]) map[pageKey] = { read: true, write: false, mis: false };
+        if (action === 'read' || action === 'r') map[pageKey].read = true;
+        if (action === 'write' || action === 'w') map[pageKey].write = true;
+        if (action === 'mis' || action === 'm') map[pageKey].mis = true;
+      } else {
+        map[item] = { read: true, write: false, mis: false };
+      }
+    });
+    return map;
+  }
+  return {};
+};
+
+const serializePagePermissions = (permObj) => {
+  if (!permObj || typeof permObj !== 'object') return '';
+  return JSON.stringify(permObj);
+};
+
 const MODULES = [
   {
     id: 'Checklist & Delegation',
@@ -333,6 +389,7 @@ export default function GlobalSettings() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
+  const [firmFilter, setFirmFilter] = useState('all');
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [modalTab, setModalTab] = useState('profile');
@@ -350,10 +407,11 @@ export default function GlobalSettings() {
     department: '',
     designation: '',
     system_access: [],
-    page_access: []
+    page_access: {}
   });
   
   const [selectedModule, setSelectedModule] = useState('Checklist & Delegation');
+  const [permissionSearch, setPermissionSearch] = useState('');
 
   useEffect(() => {
     fetchUsers();
@@ -373,7 +431,7 @@ export default function GlobalSettings() {
       const normalizedUsers = (data || []).map((user) => ({
         ...user,
         systemAccessList: parseAccessValue(user.system_access),
-        pageAccessList: parseAccessValue(user.page_access),
+        pageAccessMap: parsePagePermissions(user.page_access),
         moduleCount: parseAccessValue(user.system_access).length,
       }));
       setUsers(normalizedUsers);
@@ -423,7 +481,7 @@ export default function GlobalSettings() {
       setEditingUser(user);
       
       let parsedSystemAccess = parseAccessValue(user.system_access);
-      let parsedPageAccess = parseAccessValue(user.page_access);
+      let parsedPageAccess = parsePagePermissions(user.page_access);
 
       setFormData({
         user_name: user.user_name || '',
@@ -459,17 +517,19 @@ export default function GlobalSettings() {
         department: '',
         designation: '',
         system_access: [],
-        page_access: [],
+        page_access: {},
         profile_image: ''
       });
     }
     setModalTab('profile');
+    setPermissionSearch('');
     setShowModal(true);
   };
 
   const handleCloseModal = () => {
     setShowModal(false);
     setEditingUser(null);
+    setPermissionSearch('');
   };
 
   const handleSaveUser = async (e) => {
@@ -482,13 +542,22 @@ export default function GlobalSettings() {
     const payload = { 
         ...formData, 
         system_access: Array.isArray(formData.system_access) ? formData.system_access.join(',') : '', 
-        page_access: Array.isArray(formData.page_access) ? formData.page_access.join(',') : ''
+        page_access: typeof formData.page_access === 'object' ? JSON.stringify(formData.page_access) : (formData.page_access || '')
     };
     
     if (editingUser) {
       const { error } = await supabase.from('users').update(payload).eq('id', editingUser.id);
       if (error) showToast(error.message, 'error');
       else {
+        // If the edited user is the currently logged-in user, immediately update local storage
+        const currentLoggedInUser = (localStorage.getItem('user-name') || '').toLowerCase();
+        if (currentLoggedInUser && (editingUser.user_name || '').toLowerCase() === currentLoggedInUser) {
+          localStorage.setItem('system_access', payload.system_access);
+          localStorage.setItem('page_access', payload.page_access);
+          localStorage.setItem('role', payload.role);
+          localStorage.setItem('designation', payload.designation || '');
+        }
+
         showToast('User updated successfully', 'success');
         handleCloseModal();
         fetchUsers();
@@ -524,7 +593,7 @@ export default function GlobalSettings() {
     setFormData((prev) => {
       const hasAccess = prev.system_access?.includes(moduleId);
       let newAccess = [];
-      let newPageAccess = [...(prev.page_access || [])];
+      let newPageAccess = { ...(prev.page_access || {}) };
 
       if (hasAccess) {
         newAccess = prev.system_access.filter((id) => id !== moduleId);
@@ -532,31 +601,111 @@ export default function GlobalSettings() {
         const modulePages = MODULES.find(m => m.id === moduleId)?.pages || [];
         modulePages.forEach(p => {
             const pageKey = `${moduleId}::${p}`;
-            newPageAccess = newPageAccess.filter(pa => pa !== pageKey);
+            delete newPageAccess[pageKey];
         });
       } else {
         newAccess = [...(prev.system_access || []), moduleId];
+        // Grant read access by default to pages
+        const modulePages = MODULES.find(m => m.id === moduleId)?.pages || [];
+        modulePages.forEach(p => {
+          const pageKey = `${moduleId}::${p}`;
+          if (!newPageAccess[pageKey]) {
+            newPageAccess[pageKey] = { read: true, write: false, mis: false };
+          }
+        });
       }
       return { ...prev, system_access: newAccess, page_access: newPageAccess };
     });
   };
 
-  const togglePageAccess = (moduleId, page) => {
+  const togglePagePermission = (moduleId, page, permissionType) => {
     const pageKey = `${moduleId}::${page}`;
     setFormData((prev) => {
-      const hasAccess = prev.page_access?.includes(pageKey);
-      let newAccess = [];
-      if (hasAccess) {
-        newAccess = prev.page_access.filter((p) => p !== pageKey);
-      } else {
-        newAccess = [...(prev.page_access || []), pageKey];
-        // Ensure module is also selected if a page is selected
-        if (!prev.system_access?.includes(moduleId)) {
-            prev.system_access = [...(prev.system_access || []), moduleId];
-        }
+      const currentMap = { ...(prev.page_access || {}) };
+      const currentPerm = currentMap[pageKey] || { read: false, write: false, mis: false };
+
+      const updatedPerm = {
+        ...currentPerm,
+        [permissionType]: !currentPerm[permissionType]
+      };
+
+      // If user enables write or mis, auto-enable read
+      if (permissionType !== 'read' && updatedPerm[permissionType]) {
+        updatedPerm.read = true;
       }
-      return { ...prev, page_access: newAccess, system_access: prev.system_access };
+      // If user unchecks read, also disable write & mis
+      if (permissionType === 'read' && !updatedPerm.read) {
+        updatedPerm.write = false;
+        updatedPerm.mis = false;
+      }
+
+      currentMap[pageKey] = updatedPerm;
+
+      let newSystemAccess = [...(prev.system_access || [])];
+      if (!newSystemAccess.includes(moduleId) && (updatedPerm.read || updatedPerm.write || updatedPerm.mis)) {
+        newSystemAccess.push(moduleId);
+      }
+
+      return {
+        ...prev,
+        page_access: currentMap,
+        system_access: newSystemAccess
+      };
     });
+  };
+
+  const handleGrantAll = (moduleId) => {
+    const modulePages = MODULES.find(m => m.id === moduleId)?.pages || [];
+    setFormData(prev => {
+      const newPageAccess = { ...(prev.page_access || {}) };
+      modulePages.forEach(p => {
+        newPageAccess[`${moduleId}::${p}`] = { read: true, write: true, mis: true };
+      });
+      return {
+        ...prev,
+        page_access: newPageAccess,
+        system_access: prev.system_access?.includes(moduleId) ? prev.system_access : [...(prev.system_access || []), moduleId]
+      };
+    });
+  };
+
+  const handleRevokeAll = (moduleId) => {
+    const modulePages = MODULES.find(m => m.id === moduleId)?.pages || [];
+    setFormData(prev => {
+      const newPageAccess = { ...(prev.page_access || {}) };
+      modulePages.forEach(p => {
+        delete newPageAccess[`${moduleId}::${p}`];
+      });
+      return {
+        ...prev,
+        page_access: newPageAccess
+      };
+    });
+  };
+
+  const handleCheckAllPages = (moduleId, type = 'read') => {
+    const modulePages = MODULES.find(m => m.id === moduleId)?.pages || [];
+    setFormData(prev => {
+      const newPageAccess = { ...(prev.page_access || {}) };
+      modulePages.forEach(p => {
+        const key = `${moduleId}::${p}`;
+        const curr = newPageAccess[key] || { read: false, write: false, mis: false };
+        newPageAccess[key] = {
+          ...curr,
+          [type]: true,
+          read: type === 'read' ? true : (curr.read || true)
+        };
+      });
+      return {
+        ...prev,
+        page_access: newPageAccess,
+        system_access: prev.system_access?.includes(moduleId) ? prev.system_access : [...(prev.system_access || []), moduleId]
+      };
+    });
+  };
+
+  const handleClearAllPages = (moduleId) => {
+    handleRevokeAll(moduleId);
   };
 
   const normalizeProfileImage = (image) => {
@@ -565,40 +714,14 @@ export default function GlobalSettings() {
   };
 
   const handleImageUpload = (e) => {
-      const file = e.target.files[0];
-      if (file) {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-              setFormData(prev => ({ ...prev, profile_image: reader.result }));
-          };
-          reader.readAsDataURL(file);
-      }
-  };
-
-  const handleCheckAllPages = (moduleId) => {
-      const modulePages = MODULES.find(m => m.id === moduleId)?.pages || [];
-      const newPages = modulePages.map(p => `${moduleId}::${p}`);
-      
-      setFormData(prev => {
-          let currentPages = [...(prev.page_access || [])];
-          currentPages = currentPages.filter(p => !p.startsWith(`${moduleId}::`));
-          return {
-              ...prev,
-              page_access: [...currentPages, ...newPages],
-              system_access: prev.system_access?.includes(moduleId) ? prev.system_access : [...(prev.system_access || []), moduleId]
-          }
-      });
-  };
-
-  const handleClearAllPages = (moduleId) => {
-    setFormData(prev => {
-        let currentPages = [...(prev.page_access || [])];
-        currentPages = currentPages.filter(p => !p.startsWith(`${moduleId}::`));
-        return {
-            ...prev,
-            page_access: currentPages
-        }
-    });
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({ ...prev, profile_image: reader.result }));
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const filteredUsers = useMemo(() => {
@@ -616,7 +739,12 @@ export default function GlobalSettings() {
         roleFilter === 'all' || 
         u.role?.toLowerCase() === roleFilter.toLowerCase();
       
-      return matchesQuery && matchesRole;
+      const userFirm = (u.designation || u.Designation || '').trim();
+      const matchesFirm = 
+        firmFilter === 'all' || 
+        userFirm.toLowerCase() === firmFilter.toLowerCase().trim();
+      
+      return matchesQuery && matchesRole && matchesFirm;
     });
 
     // Alignment / Sorting by Designation / Firm:
@@ -642,7 +770,7 @@ export default function GlobalSettings() {
       const nameB = b.user_name || '';
       return nameA.localeCompare(nameB);
     });
-  }, [users, searchTerm, roleFilter]);
+  }, [users, searchTerm, roleFilter, firmFilter]);
 
   const handleDownloadPDF = () => {
     const doc = new jsPDF();
@@ -875,6 +1003,24 @@ export default function GlobalSettings() {
                     {r === 'all' ? 'ALL ROLES' : r.toUpperCase()}
                   </button>
                 ))}
+              </div>
+
+              {/* Firm / Designation Dropdown Filter */}
+              <div className="relative shrink-0 flex items-center">
+                <Building2 size={15} className="absolute left-3 text-slate-400 pointer-events-none" />
+                <select
+                  value={firmFilter}
+                  onChange={(e) => setFirmFilter(e.target.value)}
+                  className="pl-8 pr-8 py-2 bg-white border border-slate-200/90 hover:border-slate-300 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all shadow-2xs cursor-pointer appearance-none"
+                >
+                  <option value="all">ALL FIRMS</option>
+                  {availableDesignations.map((firm) => (
+                    <option key={firm} value={firm}>
+                      {firm}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={14} className="absolute right-2.5 text-slate-400 pointer-events-none" />
               </div>
 
               {/* Action Buttons: Export + Create User */}
@@ -1528,8 +1674,31 @@ export default function GlobalSettings() {
 
               {/* Tab 2: System & Page Permissions */}
               {modalTab === 'permissions' && (
-                <div className="space-y-7">
+                <div className="space-y-6">
                   
+                  {/* Global Search Bar inside Configure User Modal */}
+                  <div className="bg-white p-3.5 rounded-2xl border border-slate-200/90 shadow-2xs">
+                    <div className="relative flex items-center">
+                      <Search size={16} className="absolute left-3.5 text-slate-400 pointer-events-none" />
+                      <input
+                        type="text"
+                        placeholder="Search modules or specific page names (e.g. 'Transport', 'Auction', 'Invoice', 'Masters')..."
+                        value={permissionSearch}
+                        onChange={(e) => setPermissionSearch(e.target.value)}
+                        className="w-full pl-10 pr-9 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all"
+                      />
+                      {permissionSearch && (
+                        <button
+                          type="button"
+                          onClick={() => setPermissionSearch('')}
+                          className="absolute right-3 p-1 text-slate-400 hover:text-slate-600 rounded-lg"
+                        >
+                          <X size={14} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
                   {/* System Module Access Grid */}
                   <div>
                     <div className="flex items-center justify-between mb-3">
@@ -1547,7 +1716,13 @@ export default function GlobalSettings() {
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {MODULES.map((mod) => {
+                      {MODULES.filter(mod => {
+                        if (!permissionSearch.trim()) return true;
+                        const query = permissionSearch.toLowerCase();
+                        const matchModule = mod.name.toLowerCase().includes(query);
+                        const matchPage = mod.pages.some(p => p.toLowerCase().includes(query));
+                        return matchModule || matchPage;
+                      }).map((mod) => {
                         const isSelected = formData.system_access?.includes(mod.id);
                         return (
                           <div 
@@ -1625,55 +1800,110 @@ export default function GlobalSettings() {
                       )}
                     </div>
 
-                    {/* Pages Checkbox Grid for Selected Module */}
+                    {/* Pages Permissions Table for Selected Module (READ, WRITE, MIS) */}
                     {formData.system_access?.includes(selectedModule) && (
                       <div className="mt-3 bg-white border border-slate-200/90 rounded-2xl overflow-hidden shadow-2xs">
-                        <div className="flex items-center justify-between p-3.5 border-b border-slate-100 bg-slate-50/80">
-                          <span className="text-xs font-black text-slate-700 uppercase tracking-wide">
-                            {selectedModule} Pages
-                          </span>
-                          <div className="flex items-center gap-2 text-xs font-black">
-                            <button 
+                        {/* Header bar matching user's reference design */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 border-b border-slate-100 bg-slate-50/80 gap-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-black text-slate-800 uppercase tracking-wide">
+                              {selectedModule} Sections
+                            </span>
+                            <span className="text-[11px] font-semibold text-slate-500">
+                              ({MODULES.find(m => m.id === selectedModule)?.pages.filter(p => formData.page_access?.[`${selectedModule}::${p}`]?.read).length || 0} of {MODULES.find(m => m.id === selectedModule)?.pages.length || 0} sections visible)
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <button
                               type="button"
-                              onClick={() => handleCheckAllPages(selectedModule)} 
-                              className="text-red-600 hover:text-red-800 hover:underline cursor-pointer"
+                              onClick={() => handleRevokeAll(selectedModule)}
+                              className="inline-flex items-center gap-1 px-3 py-1 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl transition-all cursor-pointer"
                             >
-                              Check All
+                              <Lock size={12} />
+                              <span>Revoke</span>
                             </button>
-                            <span className="text-slate-300">|</span>
-                            <button 
+                            <button
                               type="button"
-                              onClick={() => handleClearAllPages(selectedModule)} 
-                              className="text-slate-500 hover:text-slate-800 hover:underline cursor-pointer"
+                              onClick={() => handleGrantAll(selectedModule)}
+                              className="inline-flex items-center gap-1 px-3 py-1 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition-all cursor-pointer"
                             >
-                              Clear All
+                              <ShieldCheck size={12} />
+                              <span>Grant</span>
                             </button>
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 p-3.5 max-h-64 overflow-y-auto custom-sidebar-scroll">
-                          {MODULES.find(m => m.id === selectedModule)?.pages.map((page) => {
-                            const pageKey = `${selectedModule}::${page}`;
-                            const isSelected = formData.page_access?.includes(pageKey);
-                            return (
-                              <div 
-                                key={page}
-                                onClick={() => togglePageAccess(selectedModule, page)}
-                                className={`flex items-center justify-between p-2.5 rounded-xl border cursor-pointer transition-all ${
-                                  isSelected 
-                                    ? 'border-red-300 bg-red-50/50 text-red-950 font-bold' 
-                                    : 'border-slate-200 hover:border-slate-300 bg-white text-slate-700'
-                                }`}
-                              >
-                                <span className="text-xs truncate pr-1">{page}</span>
-                                <div className={`h-4.5 w-4.5 rounded border flex items-center justify-center shrink-0 ${
-                                  isSelected ? 'border-red-600 bg-red-600 text-white' : 'border-slate-300'
-                                }`}>
-                                  {isSelected && <Check size={11} strokeWidth={3} />}
-                                </div>
-                              </div>
-                            );
-                          })}
+                        {/* Interactive Table with READ, WRITE, MIS Columns */}
+                        <div className="overflow-x-auto max-h-80 custom-sidebar-scroll">
+                          <table className="w-full text-left text-xs border-collapse">
+                            <thead>
+                              <tr className="bg-slate-50/90 border-b border-slate-200 text-slate-500 uppercase tracking-wider text-[11px] font-bold sticky top-0 z-10">
+                                <th className="py-2.5 px-4">Section</th>
+                                <th className="py-2.5 px-4 text-center w-24 text-blue-600">READ</th>
+                                <th className="py-2.5 px-4 text-center w-24 text-amber-600">WRITE</th>
+                                <th className="py-2.5 px-4 text-center w-28 text-purple-600 font-black">MIS</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 font-medium">
+                              {MODULES.find(m => m.id === selectedModule)?.pages
+                                .filter(page => {
+                                  if (!permissionSearch.trim()) return true;
+                                  return page.toLowerCase().includes(permissionSearch.toLowerCase().trim());
+                                })
+                                .map((page) => {
+                                const pageKey = `${selectedModule}::${page}`;
+                                const perm = formData.page_access?.[pageKey] || { read: false, write: false, mis: false };
+
+                                return (
+                                  <tr key={page} className="hover:bg-slate-50/60 transition-colors">
+                                    <td className="py-3 px-4">
+                                      <div className="flex items-center gap-2">
+                                        <span className={`w-2 h-2 rounded-full ${perm.read ? 'bg-amber-500' : 'bg-slate-300'}`}></span>
+                                        <span className="font-bold text-slate-800 text-xs sm:text-sm">{page}</span>
+                                      </div>
+                                    </td>
+
+                                    {/* READ Column */}
+                                    <td className="py-3 px-4 text-center">
+                                      <label className="inline-flex items-center justify-center cursor-pointer">
+                                        <input
+                                          type="checkbox"
+                                          checked={!!perm.read}
+                                          onChange={() => togglePagePermission(selectedModule, page, 'read')}
+                                          className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"
+                                        />
+                                      </label>
+                                    </td>
+
+                                    {/* WRITE Column */}
+                                    <td className="py-3 px-4 text-center">
+                                      <label className="inline-flex items-center justify-center cursor-pointer">
+                                        <input
+                                          type="checkbox"
+                                          checked={!!perm.write}
+                                          onChange={() => togglePagePermission(selectedModule, page, 'write')}
+                                          className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 border-slate-300 cursor-pointer"
+                                        />
+                                      </label>
+                                    </td>
+
+                                    {/* MIS Column */}
+                                    <td className="py-3 px-4 text-center bg-purple-50/30">
+                                      <label className="inline-flex items-center justify-center cursor-pointer">
+                                        <input
+                                          type="checkbox"
+                                          checked={!!perm.mis}
+                                          onChange={() => togglePagePermission(selectedModule, page, 'mis')}
+                                          className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500 border-slate-300 cursor-pointer"
+                                        />
+                                      </label>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
                         </div>
                       </div>
                     )}

@@ -39,6 +39,414 @@ html, body { height: 100%; margin: 0; }
   -webkit-font-smoothing: antialiased;
 }
 
+/* ═══════════════════════════════════════════════════════════
+   GLOBAL READ-ONLY PERMISSION AUTO-GUARD FOR COAL SYSTEM
+   ═══════════════════════════════════════════════════════════ */
+.global-read-only-mode .results-actions .btn:not(.ghost),
+.global-read-only-mode .results-actions .btn.outline,
+.global-read-only-mode .btn:not(.ghost):not(.btn-export),
+.global-read-only-mode td[data-label="Action"] button:not([title*="View" i]):not([title*="Preview" i]),
+.global-read-only-mode button[title*="Edit" i],
+.global-read-only-mode button[title*="Delete" i],
+.global-read-only-mode button[title*="Done" i],
+.global-read-only-mode button[title*="Mark as Done" i],
+.global-read-only-mode button[title*="Upload" i],
+.global-read-only-mode input[type="file"],
+.global-read-only-mode .dropzone {
+  display: none !important;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MODERN HIGH-END COAL SYSTEM MODAL & FORM STYLING
+   ═══════════════════════════════════════════════════════════ */
+.coal-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  padding: 16px;
+  animation: coalFadeIn 0.2s ease-out;
+}
+
+@keyframes coalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes coalScaleUp {
+  from { opacity: 0; transform: scale(0.97) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.coal-modal-container {
+  background: #ffffff;
+  border-radius: 20px;
+  width: 100%;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(226, 232, 240, 0.9);
+  overflow: hidden;
+  animation: coalScaleUp 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.coal-modal-header {
+  padding: 20px 26px;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(to right, #ffffff, #fafafa);
+  position: relative;
+}
+
+.coal-modal-header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.coal-modal-icon-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(220, 38, 38, 0.12);
+}
+
+.coal-modal-tag {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #dc2626;
+  margin-bottom: 2px;
+}
+
+.coal-modal-heading {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.coal-modal-close-btn {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.coal-modal-close-btn:hover {
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #fca5a5;
+  transform: rotate(90deg);
+}
+
+.coal-modal-body {
+  padding: 24px 26px;
+  overflow-y: auto;
+  flex: 1;
+  background: #fafbfc;
+}
+
+.coal-modal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px 20px;
+}
+
+.coal-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.coal-form-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+}
+
+.coal-field-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.coal-modal-input,
+.coal-modal-select {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1.5px solid #cbd5e1;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+  background-color: #ffffff;
+  outline: none;
+  transition: all 0.18s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.coal-modal-input:focus,
+.coal-modal-select:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+  background-color: #ffffff;
+}
+
+.coal-modal-input::placeholder {
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.coal-select-btn {
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #64748b;
+  transition: all 0.15s;
+}
+
+.coal-select-btn:hover {
+  border-color: #dc2626;
+  color: #dc2626;
+}
+
+.coal-icon-action-btn {
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  width: 38px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.coal-icon-action-btn.delete-btn {
+  color: #ef4444;
+}
+.coal-icon-action-btn.delete-btn:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+}
+
+.coal-icon-action-btn.edit-btn {
+  color: #2563eb;
+}
+.coal-icon-action-btn.edit-btn:hover {
+  background: #dbeafe;
+  border-color: #bfdbfe;
+}
+
+.coal-upload-box {
+  background: #ffffff;
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 14px;
+  padding: 16px 20px;
+  transition: all 0.2s ease;
+}
+
+.coal-upload-box:hover {
+  border-color: #dc2626;
+  background: #fffafa;
+}
+
+.coal-upload-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.coal-upload-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: #fee2e2;
+  color: #dc2626;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.coal-upload-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: 0.05em;
+  display: block;
+}
+
+.coal-upload-subtitle {
+  font-size: 11px;
+  color: #64748b;
+  margin: 2px 0 0 0;
+  font-weight: 500;
+}
+
+.coal-file-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.coal-file-browse-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.15);
+}
+
+.coal-file-browse-btn:hover {
+  background: #1e293b;
+  transform: translateY(-1px);
+}
+
+.coal-file-selected-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.coal-file-preview-card {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+.coal-preview-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #16a34a;
+}
+
+.coal-preview-action-btn {
+  font-size: 12px;
+  font-weight: 700;
+  color: #dc2626;
+  text-decoration: none;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  transition: all 0.15s;
+}
+
+.coal-preview-action-btn:hover {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.coal-modal-footer {
+  padding: 16px 26px;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  background: #ffffff;
+}
+
+.coal-btn-cancel {
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: 1.5px solid #cbd5e1;
+  background: #ffffff;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.coal-btn-cancel:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.coal-btn-save {
+  padding: 10px 24px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.28);
+  transition: all 0.18s ease;
+}
+
+.coal-btn-save:hover {
+  background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+  box-shadow: 0 6px 18px rgba(220, 38, 38, 0.35);
+  transform: translateY(-1px);
+}
+
+.coal-btn-save:active {
+  transform: translateY(0);
+}
+
 /* ═══════════════════════════════════════════════
    APP LAYOUT SHELL
 ═══════════════════════════════════════════════ */

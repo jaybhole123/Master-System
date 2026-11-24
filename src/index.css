@@ -58,6 +58,65 @@
     will-change: transform;
 }
 
+/* ═══════════════════════════════════════════════════════════
+   GLOBAL READ-ONLY PERMISSION AUTO-GUARD
+   Disables Edit/Delete/Add/Upload/Done buttons across all module pages automatically
+   when the user only has READ permission.
+   ═══════════════════════════════════════════════════════════ */
+/* 1. Edit, Delete & Remove Actions */
+.global-read-only-mode button[title*="Edit" i],
+.global-read-only-mode button[title*="Delete" i],
+.global-read-only-mode button[title*="Remove" i],
+.global-read-only-mode button[aria-label*="Edit" i],
+.global-read-only-mode button[aria-label*="Delete" i],
+.global-read-only-mode button.delete-btn,
+.global-read-only-mode button.edit-btn,
+.global-read-only-mode button:has(.lucide-trash-2),
+.global-read-only-mode button:has(.lucide-trash),
+.global-read-only-mode button:has(.lucide-edit),
+.global-read-only-mode button:has(.lucide-edit-2),
+.global-read-only-mode button:has(.lucide-pencil) {
+    display: none !important;
+}
+
+/* 2. Top + Add / Form / Create Buttons */
+.global-read-only-mode button:has(.lucide-plus):not(.allow-read-only),
+.global-read-only-mode button:has(.lucide-circle-plus):not(.allow-read-only),
+.global-read-only-mode button[title*="Add" i]:not(.allow-read-only),
+.global-read-only-mode button[title*="Create" i]:not(.allow-read-only),
+.global-read-only-mode button.add-btn,
+.global-read-only-mode .results-actions .btn.outline,
+.global-read-only-mode .results-actions button:not(.ghost),
+.global-read-only-mode .ims-system-container .bar .btns button.b1,
+.global-read-only-mode .ims-system-container .act button:not([title*="View" i]),
+.global-read-only-mode .ims-system-container button.dg {
+    display: none !important;
+}
+
+/* 3. Upload & File Import Actions */
+.global-read-only-mode button[title*="Upload" i],
+.global-read-only-mode button:has(.lucide-upload),
+.global-read-only-mode button:has(.lucide-file-up),
+.global-read-only-mode .dropzone,
+.global-read-only-mode input[type="file"] {
+    display: none !important;
+}
+
+/* 4. Action Column: "Done", "Mark Done", "Submit", "Approve", "Paid" */
+.global-read-only-mode button[title*="Mark as Done" i],
+.global-read-only-mode button[title*="Done" i],
+.global-read-only-mode button[title*="Approve" i],
+.global-read-only-mode button[title*="Reject" i],
+.global-read-only-mode button[title*="Paid" i],
+.global-read-only-mode button.action-done,
+.global-read-only-mode button:has(.lucide-check):not(.allow-read-only),
+.global-read-only-mode td[data-label="Action"] button:not([title*="View" i]):not([title*="Preview" i]) {
+    display: none !important;
+}
+
+
+
+
 /* Ensure smooth scrolling */
 .h-\[calc\(100vh-250px\)\]::-webkit-scrollbar {
     width: 8px;

@@ -7,6 +7,7 @@ import Select from 'react-select';
 import VehicleProfileModal from '../components/VehicleProfileModal';
 import './PurchaseTruck.css';
 import supabase from '../../../SupabaseClient';
+import { usePagePermission } from '../../../hooks/usePagePermission';
 
 const idOf = v => String(v || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 const inr = n => "₹" + Number(n || 0).toLocaleString("en-IN");
@@ -28,6 +29,7 @@ function fstat(r) {
 const cls = s => ["ACTIVE", "PAID"].includes(s) ? "ACTIVE" : ["EXPIRED", "BLOCKED"].includes(s) ? "EXPIRED" : "DUE";
 
 export default function ChallanSystem() {
+  const { canWrite } = usePagePermission("Transport Reporting", "Challan");
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   
@@ -465,11 +467,17 @@ export default function ChallanSystem() {
                     <td data-label="FASTag">{f ? <span className="lk" onClick={() => navigate('/transport-system/fastag?vno='+t.vno)}>{inr(f.balance)}</span> : "—"}</td>
                     <td data-label="Remarks">{t.remarks}</td>
                     <td data-label="Action">
-                      {getStatus(t) !== 'PAID' && (
-                        <button className="btn s ok" style={{ marginRight: '5px', background: '#22c55e', color: '#fff', border: 'none' }} onClick={() => handleMarkPaid(t.id)}>Paid</button>
+                      {canWrite ? (
+                        <>
+                          {getStatus(t) !== 'PAID' && (
+                            <button className="btn s ok" style={{ marginRight: '5px', background: '#22c55e', color: '#fff', border: 'none' }} onClick={() => handleMarkPaid(t.id)}>Paid</button>
+                          )}
+                          <button className="btn s" onClick={() => { setFormData(t); setIsModalOpen(true); }}>Edit</button>{' '}
+                          <button className="btn s d" onClick={() => handleDelete(t.id)}>Delete</button>
+                        </>
+                      ) : (
+                        <span className="text-gray-400 text-xs italic">View Only</span>
                       )}
-                      <button className="btn s" onClick={() => { setFormData(t); setIsModalOpen(true); }}>Edit</button>{' '}
-                      <button className="btn s d" onClick={() => handleDelete(t.id)}>Delete</button>
                     </td>
                   </tr>
                 );

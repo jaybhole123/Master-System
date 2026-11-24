@@ -101,7 +101,10 @@ const LoginPage = () => {
         localStorage.setItem('can_self_assign', freshUser.can_self_assign === true ? "true" : "false");
         localStorage.setItem('designation', designation);
         localStorage.setItem('system_access', Array.isArray(freshUser.system_access) ? freshUser.system_access.join(',') : (freshUser.system_access || ""));
-        localStorage.setItem('page_access', Array.isArray(freshUser.page_access) ? freshUser.page_access.join(',') : (freshUser.page_access || ""));
+        const pageAccessVal = typeof freshUser.page_access === 'object' && freshUser.page_access !== null
+          ? JSON.stringify(freshUser.page_access)
+          : (freshUser.page_access || "");
+        localStorage.setItem('page_access', pageAccessVal);
 
         showToast(`Welcome back, ${uname}!`, "success");
         

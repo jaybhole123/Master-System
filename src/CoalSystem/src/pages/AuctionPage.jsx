@@ -2,8 +2,10 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import { supabase } from "../utils/supabase";
 import "../App.css";
 import { extractAuctionNoticeFromPdf, extractAuctionNoticeFromImage } from "../utils/auctionNoticeOcr";
+import { usePagePermission } from "../../../hooks/usePagePermission";
 
 export default function AuctionPage() {
+  const { canWrite } = usePagePermission("Coal System", "Auction");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -956,34 +958,39 @@ export default function AuctionPage() {
                       </td>
                       <td data-label="ACTION" style={{ textAlign: "center", padding: "12px 14px", whiteSpace: "nowrap" }}>
                         <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                          <button
-                            style={{
-                              cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "4px",
-                              padding: "5px 10px", fontSize: "11px", fontWeight: "700", borderRadius: "6px",
-                              border: "1px solid #cbd5e1", background: "#ffffff", color: "#0f172a", transition: "all 0.15s"
-                            }}
-                            onMouseOver={(e) => { e.currentTarget.style.background = "#f1f5f9"; }}
-                            onMouseOut={(e) => { e.currentTarget.style.background = "#ffffff"; }}
-                            onClick={() => handleEditClick(row)}
-                            title="Update Auction Record"
-                          >
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                            Update
-                          </button>
-                          <button
-                            style={{
-                              cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "4px",
-                              padding: "5px 10px", fontSize: "11px", fontWeight: "700", borderRadius: "6px",
-                              border: "1px solid #fee2e2", background: "#fef2f2", color: "#ef4444", transition: "all 0.15s"
-                            }}
-                            onMouseOver={(e) => { e.currentTarget.style.background = "#ef4444"; e.currentTarget.style.color = "white"; }}
-                            onMouseOut={(e) => { e.currentTarget.style.background = "#fef2f2"; e.currentTarget.style.color = "#ef4444"; }}
-                            onClick={() => handleDeleteClick(row)}
-                            title="Delete Auction Record"
-                          >
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                            Delete
-                          </button>
+                          {canWrite && (
+                            <button
+                              style={{
+                                cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "4px",
+                                padding: "5px 10px", fontSize: "11px", fontWeight: "700", borderRadius: "6px",
+                                border: "1px solid #cbd5e1", background: "#ffffff", color: "#0f172a", transition: "all 0.15s"
+                              }}
+                              onMouseOver={(e) => { e.currentTarget.style.background = "#f1f5f9"; }}
+                              onMouseOut={(e) => { e.currentTarget.style.background = "#ffffff"; }}
+                              onClick={() => handleEditClick(row)}
+                              title="Update Auction Record"
+                            >
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                              Update
+                            </button>
+                          )}
+                          {canWrite && (
+                            <button
+                              style={{
+                                cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "4px",
+                                padding: "5px 10px", fontSize: "11px", fontWeight: "700", borderRadius: "6px",
+                                border: "1px solid #fee2e2", background: "#fef2f2", color: "#ef4444", transition: "all 0.15s"
+                              }}
+                              onMouseOver={(e) => { e.currentTarget.style.background = "#ef4444"; e.currentTarget.style.color = "white"; }}
+                              onMouseOut={(e) => { e.currentTarget.style.background = "#fef2f2"; e.currentTarget.style.color = "#ef4444"; }}
+                              onClick={() => handleDeleteClick(row)}
+                              title="Delete Auction Record"
+                            >
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                              Delete
+                            </button>
+                          )}
+                          {!canWrite && <span style={{ color: "#94a3b8", fontSize: "11px", fontWeight: "600" }}>View Only</span>}
                         </div>
                       </td>
                     </tr>
@@ -1082,26 +1089,30 @@ export default function AuctionPage() {
 
                 {/* Footer action buttons */}
                 <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", paddingTop: "10px", borderTop: "1px solid #f1f5f9" }}>
-                  <button
-                    onClick={() => handleEditClick(row)}
-                    style={{
-                      flex: 1, cursor: "pointer", display: "inline-flex", justifyContent: "center", alignItems: "center", gap: "4px",
-                      padding: "8px 12px", fontSize: "12px", fontWeight: "700", borderRadius: "6px",
-                      border: "1px solid #cbd5e1", background: "#ffffff", color: "#0f172a"
-                    }}
-                  >
-                    ✏️ Update
-                  </button>
-                  <button
-                    onClick={() => handleDeleteClick(row)}
-                    style={{
-                      flex: 1, cursor: "pointer", display: "inline-flex", justifyContent: "center", alignItems: "center", gap: "4px",
-                      padding: "8px 12px", fontSize: "12px", fontWeight: "700", borderRadius: "6px",
-                      border: "1px solid #fee2e2", background: "#fef2f2", color: "#ef4444"
-                    }}
-                  >
-                    🗑️ Delete
-                  </button>
+                  {canWrite && (
+                    <button
+                      onClick={() => handleEditClick(row)}
+                      style={{
+                        flex: 1, cursor: "pointer", display: "inline-flex", justifyContent: "center", alignItems: "center", gap: "4px",
+                        padding: "8px 12px", fontSize: "12px", fontWeight: "700", borderRadius: "6px",
+                        border: "1px solid #cbd5e1", background: "#ffffff", color: "#0f172a"
+                      }}
+                    >
+                      ✏️ Update
+                    </button>
+                  )}
+                  {canWrite && (
+                    <button
+                      onClick={() => handleDeleteClick(row)}
+                      style={{
+                        flex: 1, cursor: "pointer", display: "inline-flex", justifyContent: "center", alignItems: "center", gap: "4px",
+                        padding: "8px 12px", fontSize: "12px", fontWeight: "700", borderRadius: "6px",
+                        border: "1px solid #fee2e2", background: "#fef2f2", color: "#ef4444"
+                      }}
+                    >
+                      🗑️ Delete
+                    </button>
+                  )}
                 </div>
               </div>
             ))
@@ -1946,22 +1957,26 @@ export default function AuctionPage() {
                 )}
               </div>
               <div style={{ display: "flex", gap: "10px" }}>
-                <button 
-                  className="btn" 
-                  style={{ background: "white", color: "#0f172a", border: "1px solid #cbd5e1", borderRadius: "8px", fontWeight: "700", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
-                  onClick={() => handleEditClick(viewData)}
-                >
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                  Edit
-                </button>
-                <button 
-                  className="btn" 
-                  style={{ background: "#fee2e2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: "8px", fontWeight: "700", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
-                  onClick={() => handleDelete(viewData.id)}
-                >
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                  Delete
-                </button>
+                {canWrite && (
+                  <button 
+                    className="btn" 
+                    style={{ background: "white", color: "#0f172a", border: "1px solid #cbd5e1", borderRadius: "8px", fontWeight: "700", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+                    onClick={() => handleEditClick(viewData)}
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                    Edit
+                  </button>
+                )}
+                {canWrite && (
+                  <button 
+                    className="btn" 
+                    style={{ background: "#fee2e2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: "8px", fontWeight: "700", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+                    onClick={() => handleDelete(viewData.id)}
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    Delete
+                  </button>
+                )}
               </div>
             </div>
           </div>

@@ -641,3 +641,17 @@
 
 }
 
+/* ═══════════════════════════════════════════════════════════
+   GLOBAL READ-ONLY PERMISSION AUTO-GUARD FOR IMS
+   ═══════════════════════════════════════════════════════════ */
+.global-read-only-mode .ims-system-container .bar .btns button.b1,
+.global-read-only-mode .ims-system-container .bar .btns button:not(.b2),
+.global-read-only-mode .ims-system-container .act button:not([title*="View" i]):not(.vwb),
+.global-read-only-mode .ims-system-container button.dg,
+.global-read-only-mode .ims-system-container td.no.r .act,
+.global-read-only-mode .ims-system-container button[title*="Edit" i],
+.global-read-only-mode .ims-system-container button[title*="Delete" i] {
+  display: none !important;
+}
+
+

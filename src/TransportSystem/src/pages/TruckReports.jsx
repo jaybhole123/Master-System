@@ -5,6 +5,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import Select, { components } from 'react-select';
+import { usePagePermission } from '../../../hooks/usePagePermission';
 import { 
   Truck, Banknote, Fuel, Route, Search, Plus, Download, FileSpreadsheet, 
   Calendar, RotateCcw, Edit2, Trash2, X, ArrowRight, Shield, Sparkles, Filter,
@@ -14,6 +15,7 @@ import {
 import './TruckReports.css';
 
 export default function TruckReports() {
+  const { canWrite } = usePagePermission("Transport Reporting", "Truck Reports");
   const [searchTerm, setSearchTerm] = useState('');
   const [filterMonth, setFilterMonth] = useState('');
   const [fromDate, setFromDate] = useState('');
@@ -711,6 +713,7 @@ export default function TruckReports() {
     let tripCountSum = 0;
     let dispWtSum = 0;
     let recWtSum = 0;
+    let freightRateSum = 0;
     let dieselSum = 0;
     let minesExpSum = 0;
     let biltyExpSum = 0;
@@ -725,6 +728,7 @@ export default function TruckReports() {
       tripCountSum += Number(row.totalTrips) || 1;
       dispWtSum += parseFloat(row.tonnage) || 0;
       recWtSum += parseFloat(row.recWeight) || 0;
+      freightRateSum += parseFloat(row.perMT) || 0;
       
       const dL = parseFloat(String(row.diesel || '').replace(/[^0-9.]/g, '')) || 0;
       dieselSum += dL;
@@ -752,6 +756,7 @@ export default function TruckReports() {
       tripCountSum,
       dispWtSum: Math.round(dispWtSum * 100) / 100,
       recWtSum: Math.round(recWtSum * 100) / 100,
+      freightRateSum: Math.round(freightRateSum),
       dieselSum: Math.round(dieselSum),
       minesExpSum: Math.round(minesExpSum),
       biltyExpSum: Math.round(biltyExpSum),
@@ -1960,65 +1965,69 @@ export default function TruckReports() {
             <span>Excel</span>
           </button>
 
-          <button 
-            onClick={() => {
-              setBulkFile(null);
-              setBulkParsedData([]);
-              setIsBulkModalOpen(true);
-            }}
-            className="bg-white/15 hover:bg-white/25 text-white backdrop-blur-md border border-white/20 px-3.5 py-2 rounded-xl font-bold text-xs sm:text-sm shadow-sm transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
-            title="Bulk Upload Excel/CSV"
-          >
-            <Upload size={15} /> 
-            <span>Bulk Upload</span>
-          </button>
+          {canWrite && (
+            <>
+              <button 
+                onClick={() => {
+                  setBulkFile(null);
+                  setBulkParsedData([]);
+                  setIsBulkModalOpen(true);
+                }}
+                className="bg-white/15 hover:bg-white/25 text-white backdrop-blur-md border border-white/20 px-3.5 py-2 rounded-xl font-bold text-xs sm:text-sm shadow-sm transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
+                title="Bulk Upload Excel/CSV"
+              >
+                <Upload size={15} /> 
+                <span>Bulk Upload</span>
+              </button>
 
-          <button 
-            onClick={() => {
-              const todayStr = new Date().toISOString().split('T')[0];
-              const now = new Date();
-              const hh = String(now.getHours()).padStart(2, '0');
-              const mm = String(now.getMinutes()).padStart(2, '0');
-              setEditingId(null);
-              setFormData({
-                date: todayStr,
-                vehicleNo: '',
-                from: '',
-                to: '',
-                distance: '',
-                partyName: '',
-                doPartyName: '',
-                receivedParty: '',
-                driverName: '',
-                diesel: '',
-                dieselPrice: '',
-                advance: '',
-                doNo: '',
-                totalTrips: '1',
-                vehicleBalance: '',
-                perMT: '',
-                tonnage: '',
-                recWeight: '',
-                minesExp: '',
-                biltyExp: '',
-                fastagExp: '',
-                shortageAmount: '',
-                totalExpenses: '',
-                totalFreight: '',
-                departureTime: `${todayStr}T${hh}:${mm}`,
-                arrivalTime: '',
-                unloadingTime: '',
-                turnaroundHours: '',
-                turnaroundDays: '',
-                tatStatus: 'In Transit'
-              });
-              setIsModalOpen(true);
-            }}
-            className="bg-white hover:bg-red-50 text-red-700 px-4 py-2 rounded-xl font-black text-xs sm:text-sm shadow-md hover:shadow-lg transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
-          >
-            <Plus size={16} /> 
-            <span>Add New Trip</span>
-          </button>
+              <button 
+                onClick={() => {
+                  const todayStr = new Date().toISOString().split('T')[0];
+                  const now = new Date();
+                  const hh = String(now.getHours()).padStart(2, '0');
+                  const mm = String(now.getMinutes()).padStart(2, '0');
+                  setEditingId(null);
+                  setFormData({
+                    date: todayStr,
+                    vehicleNo: '',
+                    from: '',
+                    to: '',
+                    distance: '',
+                    partyName: '',
+                    doPartyName: '',
+                    receivedParty: '',
+                    driverName: '',
+                    diesel: '',
+                    dieselPrice: '',
+                    advance: '',
+                    doNo: '',
+                    totalTrips: '1',
+                    vehicleBalance: '',
+                    perMT: '',
+                    tonnage: '',
+                    recWeight: '',
+                    minesExp: '',
+                    biltyExp: '',
+                    fastagExp: '',
+                    shortageAmount: '',
+                    totalExpenses: '',
+                    totalFreight: '',
+                    departureTime: `${todayStr}T${hh}:${mm}`,
+                    arrivalTime: '',
+                    unloadingTime: '',
+                    turnaroundHours: '',
+                    turnaroundDays: '',
+                    tatStatus: 'In Transit'
+                  });
+                  setIsModalOpen(true);
+                }}
+                className="bg-white hover:bg-red-50 text-red-700 px-4 py-2 rounded-xl font-black text-xs sm:text-sm shadow-md hover:shadow-lg transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
+              >
+                <Plus size={16} /> 
+                <span>Add New Trip</span>
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -2211,7 +2220,7 @@ export default function TruckReports() {
             )}
 
             {/* Bulk Delete Button when items selected */}
-            {selectedIds.length > 0 && (
+            {canWrite && selectedIds.length > 0 && (
               <button
                 type="button"
                 onClick={handleBulkDelete}
@@ -2454,22 +2463,26 @@ export default function TruckReports() {
                         </span>
                       </td>
                       <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                        <div className="inline-flex items-center gap-1.5">
-                          <button 
-                            onClick={() => handleEditReport(row)}
-                            className="p-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white transition-colors cursor-pointer"
-                            title="Edit trip report"
-                          >
-                            <Edit2 size={14} />
-                          </button>
-                          <button 
-                            onClick={() => handleDeleteReport(row.sNo)}
-                            className="p-1.5 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-600 hover:text-white transition-colors cursor-pointer"
-                            title="Delete trip report"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
+                        {canWrite ? (
+                          <div className="inline-flex items-center gap-1.5">
+                            <button 
+                              onClick={() => handleEditReport(row)}
+                              className="p-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white transition-colors cursor-pointer"
+                              title="Edit trip report"
+                            >
+                              <Edit2 size={14} />
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteReport(row.sNo)}
+                              className="p-1.5 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-600 hover:text-white transition-colors cursor-pointer"
+                              title="Delete trip report"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-slate-400 text-xs italic">View Only</span>
+                        )}
                       </td>
                     </tr>
                   );
@@ -2503,7 +2516,9 @@ export default function TruckReports() {
                   <td className="py-3 px-3.5 text-right text-cyan-700 bg-white whitespace-nowrap font-bold">
                     {tableSubtotals.recWtSum > 0 ? `${tableSubtotals.recWtSum.toFixed(2)} MT` : '—'}
                   </td>
-                  <td className="py-3 px-3.5 text-center text-slate-300 bg-white">—</td>
+                  <td className="py-3 px-3.5 text-right text-slate-800 bg-white whitespace-nowrap font-bold">
+                    ₹{tableSubtotals.freightRateSum.toLocaleString('en-IN')}
+                  </td>
                   <td className="py-3 px-3.5 text-center text-slate-300 bg-white">—</td>
                   <td className="py-3 px-3.5 text-center text-slate-300 bg-white">—</td>
                   <td className="py-3 px-3.5 text-center text-slate-300 bg-white">—</td>
@@ -2581,22 +2596,24 @@ export default function TruckReports() {
                   </div>
 
                   {/* Actions: Edit & Delete */}
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <button 
-                      onClick={() => handleEditReport(row)}
-                      className="p-2 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white transition-colors cursor-pointer"
-                      title="Edit trip report"
-                    >
-                      <Edit2 size={14} />
-                    </button>
-                    <button 
-                      onClick={() => handleDeleteReport(row.sNo)}
-                      className="p-2 rounded-xl bg-rose-50 text-rose-700 hover:bg-rose-600 hover:text-white transition-colors cursor-pointer"
-                      title="Delete trip report"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
+                  {canWrite && (
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button 
+                        onClick={() => handleEditReport(row)}
+                        className="p-2 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white transition-colors cursor-pointer"
+                        title="Edit trip report"
+                      >
+                        <Edit2 size={14} />
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteReport(row.sNo)}
+                        className="p-2 rounded-xl bg-rose-50 text-rose-700 hover:bg-rose-600 hover:text-white transition-colors cursor-pointer"
+                        title="Delete trip report"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Date & Route Container */}
@@ -3273,101 +3290,6 @@ export default function TruckReports() {
                   />
                 </div>
 
-              </div>
-
-              {/* ═══════════════════════════════════════════════════════════
-                  TRUCK TURNAROUND TIME (TAT) TRACKING SECTION
-              ═══════════════════════════════════════════════════════════ */}
-              <div className="mt-4 p-4 sm:p-5 bg-gradient-to-br from-indigo-50/70 via-white to-blue-50/60 rounded-2xl border border-indigo-200/80 shadow-2xs space-y-3.5">
-                <div className="flex items-center justify-between pb-2 border-b border-indigo-100">
-                  <div className="flex items-center gap-2">
-                    <div className="h-7 w-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center">
-                      <Timer size={16} />
-                    </div>
-                    <div>
-                      <h4 className="text-xs sm:text-sm font-black text-indigo-950 uppercase tracking-wide">
-                        Truck Turnaround Time (TAT) Journey Tracking
-                      </h4>
-                      <p className="text-[10px] text-slate-500 font-medium">
-                        Departure ➔ Arrival ➔ Unloading Completion • Auto Duration Calculation
-                      </p>
-                    </div>
-                  </div>
-                  {formData.turnaroundHours ? (
-                    <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black border border-emerald-300 flex items-center gap-1 shadow-2xs">
-                      <CheckCircle2 size={13} />
-                      {formData.turnaroundHours} hrs ({formData.turnaroundDays} d)
-                    </span>
-                  ) : formData.departureTime ? (
-                    <span className="px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-bold border border-amber-300 flex items-center gap-1">
-                      <Clock size={13} />
-                      In Transit
-                    </span>
-                  ) : null}
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-                  {/* Departure Time */}
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-700 uppercase flex items-center gap-1">
-                      <PlayCircle size={13} className="text-blue-600" />
-                      <span>Departure Time</span>
-                    </label>
-                    <input 
-                      type="datetime-local" 
-                      name="departureTime" 
-                      value={formData.departureTime} 
-                      onChange={handleInputChange} 
-                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none shadow-2xs"
-                    />
-                  </div>
-
-                  {/* Arrival Time */}
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-700 uppercase flex items-center gap-1">
-                      <Clock size={13} className="text-amber-600" />
-                      <span>Arrival Time</span>
-                    </label>
-                    <input 
-                      type="datetime-local" 
-                      name="arrivalTime" 
-                      value={formData.arrivalTime} 
-                      onChange={handleInputChange} 
-                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none shadow-2xs"
-                    />
-                  </div>
-
-                  {/* Unloading Time */}
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-700 uppercase flex items-center gap-1">
-                      <StopCircle size={13} className="text-emerald-600" />
-                      <span>Unloading Completion</span>
-                    </label>
-                    <input 
-                      type="datetime-local" 
-                      name="unloadingTime" 
-                      value={formData.unloadingTime} 
-                      onChange={handleInputChange} 
-                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none shadow-2xs"
-                    />
-                  </div>
-                </div>
-
-                {/* Auto Calculated TAT Display */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                  <div className="bg-white/80 p-3 rounded-xl border border-indigo-100 flex items-center justify-between">
-                    <span className="text-xs font-bold text-indigo-900 uppercase">Turnaround Time (Hours)</span>
-                    <span className="font-mono font-black text-indigo-700 text-sm">
-                      {formData.turnaroundHours ? `${formData.turnaroundHours} Hours` : '— (Auto)'}
-                    </span>
-                  </div>
-                  <div className="bg-white/80 p-3 rounded-xl border border-indigo-100 flex items-center justify-between">
-                    <span className="text-xs font-bold text-indigo-900 uppercase">Turnaround Duration (Days)</span>
-                    <span className="font-mono font-black text-indigo-700 text-sm">
-                      {formData.turnaroundDays ? `${formData.turnaroundDays} Days` : '— (Auto)'}
-                    </span>
-                  </div>
-                </div>
               </div>
 
               {/* Modal Footer */}

@@ -1,41 +1,49 @@
 import { useState, useEffect } from "react";
+import { supabase } from "../utils/supabase";
 
-const DropdownField = ({ value, onChange, isDate, type, styles, options, disabled, isAddMode, colName }) => {
+const DropdownField = ({ value, onChange, isDate, type, options, disabled, isAddMode, colName }) => {
   const [isInput, setIsInput] = useState(false);
 
   if (isDate) {
     return (
-      <input
-        type="date"
-        value={value || ""}
-        onChange={(e) => onChange(e.target.value)}
-        style={{ ...styles.input, backgroundColor: disabled ? "#f1f5f9" : "var(--panel)" }}
-        disabled={disabled}
-      />
+      <div className="coal-field-wrapper">
+        <input
+          type="date"
+          value={value || ""}
+          onChange={(e) => onChange(e.target.value)}
+          className="coal-modal-input"
+          style={{ backgroundColor: disabled ? "#f8fafc" : "#ffffff" }}
+          disabled={disabled}
+        />
+      </div>
     );
   }
 
   if (type !== "select") {
     return (
-      <input
-        type={type || "text"}
-        value={value || ""}
-        onChange={(e) => onChange(e.target.value)}
-        style={{ ...styles.input, width: "100%", backgroundColor: disabled ? "#f1f5f9" : "var(--panel)" }}
-        placeholder={`Enter ${colName || "value"}...`}
-        disabled={disabled}
-      />
+      <div className="coal-field-wrapper">
+        <input
+          type={type || "text"}
+          value={value || ""}
+          onChange={(e) => onChange(e.target.value)}
+          className="coal-modal-input"
+          style={{ backgroundColor: disabled ? "#f8fafc" : "#ffffff" }}
+          placeholder={`Enter ${colName || "value"}...`}
+          disabled={disabled}
+        />
+      </div>
     );
   }
 
   if (isInput) {
     return (
-      <div style={{ display: "flex", gap: "8px" }}>
+      <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
         <input
           type="text"
           value={value || ""}
           onChange={(e) => onChange(e.target.value)}
-          style={{ ...styles.input, flex: 1, backgroundColor: disabled ? "#f1f5f9" : "var(--panel)" }}
+          className="coal-modal-input"
+          style={{ flex: 1, backgroundColor: disabled ? "#f8fafc" : "#ffffff" }}
           autoFocus
           placeholder="Enter custom value..."
           disabled={disabled}
@@ -43,18 +51,10 @@ const DropdownField = ({ value, onChange, isDate, type, styles, options, disable
         <button
           type="button"
           onClick={() => setIsInput(false)}
-          style={{
-            background: "var(--panel)",
-            border: "1px solid var(--line)",
-            borderRadius: "4px",
-            padding: "0 12px",
-            cursor: "pointer",
-            color: "var(--text)",
-            fontWeight: "bold"
-          }}
-          title="Select from list"
+          className="coal-select-btn"
+          title="Select from dropdown list"
         >
-          ▼
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
         </button>
       </div>
     );
@@ -72,10 +72,11 @@ const DropdownField = ({ value, onChange, isDate, type, styles, options, disable
             onChange(e.target.value);
           }
         }}
-        style={{ ...styles.input, flex: 1, backgroundColor: disabled ? "#f1f5f9" : "var(--panel)" }}
+        className="coal-modal-select"
+        style={{ flex: 1, backgroundColor: disabled ? "#f8fafc" : "#ffffff" }}
         disabled={disabled}
       >
-        <option value="" disabled>Select option...</option>
+        <option value="" disabled>Select {colName || "option"}...</option>
         {options && options.map((opt, i) => {
           if (typeof opt === 'object' && opt !== null) {
             return <option key={i} value={opt.value}>{opt.label}</option>;
@@ -83,54 +84,32 @@ const DropdownField = ({ value, onChange, isDate, type, styles, options, disable
           return <option key={i} value={opt}>{opt}</option>;
         })}
         {value && (!options || !options.some(o => typeof o === 'object' ? o.value === value : o === value)) && <option value={value}>{value}</option>}
-        <option value="__ADD_NEW__" style={{ fontWeight: "bold", color: "#2563eb" }}>+ Add New</option>
+        <option value="__ADD_NEW__" style={{ fontWeight: "700", color: "#dc2626" }}>+ Add New Entry</option>
       </select>
       
       {value && (
-        <div style={{ display: "flex", gap: "4px" }}>
+        <div style={{ display: "flex", gap: "6px" }}>
           <button
             type="button"
             onClick={() => onChange("")}
-            style={{
-              background: "none",
-              border: "1px solid var(--line)",
-              borderRadius: "4px",
-              padding: "8px 10px",
-              cursor: "pointer",
-              color: "#dc2626",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center"
-            }}
+            className="coal-icon-action-btn delete-btn"
             title="Clear selection"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
           </button>
           <button
             type="button"
             onClick={() => setIsInput(true)}
-            style={{
-              background: "none",
-              border: "1px solid var(--line)",
-              borderRadius: "4px",
-              padding: "8px 10px",
-              cursor: "pointer",
-              color: "var(--muted)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center"
-            }}
-            title="Edit selected value"
+            className="coal-icon-action-btn edit-btn"
+            title="Edit value as text"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
           </button>
         </div>
       )}
     </div>
   );
 };
-
-import { supabase } from "../utils/supabase";
 
 export default function EditModal({ isOpen, onClose, onSave, onFieldChange, title = "Edit Record", columns, initialData, showPdfUpload = true, tableName, customContent, maxWidth }) {
   const [formData, setFormData] = useState({});
@@ -164,7 +143,6 @@ export default function EditModal({ isOpen, onClose, onSave, onFieldChange, titl
           columns.forEach(col => {
             const fieldKey = col.key || col.label;
             const dbFieldKey = col.dbKey || fieldKey;
-            // Get unique, non-null/empty values
             const uniqueVals = [...new Set(data.map(item => item[dbFieldKey]).filter(val => val !== null && val !== "" && val !== undefined))];
             newOptionsMap[fieldKey] = uniqueVals;
           });
@@ -195,7 +173,6 @@ export default function EditModal({ isOpen, onClose, onSave, onFieldChange, titl
     if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
     const d = new Date(val);
     if (!isNaN(d.getTime())) {
-      // Offset timezone to avoid date shifting
       const tzOffset = d.getTimezoneOffset() * 60000;
       return new Date(d.getTime() - tzOffset).toISOString().split('T')[0];
     }
@@ -206,16 +183,38 @@ export default function EditModal({ isOpen, onClose, onSave, onFieldChange, titl
     onSave(formData);
   };
 
+  const isEditMode = initialData && Object.keys(initialData).length > 0;
+
   return (
-    <div className="modal-overlay" style={styles.overlay}>
-      <div className="modal-content" style={{ ...styles.content, maxWidth: maxWidth || "800px" }}>
-        <div style={styles.header}>
-          <h2 style={styles.title}>{title}</h2>
-          <button style={styles.closeBtn} onClick={onClose}>&times;</button>
+    <div className="coal-modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="coal-modal-container" style={{ maxWidth: maxWidth || "860px" }}>
+        
+        {/* Modal Header */}
+        <div className="coal-modal-header">
+          <div className="coal-modal-header-left">
+            <div className="coal-modal-icon-badge">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="12" y1="18" x2="12" y2="12"></line>
+                <line x1="9" y1="15" x2="15" y2="15"></line>
+              </svg>
+            </div>
+            <div>
+              <div className="coal-modal-tag">
+                {isEditMode ? "RECORD UPDATE" : "COAL SYSTEM ENTRY"}
+              </div>
+              <h2 className="coal-modal-heading">{title}</h2>
+            </div>
+          </div>
+          <button className="coal-modal-close-btn" onClick={onClose} title="Close form">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
         </div>
         
-        <div style={styles.body}>
-          <div style={styles.grid}>
+        {/* Modal Body */}
+        <div className="coal-modal-body custom-scroll">
+          <div className="coal-modal-grid">
             {columns.map((col) => {
               const fieldKey = col.key || col.label;
               const isDate = /date|valid_from|valid_to/i.test(fieldKey) || col.type === 'date';
@@ -223,17 +222,19 @@ export default function EditModal({ isOpen, onClose, onSave, onFieldChange, titl
               const displayVal = isDate && val ? formatDateForInput(val) : val;
 
               return (
-                <div key={fieldKey} style={styles.formGroup}>
-                  <label style={styles.label}>{col.label}</label>
+                <div key={fieldKey} className="coal-form-group">
+                  <label className="coal-form-label">
+                    <span>{col.label}</span>
+                    {col.required && <span className="text-red-500 ml-1">*</span>}
+                  </label>
                   <DropdownField
                     isDate={isDate}
                     type={col.type}
                     value={displayVal}
                     onChange={(newVal) => handleChange(fieldKey, newVal)}
-                    styles={styles}
                     options={col.options || optionsMap[fieldKey] || []}
                     disabled={col.disabled}
-                    isAddMode={!initialData || Object.keys(initialData).length === 0}
+                    isAddMode={!isEditMode}
                     colName={col.label}
                   />
                 </div>
@@ -241,67 +242,66 @@ export default function EditModal({ isOpen, onClose, onSave, onFieldChange, titl
             })}
             
             {customContent && (
-              <div style={{ gridColumn: "1 / -1", marginTop: "16px" }}>
+              <div style={{ gridColumn: "1 / -1", marginTop: "12px" }}>
                 {customContent}
               </div>
             )}
 
             {showPdfUpload && (
-              <div style={{ ...styles.formGroup, gridColumn: "1 / -1", marginTop: "10px" }}>
-                <label style={styles.label}>ATTACH DOCUMENT / IMAGE (OPTIONAL)</label>
-                <input
-                  type="file"
-                  accept=".pdf,application/pdf,image/*"
-                  onChange={(e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                      handleChange("pdfFile", file);
-                    }
-                  }}
-                  style={{ ...styles.input, padding: "8px", background: "var(--bg)" }}
-                />
+              <div className="coal-upload-box" style={{ gridColumn: "1 / -1", marginTop: "8px" }}>
+                <div className="coal-upload-header">
+                  <div className="coal-upload-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label className="coal-upload-title">ATTACH DOCUMENT / OFFICIAL NOTICE (OPTIONAL)</label>
+                    <p className="coal-upload-subtitle">Upload official invoice, DO, notice or receipt in PDF or Image format</p>
+                  </div>
+                </div>
+
+                <div className="coal-file-input-wrapper">
+                  <input
+                    type="file"
+                    id="coal-file-upload-input"
+                    accept=".pdf,application/pdf,image/*"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        handleChange("pdfFile", file);
+                      }
+                    }}
+                    style={{ display: "none" }}
+                  />
+                  <label htmlFor="coal-file-upload-input" className="coal-file-browse-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    Choose Document
+                  </label>
+                  <span className="coal-file-selected-text">
+                    {formData.pdfFile ? formData.pdfFile.name : (formData.pdfName || "No file chosen yet")}
+                  </span>
+                </div>
+
                 {(formData.pdfUrl || formData.pdfFile) && (
-                  <div style={{ marginTop: "10px", display: "flex", alignItems: "center", gap: "10px", padding: "8px 12px", background: "var(--panel)", borderRadius: "8px", border: "1px solid var(--line)" }}>
+                  <div className="coal-file-preview-card">
                     {(() => {
                       const fileUrl = formData.pdfFile ? URL.createObjectURL(formData.pdfFile) : formData.pdfUrl;
                       const fileName = formData.pdfFile ? formData.pdfFile.name : (formData.pdfName || "Attached Document");
                       const isImg = /\.(jpg|jpeg|png|webp|gif|bmp)$/i.test(fileName || fileUrl);
-                      const bg = isImg ? "#f5f3ff" : "#fff1f1";
-                      const border = isImg ? "#ddd6fe" : "#fed7d7";
-                      const accent = isImg ? "#7c3aed" : "#e11d48";
 
                       return (
                         <>
+                          <div className="coal-preview-pill">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                            <span>Attached: {isImg ? "Image File" : "PDF Document"}</span>
+                          </div>
                           <a
                             href={fileUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "8px",
-                              padding: "6px 12px",
-                              borderRadius: "6px",
-                              background: bg,
-                              border: `1px solid ${border}`,
-                              color: accent,
-                              textDecoration: "none",
-                              fontWeight: "700",
-                              fontSize: "12px",
-                              boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
-                            }}
+                            className="coal-preview-action-btn"
                           >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={accent} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                              <polyline points="14 2 14 8 20 8"></polyline>
-                              <line x1="9" y1="13" x2="15" y2="13"></line>
-                              <line x1="9" y1="17" x2="15" y2="17"></line>
-                            </svg>
-                            <span>View {isImg ? "Image" : "PDF"} ({isImg ? "IMG" : "PDF"})</span>
+                            Preview File ↗
                           </a>
-                          <span style={{ fontSize: "12px", color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                            {fileName}
-                          </span>
                         </>
                       );
                     })()}
@@ -312,67 +312,17 @@ export default function EditModal({ isOpen, onClose, onSave, onFieldChange, titl
           </div>
         </div>
 
-        <div style={styles.footer}>
-          <button className="btn ghost" onClick={onClose} style={{ marginRight: 8 }}>Cancel</button>
-          <button className="btn" onClick={handleSave}>Save Changes</button>
+        {/* Modal Footer */}
+        <div className="coal-modal-footer">
+          <button type="button" className="coal-btn-cancel" onClick={onClose}>
+            Cancel
+          </button>
+          <button type="button" className="coal-btn-save" onClick={handleSave}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            {isEditMode ? "Save Changes" : "Save Record"}
+          </button>
         </div>
       </div>
     </div>
   );
 }
-
-const styles = {
-  overlay: {
-    position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: "rgba(0, 20, 40, 0.5)",
-    display: "flex", justifyContent: "center", alignItems: "center",
-    zIndex: 1000, backdropFilter: "blur(3px)"
-  },
-  content: {
-    backgroundColor: "var(--bg)",
-    borderRadius: "8px", width: "90%", maxWidth: "800px",
-    maxHeight: "90vh", display: "flex", flexDirection: "column",
-    boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.3)",
-    border: "1px solid var(--line)"
-  },
-  header: {
-    padding: "20px 24px", borderBottom: "1px solid var(--line)",
-    display: "flex", justifyContent: "space-between", alignItems: "center",
-    backgroundColor: "var(--panel)",
-    borderTopLeftRadius: "8px", borderTopRightRadius: "8px"
-  },
-  title: { 
-    margin: 0, fontSize: "16px", color: "var(--ember-bright)", 
-    fontFamily: "var(--font-display)", textTransform: "uppercase",
-    letterSpacing: "0.05em", fontWeight: "700"
-  },
-  closeBtn: {
-    background: "none", border: "none", fontSize: "24px", cursor: "pointer",
-    color: "var(--muted)", padding: 0, lineHeight: 1, transition: "color 0.2s"
-  },
-  body: {
-    padding: "24px", overflowY: "auto", flex: 1,
-    background: "var(--bg)"
-  },
-  grid: {
-    display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "20px"
-  },
-  formGroup: { display: "flex", flexDirection: "column", gap: "6px" },
-  label: { 
-    fontSize: "12px", fontWeight: "600", color: "var(--muted)",
-    textTransform: "uppercase", letterSpacing: "0.04em",
-    fontFamily: "var(--font-body)"
-  },
-  input: {
-    padding: "12px 14px", borderRadius: "6px", border: "1px solid var(--line)",
-    fontSize: "14px", color: "var(--text)", outline: "none", background: "var(--panel)",
-    fontFamily: "var(--font-body)",
-    transition: "border-color 0.2s, box-shadow 0.2s, background-color 0.2s",
-    boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
-  },
-  footer: {
-    padding: "16px 24px", borderTop: "1px solid var(--line)",
-    display: "flex", justifyContent: "flex-end", backgroundColor: "var(--panel)",
-    borderBottomLeftRadius: "8px", borderBottomRightRadius: "8px"
-  }
-};

@@ -6,8 +6,10 @@ import { fmt, inr, SvgIcon, IC } from '../utils/helpers';
 import MaterialModal from '../components/MaterialModal';
 import CountModal from '../components/CountModal';
 import TransactionModal from '../components/TransactionModal';
+import { usePagePermission } from '../../../hooks/usePagePermission';
 
 export default function InventoryPage() {
+  const { canWrite } = usePagePermission("Inventory (IMS)", "Inventory (IMS)");
   const {
     data,
     setData,
@@ -332,14 +334,14 @@ export default function InventoryPage() {
         sub="Live stock, re-order levels and stock bands for every SKU. Click any row to see its complete history."
         searchPlaceholder="Search SKU or material name..."
         pre={preContent}
-        buttons={topButtons}
+        buttons={canWrite ? topButtons : null}
         filterDefs={filterDefinitions}
         cols={cols}
         data={tableData}
         sumCols={['val']}
         rowStyle={x => `--c:${BCOL[x.band]}`}
         onClickRow={row => openItemDetail(row.id)}
-        act={x => (
+        act={canWrite ? (x => (
           <>
             <button
               type="button"
@@ -366,7 +368,7 @@ export default function InventoryPage() {
               <SvgIcon path={IC.trash} />
             </button>
           </>
-        )}
+        )) : null}
       />
 
       {activeMaterialModalId && (

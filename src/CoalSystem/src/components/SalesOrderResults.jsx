@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import EditModal from "./EditModal";
 import { exportToExcel, exportToPDF } from "../utils/exportHelpers";
 import HighlightText from "./HighlightText";
+import { usePagePermission } from "../../../hooks/usePagePermission";
 
 export default function SalesOrderResults({ 
   data, 
@@ -24,6 +25,7 @@ export default function SalesOrderResults({
   isFetching = false,
   onPageChange
 }) {
+  const { canWrite } = usePagePermission("Coal System", "Sales Order");
   const [editingIndex, setEditingIndex] = useState(null);
   const [selectedIndices, setSelectedIndices] = useState([]);
   const fileInputRef = useRef(null);
@@ -392,12 +394,16 @@ export default function SalesOrderResults({
             PDF
           </button>
           <input type="file" multiple ref={fileInputRef} onChange={handleFileChange} style={{ display: "none" }} accept=".pdf,application/pdf,image/*" />
-          <button className="btn outline" onClick={onAddManual}>
-            + ADD FORM
-          </button>
-          <button className="btn" onClick={() => fileInputRef.current?.click()} title="Upload PDF or Image">
-            UPLOAD FILE
-          </button>
+          {canWrite && (
+            <>
+              <button className="btn outline" onClick={onAddManual} title="Add Form">
+                + ADD FORM
+              </button>
+              <button className="btn" onClick={() => fileInputRef.current?.click()} title="Upload PDF or Image">
+                UPLOAD FILE
+              </button>
+            </>
+          )}
         </div>
         <div className="toolbar-wrapper" style={{ display: "flex", gap: "10px", alignItems: "center", flexShrink: 0 }}>
           {/* SEARCH BAR */}
@@ -633,7 +639,7 @@ export default function SalesOrderResults({
           </div>
 
           {/* BULK ACTION BAR */}
-          {activeTab === "pending" && selectedIndices.length > 0 && (
+          {canWrite && activeTab === "pending" && selectedIndices.length > 0 && (
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <button
                 onClick={handleBulkDone}
@@ -706,7 +712,7 @@ export default function SalesOrderResults({
                 {visibleCols.submitted_date && <th>Submitted Date</th>}
                 {visibleCols.status && <th>Status</th>}
                 {visibleCols.preview && <th>Preview</th>}
-                {visibleCols.action && <th>Action</th>}
+                {visibleCols.action && canWrite && <th>Action</th>}
               </tr>
             </thead>
             <tbody>
@@ -805,7 +811,7 @@ export default function SalesOrderResults({
                         <span style={{ color: "var(--muted)" }}>-</span>
                       )}
                     </td>}
-                    {visibleCols.action && <td data-label="Action">
+                    {visibleCols.action && canWrite && <td data-label="Action">
                       <div style={{ display: "flex", gap: "6px", alignItems: "center", justifyContent: "flex-end" }}>
                       {activeTab === "pending" && (
                         <button
