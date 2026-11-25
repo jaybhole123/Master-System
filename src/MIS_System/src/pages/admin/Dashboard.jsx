@@ -221,21 +221,46 @@ const AdminDashboard = () => {
     handleEmployeeSelect(employeeId);
   };
 
-  // Initialize Data from Supabase with mockData fallback
+  // Initialize Data from Supabase with scoped, fast parallel fetching
   useEffect(() => {
     let isMounted = true;
     const fetchMISData = async () => {
       setLoading(true);
       try {
-        // 1. Fetch Users to filter only those who have MIS permission enabled (YES)
-        const { data: usersData } = await supabase
-          .from("users")
-          .select("user_name, page_access, status");
+        // Parallel fetch of only what Dashboard needs
+        const [
+          { data: uData },
+          { data: cData },
+          { data: dData },
+          { data: pData },
+          { data: dpData }
+        ] = await Promise.all([
+          supabase.from("users").select("id, user_name, designation, department, page_access, status, profile_image"),
+          supabase.from("checklist").select("task_id, name, department, status, delay, planned_date, submission_date, created_at, task_description"),
+          supabase.from("delegation").select("task_id, name, given_by, department, status, delay, planned_date, submission_date, created_at, task_description"),
+          supabase.from("mis_employee_performance").select("*").order("target", { ascending: false }),
+          supabase.from("mis_department_scores").select("*")
+        ]);
 
-        // Set of user names that have MIS enabled in any section/module
+        if (!isMounted) return;
+
+        const usersData = uData || [];
+        const checklistTasks = cData || [];
+        const delegationTasks = dData || [];
+        const perfData = pData || [];
+        const deptData = dpData || [];
+
         const misEnabledUserNames = new Set();
-        if (usersData && usersData.length > 0) {
+        const userDesignationMap = {};
+        const userImageMap = {};
+
+        if (usersData.length > 0) {
           usersData.forEach((u) => {
+            if (u.user_name) {
+              const uLower = u.user_name.trim().toLowerCase();
+              userDesignationMap[uLower] = u.designation || u.department || "EXECUTIVE";
+              userImageMap[uLower] = u.profile_image || "";
+            }
             if (!u.page_access) return;
             try {
               let perms = {};
@@ -247,80 +272,129 @@ const AdminDashboard = () => {
                 } else {
                   u.page_access.split(",").forEach(item => {
                     const parts = item.trim().split(":");
-                    if (parts[0] === "mis") {
-                      perms[parts.slice(1).join(":")] = { mis: true };
-                    }
+                    if (parts[0] === "mis") perms[parts.slice(1).join(":")] = { mis: true };
                   });
                 }
               }
-
-              // Check if any section has mis === true
               const hasMis = Object.values(perms).some((p) => p && (p.mis === true || p.mis === "true" || p.mis === 1));
               if (hasMis && u.user_name) {
                 misEnabledUserNames.add(u.user_name.trim().toLowerCase());
               }
-            } catch (e) {
-              // ignore parse errors
-            }
+            } catch (e) {}
           });
         }
 
-        // 2. Fetch Performance & Employees from Supabase
-        const { data: perfData, error: perfErr } = await supabase
-          .from("mis_employee_performance")
-          .select("*")
-          .order("target", { ascending: false });
+        const allLiveTasks = [
+          ...checklistTasks.map(t => ({ ...t, source: 'checklist', assignedPerson: t.name })),
+          ...delegationTasks.map(t => ({ ...t, source: 'delegation', assignedPerson: t.name || t.given_by }))
+        ];
+        setLiveTaskList(allLiveTasks);
 
-        // 3. Fetch Department Scores from Supabase
-        const { data: deptData, error: deptErr } = await supabase
-          .from("mis_department_scores")
-          .select("*");
+        const userTaskMap = {};
+        const allUserNamesSet = new Set();
 
-        if (isMounted) {
-          if (!perfErr && perfData && perfData.length > 0) {
-            // Filter by MIS permission if any users have MIS configured; otherwise show all
-            const filteredPerfData = misEnabledUserNames.size > 0 
-              ? perfData.filter(row => misEnabledUserNames.has(String(row.employee_name || "").trim().toLowerCase()))
-              : perfData;
+        usersData.forEach(u => {
+          if (u.user_name) allUserNamesSet.add(u.user_name.trim().toLowerCase());
+        });
+        allLiveTasks.forEach(t => {
+          const p = t.assignedPerson || t.name;
+          if (p) allUserNamesSet.add(p.trim().toLowerCase());
+        });
+        perfData.forEach(p => {
+          if (p.employee_name) allUserNamesSet.add(p.employee_name.trim().toLowerCase());
+        });
 
-            const mappedEmployees = filteredPerfData.map((row) => ({
-              id: row.id,
-              name: row.employee_name,
-              designation: row.designation || "EXECUTIVE",
-              department: row.department || "General",
-              target: Number(row.target) || 0,
-              actualWorkDone: Number(row.actual_work_done) || 0,
-              weeklyWorkDone: Number(row.weekly_work_done_pct) || 0,
-              weeklyWorkDoneOnTime: Number(row.weekly_work_done_on_time_pct) || 0,
-              totalWorkDone: Number(row.total_work_done) || Number(row.actual_work_done) || 0,
-              weekPending: Number(row.week_pending) || 0,
-              allPendingTillDate: Number(row.all_pending_till_date) || 0,
-              plannedWorkNotDone: Number(row.planned_work_not_done) || 0,
-              plannedWorkNotDoneOnTime: Number(row.planned_work_not_done_on_time) || 0,
-              lastWeekCommitment: Number(row.last_week_commitment) || 0,
-              nextWeekPlannedWorkNotDone: Number(row.next_week_planned_not_done) || 0,
-              nextWeekPlannedWorkNotDoneOnTime: Number(row.next_week_planned_not_done_on_time) || 0,
-              nextWeekCommitment: row.next_week_commitment || "",
-              dateStart: row.date_start,
-              dateEnd: row.date_end
-            }));
-            setSheetEmployees(mappedEmployees);
+        if (allUserNamesSet.size === 0) {
+          ['admin', 'accounts', 'dispatch', 'logistics'].forEach(name => allUserNamesSet.add(name));
+        }
+
+        allUserNamesSet.forEach(uname => {
+          const originalUser = usersData.find(u => (u.user_name || '').trim().toLowerCase() === uname);
+          const originalPerf = perfData.find(p => (p.employee_name || '').trim().toLowerCase() === uname);
+          const originalTask = allLiveTasks.find(t => (t.assignedPerson || t.name || '').trim().toLowerCase() === uname);
+          
+          const displayName = originalUser?.user_name || originalPerf?.employee_name || originalTask?.assignedPerson || originalTask?.name || uname.toUpperCase();
+          userTaskMap[uname] = {
+            name: displayName,
+            designation: userDesignationMap[uname] || originalPerf?.designation || originalTask?.department || "EXECUTIVE",
+            department: originalTask?.department || originalPerf?.department || "General",
+            image: userImageMap[uname] || originalUser?.profile_image || "",
+            target: 0,
+            actualWorkDone: 0,
+            onTimeDone: 0,
+            weekPending: 0,
+            allPendingTillDate: 0,
+            tasks: []
+          };
+        });
+
+        allLiveTasks.forEach(task => {
+          const taskUser = (task.assignedPerson || task.name || "").trim().toLowerCase();
+          if (!taskUser || !userTaskMap[taskUser]) return;
+
+          const uStats = userTaskMap[taskUser];
+          uStats.target += 1;
+          uStats.tasks.push(task);
+
+          const isDone = String(task.status).toLowerCase() === 'done' || task.status === 'Completed' || !!task.submission_date;
+          const hasDelay = !!task.delay && String(task.delay) !== '0' && !String(task.delay).startsWith('00:00:00');
+
+          if (isDone) {
+            uStats.actualWorkDone += 1;
+            if (!hasDelay) uStats.onTimeDone += 1;
           } else {
-            setSheetEmployees([]);
+            uStats.weekPending += 1;
+            uStats.allPendingTillDate += 1;
           }
+        });
 
-          if (!deptErr && deptData && deptData.length > 0) {
-            setDepartmentScores(
-              deptData.map((d) => ({
-                name: d.department_name,
-                workNotDonePct: Number(d.work_not_done_pct) || 0,
-                notDoneOnTimePct: Number(d.not_done_on_time_pct) || 0,
-                pendingWorks: Number(d.pending_works) || 0
-              }))
-            );
-          } else {
-            setDepartmentScores([]);
-          }
+        const computedEmployees = Object.entries(userTaskMap).map(([key, stats], idx) => {
+          const savedPerf = perfData.find(p => (p.employee_name || "").trim().toLowerCase() === key);
+          
+          const target = stats.target > 0 ? stats.target : (Number(savedPerf?.target) || 0);
+          const actual = stats.actualWorkDone > 0 ? stats.actualWorkDone : (Number(savedPerf?.actual_work_done) || 0);
+          const weeklyDonePct = target > 0 ? Math.round((actual / target) * 100) : (Number(savedPerf?.weekly_work_done_pct) || 0);
+          const onTimePct = actual > 0 ? Math.round((stats.onTimeDone / actual) * 100) : (Number(savedPerf?.weekly_work_done_on_time_pct) || 0);
+          const weekPending = stats.weekPending > 0 ? stats.weekPending : (Number(savedPerf?.week_pending) || 0);
+          const allPending = stats.allPendingTillDate > 0 ? stats.allPendingTillDate : (Number(savedPerf?.all_pending_till_date) || 0);
+
+          return {
+            id: savedPerf?.id || `live-${idx}`,
+            name: stats.name,
+            designation: stats.designation || savedPerf?.designation || "EXECUTIVE",
+            department: stats.department || savedPerf?.department || "General",
+            image: stats.image || "",
+            target: target,
+            actualWorkDone: actual,
+            weeklyWorkDone: weeklyDonePct,
+            weeklyWorkDoneOnTime: onTimePct,
+            totalWorkDone: actual,
+            weekPending: weekPending,
+            allPendingTillDate: allPending,
+            plannedWorkNotDone: Math.max(100 - weeklyDonePct, 0),
+            plannedWorkNotDoneOnTime: Math.max(100 - onTimePct, 0),
+            lastWeekCommitment: Number(savedPerf?.last_week_commitment) || 0,
+            nextWeekPlannedWorkNotDone: Number(savedPerf?.next_week_planned_not_done) || 0,
+            nextWeekPlannedWorkNotDoneOnTime: Number(savedPerf?.next_week_planned_not_done_on_time) || 0,
+            nextWeekCommitment: savedPerf?.next_week_commitment || "",
+            dateStart: dateRange.start,
+            dateEnd: dateRange.end
+          };
+        });
+
+        setSheetEmployees(computedEmployees);
+
+        if (deptData && deptData.length > 0) {
+          setDepartmentScores(
+            deptData.map((d) => ({
+              name: d.department_name,
+              workNotDonePct: Number(d.work_not_done_pct) || 0,
+              notDoneOnTimePct: Number(d.not_done_on_time_pct) || 0,
+              pendingWorks: Number(d.pending_works) || 0
+            }))
+          );
+        } else {
+          setDepartmentScores([]);
         }
       } catch (err) {
         console.error("Error fetching MIS Supabase data:", err);
@@ -361,16 +435,11 @@ const AdminDashboard = () => {
         matchesScore = weeklyPct < 75;
       }
 
-      // 4. Date Range Filter (Fallback-safe matching)
+      // 4. Date Range Filter (Safe matching: only filter if employee has specific date range set)
       let matchesDate = true;
       if (startDate && endDate && emp.dateStart && emp.dateEnd) {
-        // If employee dates are in standard YYYY-MM-DD format
-        const empStartYear = emp.dateStart.slice(0, 4);
-        const filterStartYear = startDate.slice(0, 4);
-        // Only enforce exact date matching if within the same year
-        if (empStartYear === filterStartYear) {
-          matchesDate = emp.dateStart <= endDate && emp.dateEnd >= startDate;
-        }
+        // If employee has a different date window, match overlap
+        matchesDate = emp.dateStart <= endDate && emp.dateEnd >= startDate;
       }
 
       return matchesName && matchesDesignation && matchesScore && matchesDate;
@@ -512,10 +581,47 @@ const AdminDashboard = () => {
   const pendingTasksData = useMemo(() => sortedPendingList.map(emp => emp.pending), [sortedPendingList]);
   const pendingTasksLabels = useMemo(() => sortedPendingList.map(emp => emp.name), [sortedPendingList]);
   const pendingTasksTotalData = useMemo(() => sortedPendingList.map(emp => emp.total), [sortedPendingList]);
-  const departmentScoresData = useMemo(() => departmentScores.map((dept) => dept.workNotDonePct), [departmentScores]);
-  const departmentScoresLabels = useMemo(() => departmentScores.map((dept) => dept.name), [departmentScores]);
-  const departmentScoresNotDoneOnTime = useMemo(() => departmentScores.map((dept) => dept.notDoneOnTimePct), [departmentScores]);
-  const departmentScoresPending = useMemo(() => departmentScores.map((dept) => dept.pendingWorks), [departmentScores]);
+  // Dynamic Department Scores computed directly from active filtered employees
+  const computedDepartmentScores = useMemo(() => {
+    if (!filteredEmployees || filteredEmployees.length === 0) {
+      return [];
+    }
+
+    const deptMap = {};
+    filteredEmployees.forEach(emp => {
+      const dept = emp.department || emp.designation || "General";
+      if (!deptMap[dept]) {
+        deptMap[dept] = {
+          name: dept,
+          pendingWorks: 0,
+          totalTarget: 0,
+          actualDone: 0,
+          doneOnTime: 0,
+          notDoneSum: 0,
+          notDoneOnTimeSum: 0,
+          count: 0
+        };
+      }
+      deptMap[dept].pendingWorks += parseFloat(emp.weekPending) || 0;
+      deptMap[dept].totalTarget += parseFloat(emp.target) || 0;
+      deptMap[dept].actualDone += parseFloat(emp.actualWorkDone) || 0;
+      deptMap[dept].notDoneSum += parseFloat(emp.plannedWorkNotDone) || 0;
+      deptMap[dept].notDoneOnTimeSum += parseFloat(emp.plannedWorkNotDoneOnTime) || 0;
+      deptMap[dept].count += 1;
+    });
+
+    return Object.values(deptMap).map(d => ({
+      name: d.name,
+      pendingWorks: d.pendingWorks,
+      workNotDonePct: d.count > 0 ? +(d.notDoneSum / d.count).toFixed(1) : 0,
+      notDoneOnTimePct: d.count > 0 ? +(d.notDoneOnTimeSum / d.count).toFixed(1) : 0
+    }));
+  }, [filteredEmployees]);
+
+  const departmentScoresData = useMemo(() => computedDepartmentScores.map((dept) => dept.workNotDonePct), [computedDepartmentScores]);
+  const departmentScoresLabels = useMemo(() => computedDepartmentScores.map((dept) => dept.name), [computedDepartmentScores]);
+  const departmentScoresNotDoneOnTime = useMemo(() => computedDepartmentScores.map((dept) => dept.notDoneOnTimePct), [computedDepartmentScores]);
+  const departmentScoresPending = useMemo(() => computedDepartmentScores.map((dept) => dept.pendingWorks), [computedDepartmentScores]);
 
   const handleSelectAll = () => {
     if (selectAll) {
@@ -570,77 +676,68 @@ const AdminDashboard = () => {
     }
   };
 
+  const [liveTaskList, setLiveTaskList] = useState([]);
+
   const handleRowClick = (employee) => {
-    const personName = String(employee.name).trim();
-    const matchingRows = dataSheetRows.filter(row => {
-      const dataName = row[4] ? String(row[4]).trim() : "";
-      return dataName === personName;
+    const personName = String(employee.name || "").trim().toLowerCase();
+    
+    // Find live tasks from checklist and delegation matching this employee
+    const userTasks = liveTaskList.filter(t => {
+      const p1 = (t.assignedPerson || "").trim().toLowerCase();
+      const p2 = (t.name || "").trim().toLowerCase();
+      const p3 = (t.given_by || "").trim().toLowerCase();
+      return p1 === personName || p2 === personName || p3 === personName;
     });
 
     let tasks = [];
-    if (matchingRows.length > 0) {
-      tasks = matchingRows.map(row => ({
-        fmsName: row[2] || "Operations",
-        taskName: row[3] || "Primary Objective",
-        nameColRef: row[9] || "",
-        taskNameColRef: row[26] || "",
-        department: row[0] || employee.designation || "General",
-        sheetId: row[5] || "",
-        scriptUrl: row[25] || "",
-        plannedSheetRef: row[7] || "",
-        actualSheetRef: row[8] || "",
-        target: row[10] || employee.target || 0,
-        totalAchievement: row[11] || employee.actualWorkDone || 0,
-        workNotDone: row[12] || employee.plannedWorkNotDone || 0,
-        workNotDoneOnTime: row[13] || employee.plannedWorkNotDoneOnTime || 0,
-        allPendingTillDate: row[14] || employee.allPendingTillDate || 0,
-        delayColRef: row[27] || "",
-        fromDate: row[21] || "",
-        toDate: row[22] || ""
-      }));
+    if (userTasks.length > 0) {
+      tasks = userTasks.map(t => {
+        const isDone = String(t.status || "").toLowerCase() === 'done' || String(t.status || "").toLowerCase() === 'completed' || !!t.submission_date;
+        const hasDelay = !!t.delay && String(t.delay) !== '0' && !String(t.delay).startsWith('00:00:00');
+        return {
+          fmsName: t.source === 'delegation' ? 'Delegation System' : 'Checklist System',
+          taskName: t.task_description || (t.source === 'delegation' ? 'Delegated Task' : 'Checklist Task'),
+          department: t.department || employee.designation || 'General',
+          target: 1,
+          totalAchievement: isDone ? 1 : 0,
+          workNotDone: isDone ? 0 : 1,
+          workNotDoneOnTime: isDone && hasDelay ? 1 : 0,
+          allPendingTillDate: isDone ? 0 : 1,
+          fromDate: t.planned_date ? String(t.planned_date).slice(0, 10) : "",
+          toDate: t.submission_date ? String(t.submission_date).slice(0, 10) : ""
+        };
+      });
     } else {
-      // Default Tasks mapped from employee's actual stats so modal always shows rich task data
-      const targetVal = parseFloat(employee.target) || 100;
-      const actualVal = parseFloat(employee.actualWorkDone) || 85;
-      const t1Target = Math.round(targetVal * 0.45);
-      const t1Actual = Math.round(actualVal * 0.48);
-      const t2Target = Math.round(targetVal * 0.35);
-      const t2Actual = Math.round(actualVal * 0.32);
-      const t3Target = targetVal - t1Target - t2Target;
-      const t3Actual = actualVal - t1Actual - t2Actual;
+      // Check if employee has tasks in dataSheetRows
+      const matchingRows = dataSheetRows.filter(row => {
+        const dataName = row[4] ? String(row[4]).trim() : "";
+        return dataName.toLowerCase() === personName;
+      });
 
-      tasks = [
-        {
-          fmsName: `${employee.designation || "MIS"} - Core Flow 1`,
-          taskName: "Weekly Targets & Performance Log",
-          department: employee.designation || employee.department || "Operations",
-          target: t1Target,
-          totalAchievement: t1Actual,
-          workNotDone: Math.max(t1Target - t1Actual, 0),
-          workNotDoneOnTime: Math.round(Math.max(t1Target - t1Actual, 0) * 0.4),
-          allPendingTillDate: Math.round(employee.allPendingTillDate * 0.5) || 2
-        },
-        {
-          fmsName: `${employee.designation || "MIS"} - Core Flow 2`,
-          taskName: "Daily Checklist & On-Time Verification",
-          department: employee.designation || employee.department || "Operations",
-          target: t2Target,
-          totalAchievement: t2Actual,
-          workNotDone: Math.max(t2Target - t2Actual, 0),
-          workNotDoneOnTime: Math.round(Math.max(t2Target - t2Actual, 0) * 0.3),
-          allPendingTillDate: Math.round(employee.allPendingTillDate * 0.3) || 1
-        },
-        {
-          fmsName: `${employee.designation || "MIS"} - Core Flow 3`,
-          taskName: "Backlog Clearing & Team Coordination",
-          department: employee.designation || employee.department || "Operations",
-          target: t3Target,
-          totalAchievement: t3Actual,
-          workNotDone: Math.max(t3Target - t3Actual, 0),
-          workNotDoneOnTime: Math.round(Math.max(t3Target - t3Actual, 0) * 0.3),
-          allPendingTillDate: Math.round(employee.allPendingTillDate * 0.2) || 1
-        }
-      ];
+      if (matchingRows.length > 0) {
+        tasks = matchingRows.map(row => ({
+          fmsName: row[2] || "Operations",
+          taskName: row[3] || "Primary Objective",
+          nameColRef: row[9] || "",
+          taskNameColRef: row[26] || "",
+          department: row[0] || employee.designation || "General",
+          sheetId: row[5] || "",
+          scriptUrl: row[25] || "",
+          plannedSheetRef: row[7] || "",
+          actualSheetRef: row[8] || "",
+          target: row[10] || employee.target || 0,
+          totalAchievement: row[11] || employee.actualWorkDone || 0,
+          workNotDone: row[12] || employee.plannedWorkNotDone || 0,
+          workNotDoneOnTime: row[13] || employee.plannedWorkNotDoneOnTime || 0,
+          allPendingTillDate: row[14] || employee.allPendingTillDate || 0,
+          delayColRef: row[27] || "",
+          fromDate: row[21] || "",
+          toDate: row[22] || ""
+        }));
+      } else {
+        // No dummy tasks! Show empty state or summary
+        tasks = [];
+      }
     }
 
     setSelectedUserDetails({ ...employee, tasks });
@@ -677,25 +774,40 @@ const AdminDashboard = () => {
 
     setDrillDownLoading(true);
     const employeeName = String(selectedUserDetails?.name || "Employee").trim();
+    const personName = employeeName.toLowerCase();
     
+    // Find matching tasks from liveTaskList
+    const matched = liveTaskList.filter(t => {
+      const p1 = (t.assignedPerson || "").trim().toLowerCase();
+      const p2 = (t.name || "").trim().toLowerCase();
+      const p3 = (t.given_by || "").trim().toLowerCase();
+      return p1 === personName || p2 === personName || p3 === personName;
+    });
+
+    let drillRows = [];
+    if (matched.length > 0) {
+      drillRows = matched.map(t => ({
+        taskName: t.task_description || (t.source === 'delegation' ? 'Delegated Task' : 'Checklist Task'),
+        planned: t.planned_date ? String(t.planned_date).replace('T', ' ').slice(0, 16) : "-",
+        actual: t.submission_date ? String(t.submission_date).replace('T', ' ').slice(0, 16) : "",
+        delay: t.delay ? String(t.delay) : "00:00:00"
+      }));
+    } else {
+      drillRows = [
+        {
+          taskName: task.taskName || "Core Responsibility",
+          planned: task.fromDate || "Scheduled",
+          actual: task.toDate || (task.totalAchievement > 0 ? "Completed" : ""),
+          delay: task.workNotDoneOnTime > 0 ? "00:30:00" : "00:00:00"
+        }
+      ];
+    }
+
     setActiveDrillDown({
       taskId: task.taskName,
       type,
-      title: `Total Achievement Details - ${employeeName}`,
-      rows: [
-        {
-          taskName: task.taskName || "Core Responsibility",
-          planned: "09:30 AM",
-          actual: "09:45 AM",
-          delay: "00:15:00"
-        },
-        {
-          taskName: "Status Verification",
-          planned: "02:00 PM",
-          actual: "02:10 PM",
-          delay: "00:10:00"
-        }
-      ],
+      title: `Task Timeline Details - ${employeeName}`,
+      rows: drillRows,
       loading: false
     });
     setDrillDownLoading(false);

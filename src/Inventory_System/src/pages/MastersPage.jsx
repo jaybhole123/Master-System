@@ -113,10 +113,16 @@ export default function MastersPage() {
   };
 
   const handleSaveGeneral = () => {
-    if (+generalCfg.adcDays < 1 || +generalCfg.fsnDays < 1 || +generalCfg.deadDays < 1) {
-      return showError('Days must be at least 1');
+    if (generalCfg.adcDays && +generalCfg.adcDays < 1) {
+      return showError('ADC days must be at least 1');
     }
-    if (+generalCfg.fastTR < 0) {
+    if (generalCfg.fsnDays && +generalCfg.fsnDays < 1) {
+      return showError('FSN days must be at least 1');
+    }
+    if (generalCfg.deadDays && +generalCfg.deadDays < 1) {
+      return showError('Dead days must be at least 1');
+    }
+    if (generalCfg.fastTR && +generalCfg.fastTR < 0) {
       return showError('Turnover cannot be negative');
     }
 
@@ -125,10 +131,10 @@ export default function MastersPage() {
       cfg: {
         ...data.cfg,
         ...generalCfg,
-        adcDays: +generalCfg.adcDays || 30,
-        fsnDays: +generalCfg.fsnDays || 90,
-        fastTR: +generalCfg.fastTR || 1,
-        deadDays: +generalCfg.deadDays || 90
+        adcDays: generalCfg.adcDays !== '' ? +generalCfg.adcDays : '',
+        fsnDays: generalCfg.fsnDays !== '' ? +generalCfg.fsnDays : '',
+        fastTR: generalCfg.fastTR !== '' ? +generalCfg.fastTR : '',
+        deadDays: generalCfg.deadDays !== '' ? +generalCfg.deadDays : ''
       }
     });
     showToast('Settings saved');
@@ -281,9 +287,10 @@ export default function MastersPage() {
               <div className="fg">
                 <label>ADC source</label>
                 <select
-                  value={generalCfg.adcMode}
+                  value={generalCfg.adcMode || ''}
                   onChange={e => setGeneralCfg(prev => ({ ...prev, adcMode: e.target.value }))}
                 >
+                  <option value="">Select...</option>
                   <option value="auto">Actual (from transactions)</option>
                   <option value="manual">Manual (from material)</option>
                 </select>
@@ -294,8 +301,9 @@ export default function MastersPage() {
                 <input
                   type="number"
                   min="1"
-                  value={generalCfg.adcDays}
-                  onChange={e => setGeneralCfg(prev => ({ ...prev, adcDays: +e.target.value }))}
+                  placeholder="e.g. 30"
+                  value={generalCfg.adcDays ?? ''}
+                  onChange={e => setGeneralCfg(prev => ({ ...prev, adcDays: e.target.value ? +e.target.value : '' }))}
                 />
               </div>
 
@@ -304,8 +312,9 @@ export default function MastersPage() {
                 <input
                   type="number"
                   min="1"
-                  value={generalCfg.fsnDays}
-                  onChange={e => setGeneralCfg(prev => ({ ...prev, fsnDays: +e.target.value }))}
+                  placeholder="e.g. 90"
+                  value={generalCfg.fsnDays ?? ''}
+                  onChange={e => setGeneralCfg(prev => ({ ...prev, fsnDays: e.target.value ? +e.target.value : '' }))}
                 />
               </div>
 
@@ -315,8 +324,9 @@ export default function MastersPage() {
                   type="number"
                   step="any"
                   min="0"
-                  value={generalCfg.fastTR}
-                  onChange={e => setGeneralCfg(prev => ({ ...prev, fastTR: +e.target.value }))}
+                  placeholder="e.g. 1"
+                  value={generalCfg.fastTR ?? ''}
+                  onChange={e => setGeneralCfg(prev => ({ ...prev, fastTR: e.target.value ? +e.target.value : '' }))}
                 />
               </div>
 
@@ -325,8 +335,9 @@ export default function MastersPage() {
                 <input
                   type="number"
                   min="1"
-                  value={generalCfg.deadDays}
-                  onChange={e => setGeneralCfg(prev => ({ ...prev, deadDays: +e.target.value }))}
+                  placeholder="e.g. 90"
+                  value={generalCfg.deadDays ?? ''}
+                  onChange={e => setGeneralCfg(prev => ({ ...prev, deadDays: e.target.value ? +e.target.value : '' }))}
                 />
               </div>
             </div>

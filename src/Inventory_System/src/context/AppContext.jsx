@@ -5,9 +5,19 @@ import { today, dAgo, days } from '../utils/helpers';
 const AppContext = createContext(null);
 
 export function AppProvider({ children }) {
-  // Load data from LocalStorage or seed
+  // Clear legacy demo keys if present
+  useEffect(() => {
+    try {
+      ['jbt_coal_ims', 'jbt_coal_ims_v1', 'jbt_coal_ims_v2', 'jbt_coal_ims_v3', 'jbt_coal_ims_clean_v1', 'jbt_coal_ims_clean_v2', 'jbt_coal_ims_clean_v3'].forEach(k => localStorage.removeItem(k));
+    } catch(e) {}
+  }, []);
+
+  // Load data from LocalStorage or clean seed
   const [data, setData] = useState(() => {
     try {
+      // Clear old versions
+      ['jbt_coal_ims', 'jbt_coal_ims_v1', 'jbt_coal_ims_v2', 'jbt_coal_ims_v3', 'jbt_coal_ims_clean_v1', 'jbt_coal_ims_clean_v2', 'jbt_coal_ims_clean_v3'].forEach(k => localStorage.removeItem(k));
+
       const s = localStorage.getItem(STORAGE_KEY);
       if (s) {
         const d = JSON.parse(s);
@@ -16,13 +26,18 @@ export function AppProvider({ children }) {
           const fresh = getSeedData();
           d.users = fresh.users;
         }
-        if (!d.firms) d.firms = [];
-        if (!d.locs) d.locs = [];
-        if (!d.units) d.units = [];
+        // Remove dummy firms and locations if present
+        d.firms = (d.firms || []).filter(f => !['JBT Coal Pvt Ltd', 'JBT Coal Traders'].includes(f.name));
+        d.locs = (d.locs || []).filter(l => !['Siltara Coal Yard', 'Urla Depot', 'Washery Plant', 'Raipur Railway Siding'].includes(l.name));
+        // Remove dummy units if present
+        d.units = (d.units || []).filter(u => !['MT', 'KG', 'Ltr', 'Nos'].includes(u.name));
         if (!d.parties) d.parties = [];
-        if (!d.items) d.items = [];
-        if (!d.txns) d.txns = [];
-        if (!d.counts) d.counts = [];
+        
+        // Remove any remnant demo items or transactions if present
+        d.items = (d.items || []).filter(i => !['RC-G11', 'RC-G13', 'WC-2050', 'CF-0010', 'DSL-HSD', 'IMP-ID42', 'SC-G10'].includes(i.sku));
+        d.txns = (d.txns || []).filter(t => !String(t.no).startsWith('SAL-00') && !String(t.no).startsWith('PUR-00') && !String(t.no).startsWith('JC-00') && !String(t.no).startsWith('TRF-00') && !String(t.no).startsWith('SR-00') && !String(t.no).startsWith('PR-00'));
+        d.counts = [];
+
         return d;
       }
     } catch (e) {
@@ -434,18 +449,19 @@ export function AppProvider({ children }) {
   }, [filterStack]);
 
   const resetDemo = useCallback(() => {
-    if (!window.confirm('Reset all data to the demo coal data? Your entries will be lost.')) return;
+    if (!window.confirm('Reset all inventory data to a clean state? Your entries will be lost.')) return;
     try {
       localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem('jbt_coal_ims_v2');
+      localStorage.removeItem('jbt_coal_ims_v1');
     } catch (e) {}
     const fresh = getSeedData();
     saveData(fresh);
     setActiveTabs({});
     setFilters({});
     setActivePage('dashboard');
-    logout();
-    showToast('Demo data restored - sign in with admin1 / 1234');
-  }, [saveData, logout, showToast]);
+    showToast('Inventory reset to clean state.');
+  }, [saveData, showToast]);
 
   const value = {
     data,

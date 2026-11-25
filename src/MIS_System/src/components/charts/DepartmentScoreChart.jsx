@@ -15,6 +15,20 @@ const DepartmentScoreChart = ({ labels = [], pendingData = [], notDoneData = [],
 
     const yTicks = [25, 20, 15, 10, 5, 0];
 
+    if (!labels || labels.length === 0) {
+        return (
+            <div className="bg-white text-slate-800 rounded-3xl p-5 md:p-7 border border-slate-200/90 shadow-xs mt-6 text-center">
+                <div className="flex items-center gap-3 justify-center mb-2">
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 border border-blue-200 flex items-center justify-center">
+                        <Building2 className="w-5 h-5" />
+                    </div>
+                    <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">Department Scores</h3>
+                </div>
+                <p className="text-xs text-slate-400 mt-2">No department performance data available</p>
+            </div>
+        );
+    }
+
     return (
         <div className="bg-white text-slate-800 rounded-3xl p-5 md:p-7 border border-slate-200/90 shadow-xs hover:shadow-md transition-shadow mt-6">
             {/* Header matching screenshot 2 */}

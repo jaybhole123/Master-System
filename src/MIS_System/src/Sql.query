@@ -1231,3 +1231,122 @@ CREATE TABLE public.mis_commitment_history (
   CONSTRAINT mis_commitment_history_pkey PRIMARY KEY (id),
   CONSTRAINT mis_commitment_history_performance_id_fkey FOREIGN KEY (performance_id) REFERENCES public.mis_employee_performance(id)
 );
+
+-- =========================================================================
+-- LIVE MIS INTEGRATION VIEWS & QUERIES (Checklist & Delegation Connection)
+-- =========================================================================
+-- View 1: Unified live tasks from both Checklist and Delegation tables
+CREATE OR REPLACE VIEW public.view_mis_live_tasks AS
+SELECT
+  'checklist' AS source,
+  c.task_id::text AS task_id,
+  c.name AS employee_name,
+  c.department,
+  c.task_description,
+  c.frequency,
+  c.status::text AS status,
+  c.delay,
+  c.planned_date::text AS planned_date,
+  c.submission_date,
+  c.admin_done,
+  c.created_at
+FROM public.checklist c
+UNION ALL
+SELECT
+  'delegation' AS source,
+  d.task_id::text AS task_id,
+  d.name AS employee_name,
+  d.department,
+  d.task_description,
+  d.frequency,
+  d.status::text AS status,
+  d.delay,
+  d.planned_date::text AS planned_date,
+  d.submission_date,
+  d.admin_done,
+  d.created_at
+FROM public.delegation d;
+
+-- View 2: Live Employee Performance auto-aggregated from Checklist & Delegation
+CREATE OR REPLACE VIEW public.view_mis_employee_performance AS
+SELECT
+  ROW_NUMBER() OVER () AS id,
+  t.employee_name,
+  COALESCE(MAX(u.designation), MAX(t.department), 'EXECUTIVE') AS designation,
+  COALESCE(MAX(t.department), 'General') AS department,
+  COUNT(t.task_id) AS target,
+  COUNT(CASE WHEN LOWER(t.status) IN ('done', 'completed') OR t.submission_date IS NOT NULL THEN 1 END) AS actual_work_done,
+  ROUND(
+    (COUNT(CASE WHEN LOWER(t.status) IN ('done', 'completed') OR t.submission_date IS NOT NULL THEN 1 END)::numeric / 
+     NULLIF(COUNT(t.task_id), 0)::numeric) * 100, 
+    2
+  ) AS weekly_work_done_pct,
+  ROUND(
+    (COUNT(CASE WHEN (LOWER(t.status) IN ('done', 'completed') OR t.submission_date IS NOT NULL) 
+                     AND (t.delay IS NULL OR t.delay = '00:00:00'::interval) THEN 1 END)::numeric / 
+     NULLIF(COUNT(CASE WHEN LOWER(t.status) IN ('done', 'completed') OR t.submission_date IS NOT NULL THEN 1 END), 0)::numeric) * 100, 
+    2
+  ) AS weekly_work_done_on_time_pct,
+  COUNT(CASE WHEN LOWER(t.status) IN ('done', 'completed') OR t.submission_date IS NOT NULL THEN 1 END) AS total_work_done,
+  COUNT(CASE WHEN LOWER(t.status) NOT IN ('done', 'completed') AND t.submission_date IS NULL THEN 1 END) AS week_pending,
+  COUNT(CASE WHEN LOWER(t.status) NOT IN ('done', 'completed') AND t.submission_date IS NULL THEN 1 END) AS all_pending_till_date,
+  GREATEST(0, 100 - ROUND(
+    (COUNT(CASE WHEN LOWER(t.status) IN ('done', 'completed') OR t.submission_date IS NOT NULL THEN 1 END)::numeric / 
+     NULLIF(COUNT(t.task_id), 0)::numeric) * 100, 
+    2
+  )) AS planned_work_not_done,
+  GREATEST(0, 100 - ROUND(
+    (COUNT(CASE WHEN (LOWER(t.status) IN ('done', 'completed') OR t.submission_date IS NOT NULL) 
+                     AND (t.delay IS NULL OR t.delay = '00:00:00'::interval) THEN 1 END)::numeric / 
+     NULLIF(COUNT(CASE WHEN LOWER(t.status) IN ('done', 'completed') OR t.submission_date IS NOT NULL THEN 1 END), 0)::numeric) * 100, 
+    2
+  )) AS planned_work_not_done_on_time
+FROM public.view_mis_live_tasks t
+LEFT JOIN public.users u ON LOWER(TRIM(u.user_name)) = LOWER(TRIM(t.employee_name))
+WHERE t.employee_name IS NOT NULL AND TRIM(t.employee_name) <> ''
+GROUP BY t.employee_name;
+
+-- View 3: Live Department Performance Scores
+CREATE OR REPLACE VIEW public.view_mis_department_scores AS
+SELECT
+  COALESCE(department, 'General') AS department_name,
+  CURRENT_DATE AS evaluation_date,
+  COUNT(CASE WHEN LOWER(status) NOT IN ('done', 'completed') AND submission_date IS NULL THEN 1 END) AS pending_works,
+  GREATEST(0, 100 - ROUND(
+    (COUNT(CASE WHEN LOWER(status) IN ('done', 'completed') OR submission_date IS NOT NULL THEN 1 END)::numeric / 
+     NULLIF(COUNT(task_id), 0)::numeric) * 100, 
+    2
+  )) AS work_not_done_pct,
+  GREATEST(0, 100 - ROUND(
+    (COUNT(CASE WHEN (LOWER(status) IN ('done', 'completed') OR submission_date IS NOT NULL) 
+                     AND (delay IS NULL OR delay = '00:00:00'::interval) THEN 1 END)::numeric / 
+     NULLIF(COUNT(CASE WHEN LOWER(status) IN ('done', 'completed') OR submission_date IS NOT NULL THEN 1 END), 0)::numeric) * 100, 
+    2
+  )) AS not_done_on_time_pct
+FROM public.view_mis_live_tasks
+WHERE department IS NOT NULL AND TRIM(department) <> ''
+GROUP BY department;
+
+-- ==============================================================================
+-- RENT MANAGEMENT MODULE: rent_master & rent_monthly_tracker
+-- Add Electricity Amount (Numeric) & Electricity Status (Paid / Unpaid)
+-- ==============================================================================
+ALTER TABLE public.rent_master 
+ADD COLUMN IF NOT EXISTS electricity_amount numeric DEFAULT 0,
+ADD COLUMN IF NOT EXISTS electricity_status text DEFAULT 'Unpaid';
+
+ALTER TABLE public.rent_monthly_tracker 
+ADD COLUMN IF NOT EXISTS electricity_amount numeric DEFAULT 0,
+ADD COLUMN IF NOT EXISTS electricity_status text DEFAULT 'Unpaid',
+ADD COLUMN IF NOT EXISTS electricity_received_date date;
+
+-- Sync existing tracker records with Rent Master electricity amount
+UPDATE public.rent_monthly_tracker t
+SET 
+  electricity_amount = COALESCE(m.electricity_amount, 0),
+  electricity_status = COALESCE(t.electricity_status, m.electricity_status, 'Unpaid')
+FROM public.rent_master m
+WHERE (t.rent_master_id = m.id OR LOWER(TRIM(t.property)) = LOWER(TRIM(m.property_name)))
+  AND (t.electricity_amount IS NULL OR t.electricity_amount = 0);
+
+

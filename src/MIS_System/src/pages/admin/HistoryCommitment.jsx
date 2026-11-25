@@ -12,18 +12,23 @@ const AdminHistoryCommitment = () => {
     const [nameFilter, setNameFilter] = useState("all");
     const [dateFilter, setDateFilter] = useState("all");
 
-    // Fetch from Supabase mis_commitment_history table
+    const [usersList, setUsersList] = useState([]);
+
+    // Fetch from Supabase mis_commitment_history table + users list
     useEffect(() => {
         let isMounted = true;
         const fetchHistory = async () => {
             setLoading(true);
             try {
-                const { data, error } = await supabase
-                    .from("mis_commitment_history")
-                    .select("*")
-                    .order("created_at", { ascending: false });
+                const [{ data, error }, { data: uData }] = await Promise.all([
+                    supabase.from("mis_commitment_history").select("*").order("logged_at", { ascending: false }),
+                    supabase.from("users").select("user_name")
+                ]);
 
                 if (isMounted) {
+                    if (uData) {
+                        setUsersList(uData.map(u => u.user_name).filter(Boolean));
+                    }
                     if (!error && data && data.length > 0) {
                         const mapped = data.map(item => ({
                             id: item.id,
@@ -64,8 +69,9 @@ const AdminHistoryCommitment = () => {
     }, []);
 
     const uniqueNames = useMemo(() => {
-        return [...new Set(records.map(r => r.name))].sort();
-    }, [records]);
+        const fromHistory = records.map(r => r.name);
+        return [...new Set([...usersList, ...fromHistory])].filter(Boolean).sort();
+    }, [records, usersList]);
 
     const uniqueDates = useMemo(() => {
         return [...new Set(records.map(r => r.dateStart))].filter(Boolean).sort((a, b) => new Date(b) - new Date(a));

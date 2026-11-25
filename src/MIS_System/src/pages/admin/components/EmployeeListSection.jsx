@@ -1,6 +1,55 @@
 import React from "react";
 import { Filter, ChevronDown, Loader2, MessageSquare } from "lucide-react";
 
+// Robust Avatar component: Shows image if valid, otherwise displays clean colored initials
+const UserAvatar = ({ name, image, size = "w-9 h-9", textSize = "text-xs" }) => {
+    const [imgFailed, setImgFailed] = React.useState(false);
+
+    const getInitials = (str) => {
+        if (!str) return "U";
+        const parts = str.trim().split(/\s+/);
+        if (parts.length >= 2) {
+            return (parts[0][0] + parts[1][0]).toUpperCase();
+        }
+        return str.slice(0, 2).toUpperCase();
+    };
+
+    const getColor = (str) => {
+        const colors = [
+            "bg-blue-100 text-blue-700 border-blue-200",
+            "bg-emerald-100 text-emerald-700 border-emerald-200",
+            "bg-violet-100 text-violet-700 border-violet-200",
+            "bg-amber-100 text-amber-700 border-amber-200",
+            "bg-rose-100 text-rose-700 border-rose-200",
+            "bg-cyan-100 text-cyan-700 border-cyan-200"
+        ];
+        if (!str) return colors[0];
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) hash += str.charCodeAt(i);
+        return colors[hash % colors.length];
+    };
+
+    if (image && !imgFailed) {
+        return (
+            <img
+                className={`${size} rounded-full object-cover ring-2 ring-slate-100 shadow-2xs shrink-0`}
+                src={image}
+                alt={name || "User"}
+                onError={() => setImgFailed(true)}
+            />
+        );
+    }
+
+    return (
+        <div
+            className={`${size} rounded-full flex items-center justify-center font-bold border ${textSize} ${getColor(name)} shadow-2xs shrink-0 select-none`}
+            title={name}
+        >
+            {getInitials(name)}
+        </div>
+    );
+};
+
 const EmployeeListSection = ({
     user,
     // Column visibility
@@ -283,11 +332,7 @@ const EmployeeListSection = ({
                                     {visibleColumns.name && (
                                         <td className="px-4 py-3.5 whitespace-nowrap">
                                             <div className="flex items-center gap-3">
-                                                <img
-                                                    className="h-9 w-9 rounded-full object-cover ring-2 ring-slate-100 shadow-2xs"
-                                                    src={employee.image}
-                                                    alt={employee.name}
-                                                />
+                                                <UserAvatar name={employee.name} image={employee.image} />
                                                 <div>
                                                     <div className="text-sm font-semibold text-slate-900">
                                                         {employee.name}
@@ -473,11 +518,7 @@ const EmployeeListSection = ({
                                             className="flex items-center gap-2 cursor-pointer"
                                             onClick={() => handleRowClick(employee)}
                                         >
-                                            <img
-                                                className="h-10 w-10 rounded-full object-cover flex-shrink-0"
-                                                src={employee.image}
-                                                alt={employee.name}
-                                            />
+                                            <UserAvatar name={employee.name} image={employee.image} size="w-10 h-10" textSize="text-sm" />
                                             <div className="min-w-0 flex-1">
                                                 <div className="text-sm font-medium text-gray-900 truncate">
                                                     {employee.name}

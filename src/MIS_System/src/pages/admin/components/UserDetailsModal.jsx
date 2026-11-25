@@ -2,6 +2,55 @@ import React from "react";
 import ReactDOM from "react-dom";
 import { X, Loader2, Filter, Calendar, ChevronDown, Printer } from "lucide-react";
 
+// Robust Avatar component: Shows image if valid, otherwise displays clean colored initials
+const UserAvatar = ({ name, image, size = "w-10 h-10", textSize = "text-sm" }) => {
+    const [imgFailed, setImgFailed] = React.useState(false);
+
+    const getInitials = (str) => {
+        if (!str) return "U";
+        const parts = str.trim().split(/\s+/);
+        if (parts.length >= 2) {
+            return (parts[0][0] + parts[1][0]).toUpperCase();
+        }
+        return str.slice(0, 2).toUpperCase();
+    };
+
+    const getColor = (str) => {
+        const colors = [
+            "bg-blue-100 text-blue-700 border-blue-200",
+            "bg-emerald-100 text-emerald-700 border-emerald-200",
+            "bg-violet-100 text-violet-700 border-violet-200",
+            "bg-amber-100 text-amber-700 border-amber-200",
+            "bg-rose-100 text-rose-700 border-rose-200",
+            "bg-cyan-100 text-cyan-700 border-cyan-200"
+        ];
+        if (!str) return colors[0];
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) hash += str.charCodeAt(i);
+        return colors[hash % colors.length];
+    };
+
+    if (image && !imgFailed) {
+        return (
+            <img
+                className={`${size} rounded-full object-cover ring-2 ring-slate-100 shadow-2xs shrink-0`}
+                src={image}
+                alt={name || "User"}
+                onError={() => setImgFailed(true)}
+            />
+        );
+    }
+
+    return (
+        <div
+            className={`${size} rounded-full flex items-center justify-center font-bold border ${textSize} ${getColor(name)} shadow-2xs shrink-0 select-none`}
+            title={name}
+        >
+            {getInitials(name)}
+        </div>
+    );
+};
+
 const UserDetailsModal = ({
     selectedUserDetails,
     setSelectedUserDetails,
@@ -484,10 +533,11 @@ const UserDetailsModal = ({
                         {/* Header */}
                         <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0">
                             <div className="flex items-center gap-3 min-w-0">
-                                <img
-                                    className="h-10 w-10 rounded-full object-cover flex-shrink-0"
-                                    src={selectedUserDetails.image}
-                                    alt={selectedUserDetails.name}
+                                <UserAvatar
+                                    name={selectedUserDetails.name}
+                                    image={selectedUserDetails.image}
+                                    size="w-10 h-10"
+                                    textSize="text-sm"
                                 />
                                 <div className="min-w-0">
                                     <h2 className="text-base font-bold text-gray-900 truncate">

@@ -88,6 +88,8 @@ const RentMaster = () => {
           paymentMode: item.payment_mode || 'Cash',
           bankDetails: item.bank_details || '',
           electricity: item.electricity || 'Exclude',
+          electricityAmount: item.electricity_amount ?? '',
+          electricityStatus: item.electricity_status || 'Unpaid',
           maintenance: item.maintenance || 'Exclude',
           remarks: item.remarks || '',
           document: parsedDoc
@@ -243,18 +245,23 @@ const RentMaster = () => {
     
     autoTable(doc, {
       startY: 78,
-      head: [['Month', 'Property', 'Tenant', 'Rent (Rs)', 'Due Range', 'Received Date', 'Delay', 'Payment Mode', 'Bank Name & Details']],
-      body: historyData.map(record => [
-        record.month,
-        record.property,
-        record.tenant,
-        record.rent,
-        `${formatDate(record.due_date_start)} to ${formatDate(record.due_date_end)}`,
-        formatDate(record.received_date),
-        getDelayDays(record) > 0 ? `${getDelayDays(record)} days` : '-',
-        record.payment_mode,
-        record.bank_details || '-'
-      ]),
+      head: [['Month', 'Property', 'Tenant', 'Rent (Rs)', 'Status', 'Due Range', 'Received Date', 'Delay', 'Payment Mode', 'Bank Name & Details']],
+      body: historyData.map(record => {
+        const s = getRecordStatus(record);
+        const isPaid = s === 'Done' || s === 'Received' || s === 'On Time' || record.received_date;
+        return [
+          record.month,
+          record.property,
+          record.tenant,
+          record.rent,
+          isPaid ? 'Paid' : 'Non Paid',
+          `${formatDate(record.due_date_start)} to ${formatDate(record.due_date_end)}`,
+          formatDate(record.received_date),
+          getDelayDays(record) > 0 ? `${getDelayDays(record)} days` : '-',
+          record.payment_mode,
+          record.bank_details || '-'
+        ];
+      }),
       theme: 'grid',
       headStyles: { 
         fillColor: [220, 38, 38], 
@@ -294,6 +301,8 @@ const RentMaster = () => {
     paymentMode: 'Cash',
     bankDetails: '',
     electricity: 'Exclude',
+    electricityAmount: '',
+    electricityStatus: 'Unpaid',
     maintenance: 'Exclude',
     remarks: '',
     document: []
@@ -384,6 +393,8 @@ const RentMaster = () => {
         payment_mode: formData.paymentMode,
         bank_details: formData.bankDetails,
         electricity: formData.electricity,
+        electricity_amount: formData.electricityAmount !== '' ? Number(formData.electricityAmount) : null,
+        electricity_status: formData.electricityStatus || 'Unpaid',
         maintenance: formData.maintenance,
         remarks: formData.remarks,
         document: documentString,
@@ -447,7 +458,7 @@ const RentMaster = () => {
       setDocumentFiles([]);
       documentFilesRef.current = [];
       setFormData({
-        propertyName: '', tenantName: '', tenantContact: '', ownerName: '', monthlyRent: '', securityDeposit: '', agreementStart: '', agreementEnd: '', rentDueDateStart: '', rentDueDateEnd: '', paymentMode: 'Cash', bankDetails: '', electricity: 'Exclude', maintenance: 'Exclude', remarks: '', document: []
+        propertyName: '', tenantName: '', tenantContact: '', ownerName: '', monthlyRent: '', securityDeposit: '', agreementStart: '', agreementEnd: '', rentDueDateStart: '', rentDueDateEnd: '', paymentMode: 'Cash', bankDetails: '', electricity: 'Exclude', electricityAmount: '', electricityStatus: 'Unpaid', maintenance: 'Exclude', remarks: '', document: []
       });
       fetchRentMasterData();
     } catch (error) {
@@ -551,6 +562,8 @@ const RentMaster = () => {
             property: record.propertyName,
             tenant: record.tenantName,
             rent: record.monthlyRent ? Number(record.monthlyRent) : 0,
+            electricity_amount: record.electricityAmount !== undefined && record.electricityAmount !== null && record.electricityAmount !== '' ? Number(record.electricityAmount) : 0,
+            electricity_status: record.electricityStatus || 'Unpaid',
             due_date_start: dueDateStart,
             due_date_end: dueDateEnd,
             received_date: null,
@@ -756,6 +769,8 @@ const RentMaster = () => {
         paymentMode: record.paymentMode || 'Cash',
         bankDetails: record.bankDetails || '',
         electricity: record.electricity || 'Exclude',
+        electricityAmount: record.electricityAmount !== undefined && record.electricityAmount !== null ? record.electricityAmount : '',
+        electricityStatus: record.electricityStatus || 'Unpaid',
         maintenance: record.maintenance || 'Exclude',
         remarks: record.remarks || '',
         document: record.document || []
@@ -869,7 +884,7 @@ const RentMaster = () => {
                   setEditingId(null);
                   setDocumentFiles([]);
                   setFormData({
-                    propertyName: '', tenantName: '', tenantContact: '', ownerName: '', monthlyRent: '', securityDeposit: '', agreementStart: '', agreementEnd: '', rentDueDateStart: '', rentDueDateEnd: '', paymentMode: 'Cash', bankDetails: '', electricity: 'Exclude', maintenance: 'Exclude', remarks: '', document: []
+                    propertyName: '', tenantName: '', tenantContact: '', ownerName: '', monthlyRent: '', securityDeposit: '', agreementStart: '', agreementEnd: '', rentDueDateStart: '', rentDueDateEnd: '', paymentMode: 'Cash', bankDetails: '', electricity: 'Exclude', electricityAmount: '', electricityStatus: 'Unpaid', maintenance: 'Exclude', remarks: '', document: []
                   });
                   setIsModalOpen(true);
                 }}
@@ -1140,11 +1155,23 @@ const RentMaster = () => {
                       {record.bankDetails || '-'}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                        record.electricity?.toLowerCase() === 'include' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'
-                      }`}>
-                        {record.electricity || 'Exclude'}
-                      </span>
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-bold text-slate-800">
+                            {record.electricityAmount ? `₹${record.electricityAmount}` : '₹0'}
+                          </span>
+                          <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                            record.electricityStatus?.toLowerCase() === 'paid' 
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' 
+                              : 'bg-rose-50 text-rose-700 border border-rose-200/60'
+                          }`}>
+                            {record.electricityStatus?.toLowerCase() === 'paid' ? 'Paid' : 'Non Paid'}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-slate-400">
+                          Type: {record.electricity || 'Exclude'}
+                        </span>
+                      </div>
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap">
                       <span className={`inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold ${
@@ -1295,7 +1322,7 @@ const RentMaster = () => {
                   setEditingId(null);
                   setDocumentFiles([]);
                   setFormData({
-                    propertyName: '', tenantName: '', tenantContact: '', ownerName: '', monthlyRent: '', securityDeposit: '', agreementStart: '', agreementEnd: '', rentDueDateStart: '', rentDueDateEnd: '', paymentMode: 'Cash', bankDetails: '', electricity: 'Exclude', maintenance: 'Exclude', remarks: '', document: []
+                    propertyName: '', tenantName: '', tenantContact: '', ownerName: '', monthlyRent: '', securityDeposit: '', agreementStart: '', agreementEnd: '', rentDueDateStart: '', rentDueDateEnd: '', paymentMode: 'Cash', bankDetails: '', electricity: 'Exclude', electricityAmount: '', electricityStatus: 'Unpaid', maintenance: 'Exclude', remarks: '', document: []
                   });
                 }}
                 className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
@@ -1377,7 +1404,30 @@ const RentMaster = () => {
                     <input type="text" name="bankDetails" value={formData.bankDetails} onChange={handleInputChange} placeholder="e.g. SBI - A/C 1234567890" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500" />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold text-slate-600 uppercase">Electricity</label>
+                    <label className="text-xs font-semibold text-slate-600 uppercase">Electricity Bill (₹ Amount)</label>
+                    <input 
+                      type="number" 
+                      name="electricityAmount" 
+                      value={formData.electricityAmount} 
+                      onChange={handleInputChange} 
+                      placeholder="e.g. 1500" 
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500" 
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-600 uppercase">Electricity Bill Status</label>
+                    <select 
+                      name="electricityStatus" 
+                      value={formData.electricityStatus} 
+                      onChange={handleInputChange} 
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 bg-white"
+                    >
+                      <option value="Unpaid">Non Paid (Unpaid)</option>
+                      <option value="Paid">Paid</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-600 uppercase">Electricity Charges</label>
                     <select name="electricity" value={formData.electricity} onChange={handleInputChange} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 bg-white">
                       <option value="Exclude">Exclude</option>
                       <option value="Include">Include</option>
@@ -1580,6 +1630,7 @@ const RentMaster = () => {
                         <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Property</th>
                         <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Tenant</th>
                         <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Rent (₹)</th>
+                        <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-center">Status</th>
                         <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Due Range</th>
                         <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Received Date</th>
                         <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Delay Days</th>
@@ -1594,6 +1645,21 @@ const RentMaster = () => {
                           <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-700">{item.property}</td>
                           <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-700">{item.tenant}</td>
                           <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-slate-900">₹{item.rent}</td>
+                          <td className="px-4 py-3 whitespace-nowrap text-center">
+                            {(() => {
+                              const s = getRecordStatus(item);
+                              const isPaid = s === 'Done' || s === 'Received' || s === 'On Time' || item.received_date;
+                              return (
+                                <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-black uppercase tracking-wider ${
+                                  isPaid
+                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80'
+                                    : 'bg-rose-50 text-rose-700 border border-rose-200/80'
+                                }`}>
+                                  {isPaid ? 'Paid' : 'Non Paid'}
+                                </span>
+                              );
+                            })()}
+                          </td>
                           <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-700">
                             {item.due_date_start && item.due_date_end ? `${formatDate(item.due_date_start)} to ${formatDate(item.due_date_end)}` : '-'}
                           </td>

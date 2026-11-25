@@ -281,6 +281,18 @@ const serializePagePermissions = (permObj) => {
   return JSON.stringify(permObj);
 };
 
+// Stages where tasks & pending works are tracked for MIS Score eligibility
+const MIS_TASK_STAGES = new Set([
+  'Checklist & Delegation::Checklist',
+  'Checklist & Delegation::Delegation',
+  'Checklist & Delegation::Task Manager',
+  'Checklist & Delegation::Assign Task'
+]);
+
+const isMisEligibleStage = (moduleId, page) => {
+  return MIS_TASK_STAGES.has(`${moduleId}::${page}`);
+};
+
 const MODULES = [
   {
     id: 'Checklist & Delegation',
@@ -483,6 +495,14 @@ export default function GlobalSettings() {
       let parsedSystemAccess = parseAccessValue(user.system_access);
       let parsedPageAccess = parsePagePermissions(user.page_access);
 
+      // Default Checklist MIS to true (YES) for all users as requested
+      const checklistKey = 'Checklist & Delegation::Checklist';
+      if (!parsedPageAccess[checklistKey]) {
+        parsedPageAccess[checklistKey] = { read: true, write: true, mis: true };
+      } else if (parsedPageAccess[checklistKey].mis === undefined) {
+        parsedPageAccess[checklistKey].mis = true;
+      }
+
       setFormData({
         user_name: user.user_name || '',
         password: user.password || '',
@@ -517,7 +537,9 @@ export default function GlobalSettings() {
         department: '',
         designation: '',
         system_access: [],
-        page_access: {},
+        page_access: {
+          'Checklist & Delegation::Checklist': { read: true, write: true, mis: true }
+        },
         profile_image: ''
       });
     }
@@ -659,7 +681,12 @@ export default function GlobalSettings() {
     setFormData(prev => {
       const newPageAccess = { ...(prev.page_access || {}) };
       modulePages.forEach(p => {
-        newPageAccess[`${moduleId}::${p}`] = { read: true, write: true, mis: true };
+        const isEligible = isMisEligibleStage(moduleId, p);
+        newPageAccess[`${moduleId}::${p}`] = { 
+          read: true, 
+          write: true, 
+          mis: isEligible 
+        };
       });
       return {
         ...prev,
@@ -1888,16 +1915,21 @@ export default function GlobalSettings() {
                                       </label>
                                     </td>
 
-                                    {/* MIS Column */}
-                                    <td className="py-3 px-4 text-center bg-purple-50/30">
-                                      <label className="inline-flex items-center justify-center cursor-pointer">
-                                        <input
-                                          type="checkbox"
-                                          checked={!!perm.mis}
-                                          onChange={() => togglePagePermission(selectedModule, page, 'mis')}
-                                          className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500 border-slate-300 cursor-pointer"
-                                        />
-                                      </label>
+                                    {/* MIS Column (Only displayed on stages where pending tasks exist) */}
+                                    <td className="py-3 px-4 text-center bg-purple-50/20">
+                                      {isMisEligibleStage(selectedModule, page) ? (
+                                        <label className="inline-flex items-center justify-center cursor-pointer">
+                                          <input
+                                            type="checkbox"
+                                            checked={!!perm.mis}
+                                            onChange={() => togglePagePermission(selectedModule, page, 'mis')}
+                                            className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500 border-slate-300 cursor-pointer"
+                                            title="Enable MIS Score Tracking for this Task Stage"
+                                          />
+                                        </label>
+                                      ) : (
+                                        <span className="text-slate-300 text-xs select-none" title="Not a task pending stage">—</span>
+                                      )}
                                     </td>
                                   </tr>
                                 );

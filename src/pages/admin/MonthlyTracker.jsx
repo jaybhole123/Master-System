@@ -6,7 +6,7 @@ import {
   Clock, CheckCircle2, AlertCircle, AlertTriangle, FileText, FileSpreadsheet, 
   Phone, MessageSquare, LayoutDashboard, Building2, TrendingUp, ShieldCheck, 
   DollarSign, Wallet, Banknote, RefreshCw, ArrowRight, Filter, ExternalLink, 
-  Sparkles, Shield, ChevronRight, GitFork
+  Sparkles, Shield, ChevronRight, GitFork, Zap
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -58,7 +58,10 @@ const MonthlyTracker = () => {
         rentDueDateStart: item.rent_due_date_start,
         rentDueDateEnd: item.rent_due_date_end,
         paymentMode: item.payment_mode,
-        bankDetails: item.bank_details
+        bankDetails: item.bank_details,
+        electricity: item.electricity,
+        electricityAmount: item.electricity_amount,
+        electricityStatus: item.electricity_status
       }));
       setRentMasterData(masterList);
 
@@ -83,6 +86,9 @@ const MonthlyTracker = () => {
           paymentMode: item.payment_mode || 'Cash',
           bankDetails: item.bank_details || '',
           status: item.status || 'Pending',
+          electricityStatus: item.electricity_status || master?.electricityStatus || 'Pending',
+          electricityAmount: item.electricity_amount !== undefined && item.electricity_amount !== null ? item.electricity_amount : (master?.electricityAmount || 0),
+          electricityReceivedDate: item.electricity_received_date || null,
           remarks: item.remarks || ''
         };
       }));
@@ -106,6 +112,8 @@ const MonthlyTracker = () => {
     property: '',
     tenant: '',
     rent: '',
+    electricityAmount: '',
+    electricityStatus: 'Unpaid',
     dueDateStart: '',
     dueDateEnd: '',
     receivedDate: '',
@@ -139,6 +147,8 @@ const MonthlyTracker = () => {
           property: value,
           tenant: selectedProperty.tenantName || '',
           rent: selectedProperty.monthlyRent || '',
+          electricityAmount: selectedProperty.electricityAmount !== undefined && selectedProperty.electricityAmount !== null && selectedProperty.electricityAmount !== '' ? selectedProperty.electricityAmount : '',
+          electricityStatus: selectedProperty.electricityStatus || 'Unpaid',
           dueDateStart: calculateDate(selectedProperty.rentDueDateStart, prev.month),
           dueDateEnd: calculateDate(selectedProperty.rentDueDateEnd, prev.month),
           paymentMode: selectedProperty.paymentMode || 'Cash',
@@ -174,6 +184,8 @@ const MonthlyTracker = () => {
         property: formData.property,
         tenant: formData.tenant,
         rent: formData.rent ? Number(formData.rent) : 0,
+        electricity_amount: formData.electricityAmount !== '' && formData.electricityAmount !== null ? Number(formData.electricityAmount) : 0,
+        electricity_status: formData.electricityStatus || 'Unpaid',
         due_date_start: formData.dueDateStart || null,
         due_date_end: formData.dueDateEnd || null,
         received_date: formData.receivedDate || null,
@@ -204,7 +216,7 @@ const MonthlyTracker = () => {
       setIsModalOpen(false);
       setEditingId(null);
       setFormData({
-        month: currentMonth, property: '', tenant: '', rent: '', dueDateStart: '', dueDateEnd: '', receivedDate: '', paymentMode: 'Cash', bankDetails: '', remarks: ''
+        month: currentMonth, property: '', tenant: '', rent: '', electricityAmount: '', electricityStatus: 'Unpaid', dueDateStart: '', dueDateEnd: '', receivedDate: '', paymentMode: 'Cash', bankDetails: '', remarks: ''
       });
       fetchTrackerData();
     } catch (error) {
@@ -339,14 +351,62 @@ const MonthlyTracker = () => {
     }
   };
 
+  const handleToggleElectricityPayment = async (record) => {
+    const isCurrentlyPaid = record.electricityStatus?.toLowerCase() === 'paid';
+    const newStatus = isCurrentlyPaid ? 'Unpaid' : 'Paid';
+    const today = new Date().toISOString().split('T')[0];
+    const newReceivedDate = isCurrentlyPaid ? null : today;
+
+    // Preserve electricity amount so it never resets to 0
+    const master = rentMasterData.find(m => 
+      (record.rentMasterId && m.id === record.rentMasterId) || 
+      (record.property && m.propertyName?.toLowerCase() === record.property?.toLowerCase())
+    );
+    const preservedAmount = Number(record.electricityAmount) > 0 
+      ? Number(record.electricityAmount) 
+      : (master?.electricityAmount ? Number(master.electricityAmount) : 0);
+
+    try {
+      const toastId = toast.loading(isCurrentlyPaid ? 'Marking electricity bill as Non-Paid...' : 'Marking electricity bill as Paid...');
+      const { error } = await supabase
+        .from('rent_monthly_tracker')
+        .update({
+          electricity_status: newStatus,
+          electricity_amount: preservedAmount,
+          electricity_received_date: newReceivedDate,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', record.id);
+
+      toast.dismiss(toastId);
+      if (error) throw error;
+      toast.success(`Electricity Bill for ${record.property} marked as ${newStatus}!`);
+      fetchTrackerData();
+    } catch (err) {
+      console.error('Error updating electricity status:', err);
+      toast.error('Failed to update electricity status');
+    }
+  };
+
   const handleUpdate = (id) => {
     const record = mockData.find(item => item.id === id);
     if (record) {
+      const master = rentMasterData.find(m => 
+        (record.rentMasterId && m.id === record.rentMasterId) || 
+        (record.property && m.propertyName?.toLowerCase() === record.property?.toLowerCase())
+      );
+      // If tracker has 0 or null/empty, auto-fetch from master
+      const recordElecAmt = Number(record.electricityAmount);
+      const masterElecAmt = master?.electricityAmount !== undefined && master?.electricityAmount !== null ? Number(master.electricityAmount) : 0;
+      const effectiveElecAmt = recordElecAmt > 0 ? recordElecAmt : (masterElecAmt > 0 ? masterElecAmt : (record.electricityAmount ?? ''));
+
       setFormData({
         month: record.month || currentMonth,
         property: record.property || '',
         tenant: record.tenant || '',
         rent: record.rent || '',
+        electricityAmount: effectiveElecAmt,
+        electricityStatus: record.electricityStatus || master?.electricityStatus || 'Unpaid',
         dueDateStart: record.dueDateStart || '',
         dueDateEnd: record.dueDateEnd || '',
         receivedDate: record.receivedDate || '',
@@ -839,7 +899,7 @@ const MonthlyTracker = () => {
               onClick={() => {
                 setEditingId(null);
                 setFormData({
-                  month: filterMonth || currentMonth, property: '', tenant: '', rent: '', dueDateStart: '', dueDateEnd: '', receivedDate: '', paymentMode: 'Cash', bankDetails: '', remarks: ''
+                  month: filterMonth || currentMonth, property: '', tenant: '', rent: '', electricityAmount: '', electricityStatus: 'Unpaid', dueDateStart: '', dueDateEnd: '', receivedDate: '', paymentMode: 'Cash', bankDetails: '', remarks: ''
                 });
                 setIsModalOpen(true);
               }}
@@ -1071,24 +1131,26 @@ const MonthlyTracker = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50/70 border-b border-slate-200/80 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                  <th className="py-3 px-3 text-center w-12">#</th>
-                  <th className="py-3 px-3">Month</th>
-                  <th className="py-3 px-3">Property Name</th>
-                  <th className="py-3 px-3">Tenant & Contact</th>
-                  <th className="py-3 px-3 text-right">Monthly Rent</th>
-                  <th className="py-3 px-3">Mode & Bank</th>
-                  <th className="py-3 px-3 text-center">Status</th>
-                  <th className="py-3 px-3 text-center">Delay / Overdue</th>
-                  <th className="py-3 px-3">Remarks</th>
-                  <th className="py-3 px-3">Received Date</th>
-                  <th className="py-3 px-3 text-right">Actions</th>
+                <tr className="bg-slate-50/70 border-b border-slate-200/80 text-[11px] font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">
+                  <th className="py-2.5 px-3 text-center w-10">#</th>
+                  <th className="py-2.5 px-3">Month</th>
+                  <th className="py-2.5 px-3">Property</th>
+                  <th className="py-2.5 px-3">Tenant</th>
+                  <th className="py-2.5 px-3">Contact</th>
+                  <th className="py-2.5 px-3 text-right">Rent</th>
+                  <th className="py-2.5 px-3 text-center">Electricity</th>
+                  <th className="py-2.5 px-3">Payment Mode</th>
+                  <th className="py-2.5 px-3 text-center">Rent Status</th>
+                  <th className="py-2.5 px-3 text-center">Delay</th>
+                  <th className="py-2.5 px-3">Remarks</th>
+                  <th className="py-2.5 px-3">Received Date</th>
+                  <th className="py-2.5 px-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-xs">
                 {filteredData.length === 0 ? (
                   <tr>
-                    <td colSpan="11" className="py-12 text-center text-slate-400">
+                    <td colSpan="13" className="py-12 text-center text-slate-400">
                       <div className="flex flex-col items-center justify-center gap-2">
                         <CalendarIcon className="h-8 w-8 text-slate-300" />
                         <p className="font-semibold text-slate-600">No rent tracker records found</p>
@@ -1105,52 +1167,85 @@ const MonthlyTracker = () => {
                     return (
                       <tr key={record.id} className="hover:bg-slate-50/60 transition-colors">
                         {/* Index */}
-                        <td className="py-3 px-3 text-center font-bold text-slate-400">
+                        <td className="py-2.5 px-3 text-center font-bold text-slate-400 whitespace-nowrap">
                           {index + 1}
                         </td>
 
                         {/* Month */}
-                        <td className="py-3 px-3 font-semibold text-slate-700 whitespace-nowrap">
-                          <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-bold text-[11px]">
+                        <td className="py-2.5 px-3 font-semibold text-slate-700 whitespace-nowrap">
+                          <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-bold text-[11px] whitespace-nowrap">
                             {record.month}
                           </span>
                         </td>
 
                         {/* Property */}
-                        <td className="py-3 px-3">
-                          <div className="font-extrabold text-slate-900 flex items-center gap-1.5">
-                            <Building2 className="h-3.5 w-3.5 text-red-500 shrink-0" />
-                            <span className="whitespace-normal break-words" title={record.property}>{record.property}</span>
+                        <td className="py-2.5 px-3 min-w-[130px] max-w-[200px]">
+                          <div className="font-extrabold text-slate-900 flex items-center gap-1.5 leading-snug">
+                            <Building2 className="h-3.5 w-3.5 text-red-500 shrink-0 self-start mt-0.5" />
+                            <span className="break-words line-clamp-2">{record.property}</span>
                           </div>
                         </td>
 
-                        {/* Tenant & Contact */}
-                        <td className="py-3 px-3">
-                          <div className="font-bold text-slate-800">{record.tenant}</div>
+                        {/* Tenant */}
+                        <td className="py-2.5 px-3 min-w-[120px] max-w-[180px]">
+                          <div className="font-bold text-slate-800 leading-snug break-words line-clamp-2">
+                            {record.tenant}
+                          </div>
+                        </td>
+
+                        {/* Contact */}
+                        <td className="py-2.5 px-3 whitespace-nowrap">
                           {record.tenantContact ? (
                             <a 
                               href={`https://wa.me/91${record.tenantContact.replace(/[^0-9]/g, '')}`} 
                               target="_blank" 
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 px-1.5 py-0.5 mt-0.5 rounded-md bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold text-[11px] transition-colors"
+                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold text-[11px] transition-colors whitespace-nowrap"
                               title="Click to WhatsApp chat"
                             >
                               <Phone className="h-3 w-3" />
                               <span>{record.tenantContact}</span>
                             </a>
                           ) : (
-                            <span className="text-[11px] text-slate-400">No phone</span>
+                            <span className="text-[11px] text-slate-400">-</span>
                           )}
                         </td>
 
                         {/* Monthly Rent */}
-                        <td className="py-3 px-3 text-right font-black text-slate-900 whitespace-nowrap">
+                        <td className="py-2.5 px-3 text-right font-black text-slate-900 whitespace-nowrap">
                           ₹ {Number(record.rent || 0).toLocaleString('en-IN')}
                         </td>
 
+                        {/* Electricity Bill */}
+                        <td className="py-2.5 px-3 text-center whitespace-nowrap">
+                          {(() => {
+                            const elecAmt = Number(record.electricityAmount) > 0 
+                              ? Number(record.electricityAmount) 
+                              : (rentMasterData.find(m => 
+                                  (record.rentMasterId && m.id === record.rentMasterId) || 
+                                  (record.property && m.propertyName?.toLowerCase() === record.property?.toLowerCase())
+                                )?.electricityAmount || 0);
+
+                            return (
+                              <div className="inline-flex items-center gap-1.5">
+                                <span className="font-bold text-slate-800 text-xs">
+                                  ₹{Number(elecAmt).toLocaleString('en-IN')}
+                                </span>
+                                <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-extrabold ${
+                                  record.electricityStatus?.toLowerCase() === 'paid'
+                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60'
+                                    : 'bg-rose-50 text-rose-600 border border-rose-200/60'
+                                }`}>
+                                  {record.electricityStatus?.toLowerCase() === 'paid' ? 'Paid' : 'Unpaid'}
+                                </span>
+                              </div>
+                            );
+                          })()}
+                        </td>
+
                         {/* Payment Mode & Bank */}
-                        <td className="py-3 px-3 whitespace-nowrap">
-                          <div className="flex flex-col gap-0.5">
+                        <td className="py-2.5 px-3 min-w-[120px] max-w-[180px]">
+                          <div className="flex flex-col gap-0.5 leading-snug">
                             <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-bold w-max ${
                               record.paymentMode?.toLowerCase() === 'cash' 
                                 ? 'bg-amber-50 text-amber-700' 
@@ -1159,7 +1254,7 @@ const MonthlyTracker = () => {
                               {record.paymentMode || 'Cash'}
                             </span>
                             {record.bankDetails && (
-                              <span className="text-[10px] text-slate-400 whitespace-normal break-words" title={record.bankDetails}>
+                              <span className="text-[10px] text-slate-500 break-words line-clamp-2">
                                 {record.bankDetails}
                               </span>
                             )}
@@ -1167,28 +1262,39 @@ const MonthlyTracker = () => {
                         </td>
 
                         {/* Status */}
-                        <td className="py-3 px-3 text-center whitespace-nowrap">
-                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold ${
-                            status === 'On Time' 
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60'
-                              : status === 'Received'
-                              ? 'bg-teal-50 text-teal-700 border border-teal-200/60'
-                              : status === 'Delay'
-                              ? 'bg-rose-50 text-rose-600 border border-rose-200/60'
-                              : 'bg-amber-50 text-amber-700 border border-amber-200/60'
-                          }`}>
-                            <span className={`h-1.5 w-1.5 rounded-full ${
-                              status === 'On Time' || status === 'Received' ? 'bg-emerald-500' : (status === 'Delay' ? 'bg-rose-500' : 'bg-amber-500')
-                            }`}></span>
-                            <span>{status}</span>
-                          </span>
+                        <td className="py-2.5 px-3 text-center whitespace-nowrap">
+                          <div className="flex flex-col items-center gap-0.5">
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                              status === 'On Time' 
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60'
+                                : status === 'Received'
+                                ? 'bg-teal-50 text-teal-700 border border-teal-200/60'
+                                : status === 'Delay'
+                                ? 'bg-rose-50 text-rose-600 border border-rose-200/60'
+                                : 'bg-amber-50 text-amber-700 border border-amber-200/60'
+                            }`}>
+                              <span className={`h-1.5 w-1.5 rounded-full ${
+                                status === 'On Time' || status === 'Received' ? 'bg-emerald-500' : (status === 'Delay' ? 'bg-rose-500' : 'bg-amber-500')
+                              }`}></span>
+                              <span>{status}</span>
+                            </span>
+
+                            {/* Paid / Not Paid Sub-badge */}
+                            <span className={`text-[9px] font-black uppercase tracking-wider ${
+                              status === 'On Time' || status === 'Received' || isReceived
+                                ? 'text-emerald-600'
+                                : 'text-rose-600'
+                            }`}>
+                              {status === 'On Time' || status === 'Received' || isReceived ? 'Paid' : 'Not Paid'}
+                            </span>
+                          </div>
                         </td>
 
                         {/* Delay Days */}
-                        <td className="py-3 px-3 text-center whitespace-nowrap">
+                        <td className="py-2.5 px-3 text-center whitespace-nowrap">
                           {delayDays > 0 ? (
                             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-50 text-rose-600 border border-rose-200/60">
-                              {delayDays} days late
+                              {delayDays}d late
                             </span>
                           ) : (status === 'On Time' ? (
                             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
@@ -1200,50 +1306,70 @@ const MonthlyTracker = () => {
                         </td>
 
                         {/* Remarks */}
-                        <td className="py-3 px-3 text-slate-500 text-[11px] whitespace-normal break-words" title={record.remarks || ''}>
-                          {record.remarks || '-'}
+                        <td className="py-2.5 px-3 text-slate-500 text-[11px] min-w-[140px] max-w-[220px]">
+                          <span className="break-words line-clamp-2 leading-snug">
+                            {record.remarks || '-'}
+                          </span>
                         </td>
 
                         {/* Received Date */}
-                        <td className="py-3 px-3 text-slate-600 text-[11px] whitespace-nowrap font-medium">
+                        <td className="py-2.5 px-3 text-slate-600 text-[11px] whitespace-nowrap font-medium">
                           {record.receivedDate ? (
                             <span className="text-emerald-700 font-semibold">{formatDate(record.receivedDate)}</span>
                           ) : '-'}
                         </td>
 
                         {/* Actions */}
-                        <td className="py-3 px-3 text-right whitespace-nowrap">
+                        <td className="py-2.5 px-3 text-right whitespace-nowrap">
                           <div className="flex items-center justify-end gap-1.5">
+                            {/* 1. Rent Done/Receive Button */}
                             {!isReceived ? (
                               <button 
                                 onClick={() => openReceiveModal(record)} 
-                                title="Confirm Payment & WhatsApp Receipt" 
-                                className="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg transition-colors shadow-2xs"
+                                title="Mark Rent as Done & Send Receipt" 
+                                className="flex items-center gap-1 px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all text-[11px] font-bold shadow-2xs active:scale-95 whitespace-nowrap"
                               >
-                                <Check className="h-3.5 w-3.5" />
+                                <Check className="h-3 w-3" />
+                                <span>Rent Done</span>
                               </button>
                             ) : (
                               <button 
                                 onClick={() => handleSendWhatsAppDirect(record)} 
-                                title="Resend WhatsApp Receipt" 
-                                className="p-1.5 bg-teal-50 hover:bg-teal-100 text-teal-700 rounded-lg transition-colors shadow-2xs"
+                                title="Rent is Done (Click to Resend WhatsApp Receipt)" 
+                                className="flex items-center gap-1 px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/60 rounded-lg transition-colors text-[11px] font-bold whitespace-nowrap"
                               >
-                                <MessageSquare className="h-3.5 w-3.5" />
+                                <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                                <span>Rent Paid</span>
                               </button>
                             )}
+
+                            {/* 2. Electricity Done/Toggle Button */}
+                            <button 
+                              onClick={() => handleToggleElectricityPayment(record)} 
+                              title={record.electricityStatus?.toLowerCase() === 'paid' ? 'Click to mark Electricity as Unpaid' : 'Click to mark Electricity Bill as Paid (Done)'} 
+                              className={`flex items-center gap-1 px-2 py-1 rounded-lg transition-all text-[11px] font-bold shadow-2xs active:scale-95 whitespace-nowrap ${
+                                record.electricityStatus?.toLowerCase() === 'paid'
+                                  ? 'bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200/70'
+                                  : 'bg-amber-500 hover:bg-amber-600 text-white'
+                              }`}
+                            >
+                              <Zap className="h-3 w-3" />
+                              <span>{record.electricityStatus?.toLowerCase() === 'paid' ? 'Power Paid' : 'Power Done'}</span>
+                            </button>
+
                             <button 
                               onClick={() => handleUpdate(record.id)} 
                               title="Edit Record" 
-                              className="p-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors shadow-2xs"
+                              className="p-1 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors shadow-2xs"
                             >
-                              <Edit className="h-3.5 w-3.5" />
+                              <Edit className="h-3 w-3" />
                             </button>
                             <button 
                               onClick={() => handleDelete(record.id)} 
                               title="Delete Record" 
-                              className="p-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-lg transition-colors shadow-2xs"
+                              className="p-1 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-lg transition-colors shadow-2xs"
                             >
-                              <Trash2 className="h-3.5 w-3.5" />
+                              <Trash2 className="h-3 w-3" />
                             </button>
                           </div>
                         </td>
@@ -1299,11 +1425,18 @@ const MonthlyTracker = () => {
                       <span className="bg-red-50 text-red-700 text-sm font-black px-2.5 py-1 rounded-xl">
                         ₹{Number(record.rent || 0).toLocaleString('en-IN')}
                       </span>
-                      <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
-                        isReceived ? 'bg-emerald-50 text-emerald-700' : (status === 'Delay' ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-700')
-                      }`}>
-                        {status}
-                      </span>
+                      <div className="flex flex-col items-end gap-0.5">
+                        <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                          isReceived ? 'bg-emerald-50 text-emerald-700' : (status === 'Delay' ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-700')
+                        }`}>
+                          {status}
+                        </span>
+                        <span className={`text-[9px] font-black uppercase tracking-wider ${
+                          isReceived ? 'text-emerald-600' : 'text-rose-600'
+                        }`}>
+                          {isReceived ? 'Paid' : 'Not Paid'}
+                        </span>
+                      </div>
                     </div>
                   </div>
                   
@@ -1315,8 +1448,26 @@ const MonthlyTracker = () => {
                       </span>
                     </div>
                     <div>
-                      <span className="text-[10px] font-bold text-slate-400 block uppercase">Received Date</span>
-                      <span className="font-semibold text-slate-700">{formatDate(record.receivedDate)}</span>
+                      <span className="text-[10px] font-bold text-slate-400 block uppercase">Electricity Bill</span>
+                      {(() => {
+                        const elecAmt = Number(record.electricityAmount) > 0 
+                          ? Number(record.electricityAmount) 
+                          : (rentMasterData.find(m => 
+                              (record.rentMasterId && m.id === record.rentMasterId) || 
+                              (record.property && m.propertyName?.toLowerCase() === record.property?.toLowerCase())
+                            )?.electricityAmount || 0);
+
+                        return (
+                          <span className="font-bold text-slate-800">
+                            ₹{Number(elecAmt).toLocaleString('en-IN')}
+                            <span className={`ml-1 text-[9px] px-1 py-0.5 rounded font-extrabold ${
+                              record.electricityStatus?.toLowerCase() === 'paid' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-600'
+                            }`}>
+                              {record.electricityStatus?.toLowerCase() === 'paid' ? 'Paid' : 'Unpaid'}
+                            </span>
+                          </span>
+                        );
+                      })()}
                     </div>
                     <div>
                       <span className="text-[10px] font-bold text-slate-400 block uppercase">Mode & Bank</span>
@@ -1332,22 +1483,35 @@ const MonthlyTracker = () => {
                     </div>
                   </div>
 
-                  <div className="flex justify-end items-center gap-1.5 pt-2.5 border-t border-slate-100">
+                  <div className="flex flex-wrap justify-end items-center gap-1.5 pt-2.5 border-t border-slate-100">
                     {!isReceived ? (
                       <button 
                         onClick={() => openReceiveModal(record)} 
-                        className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-emerald-600 text-white rounded-xl font-bold text-xs shadow-2xs"
+                        className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-2xs"
                       >
-                        <Check className="h-3.5 w-3.5" /> Receive & WhatsApp
+                        <Check className="h-3.5 w-3.5" /> Rent Done
                       </button>
                     ) : (
                       <button 
                         onClick={() => handleSendWhatsAppDirect(record)} 
-                        className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-teal-50 text-teal-700 rounded-xl font-bold text-xs"
+                        className="flex-1 inline-flex items-center justify-center gap-1 px-2.5 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200/60 rounded-xl font-bold text-xs"
                       >
-                        <MessageSquare className="h-3.5 w-3.5" /> WhatsApp Receipt
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> Rent Paid
                       </button>
                     )}
+
+                    <button 
+                      onClick={() => handleToggleElectricityPayment(record)} 
+                      className={`inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-xl font-bold text-xs shadow-2xs ${
+                        record.electricityStatus?.toLowerCase() === 'paid'
+                          ? 'bg-amber-50 text-amber-800 border border-amber-200/70'
+                          : 'bg-amber-500 hover:bg-amber-600 text-white'
+                      }`}
+                    >
+                      <Zap className="h-3.5 w-3.5" /> 
+                      {record.electricityStatus?.toLowerCase() === 'paid' ? 'Power Paid' : 'Power Done'}
+                    </button>
+
                     <button 
                       onClick={() => handleUpdate(record.id)} 
                       className="p-1.5 bg-blue-50 text-blue-600 rounded-xl"
@@ -1493,7 +1657,7 @@ const MonthlyTracker = () => {
                   setIsModalOpen(false);
                   setEditingId(null);
                   setFormData({
-                    month: currentMonth, property: '', tenant: '', rent: '', dueDateStart: '', dueDateEnd: '', paymentMode: 'Cash', bankDetails: '', remarks: ''
+                    month: currentMonth, property: '', tenant: '', rent: '', electricityAmount: '', electricityStatus: 'Unpaid', dueDateStart: '', dueDateEnd: '', paymentMode: 'Cash', bankDetails: '', remarks: ''
                   });
                 }}
                 className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
@@ -1530,6 +1694,29 @@ const MonthlyTracker = () => {
                   <div className="space-y-1">
                     <label className="text-[11px] font-bold text-slate-600 uppercase">Rent Amount (₹) *</label>
                     <input type="number" name="rent" value={formData.rent} onChange={handleInputChange} required className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-600 uppercase">Electricity Amount (₹)</label>
+                    <input 
+                      type="number" 
+                      name="electricityAmount" 
+                      value={formData.electricityAmount} 
+                      onChange={handleInputChange} 
+                      placeholder="e.g. 2000" 
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500" 
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-600 uppercase">Electricity Bill Status</label>
+                    <select 
+                      name="electricityStatus" 
+                      value={formData.electricityStatus} 
+                      onChange={handleInputChange} 
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 bg-white"
+                    >
+                      <option value="Unpaid">Unpaid (Non Paid)</option>
+                      <option value="Paid">Paid</option>
+                    </select>
                   </div>
                   <div className="space-y-1">
                     <label className="text-[11px] font-bold text-slate-600 uppercase">Rent Due Date (Start)</label>
