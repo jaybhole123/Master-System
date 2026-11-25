@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import GenericPageLayout from '../components/GenericPageLayout';
 import { BANDS, BCOL, TYPES } from '../utils/constants';
@@ -9,6 +10,7 @@ import TransactionModal from '../components/TransactionModal';
 import { usePagePermission } from '../../../hooks/usePagePermission';
 
 export default function InventoryPage() {
+  const navigate = useNavigate();
   const { canWrite } = usePagePermission("Inventory (IMS)", "Inventory (IMS)");
   const {
     data,
@@ -18,11 +20,17 @@ export default function InventoryPage() {
     visibleFirms,
     openItemDetail,
     navigateTo,
+    setActiveTabs,
     filters,
     setFilters,
     showToast,
     showError
   } = useApp();
+
+  const handleNavigateReport = (tabName = 'summary') => {
+    setActiveTabs(prev => ({ ...prev, reports: tabName }));
+    navigate(`/inventory-system/reports?tab=${tabName}`);
+  };
 
   const [activeMaterialModalId, setActiveMaterialModalId] = useState(null); // null = closed, 'NEW', or id
   const [activeCountItemId, setActiveCountItemId] = useState(null);
@@ -287,13 +295,13 @@ export default function InventoryPage() {
       <button type="button" className="b1" onClick={() => setActiveTxnType('TRF')}>
         <SvgIcon path={IC.swap} /> Transfer Material
       </button>
-      <button type="button" className="b1" onClick={() => navigateTo('reports')}>
+      <button type="button" className="b1" onClick={() => handleNavigateReport('summary')}>
         <SvgIcon path={IC.rep} /> Report
       </button>
-      <button type="button" className="b1 or" onClick={() => navigateTo('reports', 'daily')}>
+      <button type="button" className="b1 or" onClick={() => handleNavigateReport('daily')}>
         <SvgIcon path={IC.trend} /> Daily Consumption Report
       </button>
-      <button type="button" className="b1" onClick={() => navigateTo('reports', 'batch')}>
+      <button type="button" className="b1" onClick={() => handleNavigateReport('batch')}>
         <SvgIcon path={IC.layers} /> Batch Detail
       </button>
     </>

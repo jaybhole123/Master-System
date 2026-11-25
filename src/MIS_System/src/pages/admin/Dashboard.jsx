@@ -306,11 +306,7 @@ const AdminDashboard = () => {
             }));
             setSheetEmployees(mappedEmployees);
           } else {
-            // Fallback to local employees
-            const fallbackList = misEnabledUserNames.size > 0
-              ? employees.filter(emp => misEnabledUserNames.has(String(emp.name || "").trim().toLowerCase()))
-              : employees;
-            setSheetEmployees(fallbackList.length > 0 ? fallbackList : employees);
+            setSheetEmployees([]);
           }
 
           if (!deptErr && deptData && deptData.length > 0) {
@@ -323,20 +319,13 @@ const AdminDashboard = () => {
               }))
             );
           } else {
-            const defaultScores = [
-              { name: 'Engineering', workNotDonePct: 12, notDoneOnTimePct: 8, pendingWorks: 5 },
-              { name: 'Design', workNotDonePct: 15, notDoneOnTimePct: 10, pendingWorks: 4 },
-              { name: 'Marketing', workNotDonePct: 10, notDoneOnTimePct: 6, pendingWorks: 3 },
-              { name: 'Sales', workNotDonePct: 18, notDoneOnTimePct: 12, pendingWorks: 6 },
-              { name: 'Operations', workNotDonePct: 14, notDoneOnTimePct: 9, pendingWorks: 4 }
-            ];
-            setDepartmentScores(defaultScores);
+            setDepartmentScores([]);
           }
         }
       } catch (err) {
         console.error("Error fetching MIS Supabase data:", err);
         if (isMounted) {
-          setSheetEmployees(employees);
+          setSheetEmployees([]);
         }
       } finally {
         if (isMounted) setLoading(false);

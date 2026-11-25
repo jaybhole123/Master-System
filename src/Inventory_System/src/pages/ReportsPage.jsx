@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import GenericPageLayout from '../components/GenericPageLayout';
-import { fmt, inr, dfmt, SvgIcon, IC, dAgo, MON, specChk } from '../utils/helpers';
+import { fmt, inr, dfmt, SvgIcon, IC, dAgo, MON, specChk, today } from '../utils/helpers';
 import { TYPES, KN, REASONS, SRR } from '../utils/constants';
 import VoucherModal from '../components/VoucherModal';
 
@@ -65,8 +66,17 @@ export default function ReportsPage() {
     showToast
   } = useApp();
 
-  const currentTab = activeTabs.reports || 'summary';
+  const [searchParams] = useSearchParams();
+  const urlTab = searchParams.get('tab');
+
+  const currentTab = activeTabs.reports || urlTab || 'summary';
   const setTab = tab => setActiveTabs(prev => ({ ...prev, reports: tab }));
+
+  useEffect(() => {
+    if (urlTab && urlTab !== activeTabs.reports) {
+      setActiveTabs(prev => ({ ...prev, reports: urlTab }));
+    }
+  }, [urlTab, setActiveTabs]);
 
   const [activeVoucherId, setActiveVoucherId] = useState(null);
 

@@ -46,28 +46,7 @@ const AdminHistoryCommitment = () => {
                         }));
                         setRecords(mapped);
                     } else {
-                        // Fallback to initial mock if database table is empty
-                        const fallback = employees.map((emp, idx) => ({
-                            id: idx,
-                            dateStart: emp.dateStart || "2025-01-01",
-                            dateEnd: emp.dateEnd || "2025-12-31",
-                            name: emp.name || "",
-                            target: emp.target || 100,
-                            actualWorkDone: emp.actualWorkDone || 85,
-                            workNotDone: emp.plannedWorkNotDone || 10,
-                            workNotDoneOnTime: emp.plannedWorkNotDoneOnTime || 5,
-                            totalWorkDone: emp.totalWorkDone || 88,
-                            weekPending: emp.weekPending || 2,
-                            allPendingTillDate: emp.allPendingTillDate || 5,
-                            lastWeekPlannedNotDone: emp.plannedWorkNotDone || 10,
-                            lastWeekPlannedNotDoneOnTime: emp.plannedWorkNotDoneOnTime || 5,
-                            lastWeekCommitment: emp.commitment || 90,
-                            linkWithName: "",
-                            nextWeekPlannedNotDone: emp.nextWeekPlannedWorkNotDone || 8,
-                            nextWeekPlannedNotDoneOnTime: emp.nextWeekPlannedWorkNotDoneOnTime || 4,
-                            nextWeekCommitment: emp.nextWeekCommitment || 95
-                        }));
-                        setRecords(fallback);
+                        setRecords([]);
                     }
                 }
             } catch (err) {
