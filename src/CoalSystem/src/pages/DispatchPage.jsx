@@ -115,6 +115,7 @@ function DispatchPageContent() {
   });
 
   const [selectedTruckFilter, setSelectedTruckFilter] = useState("");
+  const [selectedTruckCompanyFilter, setSelectedTruckCompanyFilter] = useState("ALL");
   const [selectedPartyLifterFilter, setSelectedPartyLifterFilter] = useState("");
   const [selectedTruckIds, setSelectedTruckIds] = useState(new Set());
   const [selectedCompanyFilter, setSelectedCompanyFilter] = useState("ALL");
@@ -352,20 +353,41 @@ function DispatchPageContent() {
   const visibleTrucks = useMemo(() => {
     return (store?.trucks || []).filter((t) => {
       if (!t) return false;
-      const matchDO = t.did === currentDO?.id;
+      const truckDO = (store?.dos || []).find((d) => d.id === t.did);
+      const matchCompany = selectedTruckCompanyFilter === "ALL" || (truckDO?.co || "").trim() === selectedTruckCompanyFilter;
+      const matchDO = selectedTruckCompanyFilter !== "ALL" ? true : (t.did === currentDO?.id);
       const matchTab = activeTab === "history" ? !!t.done : !t.done;
-      const matchParty = !selectedTruckFilter || String(t.pid) === String(selectedTruckFilter);
-      return matchDO && matchTab && matchParty;
+
+      // Party match: can match by PID or party name if selectedTruckFilter is set
+      let matchParty = true;
+      if (selectedTruckFilter) {
+        const partyObj = (store?.dos || []).flatMap((d) => d?.parties || []).find((p) => String(p.id) === String(selectedTruckFilter) || p.name === selectedTruckFilter);
+        matchParty = String(t.pid) === String(selectedTruckFilter) || (partyObj && String(t.pid) === String(partyObj.id));
+      }
+
+      return matchCompany && matchDO && matchTab && matchParty;
     });
-  }, [store?.trucks, currentDO?.id, activeTab, selectedTruckFilter]);
+  }, [store?.trucks, store?.dos, currentDO?.id, activeTab, selectedTruckFilter, selectedTruckCompanyFilter]);
 
   const pendingTruckCount = useMemo(() => {
-    return (store?.trucks || []).filter((t) => t && t.did === currentDO?.id && !t.done).length;
-  }, [store?.trucks, currentDO?.id]);
+    return (store?.trucks || []).filter((t) => {
+      if (!t || t.done) return false;
+      const truckDO = (store?.dos || []).find((d) => d.id === t.did);
+      const matchCompany = selectedTruckCompanyFilter === "ALL" || (truckDO?.co || "").trim() === selectedTruckCompanyFilter;
+      const matchDO = selectedTruckCompanyFilter !== "ALL" ? true : (t.did === currentDO?.id);
+      return matchCompany && matchDO;
+    }).length;
+  }, [store?.trucks, store?.dos, currentDO?.id, selectedTruckCompanyFilter]);
 
   const historyTruckCount = useMemo(() => {
-    return (store?.trucks || []).filter((t) => t && t.did === currentDO?.id && !!t.done).length;
-  }, [store?.trucks, currentDO?.id]);
+    return (store?.trucks || []).filter((t) => {
+      if (!t || !t.done) return false;
+      const truckDO = (store?.dos || []).find((d) => d.id === t.did);
+      const matchCompany = selectedTruckCompanyFilter === "ALL" || (truckDO?.co || "").trim() === selectedTruckCompanyFilter;
+      const matchDO = selectedTruckCompanyFilter !== "ALL" ? true : (t.did === currentDO?.id);
+      return matchCompany && matchDO;
+    }).length;
+  }, [store?.trucks, store?.dos, currentDO?.id, selectedTruckCompanyFilter]);
 
   // Close Modal
   const closeModal = () => {
@@ -1912,8 +1934,8 @@ function DispatchPageContent() {
           {/* TAB 1: DO MASTER STATS (Across All / Selected Company) */}
           {mainSectionTab === "do-master" && (
             <>
-              <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-red-50 text-[#e7000b] flex items-center justify-center shrink-0 border border-red-100/80">
+              <div className="bg-white border border-slate-200/90 rounded-md p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
+                <div className="w-10 h-10 rounded-md bg-red-50 text-[#e7000b] flex items-center justify-center shrink-0 border border-red-100/80">
                   <Package className="w-5 h-5" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -1924,8 +1946,8 @@ function DispatchPageContent() {
                 </div>
               </div>
 
-              <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-slate-50 text-slate-600 flex items-center justify-center shrink-0 border border-slate-200">
+              <div className="bg-white border border-slate-200/90 rounded-md p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
+                <div className="w-10 h-10 rounded-md bg-slate-50 text-slate-600 flex items-center justify-center shrink-0 border border-slate-200">
                   <List className="w-5 h-5" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -1936,8 +1958,8 @@ function DispatchPageContent() {
                 </div>
               </div>
 
-              <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-100">
+              <div className="bg-white border border-slate-200/90 rounded-md p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
+                <div className="w-10 h-10 rounded-md bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-100">
                   <Hourglass className="w-5 h-5" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -1948,8 +1970,8 @@ function DispatchPageContent() {
                 </div>
               </div>
 
-              <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100">
+              <div className="bg-white border border-slate-200/90 rounded-md p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
+                <div className="w-10 h-10 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100">
                   <Truck className="w-5 h-5" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -1960,8 +1982,8 @@ function DispatchPageContent() {
                 </div>
               </div>
 
-              <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-100">
+              <div className="bg-white border border-slate-200/90 rounded-md p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
+                <div className="w-10 h-10 rounded-md bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-100">
                   <Scale className="w-5 h-5" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -1972,8 +1994,8 @@ function DispatchPageContent() {
                 </div>
               </div>
 
-              <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 border border-purple-100">
+              <div className="bg-white border border-slate-200/90 rounded-md p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
+                <div className="w-10 h-10 rounded-md bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 border border-purple-100">
                   <Hash className="w-5 h-5" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -1989,8 +2011,8 @@ function DispatchPageContent() {
           {/* TAB 2: PARTY WISE ORDER QTY STATS (For Current Active DO) */}
           {mainSectionTab === "party-order" && (
             <>
-              <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-red-50 text-[#e7000b] flex items-center justify-center shrink-0 border border-red-100">
+              <div className="bg-white border border-slate-200/90 rounded-md p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
+                <div className="w-10 h-10 rounded-md bg-red-50 text-[#e7000b] flex items-center justify-center shrink-0 border border-red-100">
                   <Package className="w-5 h-5" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -2001,8 +2023,8 @@ function DispatchPageContent() {
                 </div>
               </div>
 
-              <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-slate-50 text-slate-600 flex items-center justify-center shrink-0 border border-slate-200">
+              <div className="bg-white border border-slate-200/90 rounded-md p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
+                <div className="w-10 h-10 rounded-md bg-slate-50 text-slate-600 flex items-center justify-center shrink-0 border border-slate-200">
                   <List className="w-5 h-5" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -2013,8 +2035,8 @@ function DispatchPageContent() {
                 </div>
               </div>
 
-              <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-100">
+              <div className="bg-white border border-slate-200/90 rounded-md p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
+                <div className="w-10 h-10 rounded-md bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-100">
                   <Hourglass className="w-5 h-5" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -2025,8 +2047,8 @@ function DispatchPageContent() {
                 </div>
               </div>
 
-              <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100">
+              <div className="bg-white border border-slate-200/90 rounded-md p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
+                <div className="w-10 h-10 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100">
                   <Truck className="w-5 h-5" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -2037,8 +2059,8 @@ function DispatchPageContent() {
                 </div>
               </div>
 
-              <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-100">
+              <div className="bg-white border border-slate-200/90 rounded-md p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
+                <div className="w-10 h-10 rounded-md bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-100">
                   <Scale className="w-5 h-5" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -2049,8 +2071,8 @@ function DispatchPageContent() {
                 </div>
               </div>
 
-              <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 border border-purple-100">
+              <div className="bg-white border border-slate-200/90 rounded-md p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
+                <div className="w-10 h-10 rounded-md bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 border border-purple-100">
                   <Hash className="w-5 h-5" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -2066,8 +2088,8 @@ function DispatchPageContent() {
           {/* TAB 3: TRUCK WISE DISPATCH STATS */}
           {mainSectionTab === "truck-dispatch" && (
             <>
-              <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-red-50 text-[#e7000b] flex items-center justify-center shrink-0 border border-red-100">
+              <div className="bg-white border border-slate-200/90 rounded-md p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
+                <div className="w-10 h-10 rounded-md bg-red-50 text-[#e7000b] flex items-center justify-center shrink-0 border border-red-100">
                   <Truck className="w-5 h-5" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -2080,8 +2102,8 @@ function DispatchPageContent() {
                 </div>
               </div>
 
-              <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-100">
+              <div className="bg-white border border-slate-200/90 rounded-md p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
+                <div className="w-10 h-10 rounded-md bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-100">
                   <Hourglass className="w-5 h-5" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -2094,8 +2116,8 @@ function DispatchPageContent() {
                 </div>
               </div>
 
-              <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100">
+              <div className="bg-white border border-slate-200/90 rounded-md p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
+                <div className="w-10 h-10 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100">
                   <Check className="w-5 h-5" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -2108,8 +2130,8 @@ function DispatchPageContent() {
                 </div>
               </div>
 
-              <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-slate-50 text-slate-600 flex items-center justify-center shrink-0 border border-slate-200">
+              <div className="bg-white border border-slate-200/90 rounded-md p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
+                <div className="w-10 h-10 rounded-md bg-slate-50 text-slate-600 flex items-center justify-center shrink-0 border border-slate-200">
                   <Scale className="w-5 h-5" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -2120,8 +2142,8 @@ function DispatchPageContent() {
                 </div>
               </div>
 
-              <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 border border-purple-100">
+              <div className="bg-white border border-slate-200/90 rounded-md p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
+                <div className="w-10 h-10 rounded-md bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 border border-purple-100">
                   <List className="w-5 h-5" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -2134,8 +2156,8 @@ function DispatchPageContent() {
                 </div>
               </div>
 
-              <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100">
+              <div className="bg-white border border-slate-200/90 rounded-md p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
+                <div className="w-10 h-10 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100">
                   <Package className="w-5 h-5" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -2153,16 +2175,16 @@ function DispatchPageContent() {
 
         {/* Main 3 Section Tabs - Executive Segmented Pill Design */}
         <div className="w-full overflow-x-auto pb-1 scrollbar-none">
-          <div className="inline-flex items-center gap-1.5 p-1.5 bg-slate-100/90 rounded-2xl border border-slate-200/90 shadow-inner">
+          <div className="inline-flex items-center gap-1.5 p-1 bg-slate-100/90 rounded-lg border border-slate-200/90 shadow-inner">
             <button
               onClick={() => setMainSectionTab("do-master")}
-              className={`px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2.5 whitespace-nowrap cursor-pointer ${
+              className={`px-3.5 sm:px-4 py-1.5 rounded-md text-xs sm:text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer ${
                 mainSectionTab === "do-master"
-                  ? "bg-gradient-to-r from-[#dc2626] to-[#ef4444] text-white shadow-md shadow-red-500/20 ring-2 ring-red-400/30"
+                  ? "bg-gradient-to-r from-[#dc2626] to-[#ef4444] text-white shadow-md shadow-red-500/20 ring-1 ring-red-400/30"
                   : "text-slate-600 hover:text-slate-900 hover:bg-white/80"
               }`}
             >
-              <span className={`w-5 h-5 rounded-lg flex items-center justify-center text-[10px] font-black ${
+              <span className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-black ${
                 mainSectionTab === "do-master" ? "bg-white/25 text-white" : "bg-slate-200 text-slate-700"
               }`}>
                 1
@@ -2177,13 +2199,13 @@ function DispatchPageContent() {
 
             <button
               onClick={() => setMainSectionTab("party-order")}
-              className={`px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2.5 whitespace-nowrap cursor-pointer ${
+              className={`px-3.5 sm:px-4 py-1.5 rounded-md text-xs sm:text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer ${
                 mainSectionTab === "party-order"
-                  ? "bg-gradient-to-r from-[#dc2626] to-[#ef4444] text-white shadow-md shadow-red-500/20 ring-2 ring-red-400/30"
+                  ? "bg-gradient-to-r from-[#dc2626] to-[#ef4444] text-white shadow-md shadow-red-500/20 ring-1 ring-red-400/30"
                   : "text-slate-600 hover:text-slate-900 hover:bg-white/80"
               }`}
             >
-              <span className={`w-5 h-5 rounded-lg flex items-center justify-center text-[10px] font-black ${
+              <span className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-black ${
                 mainSectionTab === "party-order" ? "bg-white/25 text-white" : "bg-slate-200 text-slate-700"
               }`}>
                 2
@@ -2198,13 +2220,13 @@ function DispatchPageContent() {
 
             <button
               onClick={() => setMainSectionTab("truck-dispatch")}
-              className={`px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2.5 whitespace-nowrap cursor-pointer ${
+              className={`px-3.5 sm:px-4 py-1.5 rounded-md text-xs sm:text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer ${
                 mainSectionTab === "truck-dispatch"
-                  ? "bg-gradient-to-r from-[#dc2626] to-[#ef4444] text-white shadow-md shadow-red-500/20 ring-2 ring-red-400/30"
+                  ? "bg-gradient-to-r from-[#dc2626] to-[#ef4444] text-white shadow-md shadow-red-500/20 ring-1 ring-red-400/30"
                   : "text-slate-600 hover:text-slate-900 hover:bg-white/80"
               }`}
             >
-              <span className={`w-5 h-5 rounded-lg flex items-center justify-center text-[10px] font-black ${
+              <span className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-black ${
                 mainSectionTab === "truck-dispatch" ? "bg-white/25 text-white" : "bg-slate-200 text-slate-700"
               }`}>
                 3
@@ -2258,14 +2280,14 @@ function DispatchPageContent() {
           </div>
 
           {/* Filter Bar Just Above DO Master Table - Professional Card Layout */}
-          <div className="flex items-center justify-between gap-3 bg-white border border-slate-200/90 p-3 sm:p-3.5 rounded-xl shadow-xs">
+          <div className="flex items-center justify-between gap-3 bg-white border border-slate-200/90 p-3 sm:p-3.5 rounded-md shadow-xs">
             <div className="flex items-center gap-2 sm:gap-3 min-w-0">
               <span className="text-xs font-extrabold text-slate-700 tracking-wide uppercase">Party Filter:</span>
               <div className="relative min-w-0">
                 <select
                   value={selectedCompanyFilter}
                   onChange={(e) => setSelectedCompanyFilter(e.target.value)}
-                  className="px-3.5 py-1.5 pr-8 rounded-lg border border-slate-300/80 bg-slate-50/70 hover:bg-white text-xs font-bold text-slate-800 shadow-2xs focus:outline-none focus:ring-2 focus:ring-red-400/40 focus:border-red-500 cursor-pointer appearance-none transition-all truncate max-w-[180px] sm:max-w-xs"
+                  className="px-3.5 py-1.5 pr-8 rounded border border-slate-300/80 bg-slate-50/70 hover:bg-white text-xs font-bold text-slate-800 shadow-2xs focus:outline-none focus:ring-2 focus:ring-red-400/40 focus:border-red-500 cursor-pointer appearance-none transition-all truncate max-w-[180px] sm:max-w-xs"
                 >
                   <option value="ALL">All Parties ({(store?.dos || []).length} DOs)</option>
                   {uniqueCompanies.map((co) => (
@@ -2280,14 +2302,14 @@ function DispatchPageContent() {
 
             <div className="text-xs text-slate-500 font-semibold whitespace-nowrap flex items-center gap-1.5 shrink-0">
               <span className="hidden sm:inline">Active Scope:</span>
-              <span className="font-extrabold text-slate-800 bg-slate-100 border border-slate-200/80 px-2.5 py-1 rounded-lg text-xs truncate max-w-[140px] sm:max-w-none shadow-2xs">
+              <span className="font-extrabold text-slate-800 bg-slate-100 border border-slate-200/80 px-2.5 py-1 rounded text-xs truncate max-w-[140px] sm:max-w-none shadow-2xs">
                 {selectedCompanyFilter === "ALL" ? "All Parties" : selectedCompanyFilter}
               </span>
             </div>
           </div>
 
           {/* DO Master Table - Desktop View */}
-          <div className="hidden md:block overflow-x-auto rounded-lg border border-slate-200/90 bg-white shadow-xs">
+          <div className="hidden md:block overflow-x-auto rounded-md border border-slate-200/90 bg-white shadow-xs">
             <table className="w-full text-left border-collapse min-w-max">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200/90 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
@@ -2553,7 +2575,7 @@ function DispatchPageContent() {
           </div>
 
           {/* Filter Bar Just Above Party Table - DO Party Name & Lifter Party Name Dropdown Filters */}
-          <div className="flex items-center justify-between gap-3 bg-white border border-slate-200/90 p-2.5 sm:p-3 rounded-lg shadow-2xs flex-wrap">
+          <div className="flex items-center justify-between gap-3 bg-white border border-slate-200/90 p-2.5 sm:p-3 rounded-md shadow-2xs flex-wrap">
             <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
               {/* DO Party Filter */}
               <div className="flex items-center gap-1.5">
@@ -2636,7 +2658,7 @@ function DispatchPageContent() {
           </div>
 
           {/* Party Table - Desktop View */}
-          <div className="hidden md:block overflow-x-auto rounded-lg border border-slate-200/90 bg-white shadow-xs">
+          <div className="hidden md:block overflow-x-auto rounded-md border border-slate-200/90 bg-white shadow-xs">
             <table className="w-full text-left border-collapse min-w-max">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200/90 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
@@ -2864,26 +2886,80 @@ function DispatchPageContent() {
             </h2>
 
             <div className="flex items-center gap-2 flex-wrap">
-              <select
-                value={selectedTruckFilter}
-                onChange={(e) => {
-                  setSelectedTruckFilter(e.target.value);
-                  setSelectedTruckIds(new Set());
-                }}
-                className="px-2.5 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-red-200"
-              >
-                <option value="">All parties</option>
-                {(currentDO.parties || []).map((p) => {
-                  const partyTrucks = (store?.trucks || []).filter((t) => t && t.did === currentDO.id && String(t.pid) === String(p.id));
-                  const runningCount = partyTrucks.filter((t) => !t.done).length;
-                  const doneCount = partyTrucks.filter((t) => !!t.done).length;
-                  return (
-                    <option key={p.id} value={p.id}>
-                      {p.name} (Running: {runningCount} | Done: {doneCount})
+              {/* DO Party Filter Dropdown */}
+              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/90 rounded-lg px-2.5 py-1">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">DO Party:</span>
+                <select
+                  value={selectedTruckCompanyFilter}
+                  onChange={(e) => {
+                    const co = e.target.value;
+                    setSelectedTruckCompanyFilter(co);
+                    setSelectedTruckIds(new Set());
+                    if (co !== "ALL") {
+                      const matchDO = (store?.dos || []).find((d) => (d.co || "").trim() === co);
+                      if (matchDO) {
+                        setStore((prev) => ({ ...prev, act: matchDO.id }));
+                      }
+                    }
+                  }}
+                  className="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer"
+                >
+                  <option value="ALL">All DO Parties</option>
+                  {uniqueCompanies.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
                     </option>
-                  );
-                })}
-              </select>
+                  ))}
+                </select>
+              </div>
+
+              {/* Lifter Party Filter Dropdown */}
+              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/90 rounded-lg px-2.5 py-1">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">Lifter:</span>
+                <select
+                  value={selectedTruckFilter}
+                  onChange={(e) => {
+                    setSelectedTruckFilter(e.target.value);
+                    setSelectedTruckIds(new Set());
+                  }}
+                  className="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer"
+                >
+                  <option value="">All Lifters</option>
+                  {(() => {
+                    const relevantDOs = selectedTruckCompanyFilter === "ALL"
+                      ? (store?.dos || [])
+                      : (store?.dos || []).filter((d) => (d.co || "").trim() === selectedTruckCompanyFilter);
+
+                    const lifterMap = new Map();
+                    relevantDOs.forEach((d) => {
+                      (d.parties || []).forEach((p) => {
+                        const trimmedName = (p.name || "").trim();
+                        if (trimmedName && !lifterMap.has(trimmedName)) {
+                          lifterMap.set(trimmedName, p.id);
+                        }
+                      });
+                    });
+
+                    return Array.from(lifterMap.entries()).map(([name, pid]) => {
+                      const partyTrucks = (store?.trucks || []).filter((t) => {
+                        if (!t) return false;
+                        const tDO = (store?.dos || []).find((d) => d.id === t.did);
+                        const matchCo = selectedTruckCompanyFilter === "ALL" || (tDO?.co || "").trim() === selectedTruckCompanyFilter;
+                        const matchParty = String(t.pid) === String(pid) || (relevantDOs.flatMap(d => d.parties || []).find(p => p.id === t.pid)?.name === name);
+                        return matchCo && matchParty;
+                      });
+                      const runningCount = partyTrucks.filter((t) => !t.done).length;
+                      const doneCount = partyTrucks.filter((t) => !!t.done).length;
+
+                      return (
+                        <option key={name} value={pid}>
+                          {name} (Run: {runningCount} | Done: {doneCount})
+                        </option>
+                      );
+                    });
+                  })()}
+                </select>
+              </div>
 
               <button
                 onClick={exportTruckDispatchExcel}
@@ -2961,14 +3037,27 @@ function DispatchPageContent() {
 
             {/* Selected Lifter Party Running / Done Truck Summary */}
             {selectedTruckFilter && (() => {
-              const selectedParty = (currentDO.parties || []).find((p) => String(p.id) === String(selectedTruckFilter));
-              const partyTrucks = (store?.trucks || []).filter((t) => t && t.did === currentDO.id && String(t.pid) === String(selectedTruckFilter));
+              const relevantDOs = selectedTruckCompanyFilter === "ALL"
+                ? (store?.dos || [])
+                : (store?.dos || []).filter((d) => (d.co || "").trim() === selectedTruckCompanyFilter);
+
+              const partyObj = relevantDOs.flatMap(d => d.parties || []).find((p) => String(p.id) === String(selectedTruckFilter));
+              const partyName = partyObj ? partyObj.name : "Lifter";
+
+              const partyTrucks = (store?.trucks || []).filter((t) => {
+                if (!t) return false;
+                const tDO = (store?.dos || []).find((d) => d.id === t.did);
+                const matchCo = selectedTruckCompanyFilter === "ALL" || (tDO?.co || "").trim() === selectedTruckCompanyFilter;
+                const matchParty = String(t.pid) === String(selectedTruckFilter) || (tDO?.parties || []).find(p => p.id === t.pid)?.name === partyName;
+                return matchCo && matchParty;
+              });
+
               const runningCount = partyTrucks.filter((t) => !t.done).length;
               const doneCount = partyTrucks.filter((t) => !!t.done).length;
 
               return (
                 <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs">
-                  <span className="font-bold text-slate-800">{selectedParty?.name || "Party"}:</span>
+                  <span className="font-bold text-slate-800">{partyName}:</span>
                   <span className="inline-flex items-center gap-1 font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
                     Running: <b>{runningCount}</b>
                   </span>
@@ -3020,7 +3109,7 @@ function DispatchPageContent() {
           )}
 
           {/* Trucks Table - Desktop View */}
-          <div className="hidden md:block overflow-x-auto rounded-lg border border-slate-200/90 bg-white shadow-xs">
+          <div className="hidden md:block overflow-x-auto rounded-md border border-slate-200/90 bg-white shadow-xs">
             <table className="w-full text-left border-collapse min-w-max">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200/90 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
@@ -3299,179 +3388,208 @@ function DispatchPageContent() {
             if (e.target === e.currentTarget) closeModal();
           }}
         >
-          <div className={`bg-white rounded-3xl w-full ${modalConfig.type === "confirm" ? "max-w-sm" : "max-w-2xl"} max-h-[92vh] shadow-2xl border border-slate-100 flex flex-col transition-all animate-scaleUp`}>
+          <div className={`bg-white rounded-2xl w-full ${modalConfig.type === "confirm" ? "max-w-md" : "max-w-2xl"} max-h-[92vh] shadow-2xl border border-slate-200/80 flex flex-col transition-all animate-scaleUp overflow-hidden`}>
             {/* Modal Header */}
-            <div className="px-6 py-4.5 bg-gradient-to-r from-[#800008] via-[#dc2626] to-[#ef4444] text-white flex items-center justify-between shrink-0 shadow-sm">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-white/15 flex items-center justify-center backdrop-blur-xs">
-                  <Package className="w-4 h-4 text-white" />
+            <div className="px-6 py-4 bg-gradient-to-r from-[#700007] via-[#b91c1c] to-[#dc2626] text-white flex items-center justify-between shrink-0 shadow-sm border-b border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center backdrop-blur-md shadow-inner border border-white/20">
+                  <Package className="w-5 h-5 text-white" />
                 </div>
-                <h3 className="font-extrabold text-base tracking-tight">{modalConfig.title}</h3>
+                <div>
+                  <div className="text-[10px] uppercase font-bold tracking-widest text-red-150 text-white/80">Dispatch Module</div>
+                  <h3 className="font-extrabold text-base tracking-tight leading-snug">{modalConfig.title}</h3>
+                </div>
               </div>
               <button
                 onClick={closeModal}
-                className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center text-white transition-all cursor-pointer active:scale-95"
+                className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/90 hover:text-white transition-all cursor-pointer active:scale-95 border border-white/10"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Modal Content */}
-            <div className="p-6 overflow-y-auto space-y-4 text-xs bg-slate-50/30 min-h-[320px] pb-32">
+            <div className="p-6 overflow-y-auto space-y-5 text-xs bg-slate-50/50 min-h-[300px]">
               {/* DO Form */}
               {modalConfig.type === "doForm" && (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* DO Party Name Searchable Combobox */}
-                    <div className="relative">
-                      <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5">DO Party Name *</label>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          value={formData.co || ""}
-                          onChange={(e) => {
-                            setFormData({ ...formData, co: e.target.value });
-                            setIsPartyDropdownOpen(true);
-                          }}
-                          onFocus={() => setIsPartyDropdownOpen(true)}
-                          placeholder="Type or select Party..."
-                          className="w-full px-3.5 py-2.5 pr-8 border border-slate-300 rounded-xl bg-white hover:border-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-400/40 focus:border-red-500 text-xs font-bold text-slate-900 transition-all shadow-xs"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setIsPartyDropdownOpen((prev) => !prev)}
-                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
-                        >
-                          <ChevronDown className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-
-                      {/* Custom Clean Dropdown Popup */}
-                      {isPartyDropdownOpen && (
-                        <>
-                          <div className="fixed inset-0 z-20" onClick={() => setIsPartyDropdownOpen(false)} />
-                          <div className="absolute left-0 right-0 top-full mt-1.5 z-30 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto divide-y divide-slate-50 py-1">
-                            {uniqueCompanies.filter((c) => !formData.co || c.toLowerCase().includes((formData.co || "").toLowerCase())).length > 0 ? (
-                              uniqueCompanies
-                                .filter((c) => !formData.co || c.toLowerCase().includes((formData.co || "").toLowerCase()))
-                                .map((c) => (
-                                  <div
-                                    key={c}
-                                    onClick={() => {
-                                      setFormData((prev) => ({ ...prev, co: c }));
-                                      setIsPartyDropdownOpen(false);
-                                    }}
-                                    className="px-3 py-2 text-xs font-semibold text-slate-800 hover:bg-red-50 hover:text-red-600 cursor-pointer flex items-center justify-between transition-colors"
-                                  >
-                                    <span>{c}</span>
-                                    {formData.co === c && <Check className="w-3.5 h-3.5 text-red-600" />}
-                                  </div>
-                                ))
-                            ) : (
-                              <div className="px-3 py-2 text-xs text-slate-400 italic">No existing matches. Press tab or type to use this name.</div>
-                            )}
-                          </div>
-                        </>
-                      )}
+                  <div className="bg-white p-4.5 rounded-xl border border-slate-200/80 shadow-xs space-y-4">
+                    <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+                      <div className="w-2 h-2 rounded-full bg-red-600"></div>
+                      <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wider">DO Identification & Mines</span>
                     </div>
 
-                    <div>
-                      <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5">DO No. *</label>
-                      <input
-                        type="text"
-                        value={formData.no || ""}
-                        onChange={(e) => setFormData({ ...formData, no: e.target.value })}
-                        placeholder="e.g. DO-12345"
-                        className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white hover:border-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-400/40 focus:border-red-500 text-xs font-bold text-slate-900 transition-all shadow-xs"
-                      />
-                    </div>
-
-                    {/* Mines Searchable Combobox */}
-                    <div className="relative">
-                      <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5">Mines</label>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* DO Party Name Searchable Combobox */}
                       <div className="relative">
-                        <input
-                          type="text"
-                          value={formData.mines || ""}
-                          onChange={(e) => {
-                            setFormData({ ...formData, mines: e.target.value });
-                            setIsMinesDropdownOpen(true);
-                          }}
-                          onFocus={() => setIsMinesDropdownOpen(true)}
-                          placeholder="Type or select Mine..."
-                          className="w-full px-3.5 py-2.5 pr-8 border border-slate-300 rounded-xl bg-white hover:border-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-400/40 focus:border-red-500 text-xs font-semibold text-slate-800 transition-all shadow-xs"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setIsMinesDropdownOpen((prev) => !prev)}
-                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
-                        >
-                          <ChevronDown className="w-3.5 h-3.5" />
-                        </button>
+                        <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between mb-1.5">
+                          <span>DO Party Name</span>
+                          <span className="text-red-500 font-bold">*</span>
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={formData.co || ""}
+                            onChange={(e) => {
+                              setFormData({ ...formData, co: e.target.value });
+                              setIsPartyDropdownOpen(true);
+                            }}
+                            onFocus={() => setIsPartyDropdownOpen(true)}
+                            placeholder="Type or select Party..."
+                            className="w-full px-3.5 py-2.5 pr-8 border border-slate-200 rounded-lg bg-white hover:border-slate-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-xs font-semibold text-slate-900 transition-all shadow-xs"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setIsPartyDropdownOpen((prev) => !prev)}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                          >
+                            <ChevronDown className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+
+                        {/* Custom Clean Dropdown Popup */}
+                        {isPartyDropdownOpen && (
+                          <>
+                            <div className="fixed inset-0 z-20" onClick={() => setIsPartyDropdownOpen(false)} />
+                            <div className="absolute left-0 right-0 top-full mt-1.5 z-30 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto divide-y divide-slate-50 py-1">
+                              {uniqueCompanies.filter((c) => !formData.co || c.toLowerCase().includes((formData.co || "").toLowerCase())).length > 0 ? (
+                                uniqueCompanies
+                                  .filter((c) => !formData.co || c.toLowerCase().includes((formData.co || "").toLowerCase()))
+                                  .map((c) => (
+                                    <div
+                                      key={c}
+                                      onClick={() => {
+                                        setFormData((prev) => ({ ...prev, co: c }));
+                                        setIsPartyDropdownOpen(false);
+                                      }}
+                                      className="px-3 py-2 text-xs font-semibold text-slate-800 hover:bg-red-50 hover:text-red-600 cursor-pointer flex items-center justify-between transition-colors"
+                                    >
+                                      <span>{c}</span>
+                                      {formData.co === c && <Check className="w-3.5 h-3.5 text-red-600" />}
+                                    </div>
+                                  ))
+                              ) : (
+                                <div className="px-3 py-2 text-xs text-slate-400 italic">No existing matches. Press tab or type to use this name.</div>
+                              )}
+                            </div>
+                          </>
+                        )}
                       </div>
 
-                      {/* Custom Clean Dropdown Popup */}
-                      {isMinesDropdownOpen && (
-                        <>
-                          <div className="fixed inset-0 z-20" onClick={() => setIsMinesDropdownOpen(false)} />
-                          <div className="absolute left-0 right-0 top-full mt-1.5 z-30 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto divide-y divide-slate-50 py-1">
-                            {Array.from(new Set((store?.dos || []).map((d) => (d.mines || "").trim()).filter(Boolean)))
-                              .filter((m) => !formData.mines || m.toLowerCase().includes((formData.mines || "").toLowerCase())).length > 0 ? (
-                              Array.from(new Set((store?.dos || []).map((d) => (d.mines || "").trim()).filter(Boolean)))
-                                .filter((m) => !formData.mines || m.toLowerCase().includes((formData.mines || "").toLowerCase()))
-                                .map((m) => (
-                                  <div
-                                    key={m}
-                                    onClick={() => {
-                                      setFormData((prev) => ({ ...prev, mines: m }));
-                                      setIsMinesDropdownOpen(false);
-                                    }}
-                                    className="px-3 py-2 text-xs font-semibold text-slate-800 hover:bg-red-50 hover:text-red-600 cursor-pointer flex items-center justify-between transition-colors"
-                                  >
-                                    <span>{m}</span>
-                                    {formData.mines === m && <Check className="w-3.5 h-3.5 text-red-600" />}
-                                  </div>
-                                ))
-                            ) : (
-                              <div className="px-3 py-2 text-xs text-slate-400 italic">No existing mines. Type any name to save.</div>
-                            )}
-                          </div>
-                        </>
-                      )}
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between mb-1.5">
+                          <span>DO No.</span>
+                          <span className="text-red-500 font-bold">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.no || ""}
+                          onChange={(e) => setFormData({ ...formData, no: e.target.value })}
+                          placeholder="e.g. DO-12345"
+                          className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg bg-white hover:border-slate-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-xs font-bold text-slate-900 transition-all shadow-xs"
+                        />
+                      </div>
+
+                      {/* Mines Searchable Combobox */}
+                      <div className="relative">
+                        <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5">Mines</label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={formData.mines || ""}
+                            onChange={(e) => {
+                              setFormData({ ...formData, mines: e.target.value });
+                              setIsMinesDropdownOpen(true);
+                            }}
+                            onFocus={() => setIsMinesDropdownOpen(true)}
+                            placeholder="Type or select Mine..."
+                            className="w-full px-3.5 py-2.5 pr-8 border border-slate-200 rounded-lg bg-white hover:border-slate-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-xs font-semibold text-slate-800 transition-all shadow-xs"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setIsMinesDropdownOpen((prev) => !prev)}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                          >
+                            <ChevronDown className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+
+                        {/* Custom Clean Dropdown Popup */}
+                        {isMinesDropdownOpen && (
+                          <>
+                            <div className="fixed inset-0 z-20" onClick={() => setIsMinesDropdownOpen(false)} />
+                            <div className="absolute left-0 right-0 top-full mt-1.5 z-30 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto divide-y divide-slate-50 py-1">
+                              {Array.from(new Set((store?.dos || []).map((d) => (d.mines || "").trim()).filter(Boolean)))
+                                .filter((m) => !formData.mines || m.toLowerCase().includes((formData.mines || "").toLowerCase())).length > 0 ? (
+                                Array.from(new Set((store?.dos || []).map((d) => (d.mines || "").trim()).filter(Boolean)))
+                                  .filter((m) => !formData.mines || m.toLowerCase().includes((formData.mines || "").toLowerCase()))
+                                  .map((m) => (
+                                    <div
+                                      key={m}
+                                      onClick={() => {
+                                        setFormData((prev) => ({ ...prev, mines: m }));
+                                        setIsMinesDropdownOpen(false);
+                                      }}
+                                      className="px-3 py-2 text-xs font-semibold text-slate-800 hover:bg-red-50 hover:text-red-600 cursor-pointer flex items-center justify-between transition-colors"
+                                    >
+                                      <span>{m}</span>
+                                      {formData.mines === m && <Check className="w-3.5 h-3.5 text-red-600" />}
+                                    </div>
+                                  ))
+                              ) : (
+                                <div className="px-3 py-2 text-xs text-slate-400 italic">No existing mines. Type any name to save.</div>
+                              )}
+                            </div>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5">DO Qty (MT) *</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={formData.tot || ""}
-                        onChange={(e) => setFormData({ ...formData, tot: e.target.value })}
-                        placeholder="e.g. 500.00"
-                        className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white hover:border-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-400/40 focus:border-red-500 text-xs font-bold text-slate-900 transition-all shadow-xs"
-                      />
+                  <div className="bg-white p-4.5 rounded-xl border border-slate-200/80 shadow-xs space-y-4">
+                    <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                      <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wider">Quantity & Validity Window</span>
                     </div>
 
-                    <div>
-                      <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5">Valid From</label>
-                      <input
-                        type="date"
-                        value={formData.vf || ""}
-                        onChange={(e) => setFormData({ ...formData, vf: e.target.value })}
-                        className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white hover:border-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-400/40 focus:border-red-500 text-xs font-semibold text-slate-800 transition-all shadow-xs cursor-pointer"
-                      />
-                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between mb-1.5">
+                          <span>DO Qty (MT)</span>
+                          <span className="text-red-500 font-bold">*</span>
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={formData.tot || ""}
+                            onChange={(e) => setFormData({ ...formData, tot: e.target.value })}
+                            placeholder="0.00"
+                            className="w-full pl-3.5 pr-10 py-2.5 border border-slate-200 rounded-lg bg-white hover:border-slate-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-xs font-bold text-slate-900 transition-all shadow-xs"
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 pointer-events-none">MT</span>
+                        </div>
+                      </div>
 
-                    <div>
-                      <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5">Valid To</label>
-                      <input
-                        type="date"
-                        value={formData.vt || ""}
-                        onChange={(e) => setFormData({ ...formData, vt: e.target.value })}
-                        className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white hover:border-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-400/40 focus:border-red-500 text-xs font-semibold text-slate-800 transition-all shadow-xs cursor-pointer"
-                      />
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5">Valid From</label>
+                        <input
+                          type="date"
+                          value={formData.vf || ""}
+                          onChange={(e) => setFormData({ ...formData, vf: e.target.value })}
+                          className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg bg-white hover:border-slate-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-xs font-semibold text-slate-800 transition-all shadow-xs cursor-pointer"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5">Valid To</label>
+                        <input
+                          type="date"
+                          value={formData.vt || ""}
+                          onChange={(e) => setFormData({ ...formData, vt: e.target.value })}
+                          className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg bg-white hover:border-slate-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-xs font-semibold text-slate-800 transition-all shadow-xs cursor-pointer"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -3480,64 +3598,64 @@ function DispatchPageContent() {
               {/* View DO */}
               {modalConfig.type === "viewDO" && modalConfig.data && (
                 <div className="space-y-4">
-                  <div className="rounded-xl border border-slate-200 divide-y divide-slate-100 overflow-hidden">
-                    <div className="flex justify-between p-2.5 bg-slate-50">
-                      <span className="text-slate-500">DO No.</span>
+                  <div className="rounded-xl border border-slate-200 divide-y divide-slate-100 overflow-hidden bg-white shadow-xs">
+                    <div className="flex justify-between p-3 bg-slate-50/80">
+                      <span className="text-slate-500 font-medium">DO No.</span>
                       <b className="font-bold text-slate-900">{getDOName(modalConfig.data)}</b>
                     </div>
-                    <div className="flex justify-between p-2.5">
-                      <span className="text-slate-500">Company</span>
+                    <div className="flex justify-between p-3">
+                      <span className="text-slate-500 font-medium">Company</span>
                       <b className="font-semibold text-slate-800">{modalConfig.data.co || "-"}</b>
                     </div>
-                    <div className="flex justify-between p-2.5 bg-slate-50">
-                      <span className="text-slate-500">Mines</span>
+                    <div className="flex justify-between p-3 bg-slate-50/80">
+                      <span className="text-slate-500 font-medium">Mines</span>
                       <b className="font-semibold text-slate-800">{modalConfig.data.mines || "-"}</b>
                     </div>
-                    <div className="flex justify-between p-2.5">
-                      <span className="text-slate-500">Valid From</span>
-                      <span className="font-medium">{formatDate(modalConfig.data.vf)}</span>
+                    <div className="flex justify-between p-3">
+                      <span className="text-slate-500 font-medium">Valid From</span>
+                      <span className="font-medium text-slate-700">{formatDate(modalConfig.data.vf)}</span>
                     </div>
-                    <div className="flex justify-between p-2.5">
-                      <span className="text-slate-500">Valid To</span>
-                      <span className="font-medium">{formatDate(modalConfig.data.vt)}</span>
+                    <div className="flex justify-between p-3 bg-slate-50/80">
+                      <span className="text-slate-500 font-medium">Valid To</span>
+                      <span className="font-medium text-slate-700">{formatDate(modalConfig.data.vt)}</span>
                     </div>
-                    <div className="flex justify-between p-2.5 bg-slate-50">
-                      <span className="text-slate-500">DO Qty</span>
+                    <div className="flex justify-between p-3">
+                      <span className="text-slate-500 font-medium">DO Qty</span>
                       <b className="font-bold text-slate-900">{formatNumber(modalConfig.data.tot)} MT</b>
                     </div>
-                    <div className="flex justify-between p-2.5">
-                      <span className="text-slate-500">Allotted to Parties</span>
+                    <div className="flex justify-between p-3 bg-slate-50/80">
+                      <span className="text-slate-500 font-medium">Allotted to Parties</span>
                       <b className="font-semibold text-slate-800">{formatNumber(getDOAllotted(modalConfig.data))} MT</b>
                     </div>
-                    <div className="flex justify-between p-2.5 bg-slate-50">
-                      <span className="text-slate-500">Unallocated</span>
+                    <div className="flex justify-between p-3">
+                      <span className="text-slate-500 font-medium">Unallocated</span>
                       <b className="font-semibold text-amber-600">
                         {formatNumber(modalConfig.data.tot - getDOAllotted(modalConfig.data))} MT
                       </b>
                     </div>
-                    <div className="flex justify-between p-2.5">
-                      <span className="text-slate-500">Dispatched</span>
+                    <div className="flex justify-between p-3 bg-slate-50/80">
+                      <span className="text-slate-500 font-medium">Dispatched</span>
                       <b className="font-semibold text-emerald-600">{formatNumber(getDODispatched(modalConfig.data))} MT</b>
                     </div>
-                    <div className="flex justify-between p-2.5 bg-slate-50">
-                      <span className="text-slate-500">Balance</span>
+                    <div className="flex justify-between p-3">
+                      <span className="text-slate-500 font-medium">Balance</span>
                       <b className="font-bold text-[#e7000b]">
                         {formatNumber(modalConfig.data.tot - getDODispatched(modalConfig.data))} MT
                       </b>
                     </div>
-                    <div className="flex justify-between p-2.5">
-                      <span className="text-slate-500">Parties</span>
-                      <span>{modalConfig.data.parties?.length || 0}</span>
+                    <div className="flex justify-between p-3 bg-slate-50/80">
+                      <span className="text-slate-500 font-medium">Parties</span>
+                      <span className="font-semibold text-slate-700">{modalConfig.data.parties?.length || 0}</span>
                     </div>
-                    <div className="flex justify-between p-2.5 bg-slate-50">
-                      <span className="text-slate-500">Trucks</span>
-                      <span>
+                    <div className="flex justify-between p-3">
+                      <span className="text-slate-500 font-medium">Trucks</span>
+                      <span className="font-semibold text-slate-700">
                         {(store.trucks || []).filter((t) => t.did === modalConfig.data.id).length}
                       </span>
                     </div>
-                    <div className="flex justify-between p-2.5">
-                      <span className="text-slate-500">Status</span>
-                      <span className="font-bold text-[#e7000b]">
+                    <div className="flex justify-between p-3 bg-slate-50/80">
+                      <span className="text-slate-500 font-medium">Status</span>
+                      <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${currentDO.id === modalConfig.data.id ? "bg-red-50 text-red-700 border border-red-200" : "bg-slate-100 text-slate-600"}`}>
                         {currentDO.id === modalConfig.data.id ? "Active DO" : "Inactive"}
                       </span>
                     </div>
@@ -3555,137 +3673,163 @@ function DispatchPageContent() {
 
                 return (
                   <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="font-semibold text-slate-700 block mb-1.5">Party Name</label>
-                        <div className="relative">
-                          <select
-                            value={selectedDO?.co || ""}
-                            onChange={(e) => {
-                              const newCo = e.target.value;
-                              const firstMatchingDO = (store?.dos || []).find((d) => (d.co || "").trim() === newCo);
-                              if (firstMatchingDO) {
-                                setFormData({ ...formData, doId: firstMatchingDO.id });
-                              }
-                            }}
-                            className="w-full px-3.5 py-2.5 pr-8 border border-slate-200 rounded-xl bg-white text-slate-800 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-red-200 cursor-pointer appearance-none shadow-2xs"
-                          >
-                            {uniqueCompanies.map((co) => (
-                              <option key={co} value={co}>
-                                {co}
-                              </option>
-                            ))}
-                          </select>
-                          <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                        </div>
+                    {/* DO Source Selection */}
+                    <div className="bg-white p-4.5 rounded-xl border border-slate-200/80 shadow-xs space-y-4">
+                      <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+                        <div className="w-2 h-2 rounded-full bg-red-600"></div>
+                        <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wider">DO Reference & Company</span>
                       </div>
 
-                      <div>
-                        <label className="font-semibold text-slate-700 block mb-1.5">DO Number</label>
-                        <div className="relative">
-                          <select
-                            value={selectedDO?.id || ""}
-                            onChange={(e) => {
-                              setFormData({ ...formData, doId: parseInt(e.target.value) });
-                            }}
-                            className="w-full px-3.5 py-2.5 pr-8 border border-slate-200 rounded-xl bg-white text-slate-800 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-red-200 cursor-pointer appearance-none shadow-2xs"
-                          >
-                            {(companyDOs.length ? companyDOs : store?.dos || []).map((d) => (
-                              <option key={d.id} value={d.id}>
-                                {getDOName(d)}
-                              </option>
-                            ))}
-                          </select>
-                          <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5">DO Party Name</label>
+                          <div className="relative">
+                            <select
+                              value={selectedDO?.co || ""}
+                              onChange={(e) => {
+                                const newCo = e.target.value;
+                                const firstMatchingDO = (store?.dos || []).find((d) => (d.co || "").trim() === newCo);
+                                if (firstMatchingDO) {
+                                  setFormData({ ...formData, doId: firstMatchingDO.id });
+                                }
+                              }}
+                              className="w-full px-3.5 py-2.5 pr-8 border border-slate-200 rounded-lg bg-white text-slate-800 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 cursor-pointer appearance-none shadow-xs"
+                            >
+                              {uniqueCompanies.map((co) => (
+                                <option key={co} value={co}>
+                                  {co}
+                                </option>
+                              ))}
+                            </select>
+                            <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5">DO Number</label>
+                          <div className="relative">
+                            <select
+                              value={selectedDO?.id || ""}
+                              onChange={(e) => {
+                                setFormData({ ...formData, doId: parseInt(e.target.value) });
+                              }}
+                              className="w-full px-3.5 py-2.5 pr-8 border border-slate-200 rounded-lg bg-white text-slate-800 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 cursor-pointer appearance-none shadow-xs"
+                            >
+                              {(companyDOs.length ? companyDOs : store?.dos || []).map((d) => (
+                                <option key={d.id} value={d.id}>
+                                  {getDOName(d)}
+                                </option>
+                              ))}
+                            </select>
+                            <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                          </div>
                         </div>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="font-semibold text-slate-700 block mb-1.5">Available DO Qty (MT)</label>
-                        <input
-                          type="text"
-                          value={`${formatNumber(available)} MT`}
-                          disabled
-                          className="w-full px-3.5 py-2.5 border border-emerald-200 rounded-xl bg-emerald-50 text-emerald-800 text-xs font-bold cursor-not-allowed"
-                        />
+                    {/* Stock Overview Banner */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="bg-emerald-50/80 border border-emerald-200/90 rounded-xl p-3.5 flex items-center justify-between shadow-2xs">
+                        <div>
+                          <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-800">Available DO Qty</div>
+                          <div className="text-base font-extrabold text-emerald-900 mt-0.5">{formatNumber(available)} <span className="text-xs font-semibold">MT</span></div>
+                        </div>
+                        <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-700">
+                          <Check className="w-4 h-4" />
+                        </div>
                       </div>
-                      <div>
-                        <label className="font-semibold text-slate-700 block mb-1.5">DO Balance Qty (MT)</label>
-                        <input
-                          type="text"
-                          value={`${formatNumber(balance)} MT`}
-                          disabled
-                          className="w-full px-3.5 py-2.5 border border-amber-200 rounded-xl bg-amber-50 text-amber-800 text-xs font-bold cursor-not-allowed"
-                        />
+                      <div className="bg-amber-50/80 border border-amber-200/90 rounded-xl p-3.5 flex items-center justify-between shadow-2xs">
+                        <div>
+                          <div className="text-[10px] font-bold uppercase tracking-wider text-amber-800">DO Balance Qty</div>
+                          <div className="text-base font-extrabold text-amber-900 mt-0.5">{formatNumber(balance)} <span className="text-xs font-semibold">MT</span></div>
+                        </div>
+                        <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center text-amber-700">
+                          <Clock className="w-4 h-4" />
+                        </div>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Lifter Name Searchable Combobox */}
-                      <div className="relative">
-                        <label className="font-semibold text-slate-700 block mb-1.5">Lifter Name *</label>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            value={formData.partyName || ""}
-                            onChange={(e) => {
-                              setFormData({ ...formData, partyName: e.target.value });
-                              setIsLifterDropdownOpen(true);
-                            }}
-                            onFocus={() => setIsLifterDropdownOpen(true)}
-                            placeholder="Type or select Lifter..."
-                            className="w-full px-3.5 py-2.5 pr-8 border border-slate-300 rounded-xl bg-white hover:border-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-400/40 focus:border-red-500 text-xs font-bold text-slate-900 transition-all shadow-xs"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setIsLifterDropdownOpen((prev) => !prev)}
-                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
-                          >
-                            <ChevronDown className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-
-                        {/* Custom Clean Dropdown Popup */}
-                        {isLifterDropdownOpen && (
-                          <>
-                            <div className="fixed inset-0 z-20" onClick={() => setIsLifterDropdownOpen(false)} />
-                            <div className="absolute left-0 right-0 top-full mt-1.5 z-30 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto divide-y divide-slate-50 py-1">
-                              {uniquePartyNames.filter((p) => !formData.partyName || p.toLowerCase().includes((formData.partyName || "").toLowerCase())).length > 0 ? (
-                                uniquePartyNames
-                                  .filter((p) => !formData.partyName || p.toLowerCase().includes((formData.partyName || "").toLowerCase()))
-                                  .map((p) => (
-                                    <div
-                                      key={p}
-                                      onClick={() => {
-                                        setFormData((prev) => ({ ...prev, partyName: p }));
-                                        setIsLifterDropdownOpen(false);
-                                      }}
-                                      className="px-3 py-2 text-xs font-semibold text-slate-800 hover:bg-red-50 hover:text-red-600 cursor-pointer flex items-center justify-between transition-colors"
-                                    >
-                                      <span>{p}</span>
-                                      {formData.partyName === p && <Check className="w-3.5 h-3.5 text-red-600" />}
-                                    </div>
-                                  ))
-                              ) : (
-                                <div className="px-3 py-2 text-xs text-slate-400 italic">No existing lifters. Type to create new.</div>
-                              )}
-                            </div>
-                          </>
-                        )}
+                    {/* Lifter Details */}
+                    <div className="bg-white p-4.5 rounded-xl border border-slate-200/80 shadow-xs space-y-4">
+                      <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+                        <div className="w-2 h-2 rounded-full bg-blue-600"></div>
+                        <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wider">Allotment Details</span>
                       </div>
 
-                      <div>
-                        <label className="font-semibold text-slate-700 block mb-1.5">Order Qty (MT) *</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={formData.qty || ""}
-                          onChange={(e) => setFormData({ ...formData, qty: e.target.value })}
-                          placeholder="e.g. 150.00"
-                          className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white hover:border-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-400/40 focus:border-red-500 text-xs font-bold text-slate-900 transition-all shadow-xs"
-                        />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Lifter Name Searchable Combobox */}
+                        <div className="relative">
+                          <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between mb-1.5">
+                            <span>Lifter Name</span>
+                            <span className="text-red-500 font-bold">*</span>
+                          </label>
+                          <div className="relative">
+                            <input
+                              type="text"
+                              value={formData.partyName || ""}
+                              onChange={(e) => {
+                                setFormData({ ...formData, partyName: e.target.value });
+                                setIsLifterDropdownOpen(true);
+                              }}
+                              onFocus={() => setIsLifterDropdownOpen(true)}
+                              placeholder="Type or select Lifter..."
+                              className="w-full px-3.5 py-2.5 pr-8 border border-slate-200 rounded-lg bg-white hover:border-slate-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-xs font-bold text-slate-900 transition-all shadow-xs"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setIsLifterDropdownOpen((prev) => !prev)}
+                              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                            >
+                              <ChevronDown className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+
+                          {/* Custom Clean Dropdown Popup */}
+                          {isLifterDropdownOpen && (
+                            <>
+                              <div className="fixed inset-0 z-20" onClick={() => setIsLifterDropdownOpen(false)} />
+                              <div className="absolute left-0 right-0 top-full mt-1.5 z-30 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto divide-y divide-slate-50 py-1">
+                                {uniquePartyNames.filter((p) => !formData.partyName || p.toLowerCase().includes((formData.partyName || "").toLowerCase())).length > 0 ? (
+                                  uniquePartyNames
+                                    .filter((p) => !formData.partyName || p.toLowerCase().includes((formData.partyName || "").toLowerCase()))
+                                    .map((p) => (
+                                      <div
+                                        key={p}
+                                        onClick={() => {
+                                          setFormData((prev) => ({ ...prev, partyName: p }));
+                                          setIsLifterDropdownOpen(false);
+                                        }}
+                                        className="px-3 py-2 text-xs font-semibold text-slate-800 hover:bg-red-50 hover:text-red-600 cursor-pointer flex items-center justify-between transition-colors"
+                                      >
+                                        <span>{p}</span>
+                                        {formData.partyName === p && <Check className="w-3.5 h-3.5 text-red-600" />}
+                                      </div>
+                                    ))
+                                ) : (
+                                  <div className="px-3 py-2 text-xs text-slate-400 italic">No existing lifters. Type to create new.</div>
+                                )}
+                              </div>
+                            </>
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between mb-1.5">
+                            <span>Order Qty (MT)</span>
+                            <span className="text-red-500 font-bold">*</span>
+                          </label>
+                          <div className="relative">
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={formData.qty || ""}
+                              onChange={(e) => setFormData({ ...formData, qty: e.target.value })}
+                              placeholder="0.00"
+                              className="w-full pl-3.5 pr-10 py-2.5 border border-slate-200 rounded-lg bg-white hover:border-slate-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-xs font-bold text-slate-900 transition-all shadow-xs"
+                            />
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 pointer-events-none">MT</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -3695,38 +3839,38 @@ function DispatchPageContent() {
               {/* View Party */}
               {modalConfig.type === "viewParty" && modalConfig.data && (
                 <div className="space-y-4">
-                  <div className="rounded-xl border border-slate-200 divide-y divide-slate-100 overflow-hidden">
-                    <div className="flex justify-between p-2.5 bg-slate-50">
-                      <span className="text-slate-500">Lifter Party Name</span>
+                  <div className="rounded-xl border border-slate-200 divide-y divide-slate-100 overflow-hidden bg-white shadow-xs">
+                    <div className="flex justify-between p-3 bg-slate-50/80">
+                      <span className="text-slate-500 font-medium">Lifter Party Name</span>
                       <b className="font-bold text-slate-900">{modalConfig.data.name}</b>
                     </div>
-                    <div className="flex justify-between p-2.5">
-                      <span className="text-slate-500">DO PARTY Name</span>
-                      <span className="font-medium">{currentDO.co}</span>
+                    <div className="flex justify-between p-3">
+                      <span className="text-slate-500 font-medium">DO Party Name</span>
+                      <span className="font-semibold text-slate-800">{currentDO.co}</span>
                     </div>
-                    <div className="flex justify-between p-2.5 bg-slate-50">
-                      <span className="text-slate-500">DO No.</span>
-                      <span className="font-bold">{getDOName(currentDO)}</span>
+                    <div className="flex justify-between p-3 bg-slate-50/80">
+                      <span className="text-slate-500 font-medium">DO No.</span>
+                      <span className="font-bold text-slate-900">{getDOName(currentDO)}</span>
                     </div>
-                    <div className="flex justify-between p-2.5">
-                      <span className="text-slate-500">Order Qty</span>
+                    <div className="flex justify-between p-3">
+                      <span className="text-slate-500 font-medium">Order Qty</span>
                       <b className="font-bold text-slate-900">{formatNumber(modalConfig.data.qty)} MT</b>
                     </div>
-                    <div className="flex justify-between p-2.5 bg-slate-50">
-                      <span className="text-slate-500">Dispatched</span>
+                    <div className="flex justify-between p-3 bg-slate-50/80">
+                      <span className="text-slate-500 font-medium">Dispatched</span>
                       <b className="font-semibold text-emerald-600">
                         {formatNumber(getPartyDispatched(modalConfig.data.id))} MT
                       </b>
                     </div>
-                    <div className="flex justify-between p-2.5">
-                      <span className="text-slate-500">Balance</span>
+                    <div className="flex justify-between p-3">
+                      <span className="text-slate-500 font-medium">Balance</span>
                       <b className="font-bold text-[#e7000b]">
                         {formatNumber(modalConfig.data.qty - getPartyDispatched(modalConfig.data.id))} MT
                       </b>
                     </div>
-                    <div className="flex justify-between p-2.5 bg-slate-50">
-                      <span className="text-slate-500">Trucks Count</span>
-                      <span>
+                    <div className="flex justify-between p-3 bg-slate-50/80">
+                      <span className="text-slate-500 font-medium">Trucks Count</span>
+                      <span className="font-semibold text-slate-700">
                         {(store.trucks || []).filter((t) => t.pid === modalConfig.data.id).length}
                       </span>
                     </div>
@@ -3742,175 +3886,209 @@ function DispatchPageContent() {
 
                 return (
                   <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="font-semibold text-slate-700 block mb-1.5">Party *</label>
-                        <div className="relative">
-                          <select
-                            value={formData.pid || (selectedParty?.id || "")}
-                            onChange={(e) => setFormData({ ...formData, pid: e.target.value })}
-                            className="w-full px-3.5 py-2.5 pr-8 border border-slate-200 rounded-xl bg-white text-slate-800 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-red-200 cursor-pointer appearance-none shadow-2xs"
-                          >
-                            {(currentDO.parties || []).map((p) => (
-                              <option key={p.id} value={p.id}>
-                                {p.name}
-                              </option>
-                            ))}
-                          </select>
-                          <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                        </div>
+                    {/* Party & Balance Section */}
+                    <div className="bg-white p-4.5 rounded-xl border border-slate-200/80 shadow-xs space-y-4">
+                      <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+                        <div className="w-2 h-2 rounded-full bg-red-600"></div>
+                        <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wider">Party Allotment & Available Balance</span>
                       </div>
 
-                      <div>
-                        <label className="font-semibold text-slate-700 block mb-1.5">Party Balance Qty (MT)</label>
-                        <input
-                          type="text"
-                          value={`${formatNumber(partyBal)} MT`}
-                          disabled
-                          className="w-full px-3.5 py-2.5 border border-amber-200 rounded-xl bg-amber-50 text-amber-800 text-xs font-bold cursor-not-allowed"
-                        />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between mb-1.5">
+                            <span>Select Party</span>
+                            <span className="text-red-500 font-bold">*</span>
+                          </label>
+                          <div className="relative">
+                            <select
+                              value={formData.pid || (selectedParty?.id || "")}
+                              onChange={(e) => setFormData({ ...formData, pid: e.target.value })}
+                              className="w-full px-3.5 py-2.5 pr-8 border border-slate-200 rounded-lg bg-white text-slate-800 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 cursor-pointer appearance-none shadow-xs"
+                            >
+                              {(currentDO.parties || []).map((p) => (
+                                <option key={p.id} value={p.id}>
+                                  {p.name}
+                                </option>
+                              ))}
+                            </select>
+                            <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5">Party Balance Qty</label>
+                          <div className="px-3.5 py-2.5 border border-amber-200/90 rounded-lg bg-amber-50/80 text-amber-900 text-xs font-bold flex items-center justify-between">
+                            <span>{formatNumber(partyBal)} MT</span>
+                            <span className="text-[10px] font-medium text-amber-700 uppercase">Available to load</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {/* Truck No Searchable Combobox */}
-                      <div className="relative">
-                        <label className="font-semibold text-slate-700 block mb-1.5">Truck No. *</label>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            value={formData.truckNo || ""}
-                            onChange={(e) => {
-                              setFormData({ ...formData, truckNo: e.target.value.toUpperCase() });
-                              setIsTruckNoDropdownOpen(true);
-                            }}
-                            onFocus={() => setIsTruckNoDropdownOpen(true)}
-                            placeholder="Type or select Truck No..."
-                            className="w-full px-3.5 py-2.5 pr-8 border border-slate-300 rounded-xl bg-white hover:border-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-400/40 focus:border-red-500 text-xs font-bold text-slate-900 transition-all shadow-xs uppercase"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setIsTruckNoDropdownOpen((prev) => !prev)}
-                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
-                          >
-                            <ChevronDown className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-
-                        {/* Custom Clean Dropdown Popup */}
-                        {isTruckNoDropdownOpen && (
-                          <>
-                            <div className="fixed inset-0 z-20" onClick={() => setIsTruckNoDropdownOpen(false)} />
-                            <div className="absolute left-0 right-0 top-full mt-1.5 z-30 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto divide-y divide-slate-50 py-1">
-                              {uniqueTruckNumbers.filter((no) => !formData.truckNo || no.toUpperCase().includes((formData.truckNo || "").toUpperCase())).length > 0 ? (
-                                uniqueTruckNumbers
-                                  .filter((no) => !formData.truckNo || no.toUpperCase().includes((formData.truckNo || "").toUpperCase()))
-                                  .map((no) => (
-                                    <div
-                                      key={no}
-                                      onClick={() => {
-                                        setFormData((prev) => ({ ...prev, truckNo: no }));
-                                        setIsTruckNoDropdownOpen(false);
-                                      }}
-                                      className="px-3 py-2 text-xs font-bold text-slate-800 hover:bg-red-50 hover:text-red-600 cursor-pointer flex items-center justify-between transition-colors uppercase"
-                                    >
-                                      <span>{no}</span>
-                                      {formData.truckNo === no && <Check className="w-3.5 h-3.5 text-red-600" />}
-                                    </div>
-                                  ))
-                              ) : (
-                                <div className="px-3 py-2 text-xs text-slate-400 italic">No matching truck. Type to use this number.</div>
-                              )}
-                            </div>
-                          </>
-                        )}
+                    {/* Truck Details */}
+                    <div className="bg-white p-4.5 rounded-xl border border-slate-200/80 shadow-xs space-y-4">
+                      <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+                        <div className="w-2 h-2 rounded-full bg-blue-600"></div>
+                        <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wider">Vehicle & Driver Details</span>
                       </div>
 
-                      {/* Driver Name Searchable Combobox */}
-                      <div className="relative">
-                        <label className="font-semibold text-slate-700 block mb-1.5">Driver Name</label>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {/* Truck No Searchable Combobox */}
                         <div className="relative">
-                          <input
-                            type="text"
-                            value={formData.driver || ""}
-                            onChange={(e) => {
-                              setFormData({ ...formData, driver: e.target.value });
-                              setIsDriverDropdownOpen(true);
-                            }}
-                            onFocus={() => setIsDriverDropdownOpen(true)}
-                            placeholder="Type or select Driver..."
-                            className="w-full px-3.5 py-2.5 pr-8 border border-slate-300 rounded-xl bg-white hover:border-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-400/40 focus:border-red-500 text-xs font-semibold text-slate-800 transition-all shadow-xs"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setIsDriverDropdownOpen((prev) => !prev)}
-                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
-                          >
-                            <ChevronDown className="w-3.5 h-3.5" />
-                          </button>
+                          <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between mb-1.5">
+                            <span>Truck No.</span>
+                            <span className="text-red-500 font-bold">*</span>
+                          </label>
+                          <div className="relative">
+                            <input
+                              type="text"
+                              value={formData.truckNo || ""}
+                              onChange={(e) => {
+                                setFormData({ ...formData, truckNo: e.target.value.toUpperCase() });
+                                setIsTruckNoDropdownOpen(true);
+                              }}
+                              onFocus={() => setIsTruckNoDropdownOpen(true)}
+                              placeholder="e.g. CG04AB1234"
+                              className="w-full px-3.5 py-2.5 pr-8 border border-slate-200 rounded-lg bg-white hover:border-slate-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-xs font-bold text-slate-900 transition-all shadow-xs uppercase"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setIsTruckNoDropdownOpen((prev) => !prev)}
+                              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                            >
+                              <ChevronDown className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+
+                          {/* Custom Clean Dropdown Popup */}
+                          {isTruckNoDropdownOpen && (
+                            <>
+                              <div className="fixed inset-0 z-20" onClick={() => setIsTruckNoDropdownOpen(false)} />
+                              <div className="absolute left-0 right-0 top-full mt-1.5 z-30 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto divide-y divide-slate-50 py-1">
+                                {uniqueTruckNumbers.filter((no) => !formData.truckNo || no.toUpperCase().includes((formData.truckNo || "").toUpperCase())).length > 0 ? (
+                                  uniqueTruckNumbers
+                                    .filter((no) => !formData.truckNo || no.toUpperCase().includes((formData.truckNo || "").toUpperCase()))
+                                    .map((no) => (
+                                      <div
+                                        key={no}
+                                        onClick={() => {
+                                          setFormData((prev) => ({ ...prev, truckNo: no }));
+                                          setIsTruckNoDropdownOpen(false);
+                                        }}
+                                        className="px-3 py-2 text-xs font-bold text-slate-800 hover:bg-red-50 hover:text-red-600 cursor-pointer flex items-center justify-between transition-colors uppercase"
+                                      >
+                                        <span>{no}</span>
+                                        {formData.truckNo === no && <Check className="w-3.5 h-3.5 text-red-600" />}
+                                      </div>
+                                    ))
+                                ) : (
+                                  <div className="px-3 py-2 text-xs text-slate-400 italic">No matching truck. Type to use this number.</div>
+                                )}
+                              </div>
+                            </>
+                          )}
                         </div>
 
-                        {/* Custom Clean Dropdown Popup */}
-                        {isDriverDropdownOpen && (
-                          <>
-                            <div className="fixed inset-0 z-20" onClick={() => setIsDriverDropdownOpen(false)} />
-                            <div className="absolute left-0 right-0 top-full mt-1.5 z-30 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto divide-y divide-slate-50 py-1">
-                              {uniqueDriverNames.filter((dName) => !formData.driver || dName.toLowerCase().includes((formData.driver || "").toLowerCase())).length > 0 ? (
-                                uniqueDriverNames
-                                  .filter((dName) => !formData.driver || dName.toLowerCase().includes((formData.driver || "").toLowerCase()))
-                                  .map((dName) => (
-                                    <div
-                                      key={dName}
-                                      onClick={() => {
-                                        setFormData((prev) => ({ ...prev, driver: dName }));
-                                        setIsDriverDropdownOpen(false);
-                                      }}
-                                      className="px-3 py-2 text-xs font-semibold text-slate-800 hover:bg-red-50 hover:text-red-600 cursor-pointer flex items-center justify-between transition-colors"
-                                    >
-                                      <span>{dName}</span>
-                                      {formData.driver === dName && <Check className="w-3.5 h-3.5 text-red-600" />}
-                                    </div>
-                                  ))
-                              ) : (
-                                <div className="px-3 py-2 text-xs text-slate-400 italic">No matching driver. Type to use this name.</div>
-                              )}
-                            </div>
-                          </>
-                        )}
-                      </div>
+                        {/* Driver Name Searchable Combobox */}
+                        <div className="relative">
+                          <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5">Driver Name</label>
+                          <div className="relative">
+                            <input
+                              type="text"
+                              value={formData.driver || ""}
+                              onChange={(e) => {
+                                setFormData({ ...formData, driver: e.target.value });
+                                setIsDriverDropdownOpen(true);
+                              }}
+                              onFocus={() => setIsDriverDropdownOpen(true)}
+                              placeholder="Driver name..."
+                              className="w-full px-3.5 py-2.5 pr-8 border border-slate-200 rounded-lg bg-white hover:border-slate-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-xs font-semibold text-slate-800 transition-all shadow-xs"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setIsDriverDropdownOpen((prev) => !prev)}
+                              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                            >
+                              <ChevronDown className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
 
-                      <div>
-                        <label className="font-semibold text-slate-700 block mb-1.5">TP No.</label>
-                        <input
-                          type="text"
-                          value={formData.tp || ""}
-                          onChange={(e) => setFormData({ ...formData, tp: e.target.value })}
-                          placeholder="Transit pass / TP number"
-                          className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white hover:border-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-400/40 focus:border-red-500 text-xs font-medium text-slate-800 transition-all shadow-xs"
-                        />
+                          {/* Custom Clean Dropdown Popup */}
+                          {isDriverDropdownOpen && (
+                            <>
+                              <div className="fixed inset-0 z-20" onClick={() => setIsDriverDropdownOpen(false)} />
+                              <div className="absolute left-0 right-0 top-full mt-1.5 z-30 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto divide-y divide-slate-50 py-1">
+                                {uniqueDriverNames.filter((dName) => !formData.driver || dName.toLowerCase().includes((formData.driver || "").toLowerCase())).length > 0 ? (
+                                  uniqueDriverNames
+                                    .filter((dName) => !formData.driver || dName.toLowerCase().includes((formData.driver || "").toLowerCase()))
+                                    .map((dName) => (
+                                      <div
+                                        key={dName}
+                                        onClick={() => {
+                                          setFormData((prev) => ({ ...prev, driver: dName }));
+                                          setIsDriverDropdownOpen(false);
+                                        }}
+                                        className="px-3 py-2 text-xs font-semibold text-slate-800 hover:bg-red-50 hover:text-red-600 cursor-pointer flex items-center justify-between transition-colors"
+                                      >
+                                        <span>{dName}</span>
+                                        {formData.driver === dName && <Check className="w-3.5 h-3.5 text-red-600" />}
+                                      </div>
+                                    ))
+                                ) : (
+                                  <div className="px-3 py-2 text-xs text-slate-400 italic">No matching driver. Type to use this name.</div>
+                                )}
+                              </div>
+                            </>
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5">TP No.</label>
+                          <input
+                            type="text"
+                            value={formData.tp || ""}
+                            onChange={(e) => setFormData({ ...formData, tp: e.target.value })}
+                            placeholder="e.g. TP-98210"
+                            className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg bg-white hover:border-slate-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-xs font-medium text-slate-800 transition-all shadow-xs"
+                          />
+                        </div>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="font-semibold text-slate-700 block mb-1.5">Date</label>
-                        <input
-                          type="date"
-                          value={formData.date || ""}
-                          onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                          className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50/50 hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-200 text-xs font-medium text-slate-700 cursor-pointer shadow-2xs"
-                        />
+                    {/* Weight & Date */}
+                    <div className="bg-white p-4.5 rounded-xl border border-slate-200/80 shadow-xs space-y-4">
+                      <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+                        <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                        <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wider">Weight & Dispatch Date</span>
                       </div>
-                      <div>
-                        <label className="font-semibold text-slate-700 block mb-1.5">Net Wt (MT) *</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={formData.qty || ""}
-                          onChange={(e) => setFormData({ ...formData, qty: e.target.value })}
-                          placeholder="e.g. 35.40"
-                          className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50/50 hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-200 text-xs font-bold text-slate-900 shadow-2xs"
-                        />
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5">Dispatch Date</label>
+                          <input
+                            type="date"
+                            value={formData.date || ""}
+                            onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                            className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg bg-white hover:border-slate-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-xs font-semibold text-slate-800 cursor-pointer shadow-xs"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between mb-1.5">
+                            <span>Net Wt (MT)</span>
+                            <span className="text-red-500 font-bold">*</span>
+                          </label>
+                          <div className="relative">
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={formData.qty || ""}
+                              onChange={(e) => setFormData({ ...formData, qty: e.target.value })}
+                              placeholder="0.00"
+                              className="w-full pl-3.5 pr-10 py-2.5 border border-slate-200 rounded-lg bg-white hover:border-slate-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-xs font-bold text-slate-900 shadow-xs"
+                            />
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 pointer-events-none">MT</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -3985,10 +4163,10 @@ function DispatchPageContent() {
             </div>
 
             {/* Modal Footer */}
-            <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2 shrink-0">
+            <div className="p-4.5 bg-slate-100/70 border-t border-slate-200/80 flex items-center justify-end gap-2.5 shrink-0">
               <button
                 onClick={closeModal}
-                className="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-semibold transition-colors"
+                className="px-4 py-2.5 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all shadow-2xs active:scale-95"
               >
                 Cancel
               </button>
@@ -3996,9 +4174,10 @@ function DispatchPageContent() {
               {modalConfig.type === "doForm" && (
                 <button
                   onClick={() => saveDO(modalConfig.data?.id)}
-                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#ff3340] to-[#e7000b] text-white font-semibold hover:brightness-105 transition-all shadow-xs"
+                  className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-[#b91c1c] to-[#e7000b] hover:from-[#991b1b] hover:to-[#dc2626] text-white text-xs font-bold transition-all shadow-sm active:scale-95 inline-flex items-center gap-1.5 cursor-pointer"
                 >
-                  Save DO
+                  <Package className="w-3.5 h-3.5" />
+                  <span>Save DO</span>
                 </button>
               )}
 
@@ -4007,20 +4186,20 @@ function DispatchPageContent() {
                   {currentDO.id !== modalConfig.data.id && (
                     <button
                       onClick={() => selectActiveDO(modalConfig.data.id)}
-                      className="px-3 py-2 rounded-xl bg-gradient-to-r from-[#ff3340] to-[#e7000b] text-white font-semibold hover:brightness-105 transition-all shadow-xs"
+                      className="px-4 py-2 rounded-lg bg-gradient-to-r from-[#b91c1c] to-[#e7000b] text-white text-xs font-bold hover:brightness-105 transition-all shadow-xs"
                     >
                       Open DO
                     </button>
                   )}
                   <button
                     onClick={() => openDOForm(modalConfig.data.id)}
-                    className="px-3 py-2 rounded-xl bg-white border border-red-200 text-[#e7000b] font-semibold hover:bg-red-50 transition-colors"
+                    className="px-3.5 py-2 rounded-lg bg-white border border-red-200 text-[#e7000b] text-xs font-bold hover:bg-red-50 transition-colors"
                   >
                     Edit
                   </button>
                   <button
                     onClick={() => deleteDO(modalConfig.data.id)}
-                    className="px-3 py-2 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 font-semibold hover:bg-rose-100 transition-colors"
+                    className="px-3.5 py-2 rounded-lg bg-rose-50 border border-rose-200 text-rose-600 text-xs font-bold hover:bg-rose-100 transition-colors"
                   >
                     Delete
                   </button>
@@ -4030,9 +4209,10 @@ function DispatchPageContent() {
               {modalConfig.type === "partyForm" && (
                 <button
                   onClick={() => saveParty(modalConfig.data?.id)}
-                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#ff3340] to-[#e7000b] text-white font-semibold hover:brightness-105 transition-all shadow-xs"
+                  className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-[#b91c1c] to-[#e7000b] hover:from-[#991b1b] hover:to-[#dc2626] text-white text-xs font-bold transition-all shadow-sm active:scale-95 inline-flex items-center gap-1.5 cursor-pointer"
                 >
-                  Save Party
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Save Party</span>
                 </button>
               )}
 
@@ -4040,19 +4220,19 @@ function DispatchPageContent() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => openTruckForm(0, modalConfig.data.id)}
-                    className="px-3 py-2 rounded-xl bg-gradient-to-r from-[#ff3340] to-[#e7000b] text-white font-semibold hover:brightness-105 transition-all shadow-xs inline-flex items-center gap-1"
+                    className="px-4 py-2 rounded-lg bg-gradient-to-r from-[#b91c1c] to-[#e7000b] text-white text-xs font-bold hover:brightness-105 transition-all shadow-xs inline-flex items-center gap-1"
                   >
                     <Plus className="w-3.5 h-3.5" /> Truck
                   </button>
                   <button
                     onClick={() => openPartyForm(modalConfig.data.id)}
-                    className="px-3 py-2 rounded-xl bg-white border border-red-200 text-[#e7000b] font-semibold hover:bg-red-50 transition-colors"
+                    className="px-3.5 py-2 rounded-lg bg-white border border-red-200 text-[#e7000b] text-xs font-bold hover:bg-red-50 transition-colors"
                   >
                     Edit
                   </button>
                   <button
                     onClick={() => deleteParty(modalConfig.data.id)}
-                    className="px-3 py-2 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 font-semibold hover:bg-rose-100 transition-colors"
+                    className="px-3.5 py-2 rounded-lg bg-rose-50 border border-rose-200 text-rose-600 text-xs font-bold hover:bg-rose-100 transition-colors"
                   >
                     Delete
                   </button>
@@ -4062,9 +4242,10 @@ function DispatchPageContent() {
               {modalConfig.type === "truckForm" && (
                 <button
                   onClick={() => saveTruck(modalConfig.data?.id)}
-                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#ff3340] to-[#e7000b] text-white font-semibold hover:brightness-105 transition-all shadow-xs"
+                  className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-[#b91c1c] to-[#e7000b] hover:from-[#991b1b] hover:to-[#dc2626] text-white text-xs font-bold transition-all shadow-sm active:scale-95 inline-flex items-center gap-1.5 cursor-pointer"
                 >
-                  Save Truck
+                  <Truck className="w-3.5 h-3.5" />
+                  <span>Save Truck</span>
                 </button>
               )}
 
@@ -4073,27 +4254,27 @@ function DispatchPageContent() {
                   {modalConfig.data.done ? (
                     <button
                       onClick={() => setTruckStatus(modalConfig.data.id, false)}
-                      className="px-3 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-amber-700 font-semibold transition-colors"
+                      className="px-3.5 py-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-amber-700 text-xs font-bold transition-colors"
                     >
                       Move to Pending
                     </button>
                   ) : (
                     <button
                       onClick={() => setTruckStatus(modalConfig.data.id, true)}
-                      className="px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-700 font-semibold hover:bg-emerald-100 transition-colors"
+                      className="px-3.5 py-2 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-700 text-xs font-bold hover:bg-emerald-100 transition-colors"
                     >
                       Mark Done
                     </button>
                   )}
                   <button
                     onClick={() => openTruckForm(modalConfig.data.id)}
-                    className="px-3 py-2 rounded-xl bg-white border border-red-200 text-[#e7000b] font-semibold hover:bg-red-50 transition-colors"
+                    className="px-3.5 py-2 rounded-lg bg-white border border-red-200 text-[#e7000b] text-xs font-bold hover:bg-red-50 transition-colors"
                   >
                     Edit
                   </button>
                   <button
                     onClick={() => deleteTruck(modalConfig.data.id)}
-                    className="px-3 py-2 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 font-semibold hover:bg-rose-100 transition-colors"
+                    className="px-3.5 py-2 rounded-lg bg-rose-50 border border-rose-200 text-rose-600 text-xs font-bold hover:bg-rose-100 transition-colors"
                   >
                     Delete
                   </button>

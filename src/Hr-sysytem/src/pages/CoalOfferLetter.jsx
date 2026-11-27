@@ -68,29 +68,29 @@ const specKeys = [
 const defaultVisibleSpecs = () => specKeys.reduce((acc, s) => ({ ...acc, [s.key]: true }), {});
 
 const defaultFormData = () => ({
-  documentType: 'Offer Letter',
+  documentType: '',
   offerLetterNo: '',
-  date: new Date().toISOString().split('T')[0],
-  companyName: 'M/s Jai Bhole Traders',
+  date: '',
+  companyName: '',
   buyerName: '',
   buyerAddress: '',
   buyerGst: '',
-  subject: 'Offer for supply of Coal',
-  commodity: 'Wash Coal',
-  billingMode: 'Buyer & Consignee',
-  basicPrice: 'INR 7000.00PMT (Gst.18% Extra)',
-  transporting: 'F.O.R. Delivery Your Plant',
-  quantity: '5000 MT.',
-  moisture: '13% (+/-1)',
-  fc: '38 Minimum',
-  ash: '32 (+/-1)',
-  vm: '30 (+/-1)',
-  size: '8-50MM (-8MM 15%)',
-  noteText: 'Our sources of washed coal is from Asak Washery Korba & Mahavir Coal Washery Toggle Champa',
-  signatoryName: 'Amarnath Agrawal',
-  signatoryTitle: 'Director/Authorized Signatory',
-  firmAddress: COMPANY_DETAILS['M/s Jai Bhole Traders'].address,
-  firmFooterContact: COMPANY_DETAILS['M/s Jai Bhole Traders'].footerContact,
+  subject: '',
+  commodity: '',
+  billingMode: '',
+  basicPrice: '',
+  transporting: '',
+  quantity: '',
+  moisture: '',
+  fc: '',
+  ash: '',
+  vm: '',
+  size: '',
+  noteText: '',
+  signatoryName: '',
+  signatoryTitle: '',
+  firmAddress: '',
+  firmFooterContact: '',
   signatureDataUrl: '',
   status: 'Draft'
 });
@@ -397,6 +397,23 @@ const OfferLetter = () => {
   const [visibleSpecs, setVisibleSpecs] = useState(defaultVisibleSpecs());
   const [showColumnDropdown, setShowColumnDropdown] = useState(false);
   const columnDropdownRef = useRef(null);
+  const [allDbLetters, setAllDbLetters] = useState([]);
+
+  // Fetch all historical records to supply rich dropdown suggestions continuously
+  const fetchAllDbSuggestions = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('coal_offer_letters')
+        .select('document_type, company_name, buyer_name, buyer_address, buyer_gst, commodity, billing_mode, basic_price, transporting, quantity, size, subject, signatory_name, signatory_title, moisture, fc, ash, vm')
+        .order('id', { ascending: false })
+        .limit(300);
+      if (!error && data) {
+        setAllDbLetters(data);
+      }
+    } catch (err) {
+      console.warn('Failed to fetch DB suggestions:', err);
+    }
+  }, []);
 
   useEffect(() => {
     const handleOutsideClick = (e) => {
@@ -462,12 +479,14 @@ const OfferLetter = () => {
 
   useEffect(() => {
     fetchBadgeCounts();
-  }, [fetchBadgeCounts]);
+    fetchAllDbSuggestions();
+  }, [fetchBadgeCounts, fetchAllDbSuggestions]);
 
   const refreshAll = useCallback(() => {
     fetchLettersForTab(activeTab);
     fetchBadgeCounts();
-  }, [fetchLettersForTab, fetchBadgeCounts, activeTab]);
+    fetchAllDbSuggestions();
+  }, [fetchLettersForTab, fetchBadgeCounts, fetchAllDbSuggestions, activeTab]);
 
   const generateNextOfferLetterNo = async () => {
     const year = new Date().getFullYear();
@@ -501,7 +520,15 @@ const OfferLetter = () => {
   const openNewModal = async () => {
     setEditingId(null);
     const autoNo = await generateNextOfferLetterNo();
-    setFormData({ ...defaultFormData(), offerLetterNo: autoNo, status: 'Draft' });
+    setFormData({
+      ...defaultFormData(),
+      companyName: '',
+      firmAddress: '',
+      firmFooterContact: '',
+      signatureDataUrl: '',
+      offerLetterNo: autoNo,
+      status: 'Draft'
+    });
     setVisibleSpecs(defaultVisibleSpecs());
     setShowOrderModal(true);
   };
@@ -673,27 +700,36 @@ const OfferLetter = () => {
   const qtyOptions = useMemo(() => ['All', ...Array.from(new Set(letters.map(o => o.quantity).filter(Boolean)))], [letters]);
 
   const dbSuggestions = useMemo(() => {
+    const combinedSource = [...letters, ...allDbLetters];
     const cleanList = (arr) => Array.from(new Set(arr.map(v => (v ? String(v).trim() : '')).filter(Boolean)));
-    const defaultDocTypes = ['Purchase Order', 'Sales Order', 'Offer Letter', 'Coal Supply Offer Letter', 'Work Order', 'Quotation'];
-    const dbDocTypes = cleanList(letters.map(o => o.document_type || o.documentType));
+    const defaultDocTypes = ['Offer Letter', 'Coal Supply Offer Letter', 'Purchase Order', 'Sales Order', 'Work Order', 'Quotation'];
+    const dbDocTypes = cleanList(combinedSource.map(o => o.document_type || o.documentType));
     const combinedDocTypes = Array.from(new Set([...defaultDocTypes, ...dbDocTypes]));
 
     return {
       documentTypes: combinedDocTypes,
-      buyers: cleanList(letters.map(o => o.buyer_name)),
-      addresses: cleanList(letters.map(o => o.buyer_address)),
-      gsts: cleanList(letters.map(o => o.buyer_gst)),
-      quantities: cleanList(letters.map(o => o.quantity)),
-      commodities: cleanList(letters.map(o => o.commodity)),
-      billingModes: cleanList(letters.map(o => o.billing_mode)),
-      prices: cleanList(letters.map(o => o.basic_price)),
-      transportings: cleanList(letters.map(o => o.transporting)),
-      sizes: cleanList(letters.map(o => o.size))
+      buyers: cleanList(combinedSource.map(o => o.buyer_name)),
+      addresses: cleanList(combinedSource.map(o => o.buyer_address)),
+      gsts: cleanList(combinedSource.map(o => o.buyer_gst)),
+      quantities: cleanList(combinedSource.map(o => o.quantity)),
+      commodities: cleanList(combinedSource.map(o => o.commodity)),
+      billingModes: cleanList(combinedSource.map(o => o.billing_mode)),
+      prices: cleanList(combinedSource.map(o => o.basic_price)),
+      transportings: cleanList(combinedSource.map(o => o.transporting)),
+      sizes: cleanList(combinedSource.map(o => o.size)),
+      subjects: cleanList(combinedSource.map(o => o.subject)),
+      signatories: cleanList(combinedSource.map(o => o.signatory_name)),
+      signatoryTitles: cleanList(combinedSource.map(o => o.signatory_title)),
+      moistures: cleanList(combinedSource.map(o => o.moisture)),
+      fcs: cleanList(combinedSource.map(o => o.fc)),
+      ashes: cleanList(combinedSource.map(o => o.ash)),
+      vms: cleanList(combinedSource.map(o => o.vm))
     };
-  }, [letters]);
+  }, [letters, allDbLetters]);
 
   const handleBuyerChange = (val) => {
-    const matched = letters.find(o => o.buyer_name && o.buyer_name.toLowerCase().trim() === (val || '').toLowerCase().trim());
+    const combinedSource = [...letters, ...allDbLetters];
+    const matched = combinedSource.find(o => o.buyer_name && o.buyer_name.toLowerCase().trim() === (val || '').toLowerCase().trim());
     if (matched) {
       setFormData(prev => ({
         ...prev,
@@ -1364,7 +1400,7 @@ const OfferLetter = () => {
         )}
       </div>
 
-      {/* OFFER LETTER FORM MODAL */}
+      {/* OFFER LETTER FORM MODAL WITH LIVE PREVIEW */}
       {showOrderModal && (
         <div className="no-print"
           style={{
@@ -1382,8 +1418,9 @@ const OfferLetter = () => {
           <div style={{
             backgroundColor: '#ffffff',
             borderRadius: '16px',
-            width: '100%',
-            maxWidth: '850px',
+            width: '94vw',
+            maxWidth: '1420px',
+            height: '92vh',
             maxHeight: '92vh',
             display: 'flex',
             flexDirection: 'column',
@@ -1397,7 +1434,7 @@ const OfferLetter = () => {
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              padding: '16px 24px',
+              padding: '14px 24px',
               backgroundColor: '#ffffff',
               borderBottom: '1px solid #e2e8f0',
               flexShrink: 0
@@ -1406,449 +1443,670 @@ const OfferLetter = () => {
                 <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                   {editingId ? 'Updating Record' : 'Create New Document'}
                 </span>
-                <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: '2px 0 0 0' }}>
+                <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', margin: '2px 0 0 0' }}>
                   {editingId ? 'Edit Coal Offer Letter' : 'New Coal Offer Letter'}
                 </h2>
               </div>
-              <button
-                id="btn-close-modal"
-                onClick={() => setShowOrderModal(false)}
-                style={{
-                  background: '#f1f5f9',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  color: '#475569',
-                  width: '32px',
-                  height: '32px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'all 0.15s'
-                }}
-                onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#e2e8f0'; }}
-                onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#f1f5f9'; }}
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* Modal Scroll Body */}
-            <div style={{ overflowY: 'auto', padding: '20px 24px', flex: 1, backgroundColor: '#ffffff' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <DbDropdownInput
-                    label="Document Type / Title (Center Header)"
-                    name="documentType"
-                    value={formData.documentType}
-                    onChange={handleChange}
-                    options={dbSuggestions.documentTypes}
-                    placeholder="Search or enter new document title (e.g. Purchase Order, Sales Order...)"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>Date</label>
-                  <input
-                    type="date"
-                    name="date"
-                    value={formData.date}
-                    onChange={handleChange}
-                    style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 12px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>Issuing Company</label>
-                  <select
-                    name="companyName"
-                    value={formData.companyName}
-                    onChange={handleChange}
-                    style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 12px', fontSize: '0.85rem', outline: 'none', backgroundColor: '#fff', cursor: 'pointer', boxSizing: 'border-box' }}
-                  >
-                    {Object.keys(COMPANY_DETAILS).map(name => <option key={name} value={name}>{name}</option>)}
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>Offer Letter No. (Auto)</label>
-                  <input
-                    type="text"
-                    name="offerLetterNo"
-                    value={formData.offerLetterNo || ''}
-                    onChange={handleChange}
-                    placeholder="Auto-generated e.g. OL-2026-001"
-                    style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 12px', fontSize: '0.85rem', outline: 'none', backgroundColor: '#f8fafc', color: '#0f172a', fontWeight: 600, boxSizing: 'border-box' }}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>Signatory Name</label>
-                  <input
-                    type="text"
-                    name="signatoryName"
-                    value={formData.signatoryName}
-                    onChange={handleChange}
-                    style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 12px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>Signatory Title</label>
-                  <input
-                    type="text"
-                    name="signatoryTitle"
-                    value={formData.signatoryTitle}
-                    onChange={handleChange}
-                    placeholder="e.g. Director/Authorized Signatory"
-                    style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 12px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>
-                    Signature Image (Click or Press Ctrl+V)
-                  </label>
-                  <div
-                    onPaste={handleSignaturePaste}
-                    tabIndex="0"
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ position: 'relative' }} ref={columnDropdownRef}>
+                  <button
+                    type="button"
+                    onClick={() => setShowColumnDropdown(!showColumnDropdown)}
                     style={{
-                      width: '100%',
-                      border: '2px dashed #cbd5e1',
-                      borderRadius: '8px',
-                      padding: '8px 12px',
-                      textAlign: 'center',
-                      color: '#64748b',
-                      cursor: 'pointer',
-                      position: 'relative',
-                      outline: 'none',
-                      backgroundColor: '#f8fafc',
-                      minHeight: '42px',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center',
-                      boxSizing: 'border-box'
+                      gap: '6px',
+                      padding: '6px 14px',
+                      fontSize: '0.78rem',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '8px',
+                      backgroundColor: '#ffffff',
+                      cursor: 'pointer',
+                      fontWeight: 700,
+                      color: '#334155'
                     }}
                   >
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileUpload}
-                      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', zIndex: 5 }}
-                    />
-                    {formData.signatureDataUrl ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', position: 'relative', zIndex: 10 }}>
-                        <img src={formData.signatureDataUrl} alt="Signature" style={{ height: '32px', objectFit: 'contain' }} />
-                        <span
-                          style={{ fontSize: '0.72rem', color: '#ef4444', cursor: 'pointer', fontWeight: 600 }}
-                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFormData(prev => ({ ...prev, signatureDataUrl: '' })); }}>
-                          Remove
-                        </span>
+                    <Columns size={14} style={{ color: '#dc2626' }} /> Toggle Fields
+                  </button>
+                  {showColumnDropdown && (
+                    <div style={{
+                      position: 'absolute',
+                      right: 0,
+                      top: '100%',
+                      marginTop: '6px',
+                      backgroundColor: '#ffffff',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '10px',
+                      padding: '10px',
+                      zIndex: 9999,
+                      minWidth: '220px',
+                      boxShadow: '0 12px 30px -4px rgba(15, 23, 42, 0.16)',
+                      userSelect: 'none'
+                    }}>
+                      <div style={{ padding: '4px 6px 8px', fontWeight: '700', fontSize: '0.82rem', color: '#0f172a', borderBottom: '1px solid #f1f5f9', marginBottom: '8px' }}>
+                        Visible Specifications
                       </div>
-                    ) : (
-                      <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                        Click to upload or Ctrl+V
-                      </span>
-                    )}
-                  </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 6px 8px', fontSize: '0.78rem', borderBottom: '1px solid #f1f5f9', marginBottom: '6px' }}>
+                        <button type="button" onClick={() => toggleAllSpecs(true)} style={{ color: '#dc2626', fontWeight: 700, cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}>Select All</button>
+                        <button type="button" onClick={() => toggleAllSpecs(false)} style={{ color: '#64748b', fontWeight: 600, cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}>Deselect All</button>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', maxHeight: '250px', overflowY: 'auto' }}>
+                        {specKeys.map(spec => {
+                          const isChecked = !!visibleSpecs[spec.key];
+                          return (
+                            <label
+                              key={spec.key}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                toggleSpec(spec.key);
+                              }}
+                              style={{
+                                padding: '6px 8px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px',
+                                cursor: 'pointer',
+                                borderRadius: '6px',
+                                transition: 'background-color 0.15s'
+                              }}
+                              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f8fafc'; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                readOnly
+                                style={{ accentColor: '#dc2626', width: '15px', height: '15px', cursor: 'pointer', margin: 0, flexShrink: 0 }}
+                              />
+                              <span style={{ fontSize: '0.82rem', color: isChecked ? '#0f172a' : '#64748b', fontWeight: isChecked ? 600 : 400, whiteSpace: 'nowrap' }}>
+                                {spec.label}
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
+                <button
+                  id="btn-close-modal"
+                  onClick={() => setShowOrderModal(false)}
+                  style={{
+                    background: '#f1f5f9',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    color: '#475569',
+                    width: '32px',
+                    height: '32px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.15s'
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#e2e8f0'; }}
+                  onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#f1f5f9'; }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
 
-                {/* Buyer / Consignee Section */}
-                <div style={{ gridColumn: '1 / -1', borderTop: '1px solid #e2e8f0', paddingTop: '16px', marginTop: '6px' }}>
-                  <h3 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    Buyer / Consignee Information
-                  </h3>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+            {/* Modal Body: Two Columns (Left = Form, Right = Live PDF Preview) */}
+            <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+
+              {/* Left Column: Form Fields */}
+              <div style={{ flex: '1 1 55%', overflowY: 'auto', padding: '18px 24px', backgroundColor: '#ffffff', borderRight: '1px solid #e2e8f0' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+
+                  <div style={{ gridColumn: '1 / -1' }}>
                     <DbDropdownInput
-                      label="Buyer Name"
-                      name="buyerName"
-                      value={formData.buyerName}
-                      onChange={(e) => handleBuyerChange(e.target.value)}
-                      options={dbSuggestions.buyers}
-                      placeholder="Search or enter buyer name"
-                      required={true}
-                    />
-                    <DbDropdownInput
-                      label="Buyer GST No."
-                      name="buyerGst"
-                      value={formData.buyerGst}
+                      label="Document Type / Title (Center Header)"
+                      name="documentType"
+                      value={formData.documentType}
                       onChange={handleChange}
-                      options={dbSuggestions.gsts}
-                      placeholder="e.g. 22AAGCT098L1D1"
+                      options={dbSuggestions.documentTypes}
                     />
-                    <div style={{ gridColumn: '1 / -1' }}>
-                      <DbDropdownInput
-                        label="Buyer Full Address"
-                        name="buyerAddress"
-                        value={formData.buyerAddress}
-                        onChange={handleChange}
-                        options={dbSuggestions.addresses}
-                        placeholder="Complete plant address with district and state..."
-                        isTextarea={true}
-                        rows={2}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Coal Specifications Grid with Columns Toggle */}
-                <div style={{ gridColumn: '1 / -1', borderTop: '1px solid #e2e8f0', paddingTop: '16px', marginTop: '6px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                    <h3 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                      Coal Specifications & Terms
-                    </h3>
-                    <div style={{ position: 'relative' }} ref={columnDropdownRef}>
-                      <button
-                        type="button"
-                        onClick={() => setShowColumnDropdown(!showColumnDropdown)}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          padding: '6px 14px',
-                          fontSize: '0.8rem',
-                          border: '1px solid #cbd5e1',
-                          borderRadius: '8px',
-                          backgroundColor: '#ffffff',
-                          cursor: 'pointer',
-                          fontWeight: 600,
-                          color: '#334155'
-                        }}
-                      >
-                        <Columns size={14} /> Toggle Fields
-                      </button>
-                      {showColumnDropdown && (
-                        <div style={{
-                          position: 'absolute',
-                          right: 0,
-                          top: '100%',
-                          marginTop: '6px',
-                          backgroundColor: '#ffffff',
-                          border: '1px solid #e2e8f0',
-                          borderRadius: '10px',
-                          padding: '10px',
-                          zIndex: 50,
-                          minWidth: '220px',
-                          boxShadow: '0 12px 30px -4px rgba(15, 23, 42, 0.16)',
-                          userSelect: 'none'
-                        }}>
-                          <div style={{ padding: '4px 6px 8px', fontWeight: '700', fontSize: '0.82rem', color: '#0f172a', borderBottom: '1px solid #f1f5f9', marginBottom: '8px' }}>
-                            Visible Specifications
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 6px 8px', fontSize: '0.78rem', borderBottom: '1px solid #f1f5f9', marginBottom: '6px' }}>
-                            <button type="button" onClick={() => toggleAllSpecs(true)} style={{ color: '#dc2626', fontWeight: 700, cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}>Select All</button>
-                            <button type="button" onClick={() => toggleAllSpecs(false)} style={{ color: '#64748b', fontWeight: 600, cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}>Deselect All</button>
-                          </div>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', maxHeight: '250px', overflowY: 'auto' }}>
-                            {specKeys.map(spec => {
-                              const isChecked = !!visibleSpecs[spec.key];
-                              return (
-                                <label
-                                  key={spec.key}
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    toggleSpec(spec.key);
-                                  }}
-                                  style={{
-                                    padding: '6px 8px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '10px',
-                                    cursor: 'pointer',
-                                    borderRadius: '6px',
-                                    transition: 'background-color 0.15s'
-                                  }}
-                                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f8fafc'; }}
-                                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={isChecked}
-                                    readOnly
-                                    style={{ accentColor: '#dc2626', width: '15px', height: '15px', cursor: 'pointer', margin: 0, flexShrink: 0 }}
-                                  />
-                                  <span style={{ fontSize: '0.82rem', color: isChecked ? '#0f172a' : '#64748b', fontWeight: isChecked ? 600 : 400, whiteSpace: 'nowrap' }}>
-                                    {spec.label}
-                                  </span>
-                                </label>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-                    </div>
                   </div>
 
-                  <div className="form-group" style={{ marginBottom: '14px' }}>
-                    <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>Subject</label>
+                  <div className="form-group">
+                    <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>Date</label>
                     <input
-                      type="text"
-                      name="subject"
-                      value={formData.subject}
+                      type="date"
+                      name="date"
+                      value={formData.date}
                       onChange={handleChange}
                       style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 12px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
                     />
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-                    {visibleSpecs.commodity && (
-                      <DbDropdownInput
-                        label="Commodity"
-                        name="commodity"
-                        value={formData.commodity}
-                        onChange={handleChange}
-                        options={dbSuggestions.commodities}
-                        placeholder="Search or enter commodity"
+                  <div className="form-group">
+                    <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>Issuing Company</label>
+                    <select
+                      name="companyName"
+                      value={formData.companyName}
+                      onChange={handleChange}
+                      style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 12px', fontSize: '0.85rem', outline: 'none', backgroundColor: '#fff', cursor: 'pointer', boxSizing: 'border-box' }}
+                    >
+                      <option value="">-- Select Issuing Company --</option>
+                      {Object.keys(COMPANY_DETAILS).map(name => <option key={name} value={name}>{name}</option>)}
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>Offer Letter No. (Auto)</label>
+                    <input
+                      type="text"
+                      name="offerLetterNo"
+                      value={formData.offerLetterNo || ''}
+                      onChange={handleChange}
+                      style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 12px', fontSize: '0.85rem', outline: 'none', backgroundColor: '#f8fafc', color: '#0f172a', fontWeight: 600, boxSizing: 'border-box' }}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <DbDropdownInput
+                      label="Signatory Name"
+                      name="signatoryName"
+                      value={formData.signatoryName}
+                      onChange={handleChange}
+                      options={dbSuggestions.signatories}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <DbDropdownInput
+                      label="Signatory Title"
+                      name="signatoryTitle"
+                      value={formData.signatoryTitle}
+                      onChange={handleChange}
+                      options={dbSuggestions.signatoryTitles}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>
+                      Signature Image (Click or Press Ctrl+V)
+                    </label>
+                    <div
+                      onPaste={handleSignaturePaste}
+                      tabIndex="0"
+                      style={{
+                        width: '100%',
+                        border: '2px dashed #cbd5e1',
+                        borderRadius: '8px',
+                        padding: '8px 12px',
+                        textAlign: 'center',
+                        color: '#64748b',
+                        cursor: 'pointer',
+                        position: 'relative',
+                        outline: 'none',
+                        backgroundColor: '#f8fafc',
+                        minHeight: '42px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxSizing: 'border-box'
+                      }}
+                    >
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileUpload}
+                        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', zIndex: 5 }}
                       />
-                    )}
-                    {visibleSpecs.billingMode && (
+                      {formData.signatureDataUrl ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', position: 'relative', zIndex: 10 }}>
+                          <img src={formData.signatureDataUrl} alt="Signature" style={{ height: '32px', objectFit: 'contain' }} />
+                          <span
+                            style={{ fontSize: '0.72rem', color: '#ef4444', cursor: 'pointer', fontWeight: 600 }}
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFormData(prev => ({ ...prev, signatureDataUrl: '' })); }}>
+                            Remove
+                          </span>
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                          Click to upload or Ctrl+V
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Buyer / Consignee Section */}
+                  <div style={{ gridColumn: '1 / -1', borderTop: '1px solid #e2e8f0', paddingTop: '16px', marginTop: '6px' }}>
+                    <h3 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      Buyer / Consignee Information
+                    </h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                       <DbDropdownInput
-                        label="Billing Mode"
-                        name="billingMode"
-                        value={formData.billingMode}
-                        onChange={handleChange}
-                        options={dbSuggestions.billingModes}
-                        placeholder="e.g. Buyer & Consignee"
+                        label="Buyer Name"
+                        name="buyerName"
+                        value={formData.buyerName}
+                        onChange={(e) => handleBuyerChange(e.target.value)}
+                        options={dbSuggestions.buyers}
+                        required={true}
                       />
-                    )}
-                    {visibleSpecs.basicPrice && (
                       <DbDropdownInput
-                        label="Basic Price"
-                        name="basicPrice"
-                        value={formData.basicPrice}
+                        label="Buyer GST No."
+                        name="buyerGst"
+                        value={formData.buyerGst}
                         onChange={handleChange}
-                        options={dbSuggestions.prices}
-                        placeholder="e.g. INR 7000.00PMT (Gst 18% Extra)"
+                        options={dbSuggestions.gsts}
                       />
-                    )}
-                    {visibleSpecs.transporting && (
+                      <div style={{ gridColumn: '1 / -1' }}>
+                        <DbDropdownInput
+                          label="Buyer Full Address"
+                          name="buyerAddress"
+                          value={formData.buyerAddress}
+                          onChange={handleChange}
+                          options={dbSuggestions.addresses}
+                          isTextarea={true}
+                          rows={2}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Coal Specifications Grid */}
+                  <div style={{ gridColumn: '1 / -1', borderTop: '1px solid #e2e8f0', paddingTop: '16px', marginTop: '6px' }}>
+                    <h3 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      Coal Specifications & Terms
+                    </h3>
+
+                    <div className="form-group" style={{ marginBottom: '14px' }}>
                       <DbDropdownInput
-                        label="Transporting"
-                        name="transporting"
-                        value={formData.transporting}
+                        label="Subject"
+                        name="subject"
+                        value={formData.subject}
                         onChange={handleChange}
-                        options={dbSuggestions.transportings}
-                        placeholder="e.g. F.O.R. Delivery Your Plant"
+                        options={dbSuggestions.subjects}
                       />
-                    )}
-                    {visibleSpecs.quantity && (
-                      <DbDropdownInput
-                        label="Quantity"
-                        name="quantity"
-                        value={formData.quantity}
-                        onChange={handleChange}
-                        options={dbSuggestions.quantities}
-                        placeholder="e.g. 5000 MT"
-                      />
-                    )}
-                    {visibleSpecs.moisture && (
-                      <div className="form-group">
-                        <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>Moisture</label>
-                        <input
-                          type="text"
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                      {visibleSpecs.commodity && (
+                        <DbDropdownInput
+                          label="Commodity"
+                          name="commodity"
+                          value={formData.commodity}
+                          onChange={handleChange}
+                          options={dbSuggestions.commodities}
+                        />
+                      )}
+                      {visibleSpecs.billingMode && (
+                        <DbDropdownInput
+                          label="Billing Mode"
+                          name="billingMode"
+                          value={formData.billingMode}
+                          onChange={handleChange}
+                          options={dbSuggestions.billingModes}
+                        />
+                      )}
+                      {visibleSpecs.basicPrice && (
+                        <DbDropdownInput
+                          label="Basic Price"
+                          name="basicPrice"
+                          value={formData.basicPrice}
+                          onChange={handleChange}
+                          options={dbSuggestions.prices}
+                        />
+                      )}
+                      {visibleSpecs.transporting && (
+                        <DbDropdownInput
+                          label="Transporting"
+                          name="transporting"
+                          value={formData.transporting}
+                          onChange={handleChange}
+                          options={dbSuggestions.transportings}
+                        />
+                      )}
+                      {visibleSpecs.quantity && (
+                        <DbDropdownInput
+                          label="Quantity"
+                          name="quantity"
+                          value={formData.quantity}
+                          onChange={handleChange}
+                          options={dbSuggestions.quantities}
+                        />
+                      )}
+                      {visibleSpecs.moisture && (
+                        <DbDropdownInput
+                          label="Moisture"
                           name="moisture"
                           value={formData.moisture}
                           onChange={handleChange}
-                          placeholder="e.g. 13% (+/-1)"
-                          style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 12px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
+                          options={dbSuggestions.moistures}
                         />
-                      </div>
-                    )}
-                    {visibleSpecs.fc && (
-                      <div className="form-group">
-                        <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>Fc (ODB)</label>
-                        <input
-                          type="text"
+                      )}
+                      {visibleSpecs.fc && (
+                        <DbDropdownInput
+                          label="Fc (ODB)"
                           name="fc"
                           value={formData.fc}
                           onChange={handleChange}
-                          placeholder="e.g. 38 Minimum"
-                          style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 12px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
+                          options={dbSuggestions.fcs}
                         />
-                      </div>
-                    )}
-                    {visibleSpecs.ash && (
-                      <div className="form-group">
-                        <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>Ash (ADB)</label>
-                        <input
-                          type="text"
+                      )}
+                      {visibleSpecs.ash && (
+                        <DbDropdownInput
+                          label="Ash (ADB)"
                           name="ash"
                           value={formData.ash}
                           onChange={handleChange}
-                          placeholder="e.g. 32 (+/-1)"
-                          style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 12px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
+                          options={dbSuggestions.ashes}
                         />
-                      </div>
-                    )}
-                    {visibleSpecs.vm && (
-                      <div className="form-group">
-                        <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>VM (ADB)</label>
-                        <input
-                          type="text"
+                      )}
+                      {visibleSpecs.vm && (
+                        <DbDropdownInput
+                          label="VM (ADB)"
                           name="vm"
                           value={formData.vm}
                           onChange={handleChange}
-                          placeholder="e.g. 30 (+/-1)"
+                          options={dbSuggestions.vms}
+                        />
+                      )}
+                      {visibleSpecs.size && (
+                        <DbDropdownInput
+                          label="Size"
+                          name="size"
+                          value={formData.size}
+                          onChange={handleChange}
+                          options={dbSuggestions.sizes}
+                        />
+                      )}
+
+                      <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                        <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>Special Note Text</label>
+                        <textarea
+                          name="noteText"
+                          value={formData.noteText}
+                          onChange={handleChange}
+                          rows="2"
+                          style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 12px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box', resize: 'vertical' }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Firm Footer Details */}
+                  <div style={{ gridColumn: '1 / -1', borderTop: '1px solid #e2e8f0', paddingTop: '16px', marginTop: '6px' }}>
+                    <h3 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      Firm Location Details (Printed at Bottom)
+                    </h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px' }}>
+                      <div className="form-group">
+                        <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>Firm Address</label>
+                        <textarea
+                          name="firmAddress"
+                          value={formData.firmAddress}
+                          onChange={handleChange}
+                          rows="2"
                           style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 12px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
                         />
                       </div>
-                    )}
-                    {visibleSpecs.size && (
-                      <DbDropdownInput
-                        label="Size"
-                        name="size"
-                        value={formData.size}
-                        onChange={handleChange}
-                        options={dbSuggestions.sizes}
-                        placeholder="e.g. 8-50MM (-8MM 15%)"
-                      />
-                    )}
-
-                    <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                      <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>Special Note Text</label>
-                      <textarea
-                        name="noteText"
-                        value={formData.noteText}
-                        onChange={handleChange}
-                        rows="2"
-                        placeholder="e.g. Our sources of washed coal is from Asak Washery Korba..."
-                        style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 12px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box', resize: 'vertical' }}
-                      />
+                      <div className="form-group">
+                        <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>Firm Footer Contact</label>
+                        <input
+                          type="text"
+                          name="firmFooterContact"
+                          value={formData.firmFooterContact}
+                          onChange={handleChange}
+                          style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 12px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Firm Footer Details */}
-                <div style={{ gridColumn: '1 / -1', borderTop: '1px solid #e2e8f0', paddingTop: '16px', marginTop: '6px' }}>
-                  <h3 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    Firm Location Details (Printed at Bottom)
-                  </h3>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px' }}>
-                    <div className="form-group">
-                      <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>Firm Address</label>
-                      <textarea
-                        name="firmAddress"
-                        value={formData.firmAddress}
-                        onChange={handleChange}
-                        rows="2"
-                        style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 12px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>Firm Footer Contact</label>
-                      <input
-                        type="text"
-                        name="firmFooterContact"
-                        value={formData.firmFooterContact}
-                        onChange={handleChange}
-                        style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 12px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
-                      />
-                    </div>
-                  </div>
                 </div>
-
               </div>
+
+              {/* Right Column: Live PDF Document Sheet Preview */}
+              <div style={{
+                flex: '1 1 45%',
+                backgroundColor: '#1e293b',
+                padding: '12px',
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                height: '100%',
+                boxSizing: 'border-box'
+              }}>
+                <div style={{
+                  width: '100%',
+                  maxWidth: '560px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: '8px',
+                  color: '#f8fafc',
+                  flexShrink: 0
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Eye size={15} style={{ color: '#ef4444' }} />
+                    <span style={{ fontSize: '0.74rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Live PDF Preview</span>
+                  </div>
+                  <span style={{ fontSize: '0.66rem', backgroundColor: '#334155', padding: '2px 8px', borderRadius: '4px', color: '#94a3b8' }}>
+                    100% Fit (No Overflow)
+                  </span>
+                </div>
+
+                {/* Render Paper Preview */}
+                {(() => {
+                  const liveFirm = COMPANY_DETAILS[formData.companyName] || {
+                    name: 'Company / Firm Name',
+                    logo: null,
+                    textColor: '#1e293b',
+                    address: 'Company address details',
+                    footerContact: ''
+                  };
+                  return (
+                    <div
+                      style={{
+                        backgroundColor: '#ffffff',
+                        color: '#000000',
+                        padding: '12px 18px 14px 18px',
+                        width: '100%',
+                        maxWidth: '540px',
+                        height: '100%',
+                        maxHeight: 'calc(100% - 30px)',
+                        boxShadow: '0 8px 30px rgba(0, 0, 0, 0.45)',
+                        borderRadius: '4px',
+                        fontFamily: '"Times New Roman", Times, serif',
+                        fontSize: '9px',
+                        lineHeight: '1.18',
+                        boxSizing: 'border-box',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        overflow: 'hidden'
+                      }}
+                    >
+                      <div>
+                        {/* Top Letterhead Header */}
+                        {formData.companyName ? (
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #000', paddingBottom: '4px', marginBottom: '4px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              {liveFirm.logo && (
+                                <img src={liveFirm.logo} alt="Company Logo" style={{ height: '32px', width: 'auto', objectFit: 'contain' }} />
+                              )}
+                              <div>
+                                <h2 style={{ fontSize: '13.5px', fontWeight: '800', margin: 0, color: liveFirm.textColor || '#ee5945', letterSpacing: '0.2px' }}>
+                                  {liveFirm.name}
+                                </h2>
+                                <div style={{ fontSize: '8px', color: '#374151', maxWidth: '380px', lineHeight: '1.12' }}>
+                                  {formData.firmAddress || liveFirm.address}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div style={{ borderBottom: '1px dashed #cbd5e1', paddingBottom: '3px', marginBottom: '4px', color: '#94a3b8', textAlign: 'center', fontStyle: 'italic', fontSize: '8.5px' }}>
+                            (Select Issuing Company from form to display company letterhead)
+                          </div>
+                        )}
+
+                        {/* Center Document Title */}
+                        {formData.documentType && (
+                          <div style={{
+                            textAlign: 'center',
+                            fontSize: '12px',
+                            fontWeight: '900',
+                            color: '#000000',
+                            letterSpacing: '0.3px',
+                            marginTop: '1px',
+                            marginBottom: '4px'
+                          }}>
+                            {formData.documentType}
+                          </div>
+                        )}
+
+                        {/* Ref No & Date */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px', fontSize: '9px' }}>
+                          <div style={{ fontWeight: 'bold', color: '#000000' }}>
+                            REF NO: <span style={{ fontFamily: 'monospace', fontWeight: 700 }}>{formData.offerLetterNo || 'DRAFT'}</span>
+                          </div>
+                          <div style={{ fontWeight: 'bold', color: '#000000' }}>
+                            DT: - {formData.date ? formData.date.split('-').reverse().join('.') : ''}
+                          </div>
+                        </div>
+
+                        {/* To Address */}
+                        <div style={{ marginBottom: '4px', lineHeight: '1.15' }}>
+                          <p style={{ margin: 0, fontSize: '8.5px' }}>To,</p>
+                          <p style={{ margin: 0, fontWeight: 'bold', fontSize: '9.5px' }}>{formData.buyerName || 'Buyer / Consignee Name'}</p>
+                          {formData.buyerAddress && <p style={{ margin: 0, whiteSpace: 'pre-wrap', fontSize: '8.5px' }}>{formData.buyerAddress}</p>}
+                          {formData.buyerGst && <p style={{ margin: 0, fontWeight: 500, fontSize: '8.5px' }}>GST NO. {formData.buyerGst}</p>}
+                        </div>
+
+                        {/* Subject */}
+                        {formData.subject && (
+                          <p style={{ margin: '0 0 3px 0', fontWeight: 'bold', textDecoration: 'underline', fontSize: '9px' }}>
+                            Subject: - {formData.subject}
+                          </p>
+                        )}
+
+                        <p style={{ margin: '0 0 1px 0', fontSize: '8.5px' }}>Dear Sir,</p>
+                        <p style={{ margin: '0 0 3px 0', fontSize: '8.5px' }}>
+                          We would like to offer the terms in connection with supply of Coal to your company.
+                        </p>
+
+                        {/* Specifications Table */}
+                        <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '4px', lineHeight: '1.15', fontSize: '8.5px', border: 'none' }}>
+                          <tbody>
+                            {visibleSpecs.commodity && formData.commodity && (
+                              <tr style={{ border: 'none' }}>
+                                <td style={{ width: '135px', padding: '1px 0', verticalAlign: 'top', fontWeight: 500, border: 'none' }}>Name of Commodity</td>
+                                <td style={{ width: '16px', padding: '1px 0', verticalAlign: 'top', border: 'none' }}>:-</td>
+                                <td style={{ padding: '1px 0', verticalAlign: 'top', fontWeight: 600, border: 'none' }}>{formData.commodity}</td>
+                              </tr>
+                            )}
+                            {visibleSpecs.billingMode && formData.billingMode && (
+                              <tr style={{ border: 'none' }}>
+                                <td style={{ padding: '1px 0', verticalAlign: 'top', fontWeight: 500, border: 'none' }}>Billing Mode</td>
+                                <td style={{ padding: '1px 0', verticalAlign: 'top', border: 'none' }}>:-</td>
+                                <td style={{ padding: '1px 0', verticalAlign: 'top', border: 'none' }}>{formData.billingMode}</td>
+                              </tr>
+                            )}
+                            {visibleSpecs.basicPrice && formData.basicPrice && (
+                              <tr style={{ border: 'none' }}>
+                                <td style={{ padding: '1px 0', verticalAlign: 'top', fontWeight: 500, border: 'none' }}>Basic Price</td>
+                                <td style={{ padding: '1px 0', verticalAlign: 'top', border: 'none' }}>:-</td>
+                                <td style={{ padding: '1px 0', verticalAlign: 'top', fontWeight: 600, border: 'none' }}>{formData.basicPrice}</td>
+                              </tr>
+                            )}
+                            {visibleSpecs.transporting && formData.transporting && (
+                              <tr style={{ border: 'none' }}>
+                                <td style={{ padding: '1px 0', verticalAlign: 'top', fontWeight: 500, border: 'none' }}>Transporting</td>
+                                <td style={{ padding: '1px 0', verticalAlign: 'top', border: 'none' }}>:-</td>
+                                <td style={{ padding: '1px 0', verticalAlign: 'top', border: 'none' }}>{formData.transporting}</td>
+                              </tr>
+                            )}
+                            {visibleSpecs.quantity && formData.quantity && (
+                              <tr style={{ border: 'none' }}>
+                                <td style={{ padding: '1px 0', verticalAlign: 'top', fontWeight: 500, border: 'none' }}>Quantity</td>
+                                <td style={{ padding: '1px 0', verticalAlign: 'top', border: 'none' }}>:-</td>
+                                <td style={{ padding: '1px 0', verticalAlign: 'top', fontWeight: 600, border: 'none' }}>{formData.quantity}</td>
+                              </tr>
+                            )}
+                            {visibleSpecs.moisture && formData.moisture && (
+                              <tr style={{ border: 'none' }}>
+                                <td style={{ padding: '1px 0', verticalAlign: 'top', fontWeight: 500, border: 'none' }}>Moisture</td>
+                                <td style={{ padding: '1px 0', verticalAlign: 'top', border: 'none' }}>:-</td>
+                                <td style={{ padding: '1px 0', verticalAlign: 'top', border: 'none' }}>{formData.moisture}</td>
+                              </tr>
+                            )}
+                            {visibleSpecs.fc && formData.fc && (
+                              <tr style={{ border: 'none' }}>
+                                <td style={{ padding: '1px 0', verticalAlign: 'top', fontWeight: 500, border: 'none' }}>Fc (ODB)</td>
+                                <td style={{ padding: '1px 0', verticalAlign: 'top', border: 'none' }}>:-</td>
+                                <td style={{ padding: '1px 0', verticalAlign: 'top', border: 'none' }}>{formData.fc}</td>
+                              </tr>
+                            )}
+                            {visibleSpecs.ash && formData.ash && (
+                              <tr style={{ border: 'none' }}>
+                                <td style={{ padding: '1px 0', verticalAlign: 'top', fontWeight: 500, border: 'none' }}>Ash (ADB)</td>
+                                <td style={{ padding: '1px 0', verticalAlign: 'top', border: 'none' }}>:-</td>
+                                <td style={{ padding: '1px 0', verticalAlign: 'top', border: 'none' }}>{formData.ash}</td>
+                              </tr>
+                            )}
+                            {visibleSpecs.vm && formData.vm && (
+                              <tr style={{ border: 'none' }}>
+                                <td style={{ padding: '1px 0', verticalAlign: 'top', fontWeight: 500, border: 'none' }}>VM (ADB)</td>
+                                <td style={{ padding: '1px 0', verticalAlign: 'top', border: 'none' }}>:-</td>
+                                <td style={{ padding: '1px 0', verticalAlign: 'top', border: 'none' }}>{formData.vm}</td>
+                              </tr>
+                            )}
+                            {visibleSpecs.size && formData.size && (
+                              <tr style={{ border: 'none' }}>
+                                <td style={{ padding: '1px 0', verticalAlign: 'top', fontWeight: 500, border: 'none' }}>Size</td>
+                                <td style={{ padding: '1px 0', verticalAlign: 'top', border: 'none' }}>:-</td>
+                                <td style={{ padding: '1px 0', verticalAlign: 'top', border: 'none' }}>{formData.size}</td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+
+                        {/* Note */}
+                        {formData.noteText && (
+                          <div style={{ marginBottom: '4px', fontStyle: 'italic', lineHeight: '1.15', whiteSpace: 'pre-wrap', backgroundColor: '#f8fafc', padding: '3px 6px', borderRadius: '3px', borderLeft: '2px solid #cbd5e1', fontSize: '8px' }}>
+                            <b>Note: </b>{formData.noteText}
+                          </div>
+                        )}
+
+                        <div style={{ lineHeight: '1.15', marginBottom: '4px', fontSize: '8.5px' }}>
+                          <p style={{ margin: 0 }}>We hope you will find our offer competitive.</p>
+                          <p style={{ margin: 0 }}>We are looking forward to have a long term association with your esteemed organization.</p>
+                          <p style={{ margin: 0 }}>Please issue Purchase order to start supply of material.</p>
+                        </div>
+                      </div>
+
+                      {/* Footer / Signature Block */}
+                      <div style={{ marginTop: 'auto', lineHeight: '1.15', paddingTop: '2px' }}>
+                        <p style={{ fontWeight: 'bold', margin: 0, fontSize: '8.5px' }}>Thanks & Regards</p>
+                        {formData.companyName ? (
+                          <p style={{ fontWeight: 'bold', margin: 0, fontSize: '8.5px' }}>For {formData.companyName}</p>
+                        ) : null}
+                        <div style={{ minHeight: '28px', height: '28px', display: 'flex', alignItems: 'center', marginTop: '1px', marginBottom: '1px' }}>
+                          {formData.signatureDataUrl && (
+                            <img src={formData.signatureDataUrl} alt="Signature" style={{ height: '28px', maxWidth: '100px', objectFit: 'contain' }} />
+                          )}
+                        </div>
+                        <p style={{ fontWeight: 'bold', margin: 0, fontSize: '9px' }}>{formData.signatoryName || '—'}</p>
+                        <p style={{ margin: 0, color: '#4b5563', fontSize: '8px' }}>{formData.signatoryTitle || ''}</p>
+
+                        {(formData.firmAddress || (formData.companyName && liveFirm.address)) && (
+                          <div style={{ borderTop: '1px solid #ccc', marginTop: '3px', paddingTop: '2px', textAlign: 'center', fontSize: '7.5px', color: '#1d4ed8', lineHeight: '1.12' }}>
+                            <div>{formData.firmAddress || liveFirm.address}</div>
+                            <div>{formData.firmFooterContact || liveFirm.footerContact}</div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+
             </div>
 
             {/* Modal Footer Actions */}
@@ -1856,7 +2114,7 @@ const OfferLetter = () => {
               display: 'flex',
               justifyContent: 'flex-end',
               gap: '12px',
-              padding: '16px 24px',
+              padding: '14px 24px',
               backgroundColor: '#f8fafc',
               borderTop: '1px solid #e2e8f0',
               flexShrink: 0
@@ -2105,76 +2363,76 @@ const OfferLetter = () => {
                   </p>
 
                   {/* Specifications Table */}
-                  <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '14px', lineHeight: '1.5' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '14px', lineHeight: '1.5', border: 'none' }}>
                     <tbody>
                       {previewSpecs?.commodity && (
-                        <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                          <td style={{ width: '220px', padding: '4px 0', verticalAlign: 'top', fontWeight: 500 }}>Name of Commodity</td>
-                          <td style={{ width: '30px', padding: '4px 0', verticalAlign: 'top' }}>:-</td>
-                          <td style={{ padding: '4px 0', verticalAlign: 'top', fontWeight: 600 }}>{previewData.commodity}</td>
+                        <tr style={{ border: 'none' }}>
+                          <td style={{ width: '220px', padding: '4px 0', verticalAlign: 'top', fontWeight: 500, border: 'none' }}>Name of Commodity</td>
+                          <td style={{ width: '30px', padding: '4px 0', verticalAlign: 'top', border: 'none' }}>:-</td>
+                          <td style={{ padding: '4px 0', verticalAlign: 'top', fontWeight: 600, border: 'none' }}>{previewData.commodity}</td>
                         </tr>
                       )}
                       {previewSpecs?.billingMode && (
-                        <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                          <td style={{ padding: '4px 0', verticalAlign: 'top', fontWeight: 500 }}>Billing Mode</td>
-                          <td style={{ padding: '4px 0', verticalAlign: 'top' }}>:-</td>
-                          <td style={{ padding: '4px 0', verticalAlign: 'top' }}>{previewData.billingMode}</td>
+                        <tr style={{ border: 'none' }}>
+                          <td style={{ padding: '4px 0', verticalAlign: 'top', fontWeight: 500, border: 'none' }}>Billing Mode</td>
+                          <td style={{ padding: '4px 0', verticalAlign: 'top', border: 'none' }}>:-</td>
+                          <td style={{ padding: '4px 0', verticalAlign: 'top', border: 'none' }}>{previewData.billingMode}</td>
                         </tr>
                       )}
                       {previewSpecs?.basicPrice && (
-                        <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                          <td style={{ padding: '4px 0', verticalAlign: 'top', fontWeight: 500 }}>Basic Price</td>
-                          <td style={{ padding: '4px 0', verticalAlign: 'top' }}>:-</td>
-                          <td style={{ padding: '4px 0', verticalAlign: 'top', fontWeight: 600 }}>{previewData.basicPrice}</td>
+                        <tr style={{ border: 'none' }}>
+                          <td style={{ padding: '4px 0', verticalAlign: 'top', fontWeight: 500, border: 'none' }}>Basic Price</td>
+                          <td style={{ padding: '4px 0', verticalAlign: 'top', border: 'none' }}>:-</td>
+                          <td style={{ padding: '4px 0', verticalAlign: 'top', fontWeight: 600, border: 'none' }}>{previewData.basicPrice}</td>
                         </tr>
                       )}
                       {previewSpecs?.transporting && (
-                        <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                          <td style={{ padding: '4px 0', verticalAlign: 'top', fontWeight: 500 }}>Transporting</td>
-                          <td style={{ padding: '4px 0', verticalAlign: 'top' }}>:-</td>
-                          <td style={{ padding: '4px 0', verticalAlign: 'top' }}>{previewData.transporting}</td>
+                        <tr style={{ border: 'none' }}>
+                          <td style={{ padding: '4px 0', verticalAlign: 'top', fontWeight: 500, border: 'none' }}>Transporting</td>
+                          <td style={{ padding: '4px 0', verticalAlign: 'top', border: 'none' }}>:-</td>
+                          <td style={{ padding: '4px 0', verticalAlign: 'top', border: 'none' }}>{previewData.transporting}</td>
                         </tr>
                       )}
                       {previewSpecs?.quantity && (
-                        <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                          <td style={{ padding: '4px 0', verticalAlign: 'top', fontWeight: 500 }}>Quantity</td>
-                          <td style={{ padding: '4px 0', verticalAlign: 'top' }}>:-</td>
-                          <td style={{ padding: '4px 0', verticalAlign: 'top', fontWeight: 600 }}>{previewData.quantity}</td>
+                        <tr style={{ border: 'none' }}>
+                          <td style={{ padding: '4px 0', verticalAlign: 'top', fontWeight: 500, border: 'none' }}>Quantity</td>
+                          <td style={{ padding: '4px 0', verticalAlign: 'top', border: 'none' }}>:-</td>
+                          <td style={{ padding: '4px 0', verticalAlign: 'top', fontWeight: 600, border: 'none' }}>{previewData.quantity}</td>
                         </tr>
                       )}
                       {previewSpecs?.moisture && (
-                        <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                          <td style={{ padding: '4px 0', verticalAlign: 'top', fontWeight: 500 }}>Moisture</td>
-                          <td style={{ padding: '4px 0', verticalAlign: 'top' }}>:-</td>
-                          <td style={{ padding: '4px 0', verticalAlign: 'top' }}>{previewData.moisture}</td>
+                        <tr style={{ border: 'none' }}>
+                          <td style={{ padding: '4px 0', verticalAlign: 'top', fontWeight: 500, border: 'none' }}>Moisture</td>
+                          <td style={{ padding: '4px 0', verticalAlign: 'top', border: 'none' }}>:-</td>
+                          <td style={{ padding: '4px 0', verticalAlign: 'top', border: 'none' }}>{previewData.moisture}</td>
                         </tr>
                       )}
                       {previewSpecs?.fc && (
-                        <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                          <td style={{ padding: '4px 0', verticalAlign: 'top', fontWeight: 500 }}>Fc (ODB)</td>
-                          <td style={{ padding: '4px 0', verticalAlign: 'top' }}>:-</td>
-                          <td style={{ padding: '4px 0', verticalAlign: 'top' }}>{previewData.fc}</td>
+                        <tr style={{ border: 'none' }}>
+                          <td style={{ padding: '4px 0', verticalAlign: 'top', fontWeight: 500, border: 'none' }}>Fc (ODB)</td>
+                          <td style={{ padding: '4px 0', verticalAlign: 'top', border: 'none' }}>:-</td>
+                          <td style={{ padding: '4px 0', verticalAlign: 'top', border: 'none' }}>{previewData.fc}</td>
                         </tr>
                       )}
                       {previewSpecs?.ash && (
-                        <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                          <td style={{ padding: '4px 0', verticalAlign: 'top', fontWeight: 500 }}>Ash (ADB)</td>
-                          <td style={{ padding: '4px 0', verticalAlign: 'top' }}>:-</td>
-                          <td style={{ padding: '4px 0', verticalAlign: 'top' }}>{previewData.ash}</td>
+                        <tr style={{ border: 'none' }}>
+                          <td style={{ padding: '4px 0', verticalAlign: 'top', fontWeight: 500, border: 'none' }}>Ash (ADB)</td>
+                          <td style={{ padding: '4px 0', verticalAlign: 'top', border: 'none' }}>:-</td>
+                          <td style={{ padding: '4px 0', verticalAlign: 'top', border: 'none' }}>{previewData.ash}</td>
                         </tr>
                       )}
                       {previewSpecs?.vm && (
-                        <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                          <td style={{ padding: '4px 0', verticalAlign: 'top', fontWeight: 500 }}>VM (ADB)</td>
-                          <td style={{ padding: '4px 0', verticalAlign: 'top' }}>:-</td>
-                          <td style={{ padding: '4px 0', verticalAlign: 'top' }}>{previewData.vm}</td>
+                        <tr style={{ border: 'none' }}>
+                          <td style={{ padding: '4px 0', verticalAlign: 'top', fontWeight: 500, border: 'none' }}>VM (ADB)</td>
+                          <td style={{ padding: '4px 0', verticalAlign: 'top', border: 'none' }}>:-</td>
+                          <td style={{ padding: '4px 0', verticalAlign: 'top', border: 'none' }}>{previewData.vm}</td>
                         </tr>
                       )}
                       {previewSpecs?.size && (
-                        <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                          <td style={{ padding: '4px 0', verticalAlign: 'top', fontWeight: 500 }}>Size</td>
-                          <td style={{ padding: '4px 0', verticalAlign: 'top' }}>:-</td>
-                          <td style={{ padding: '4px 0', verticalAlign: 'top' }}>{previewData.size}</td>
+                        <tr style={{ border: 'none' }}>
+                          <td style={{ padding: '4px 0', verticalAlign: 'top', fontWeight: 500, border: 'none' }}>Size</td>
+                          <td style={{ padding: '4px 0', verticalAlign: 'top', border: 'none' }}>:-</td>
+                          <td style={{ padding: '4px 0', verticalAlign: 'top', border: 'none' }}>{previewData.size}</td>
                         </tr>
                       )}
                     </tbody>
