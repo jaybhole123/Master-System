@@ -1626,21 +1626,23 @@ const RentMaster = () => {
                     <table className="w-full text-left border-collapse min-w-[800px]">
                     <thead className="bg-slate-50 border-b border-slate-200 sticky top-0">
                       <tr>
+                        <th className="px-3 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-center w-12">#</th>
                         <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Month</th>
                         <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Property</th>
                         <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Tenant</th>
                         <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Rent (₹)</th>
                         <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-center">Status</th>
+                        <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-center">Delay Days</th>
                         <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Due Range</th>
                         <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Received Date</th>
-                        <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Delay Days</th>
                         <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Payment Mode</th>
                         <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Bank Name & Details</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200">
-                      {historyData.map((item) => (
+                      {historyData.map((item, index) => (
                         <tr key={item.id} className="hover:bg-slate-50/50">
+                          <td className="px-3 py-3 whitespace-nowrap text-xs font-bold text-slate-400 text-center">{index + 1}</td>
                           <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-slate-700">{item.month}</td>
                           <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-700">{item.property}</td>
                           <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-700">{item.tenant}</td>
@@ -1660,11 +1662,7 @@ const RentMaster = () => {
                               );
                             })()}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-700">
-                            {item.due_date_start && item.due_date_end ? `${formatDate(item.due_date_start)} to ${formatDate(item.due_date_end)}` : '-'}
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-700">{formatDate(item.received_date)}</td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm">
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-center">
                             {getDelayDays(item) > 0 
                               ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">{getDelayDays(item)} days</span>
                               : (getRecordStatus(item) === 'On Time' || getRecordStatus(item) === 'Received')
@@ -1672,6 +1670,10 @@ const RentMaster = () => {
                                 : <span className="text-slate-400">-</span>
                             }
                           </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-700">
+                            {item.due_date_start && item.due_date_end ? `${formatDate(item.due_date_start)} to ${formatDate(item.due_date_end)}` : '-'}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-700">{formatDate(item.received_date)}</td>
                           <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-700">{item.payment_mode}</td>
                           <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-700">{item.bank_details || '-'}</td>
                         </tr>

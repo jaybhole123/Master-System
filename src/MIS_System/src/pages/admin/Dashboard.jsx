@@ -227,17 +227,23 @@ const AdminDashboard = () => {
     const fetchMISData = async () => {
       setLoading(true);
       try {
-        // Parallel fetch of only what Dashboard needs
+        // Parallel fetch of live modules tracked for MIS
         const [
           { data: uData },
           { data: cData },
           { data: dData },
+          { data: rentData },
+          { data: leaveData },
+          { data: offerData },
           { data: pData },
           { data: dpData }
         ] = await Promise.all([
           supabase.from("users").select("id, user_name, designation, department, page_access, status, profile_image"),
           supabase.from("checklist").select("task_id, name, department, status, delay, planned_date, submission_date, created_at, task_description"),
           supabase.from("delegation").select("task_id, name, given_by, department, status, delay, planned_date, submission_date, created_at, task_description"),
+          supabase.from("rent_monthly_tracker").select("id, tenant_name, property_name, status, rent_due_date_end, received_date, remarks"),
+          supabase.from("leave_requests").select("id, employee_name, status, applied_at, approved_at, reason"),
+          supabase.from("coal_offer_letters").select("id, customer_name, status, created_at, updated_at"),
           supabase.from("mis_employee_performance").select("*").order("target", { ascending: false }),
           supabase.from("mis_department_scores").select("*")
         ]);
@@ -247,6 +253,61 @@ const AdminDashboard = () => {
         const usersData = uData || [];
         const checklistTasks = cData || [];
         const delegationTasks = dData || [];
+        const rentTasks = (rentData || []).map(r => {
+          const isDone = r.status === 'Done' || r.status === 'Received' || !!r.received_date;
+          let delayStr = null;
+          if (r.rent_due_date_end) {
+            const endDate = new Date(r.rent_due_date_end);
+            const checkDate = isDone && r.received_date ? new Date(r.received_date) : new Date();
+            const diffDays = Math.floor((checkDate - endDate) / (1000 * 60 * 60 * 24));
+            if (diffDays > 0) delayStr = `${diffDays} days`;
+          }
+          return {
+            task_id: `rent-${r.id}`,
+            name: r.tenant_name || 'Rent Manager',
+            department: 'Rent Management',
+            status: isDone ? 'Done' : 'Pending',
+            delay: delayStr,
+            planned_date: r.rent_due_date_end ? `${r.rent_due_date_end} 23:59:59` : null,
+            submission_date: r.received_date,
+            created_at: r.rent_due_date_end,
+            task_description: `Monthly Rent: ${r.property_name || ''} (${r.tenant_name || ''})`,
+            source: 'rent_tracker'
+          };
+        });
+
+        const hrLeaveTasks = (leaveData || []).map(l => {
+          const isApproved = l.status?.toLowerCase() === 'approved';
+          return {
+            task_id: `hr-leave-${l.id}`,
+            name: l.employee_name || 'HR Admin',
+            department: 'HR System',
+            status: isApproved ? 'Done' : (l.status || 'Pending'),
+            delay: null,
+            planned_date: l.applied_at,
+            submission_date: l.approved_at,
+            created_at: l.applied_at,
+            task_description: `Leave Request Approval: ${l.employee_name} (${l.reason || 'Leave'})`,
+            source: 'hr_leave'
+          };
+        });
+
+        const letterTasks = (offerData || []).map(lt => {
+          const isDone = lt.status?.toLowerCase() === 'done' || lt.status?.toLowerCase() === 'approved';
+          return {
+            task_id: `letter-${lt.id}`,
+            name: 'Letter Admin',
+            department: 'Letter',
+            status: isDone ? 'Done' : 'Pending',
+            delay: null,
+            planned_date: lt.created_at,
+            submission_date: isDone ? lt.updated_at : null,
+            created_at: lt.created_at,
+            task_description: `Coal Offer Letter: ${lt.customer_name || 'Party'}`,
+            source: 'letter'
+          };
+        });
+
         const perfData = pData || [];
         const deptData = dpData || [];
 
@@ -286,7 +347,10 @@ const AdminDashboard = () => {
 
         const allLiveTasks = [
           ...checklistTasks.map(t => ({ ...t, source: 'checklist', assignedPerson: t.name })),
-          ...delegationTasks.map(t => ({ ...t, source: 'delegation', assignedPerson: t.name || t.given_by }))
+          ...delegationTasks.map(t => ({ ...t, source: 'delegation', assignedPerson: t.name || t.given_by })),
+          ...rentTasks.map(t => ({ ...t, assignedPerson: t.name })),
+          ...hrLeaveTasks.map(t => ({ ...t, assignedPerson: t.name })),
+          ...letterTasks.map(t => ({ ...t, assignedPerson: t.name }))
         ];
         setLiveTaskList(allLiveTasks);
 
@@ -784,20 +848,37 @@ const AdminDashboard = () => {
       return p1 === personName || p2 === personName || p3 === personName;
     });
 
+    // Helper to format ISO timestamp cleanly: "YYYY-MM-DD HH:mm"
+    const formatDateTime = (dtStr) => {
+      if (!dtStr) return "";
+      try {
+        const d = new Date(dtStr);
+        if (isNaN(d.getTime())) return String(dtStr).replace('T', ' ').slice(0, 16);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        const hh = String(d.getHours()).padStart(2, '0');
+        const min = String(d.getMinutes()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+      } catch {
+        return String(dtStr).replace('T', ' ').slice(0, 16);
+      }
+    };
+
     let drillRows = [];
     if (matched.length > 0) {
       drillRows = matched.map(t => ({
         taskName: t.task_description || (t.source === 'delegation' ? 'Delegated Task' : 'Checklist Task'),
-        planned: t.planned_date ? String(t.planned_date).replace('T', ' ').slice(0, 16) : "-",
-        actual: t.submission_date ? String(t.submission_date).replace('T', ' ').slice(0, 16) : "",
+        planned: t.planned_date ? formatDateTime(t.planned_date) : "-",
+        actual: t.submission_date ? formatDateTime(t.submission_date) : "",
         delay: t.delay ? String(t.delay) : "00:00:00"
       }));
     } else {
       drillRows = [
         {
           taskName: task.taskName || "Core Responsibility",
-          planned: task.fromDate || "Scheduled",
-          actual: task.toDate || (task.totalAchievement > 0 ? "Completed" : ""),
+          planned: task.fromDate ? formatDateTime(task.fromDate) : "Scheduled",
+          actual: task.toDate ? formatDateTime(task.toDate) : (task.totalAchievement > 0 ? "Completed" : ""),
           delay: task.workNotDoneOnTime > 0 ? "00:30:00" : "00:00:00"
         }
       ];

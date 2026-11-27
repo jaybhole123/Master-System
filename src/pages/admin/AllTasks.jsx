@@ -1079,6 +1079,43 @@ const AllTasks = () => {
     }
   };
 
+  const handleQuickDone = async (task) => {
+    if (!task) return;
+    const taskDateCol = activeTab === "repair" ? "created_at" : "planned_date";
+    if (getTimeStatus(task[taskDateCol], task.status) === "Upcoming") {
+      alert("Cannot complete upcoming tasks yet.");
+      return;
+    }
+    const confirmed = window.confirm(`Mark task #${task.id || task.task_id} as Done?`);
+    if (!confirmed) return;
+
+    setIsSubmitting(true);
+    try {
+      const completionField = activeTab === "repair" ? "submission_date" : "submission_date";
+      const remarksField = (activeTab === "checklist") ? "remark" : "remarks";
+      const updates = {
+        [completionField]: new Date(new Date().getTime() + (330 * 60000)).toISOString().replace('Z', '+05:30'),
+        [remarksField]: "Marked Done directly",
+        status: (activeTab === "checklist" || activeTab === "delegation") ? "yes" : "Done",
+        admin_done: false
+      };
+
+      const idKey = (activeTab === 'checklist' || activeTab === 'delegation') ? 'task_id' : 'id';
+      const targetId = task[idKey] || task.id;
+
+      const { error: updateError } = await supabase.from(tableName).update(updates).eq(idKey, targetId);
+      if (updateError) throw updateError;
+
+      setSuccessMessage(`Task #${targetId} marked as Done successfully!`);
+      fetchData();
+    } catch (err) {
+      console.error("Quick done error:", err);
+      alert("Failed to mark task as done: " + (err.message || "Unknown error"));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleSendUrgentWhatsApp = async () => {
     if (selectedItems.size === 0) return;
 
@@ -1319,9 +1356,9 @@ const AllTasks = () => {
                       <button
                         onClick={handleSubmit}
                         disabled={selectedItems.size === 0 || isSubmitting}
-                        className="h-9 px-4 text-xs font-bold text-white bg-red-600 hover:bg-red-700 disabled:opacity-40 rounded-xl shadow-xs shadow-red-600/25 transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer disabled:cursor-not-allowed"
+                        className="h-9 px-4 text-xs font-bold text-white bg-red-600 hover:bg-red-700 disabled:opacity-40 rounded-xl shadow-xs shadow-red-600/25 transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer disabled:cursor-not-allowed whitespace-nowrap min-w-[100px]"
                       >
-                        {isSubmitting ? "..." : `Submit (${selectedItems.size})`}
+                        {isSubmitting ? "..." : `Submit ${selectedItems.size > 0 ? `(${selectedItems.size})` : ""}`}
                       </button>
                     )}
                   </>

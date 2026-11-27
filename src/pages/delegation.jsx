@@ -839,6 +839,59 @@ function DelegationDataPage() {
     }
   };
 
+  const handleQuickDone = async (task) => {
+    if (!task) return;
+    if (task.timeStatus === "Upcoming") {
+      showToast("Cannot complete upcoming tasks yet.", "error");
+      return;
+    }
+    const confirmed = window.confirm(`Mark task #${task.id} as Done?`);
+    if (!confirmed) return;
+
+    setIsSubmitting(true);
+    try {
+      const payload = [{
+        id: task.id,
+        department: task.department || '',
+        given_by: task.given_by || '',
+        name: task.name,
+        task_description: task.task_description,
+        task_start_date: task.task_start_date ? new Date(task.task_start_date).toISOString() : null,
+        planned_date: task.planned_date ? new Date(task.planned_date).toISOString() : null,
+        status: "done",
+        next_extend_date: null,
+        reason: "Marked Done directly",
+        duration: task.duration || "",
+        image_url: task.image || null,
+        require_attachment: task.require_attachment,
+        audio_url: task.audio_url || null,
+        submission_timestamp: new Date(new Date().getTime() + (330 * 60000)).toISOString().replace('Z', '+05:30')
+      }];
+
+      const action = await dispatch(
+        insertDelegationDoneAndUpdate({
+          selectedDataArray: payload,
+          uploadedImages: {},
+        })
+      );
+
+      if (insertDelegationDoneAndUpdate.fulfilled.match(action)) {
+        showToast(`Task #${task.id} marked as Done successfully!`, "success");
+        setTimeout(() => {
+          dispatch(delegationData());
+          dispatch(delegation_DoneData());
+        }, 1000);
+      } else {
+        throw new Error(action.payload || 'Failed to update task');
+      }
+    } catch (err) {
+      console.error("Quick done error:", err);
+      showToast(err.message || "Failed to mark task as done.", "error");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handlePrintOverdue = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -1322,8 +1375,8 @@ function DelegationDataPage() {
                 : CONFIG.PAGE_CONFIG.title}
             </h1>
 
-            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-red-50 shadow-sm">
-              <div className="flex flex-col lg:flex-row gap-3">
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-red-50 shadow-sm">
+              <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
                 <div className="relative flex-1 min-w-[200px]">
                   <Search
                     className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
@@ -1346,7 +1399,7 @@ function DelegationDataPage() {
                       <select
                         value={doerFilter}
                         onChange={(e) => setDoerFilter(e.target.value)}
-                        className="min-w-[130px] flex-1 sm:flex-none border border-red-200 rounded-md px-3 py-2 text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500 h-10"
+                        className="w-full sm:w-auto min-w-[130px] flex-1 sm:flex-none border border-red-200 rounded-md px-3 py-2 text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500 h-10"
                       >
                         <option value="all">All Doers</option>
                         {uniqueDoers.map((doer) => (
@@ -1359,7 +1412,7 @@ function DelegationDataPage() {
                       <select
                         value={givenByFilter}
                         onChange={(e) => setGivenByFilter(e.target.value)}
-                        className="min-w-[130px] flex-1 sm:flex-none border border-red-200 rounded-md px-3 py-2 text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500 h-10"
+                        className="w-full sm:w-auto min-w-[130px] flex-1 sm:flex-none border border-red-200 rounded-md px-3 py-2 text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500 h-10"
                       >
                         <option value="all">All Given By</option>
                         {uniqueGivenBy.map((givenBy) => (
@@ -1372,7 +1425,7 @@ function DelegationDataPage() {
                       <select
                         value={dateFilter}
                         onChange={(e) => setDateFilter(e.target.value)}
-                        className="min-w-[130px] flex-1 sm:flex-none border border-red-200 rounded-md px-3 py-2 text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500 h-10"
+                        className="w-full sm:w-auto min-w-[130px] flex-1 sm:flex-none border border-red-200 rounded-md px-3 py-2 text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500 h-10"
                       >
                         {filterOptions.map((option) => (
                           <option key={option.value} value={option.value}>
@@ -1385,7 +1438,7 @@ function DelegationDataPage() {
                   
                   <button
                     onClick={toggleHistory}
-                    className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-red-700 bg-white border border-red-200 rounded-md hover:bg-red-50 transition-colors shadow-sm h-10"
+                    className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-red-700 bg-white border border-red-200 rounded-md hover:bg-red-50 transition-colors shadow-sm h-10 whitespace-nowrap"
                   >
                     {showHistory ? (
                       <>
@@ -1405,7 +1458,7 @@ function DelegationDataPage() {
                       <button
                         onClick={handleSendUrgentWhatsApp}
                         disabled={selectedItems.size === 0 || isSubmitting}
-                        className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-all h-10"
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-all h-10 whitespace-nowrap"
                         title="Send Urgent WhatsApp"
                       >
                         <BellRing className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -1416,14 +1469,13 @@ function DelegationDataPage() {
                       <button
                         onClick={handleSubmit}
                         disabled={selectedItemsCount === 0 || isSubmitting}
-                        className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-colors h-10"
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 sm:gap-2 px-4 py-2 text-xs sm:text-sm font-bold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md shadow-md transition-colors h-10 whitespace-nowrap min-w-[100px]"
                       >
                         {isSubmitting
                           ? "..."
                           : (
                             <>
-                              <span className="hidden sm:inline">Submit ({selectedItemsCount})</span>
-                              <span className="sm:hidden">Submit</span>
+                              <span>Submit {selectedItemsCount > 0 ? `(${selectedItemsCount})` : ""}</span>
                             </>
                           )}
                       </button>

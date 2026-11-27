@@ -439,6 +439,11 @@ const UserDetailsModal = ({
 
     const parseDate = (dateStr) => {
         if (!dateStr) return null;
+        // Check if ISO format: YYYY-MM-DD or YYYY-MM-DD HH:mm:ss
+        if (dateStr.includes("-")) {
+            const d = new Date(dateStr.replace(" ", "T"));
+            if (!isNaN(d.getTime())) return d;
+        }
         // Expected format: dd/mm/yyyy hh:mm:ss
         const parts = dateStr.split(" ");
         const dateParts = parts[0].split("/");
@@ -455,6 +460,45 @@ const UserDetailsModal = ({
             return new Date(year, month, day, hours, minutes, seconds);
         }
         return new Date(year, month, day);
+    };
+
+    // Clean human-friendly delay formatter: e.g. "3 days 10:10:52.343" -> "3 days 10 hrs 10 mins"
+    const formatDelay = (delayStr) => {
+        if (!delayStr) return "On Time";
+        const str = String(delayStr).trim();
+        if (str === "00:00:00" || str === "0" || str === "00:00" || str === "" || str === "null") return "On Time";
+
+        // If string contains raw milliseconds like .343
+        let clean = str;
+        if (clean.includes(".")) {
+            clean = clean.split(".")[0]; // remove milliseconds
+        }
+
+        // Check if matches "X days HH:MM:SS" or "X day HH:MM:SS"
+        const daysMatch = clean.match(/(\d+)\s*days?\s*(\d{1,2}):(\d{2})(?::(\d{2}))?/i);
+        if (daysMatch) {
+            const days = parseInt(daysMatch[1], 10);
+            const hrs = parseInt(daysMatch[2], 10);
+            const mins = parseInt(daysMatch[3], 10);
+            let res = `${days} ${days === 1 ? 'day' : 'days'}`;
+            if (hrs > 0) res += ` ${hrs} hr${hrs > 1 ? 's' : ''}`;
+            if (mins > 0) res += ` ${mins} min${mins > 1 ? 's' : ''}`;
+            return res;
+        }
+
+        // Check if pure HH:MM:SS format
+        const timeMatch = clean.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+        if (timeMatch) {
+            const hrs = parseInt(timeMatch[1], 10);
+            const mins = parseInt(timeMatch[2], 10);
+            if (hrs === 0 && mins === 0) return "On Time";
+            let res = "";
+            if (hrs > 0) res += `${hrs} hr${hrs > 1 ? 's' : ''} `;
+            if (mins > 0) res += `${mins} min${mins > 1 ? 's' : ''}`;
+            return res.trim() || "On Time";
+        }
+
+        return clean;
     };
 
     const isOnTimeRow = (row) => {
@@ -739,10 +783,12 @@ const UserDetailsModal = ({
                                                 {filteredRows && filteredRows.length > 0 ? (
                                                     filteredRows.map((row, idx) => (
                                                         <tr key={idx} className={`${getRowBg(row)} transition-colors`}>
-                                                            <td className="px-4 py-3 text-sm text-gray-700">{row.taskName}</td>
-                                                            <td className="px-4 py-3 text-sm text-gray-700">{row.planned}</td>
-                                                            <td className="px-4 py-3 text-sm text-gray-500">{row.actual || '-'}</td>
-                                                            <td className={`px-4 py-3 text-sm font-medium ${isDelayRow(row) ? 'text-orange-600' : 'text-gray-700'}`}>{row.delay || '00:00:00'}</td>
+                                                            <td className="px-4 py-3 text-sm text-gray-700 font-medium">{row.taskName}</td>
+                                                            <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">{row.planned}</td>
+                                                            <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">{row.actual || '-'}</td>
+                                                            <td className={`px-4 py-3 text-sm font-bold whitespace-nowrap ${isDelayRow(row) ? 'text-orange-700' : (isOnTimeRow(row) ? 'text-emerald-700' : 'text-gray-700')}`}>
+                                                                {formatDelay(row.delay)}
+                                                            </td>
                                                         </tr>
                                                     ))
                                                 ) : (
@@ -769,8 +815,8 @@ const UserDetailsModal = ({
                                                         </div>
                                                         <div className="col-span-2">
                                                             <p className="text-[10px] text-gray-400 font-medium uppercase">Delay</p>
-                                                            <p className={`text-xs font-semibold ${row.delay && String(row.delay).toLowerCase().includes('late') ? 'text-red-600' : 'text-emerald-600'}`}>
-                                                                {row.delay || 'On Time'}
+                                                            <p className={`text-xs font-bold ${isDelayRow(row) ? 'text-orange-700' : 'text-emerald-700'}`}>
+                                                                {formatDelay(row.delay)}
                                                             </p>
                                                         </div>
                                                     </div>

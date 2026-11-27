@@ -469,14 +469,12 @@ const MonthlyTracker = () => {
       if (!matchesSearch) return false;
 
       const s = getRecordStatus(item);
-      if (statusFilter === 'PENDING') {
-        return s === 'Pending';
+      const isPaid = s === 'Done' || s === 'Received' || s === 'On Time' || !!item.receivedDate;
+      if (statusFilter === 'PAID') {
+        return isPaid;
       }
-      if (statusFilter === 'RECEIVED') {
-        return s === 'Received' || s === 'On Time';
-      }
-      if (statusFilter === 'DELAY') {
-        return s === 'Delay';
+      if (statusFilter === 'NON_PAID') {
+        return !isPaid;
       }
 
       return true;
@@ -1059,47 +1057,37 @@ const MonthlyTracker = () => {
               </select>
             </div>
 
-            {/* Quick Status Filter Tabs */}
+            {/* Quick Status Filter Tabs - Only All, Paid, Non Paid */}
             <div className="flex items-center bg-slate-100/80 p-1 rounded-xl gap-1">
               <button
                 onClick={() => setStatusFilter('ALL')}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                   statusFilter === 'ALL'
-                    ? 'bg-white text-slate-900 shadow-2xs'
+                    ? 'bg-white text-slate-900 shadow-2xs font-black'
                     : 'text-slate-500 hover:text-slate-800'
                 }`}
               >
                 All ({stats.total})
               </button>
               <button
-                onClick={() => setStatusFilter('PENDING')}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                  statusFilter === 'PENDING'
-                    ? 'bg-amber-500 text-white shadow-2xs'
-                    : 'text-slate-500 hover:text-amber-700'
+                onClick={() => setStatusFilter('PAID')}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  statusFilter === 'PAID'
+                    ? 'bg-emerald-600 text-white shadow-2xs font-black'
+                    : 'text-slate-600 hover:text-emerald-700'
                 }`}
               >
-                Pending ({stats.pendingOnly})
+                Paid ({stats.done})
               </button>
               <button
-                onClick={() => setStatusFilter('RECEIVED')}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                  statusFilter === 'RECEIVED'
-                    ? 'bg-emerald-600 text-white shadow-2xs'
-                    : 'text-slate-500 hover:text-emerald-700'
+                onClick={() => setStatusFilter('NON_PAID')}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  statusFilter === 'NON_PAID'
+                    ? 'bg-rose-600 text-white shadow-2xs font-black'
+                    : 'text-slate-600 hover:text-rose-700'
                 }`}
               >
-                Received ({stats.done})
-              </button>
-              <button
-                onClick={() => setStatusFilter('DELAY')}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                  statusFilter === 'DELAY'
-                    ? 'bg-rose-600 text-white shadow-2xs'
-                    : 'text-slate-500 hover:text-rose-700'
-                }`}
-              >
-                Overdue ({stats.delay})
+                Non Paid ({stats.totalPendingWithDelay})
               </button>
             </div>
           </div>
@@ -1140,6 +1128,7 @@ const MonthlyTracker = () => {
                   <th className="py-2.5 px-3 text-right">Rent</th>
                   <th className="py-2.5 px-3 text-center">Electricity</th>
                   <th className="py-2.5 px-3">Payment Mode</th>
+                  <th className="py-2.5 px-3 text-center">Planned Date (Due)</th>
                   <th className="py-2.5 px-3 text-center">Rent Status</th>
                   <th className="py-2.5 px-3 text-center">Delay</th>
                   <th className="py-2.5 px-3">Remarks</th>
@@ -1150,7 +1139,7 @@ const MonthlyTracker = () => {
               <tbody className="divide-y divide-slate-100 text-xs">
                 {filteredData.length === 0 ? (
                   <tr>
-                    <td colSpan="13" className="py-12 text-center text-slate-400">
+                    <td colSpan="14" className="py-12 text-center text-slate-400">
                       <div className="flex flex-col items-center justify-center gap-2">
                         <CalendarIcon className="h-8 w-8 text-slate-300" />
                         <p className="font-semibold text-slate-600">No rent tracker records found</p>
@@ -1259,6 +1248,24 @@ const MonthlyTracker = () => {
                               </span>
                             )}
                           </div>
+                        </td>
+
+                        {/* Planned Due Date */}
+                        <td className="py-2.5 px-3 text-center whitespace-nowrap">
+                          {record.dueDateEnd ? (
+                            <div className="inline-flex flex-col items-center">
+                              <span className="font-bold text-slate-800 text-[11px] bg-slate-100 px-2 py-0.5 rounded">
+                                {formatDate(record.dueDateEnd)}
+                              </span>
+                              {record.dueDateStart && (
+                                <span className="text-[9px] text-slate-400 mt-0.5">
+                                  From {formatDate(record.dueDateStart)}
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-slate-300">-</span>
+                          )}
                         </td>
 
                         {/* Status */}

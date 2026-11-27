@@ -1530,7 +1530,7 @@ function DispatchPageContent() {
               }`}>
                 2
               </span>
-              Party wise Order Qty
+              DO Allotment
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                 mainSectionTab === "party-order" ? "bg-white text-red-600" : "bg-slate-200 text-slate-600"
               }`}>
@@ -1609,7 +1609,7 @@ function DispatchPageContent() {
                   onChange={(e) => setSelectedCompanyFilter(e.target.value)}
                   className="px-2.5 sm:px-3.5 py-1.5 pr-7 sm:pr-8 rounded-lg border border-slate-200 bg-slate-50/70 hover:bg-slate-50 text-[11px] sm:text-xs font-bold text-slate-800 shadow-2xs focus:outline-none focus:ring-2 focus:ring-red-200 cursor-pointer appearance-none transition-colors truncate max-w-[150px] sm:max-w-xs"
                 >
-                  <option value="ALL">All Companies ({(store?.dos || []).length} DOs)</option>
+                  <option value="ALL">All Parties ({(store?.dos || []).length} DOs)</option>
                   {uniqueCompanies.map((co) => (
                     <option key={co} value={co}>
                       {co} ({(store?.dos || []).filter((d) => (d.co || "").trim() === co).length} DOs)
@@ -1623,7 +1623,7 @@ function DispatchPageContent() {
             <div className="text-[11px] sm:text-xs text-slate-500 font-medium whitespace-nowrap flex items-center gap-1 shrink-0">
               <span className="hidden sm:inline">Showing DOs for:</span>
               <span className="font-bold text-slate-800 bg-slate-100 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md truncate max-w-[110px] sm:max-w-none text-[10px] sm:text-xs">
-                {selectedCompanyFilter === "ALL" ? "All Companies" : selectedCompanyFilter}
+                {selectedCompanyFilter === "ALL" ? "All Parties" : selectedCompanyFilter}
               </span>
             </div>
           </div>
@@ -1635,7 +1635,7 @@ function DispatchPageContent() {
                 <tr className="bg-slate-50 border-b border-slate-200/90 text-xs font-bold text-slate-500 uppercase tracking-wider">
                   <th className="py-3.5 px-4 w-12">#</th>
                   <th className="py-3.5 px-4">DO No.</th>
-                  <th className="py-3.5 px-4">Company</th>
+                  <th className="py-3.5 px-4">Party</th>
                   <th className="py-3.5 px-4">Valid From</th>
                   <th className="py-3.5 px-4">Valid To</th>
                   <th className="py-3.5 px-4 text-right">DO Qty</th>
@@ -1813,7 +1813,7 @@ function DispatchPageContent() {
           </section>
         )}
 
-        {/* Section 2: Party wise Order Qty */}
+        {/* Section 2: DO Allotment */}
         {mainSectionTab === "party-order" && (
           <section className="space-y-3">
           <div className="flex items-center justify-between gap-2.5 flex-wrap">
@@ -1821,7 +1821,7 @@ function DispatchPageContent() {
               <span className="w-6 h-6 rounded-lg bg-red-100 text-[#e7000b] text-xs font-bold flex items-center justify-center">
                 2
               </span>
-              Party wise Order Qty
+              DO Allotment
               {(store?.dos || []).length > 0 && (
                 <span className="text-xs text-slate-400 font-normal">
                   ({currentDO?.co ? `${currentDO.co} - ` : ""}DO: {getDOName(currentDO)})
@@ -2511,7 +2511,7 @@ function DispatchPageContent() {
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="font-semibold text-slate-700 block mb-1.5">Company</label>
+                      <label className="font-semibold text-slate-700 block mb-1.5">Party</label>
                       <div className="relative">
                         <select
                           value={formData.co || ""}
@@ -2520,8 +2520,8 @@ function DispatchPageContent() {
                             if (val === "__new__") {
                               setQuickAddModal({
                                 isOpen: true,
-                                title: "Add New Company",
-                                label: "Company Name *",
+                                title: "Add New Party",
+                                label: "Party Name *",
                                 placeholder: "e.g. Jindal Steel & Power",
                                 value: "",
                                 onConfirm: (val) => setFormData((prev) => ({ ...prev, co: val }))
@@ -2532,13 +2532,13 @@ function DispatchPageContent() {
                           }}
                           className="w-full px-3.5 py-2.5 pr-8 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-200 text-xs font-semibold text-slate-800 transition-colors shadow-2xs cursor-pointer appearance-none"
                         >
-                          <option value="">Select Company</option>
+                          <option value="">Select Party</option>
                           {uniqueCompanies.map((c) => (
                             <option key={c} value={c}>
                               {c}
                             </option>
                           ))}
-                          <option value="__new__">+ Add New Company...</option>
+                          <option value="__new__">+ Add New Party...</option>
                         </select>
                         <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                       </div>

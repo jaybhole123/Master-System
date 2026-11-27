@@ -74,14 +74,22 @@ const defaultVisibleSpecs = () => specKeys.reduce((acc, s) => ({ ...acc, [s.key]
 
 // PURCHASE ORDER (FORMAT 2) SPEC KEYS
 const poSpecKeys = [
+  { key: 'orderDate', label: 'Order Date' },
+  { key: 'issuingCompany', label: 'Issuing Company' },
+  { key: 'orderTitle', label: 'Order Title' },
+  { key: 'orderNo', label: 'Order No.' },
+  { key: 'vendor', label: 'Vendor (Supplier Firm)' },
   { key: 'buyer', label: 'Buyer (Self Firm)' },
-  { key: 'consignee', label: 'Consignee' },
-  { key: 'material', label: 'Material & Chemical Specs' },
+  { key: 'consignee', label: 'Consignee (Delivery Point)' },
+  { key: 'material', label: 'Material Description' },
+  { key: 'chemicalSpecs', label: 'Chemical Composition Limits' },
   { key: 'quantity', label: 'Quantity' },
-  { key: 'rate', label: 'Rate' },
+  { key: 'rate', label: 'Rate / Price' },
   { key: 'delivery', label: 'Delivery' },
   { key: 'paymentCondition', label: 'Payment Condition' },
-  { key: 'gst', label: 'GST' }
+  { key: 'gst', label: 'GST Clause' },
+  { key: 'signatory', label: 'Signatory Name & Stamp' },
+  { key: 'terms', label: 'Jurisdiction & Closing Terms' }
 ];
 
 const defaultPoVisibleSpecs = () => poSpecKeys.reduce((acc, s) => ({ ...acc, [s.key]: true }), {});
@@ -89,29 +97,30 @@ const defaultPoVisibleSpecs = () => poSpecKeys.reduce((acc, s) => ({ ...acc, [s.
 const defaultFormData = () => ({
   docType: 'work_order', // 'work_order' | 'purchase_order'
   workOrderNo: '',
-  companyName: 'Jai Bhole Logistics',
-  orderTitle: 'WORK ORDER',
+  companyName: '',
+  headerGstin: '',
+  orderTitle: '',
   date: new Date().toISOString().split('T')[0],
   buyerName: '',
   buyerAddress: '',
   buyerDistState: '',
-  subject: 'Work Order For Transporting of Coal',
-  commodity: 'Coal',
+  subject: '',
+  commodity: '',
   mines: '',
   price: '',
   quantity: '',
   fcGuarantee: '',
-  shortageTolerance: '0.5%',
+  shortageTolerance: '',
   doDueDate: '',
   doCopy: '',
   destinationAdd: '',
   note: '',
-  terms: '1. TDS will be deducted at source as per IT rules.\n2. Shortage allowed 50.00 Kg Per Truck.( If shortage received more than 50 kg.tolerance limit We will deduct the shortage for the entire quantity as per market price.)\n3. Payment will be released within 20 to 25 days from the date of receipt of invoices.\n4. Invoice will be raised on completion of each DO.',
-  signatoryName: 'AMARNATH AGRAWAL',
-  signatoryTitle: '9165422000',
-  address: COMPANY_DETAILS['Jai Bhole Logistics'].address,
-  footerContact: COMPANY_DETAILS['Jai Bhole Logistics'].footerContact,
-  signatureDataUrl: COMPANY_DETAILS['Jai Bhole Logistics'].signature || '',
+  terms: '',
+  signatoryName: '',
+  signatoryTitle: '',
+  address: '',
+  footerContact: '',
+  signatureDataUrl: '',
   status: 'Draft',
   // Purchase Order specific extra fields:
   vendorGst: '',
@@ -137,6 +146,8 @@ const defaultPoFormData = () => ({
   docType: 'purchase_order',
   workOrderNo: '',
   companyName: '',
+  headerGstin: '',
+  selfFirmName: '',
   orderTitle: '',
   date: new Date().toISOString().split('T')[0],
   buyerName: '',
@@ -148,9 +159,7 @@ const defaultPoFormData = () => ({
   consigneeAddress: '',
   consigneeGst: '',
   materialName: '',
-  chemicalSpecs: [
-    { name: '', value: '' }
-  ],
+  chemicalSpecs: [{ name: '', value: '' }],
   specSul: '',
   specPhos: '',
   specCar: '',
@@ -163,14 +172,15 @@ const defaultPoFormData = () => ({
   delivery: '',
   paymentCondition: '',
   gstRate: '',
-  subject: 'Purchase Order',
+  customFields: [],
+  subject: '',
   fcGuarantee: '',
   shortageTolerance: '',
   doDueDate: '',
   doCopy: '',
   destinationAdd: '',
   note: '',
-  terms: '* All Disputes this deal is subject to Raipur jurisdiction only.\nSir, we hope you find the same in order and hence request you to kindly accept the same and do the needful.',
+  terms: '',
   signatoryName: '',
   signatoryTitle: '',
   address: '',
@@ -184,6 +194,7 @@ const toDb = (f, visibleSpecs) => ({
   order_title: f.orderTitle || 'WORK ORDER',
   order_date: f.date,
   company_name: f.companyName,
+  header_gstin: f.headerGstin || null,
   signatory_name: f.signatoryName,
   signatory_title: f.signatoryTitle,
   signature_url: f.signatureDataUrl || null,
@@ -201,6 +212,7 @@ const toDb = (f, visibleSpecs) => ({
   do_copy: f.doCopy,
   destination_address: f.destinationAdd,
   note: f.note || '',
+  custom_fields: Array.isArray(f.customFields) ? f.customFields : [],
   terms: f.terms,
   firm_address: f.address,
   firm_footer_contact: f.footerContact,
@@ -215,6 +227,7 @@ const fromDb = (row) => ({
   orderTitle: row.order_title || 'WORK ORDER',
   date: row.order_date || new Date().toISOString().split('T')[0],
   companyName: row.company_name || 'Jai Bhole Logistics',
+  headerGstin: row.header_gstin || '',
   signatoryName: row.signatory_name || '',
   signatoryTitle: row.signatory_title || '',
   signatureDataUrl: row.signature_url || (COMPANY_DETAILS[row.company_name]?.signature || ''),
@@ -232,6 +245,7 @@ const fromDb = (row) => ({
   doCopy: row.do_copy || '',
   destinationAdd: row.destination_address || '',
   note: row.note || '',
+  customFields: Array.isArray(row.custom_fields) ? row.custom_fields : (row.customFields || []),
   terms: row.terms || '',
   address: row.firm_address || COMPANY_DETAILS[row.company_name]?.address || '',
   footerContact: row.firm_footer_contact || COMPANY_DETAILS[row.company_name]?.footerContact || '',
@@ -243,13 +257,14 @@ const poToDb = (f, visibleSpecs) => ({
   purchase_order_no: f.workOrderNo || null,
   order_date: f.date,
   company_name: f.companyName,
-  order_title: f.orderTitle || 'PURCHASE ORDER',
+  header_gstin: f.headerGstin || null,
+  order_title: f.orderTitle || '',
   vendor_name: f.buyerName || '',
   vendor_address: f.buyerAddress || '',
   vendor_gst: f.vendorGst || '',
-  buyer_name: f.companyName,
+  buyer_name: f.selfFirmName || f.companyName || '',
   buyer_address: f.address,
-  buyer_gst: f.buyerGst || COMPANY_DETAILS[f.companyName]?.gstin || '22AWGPA9068C1ZW',
+  buyer_gst: f.buyerGst || COMPANY_DETAILS[f.companyName]?.gstin || '',
   consignee_name: f.consigneeName || '',
   consignee_address: f.consigneeAddress || '',
   consignee_gst: f.consigneeGst || '',
@@ -257,11 +272,12 @@ const poToDb = (f, visibleSpecs) => ({
   chemical_specs: Array.isArray(f.chemicalSpecs) ? f.chemicalSpecs : [],
   quantity: f.quantity || '',
   rate: f.price || '',
-  delivery: f.delivery || 'For',
-  payment_condition: f.paymentCondition || 'Advance',
-  gst_clause: f.gstRate || '18% of GST or AS Applicable at time of dispatch',
+  delivery: f.delivery || '',
+  payment_condition: f.paymentCondition || '',
+  gst_clause: f.gstRate || '',
+  custom_fields: Array.isArray(f.customFields) ? f.customFields : [],
   terms: f.terms || '',
-  signatory_name: f.signatoryName || 'Jai Bhole Traders',
+  signatory_name: f.signatoryName || '',
   signature_url: f.signatureDataUrl || null,
   firm_address: f.address,
   firm_footer_contact: f.footerContact,
@@ -273,10 +289,12 @@ const poFromDb = (row) => ({
   id: row.id,
   docType: 'purchase_order',
   workOrderNo: row.purchase_order_no || '',
-  orderTitle: row.order_title || 'PURCHASE ORDER',
+  orderTitle: row.order_title || '',
   date: row.order_date || new Date().toISOString().split('T')[0],
-  companyName: row.company_name || 'M/s Jai Bhole Traders',
-  signatoryName: row.signatory_name || 'Jai Bhole Traders',
+  companyName: row.company_name || '',
+  headerGstin: row.header_gstin || '',
+  selfFirmName: row.buyer_name || row.company_name || '',
+  signatoryName: row.signatory_name || '',
   signatoryTitle: '',
   signatureDataUrl: row.signature_url || (COMPANY_DETAILS[row.company_name]?.signature || ''),
   // STRICT: Only use vendor_name/vendor_address/vendor_gst from DB column, no fallback to company address
@@ -284,7 +302,7 @@ const poFromDb = (row) => ({
   buyerDistState: '',
   buyerAddress: row.vendor_address || '',
   vendorGst: row.vendor_gst || '',
-  subject: 'Purchase Order',
+  subject: '',
   commodity: row.material_name || '',
   mines: '',
   price: row.rate || '',
@@ -300,15 +318,16 @@ const poFromDb = (row) => ({
   footerContact: row.firm_footer_contact || '',
   status: row.status || 'Draft',
   visibleSpecs: row.visible_specs && Object.keys(row.visible_specs).length > 0 ? row.visible_specs : defaultPoVisibleSpecs(),
-  buyerGst: row.buyer_gst || '22AWGPA9068C1ZW',
+  buyerGst: row.buyer_gst || '',
   consigneeName: row.consignee_name || '',
   consigneeAddress: row.consignee_address || '',
   consigneeGst: row.consignee_gst || '',
   materialName: row.material_name || '',
   chemicalSpecs: Array.isArray(row.chemical_specs) ? row.chemical_specs : [],
-  delivery: row.delivery || 'For',
-  paymentCondition: row.payment_condition || 'Advance',
-  gstRate: row.gst_clause || '18% of GST or AS Applicable at time of dispatch'
+  delivery: row.delivery || '',
+  paymentCondition: row.payment_condition || '',
+  gstRate: row.gst_clause || '',
+  customFields: Array.isArray(row.custom_fields) ? row.custom_fields : (row.customFields || [])
 });
 
 // Reusable Hybrid Custom Dropdown Input
@@ -557,6 +576,31 @@ const WorkOrder = () => {
   const [formData, setFormData] = useState(defaultFormData());
   const [visibleSpecs, setVisibleSpecs] = useState(defaultVisibleSpecs());
   const [showFieldsModal, setShowFieldsModal] = useState(false);
+
+  // Custom added companies stored in localStorage so they persist across sessions
+  const [customCompanies, setCustomCompanies] = useState(() => {
+    try {
+      const saved = localStorage.getItem('CUSTOM_ISSUING_COMPANIES');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const allCompanies = useMemo(() => ({
+    ...COMPANY_DETAILS,
+    ...customCompanies
+  }), [customCompanies]);
+
+  const [newCompanyModal, setNewCompanyModal] = useState({
+    isOpen: false,
+    name: '',
+    gstin: '',
+    address: '',
+    footerContact: '',
+    signatoryName: '',
+    signature: ''
+  });
 
   // Fast count fetch for badge counters (exact count, head: true - 0 heavy data transferred)
   const fetchBadgeCounts = useCallback(async () => {
@@ -877,8 +921,7 @@ const WorkOrder = () => {
         useCORS: true,
         allowTaint: true,
         scrollX: 0,
-        scrollY: -window.scrollY,
-        windowWidth: element.scrollWidth || 800,
+        scrollY: 0,
         backgroundColor: '#ffffff'
       });
 
@@ -886,9 +929,10 @@ const WorkOrder = () => {
       const pageWidth = pdf.internal.pageSize.getWidth(); // 210mm
       const pageHeight = pdf.internal.pageSize.getHeight(); // 297mm
 
-      const margin = 5; // 5mm margin
-      const maxW = pageWidth - (margin * 2); // 200mm
-      const maxH = pageHeight - (margin * 2); // 287mm
+      const marginX = 4; // 4mm margin left & right
+      const marginY = 4; // 4mm margin top & bottom
+      const maxW = pageWidth - (marginX * 2); // 202mm
+      const maxH = pageHeight - (marginY * 2); // 289mm
 
       // Calculate aspect ratio
       const imgWidth = canvas.width;
@@ -898,15 +942,15 @@ const WorkOrder = () => {
       let finalW = maxW;
       let finalH = finalW / ratio;
 
-      // Strictly fit to single page height if it exceeds
+      // If calculated height exceeds max printable height, fit by height
       if (finalH > maxH) {
         finalH = maxH;
         finalW = finalH * ratio;
       }
 
-      // Center horizontally and vertically on the single page
-      const x = margin + ((maxW - finalW) / 2);
-      const y = margin + ((maxH - finalH) / 2);
+      // Center horizontally, align with top margin
+      const x = marginX + ((maxW - finalW) / 2);
+      const y = marginY;
 
       const imgData = canvas.toDataURL('image/jpeg', 0.98);
       pdf.addImage(imgData, 'JPEG', x, y, finalW, finalH);
@@ -947,8 +991,8 @@ const WorkOrder = () => {
   };
 
   const activeFirm = previewData
-    ? (COMPANY_DETAILS[previewData.companyName] || COMPANY_DETAILS['Jai Bhole Logistics'])
-    : COMPANY_DETAILS['Jai Bhole Logistics'];
+    ? (allCompanies[previewData.companyName] || allCompanies['Jai Bhole Logistics'])
+    : allCompanies['Jai Bhole Logistics'];
 
   const allAvailableOrders = useMemo(() => {
     return [...orders, ...purchaseOrders, ...woHistoryOrders, ...poHistoryOrders];
@@ -979,6 +1023,13 @@ const WorkOrder = () => {
       prices: cleanList([...orders.map(o => o.price), ...purchaseOrders.map(p => p.price || p.rate)]),
       orderNos: cleanList(orders.map(o => o.work_order_no)),
       poOrderNos: cleanList(purchaseOrders.map(p => p.workOrderNo || p.purchase_order_no)),
+      subjects: cleanList(orders.map(o => o.subject)),
+      doDueDates: cleanList(orders.map(o => o.do_due_date)),
+      destinationAddresses: cleanList(orders.map(o => o.destination_address)),
+      notes: cleanList(orders.map(o => o.note)),
+      signatoryTitles: cleanList(orders.map(o => o.signatory_title)),
+      firmAddresses: cleanList(orders.map(o => o.firm_address)),
+      firmFooterContacts: cleanList(orders.map(o => o.firm_footer_contact)),
       // Purchase Orders specific suggestions (ONLY from vendor_name, vendor_address, vendor_gst columns):
       vendorNames: cleanList(purchaseOrders.map(p => p.vendor_name || p.buyerName)),
       vendorAddresses: cleanList(purchaseOrders.map(p => p.vendor_address || p.buyerAddress)),
@@ -990,7 +1041,21 @@ const WorkOrder = () => {
       materials: cleanList(purchaseOrders.map(p => p.materialName || p.material_name)),
       deliveries: cleanList([...purchaseOrders.map(p => p.delivery)].filter(Boolean)),
       paymentConditions: cleanList([...purchaseOrders.map(p => p.paymentCondition || p.payment_condition)].filter(Boolean)),
-      gstClauses: cleanList([...purchaseOrders.map(p => p.gstRate || p.gst_clause)].filter(Boolean))
+      gstClauses: cleanList([...purchaseOrders.map(p => p.gstRate || p.gst_clause)].filter(Boolean)),
+      signatories: cleanList([...orders.map(o => o.signatory_name), ...purchaseOrders.map(p => p.signatoryName || p.signatory_name)]),
+      termsList: cleanList([...orders.map(o => o.terms), ...purchaseOrders.map(p => p.terms)]),
+      chemicalElements: cleanList(
+        purchaseOrders.flatMap(p => {
+          const specs = Array.isArray(p.chemical_specs) ? p.chemical_specs : (Array.isArray(p.chemicalSpecs) ? p.chemicalSpecs : []);
+          return specs.map(s => s?.name);
+        }).concat(['Sul.', 'Phos.', 'Carbon', 'Manganese', 'Silicon'])
+      ),
+      chemicalValues: cleanList(
+        purchaseOrders.flatMap(p => {
+          const specs = Array.isArray(p.chemical_specs) ? p.chemical_specs : (Array.isArray(p.chemicalSpecs) ? p.chemicalSpecs : []);
+          return specs.map(s => s?.value);
+        })
+      )
     };
   }, [orders, purchaseOrders]);
 
@@ -2025,10 +2090,11 @@ const WorkOrder = () => {
           onClick={(e) => { if (e.target === e.currentTarget) setShowOrderModal(false); }}>
           <div style={{
             backgroundColor: '#ffffff',
-            borderRadius: '20px',
-            width: '100%',
-            maxWidth: '1100px',
-            maxHeight: '92vh',
+            borderRadius: '16px',
+            width: '92vw',
+            maxWidth: '1360px',
+            height: '86vh',
+            maxHeight: '86vh',
             display: 'flex',
             flexDirection: 'column',
             boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.35)',
@@ -2056,104 +2122,199 @@ const WorkOrder = () => {
                     : (formData.docType === 'purchase_order' ? 'New PO + SO Order' : 'New Work Order')}
                 </h2>
               </div>
-              <button
-                id="btn-close-modal"
-                onClick={() => setShowOrderModal(false)}
-                style={{
-                  background: '#f1f5f9',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  color: '#475569',
-                  width: '32px',
-                  height: '32px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'all 0.15s'
-                }}
-                onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#e2e8f0'; }}
-                onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#f1f5f9'; }}
-              >
-                <X size={18} />
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowFieldsModal(true)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 14px',
+                    fontSize: '0.78rem',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '8px',
+                    backgroundColor: '#ffffff',
+                    cursor: 'pointer',
+                    fontWeight: 700,
+                    color: '#334155',
+                    transition: 'all 0.15s'
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#f8fafc'; e.currentTarget.style.borderColor = '#94a3b8'; }}
+                  onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#ffffff'; e.currentTarget.style.borderColor = '#cbd5e1'; }}
+                >
+                  <Columns size={14} style={{ color: '#dc2626' }} /> Toggle Fields
+                </button>
+                <button
+                  id="btn-close-modal"
+                  onClick={() => setShowOrderModal(false)}
+                  style={{
+                    background: '#f1f5f9',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    color: '#475569',
+                    width: '32px',
+                    height: '32px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.15s'
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#e2e8f0'; }}
+                  onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#f1f5f9'; }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
             </div>
 
-            {/* Modal Scroll Body */}
-            <div className="work-order-modal-body" style={{ overflowY: 'auto', padding: '20px 24px', flex: 1, backgroundColor: '#ffffff' }}>
-              {formData.docType === 'purchase_order' ? (
-                /* ================= PURCHASE ORDER FORM ================= */
-                <div className="work-order-form-grid">
-                  <div className="form-group">
-                    <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>Order Date</label>
-                    <input
-                      type="date"
-                      name="date"
-                      value={formData.date}
+            {/* Modal Body: Split 2-Column Layout (Form on Left, Live Preview on Right) */}
+            <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden', backgroundColor: '#f1f5f9' }}>
+              {/* Left Column: Form Fields */}
+              <div className="work-order-modal-body" style={{ width: '50%', minWidth: '420px', overflowY: 'auto', padding: '16px 20px', backgroundColor: '#ffffff', borderRight: '1px solid #e2e8f0' }}>
+                {formData.docType === 'purchase_order' ? (
+                  /* ================= PURCHASE ORDER FORM ================= */
+                  <div className="work-order-form-grid">
+                  {visibleSpecs.orderDate !== false && (
+                    <div className="form-group">
+                      <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>Order Date</label>
+                      <input
+                        type="date"
+                        name="date"
+                        value={formData.date}
+                        onChange={handleChange}
+                        style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 12px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  )}
+
+                  {visibleSpecs.issuingCompany !== false && (
+                    <div className="form-group" style={{ position: 'relative' }}>
+                      <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px' }}>
+                        Issuing Company (Heading)
+                      </label>
+
+                      <div style={{ position: 'relative' }}>
+                        <select
+                          name="companyName"
+                          value={formData.companyName}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === '__add_new__') {
+                              setNewCompanyModal({
+                                isOpen: true,
+                                name: '',
+                                gstin: '',
+                                address: '',
+                                footerContact: '',
+                                signatoryName: '',
+                                signature: ''
+                              });
+                              return;
+                            }
+                            const comp = allCompanies[val];
+                            setFormData(prev => ({
+                              ...prev,
+                              companyName: val,
+                              headerGstin: comp?.gstin || prev.headerGstin || '',
+                              footerContact: comp?.footerContact || prev.footerContact,
+                              signatureDataUrl: comp?.signature || prev.signatureDataUrl || '',
+                              signatoryName: comp ? comp.name : prev.signatoryName
+                            }));
+                          }}
+                          style={{
+                            width: '100%',
+                            border: '1px solid #cbd5e1',
+                            borderRadius: '8px',
+                            padding: '8.5px 36px 8.5px 12px',
+                            fontSize: '0.85rem',
+                            outline: 'none',
+                            backgroundColor: '#ffffff',
+                            cursor: 'pointer',
+                            appearance: 'none',
+                            WebkitAppearance: 'none',
+                            MozAppearance: 'none',
+                            fontWeight: formData.companyName ? 600 : 400,
+                            color: formData.companyName ? '#0f172a' : '#64748b',
+                            transition: 'all 0.15s',
+                            boxSizing: 'border-box'
+                          }}
+                          onFocus={e => { e.currentTarget.style.borderColor = '#ef4444'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.12)'; }}
+                          onBlur={e => { e.currentTarget.style.borderColor = '#cbd5e1'; e.currentTarget.style.boxShadow = 'none'; }}
+                        >
+                          <option value="">-- Select Issuing Company --</option>
+                          {Object.keys(allCompanies).map(name => (
+                            <option key={name} value={name} style={{ color: '#0f172a', fontWeight: 500, padding: '4px' }}>
+                              {name}
+                            </option>
+                          ))}
+                          <option value="__add_new__" style={{ fontWeight: 700, color: '#dc2626' }}>
+                            + Add New Company...
+                          </option>
+                        </select>
+                        <ChevronDown
+                          size={15}
+                          style={{
+                            position: 'absolute',
+                            right: '12px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            color: '#64748b',
+                            pointerEvents: 'none'
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <DbDropdownInput
+                    label="Header GSTIN"
+                    name="headerGstin"
+                    value={formData.headerGstin}
+                    onChange={handleChange}
+                    options={dbSuggestions.buyerGsts || []}
+                  />
+
+                  {visibleSpecs.orderTitle !== false && (
+                    <DbDropdownInput
+                      label="Order Title"
+                      name="orderTitle"
+                      value={formData.orderTitle}
                       onChange={handleChange}
-                      style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 12px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
+                      options={dbSuggestions.poOrderTitles || []}
                     />
-                  </div>
+                  )}
 
-                  <div className="form-group">
-                    <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>Issuing Company (Heading)</label>
-                    <select
-                      name="companyName"
-                      value={formData.companyName}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        const comp = COMPANY_DETAILS[val];
-                        setFormData(prev => ({
-                          ...prev,
-                          companyName: val,
-                          buyerGst: comp?.gstin || prev.buyerGst,
-                          address: comp?.address || prev.address,
-                          footerContact: comp?.footerContact || prev.footerContact,
-                          signatureDataUrl: comp?.signature || prev.signatureDataUrl || '',
-                          signatoryName: comp ? comp.name : prev.signatoryName
-                        }));
-                      }}
-                      style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 12px', fontSize: '0.85rem', outline: 'none', backgroundColor: '#fff', cursor: 'pointer', boxSizing: 'border-box' }}
-                    >
-                      <option value="">-- Select Issuing Company --</option>
-                      {Object.keys(COMPANY_DETAILS).map(name => <option key={name} value={name}>{name}</option>)}
-                    </select>
-                  </div>
+                  {visibleSpecs.orderNo !== false && (
+                    <DbDropdownInput
+                      label="Order No."
+                      name="workOrderNo"
+                      value={formData.workOrderNo}
+                      onChange={handleChange}
+                      options={dbSuggestions.poOrderNos || []}
+                    />
+                  )}
 
-                  <DbDropdownInput
-                    label="Order Title"
-                    name="orderTitle"
-                    value={formData.orderTitle}
-                    onChange={handleChange}
-                    options={dbSuggestions.poOrderTitles || []}
-                    placeholder="e.g. PURCHASE ORDER"
-                  />
-
-                  <DbDropdownInput
-                    label="Order No."
-                    name="workOrderNo"
-                    value={formData.workOrderNo}
-                    onChange={handleChange}
-                    options={dbSuggestions.poOrderNos || []}
-                    placeholder="e.g. 1367 or PO-2026-001"
-                  />
-
-                  {/* Vendor / Supplier, Buyer & Consignee */}
-                  <div style={{ gridColumn: '1 / -1', borderTop: '1px solid #e2e8f0', paddingTop: '16px', marginTop: '6px' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', alignItems: 'stretch' }}>
+                  {/* Vendor / Supplier, Buyer & Consignee: Single Section per card (Stacked Vertically) */}
+                  {(visibleSpecs.vendor !== false || visibleSpecs.buyer !== false || visibleSpecs.consignee !== false) && (
+                    <div style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', gap: '14px', borderTop: '1px solid #e2e8f0', paddingTop: '16px', marginTop: '4px' }}>
                       
-                      {/* 1. Vendor Details (To / Supplier Firm) */}
-                      <div style={{ backgroundColor: '#fffbf5', padding: '16px', borderRadius: '12px', border: '1px solid #fed7aa', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                            <h4 style={{ fontSize: '0.82rem', fontWeight: 800, color: '#9a3412', margin: 0, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
-                              {(formData.orderTitle || '').toUpperCase().includes('SALE') ? 'Buyer / Customer' : 'Vendor (Supplier Firm)'}
-                            </h4>
+                      {/* 1. Vendor Details (To / Supplier Firm) Section */}
+                      {visibleSpecs.vendor !== false && (
+                        <div style={{ backgroundColor: '#fffbf5', padding: '16px 18px', borderRadius: '12px', border: '1px solid #fed7aa' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <Building2 size={16} style={{ color: '#ea580c' }} />
+                              <h4 style={{ fontSize: '0.86rem', fontWeight: 800, color: '#9a3412', margin: 0, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                                {(formData.orderTitle || '').toUpperCase().includes('SALE') ? 'Buyer / Customer' : 'Vendor (Supplier Firm)'}
+                              </h4>
+                            </div>
                             <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', backgroundColor: '#ffedd5', color: '#c2410c' }}>
                               {(formData.orderTitle || '').toUpperCase().includes('SALE') ? 'FROM' : 'TO'}
                             </span>
                           </div>
-                          <div style={{ marginBottom: '10px' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
                             <DbDropdownInput
                               label="Vendor Firm Name"
                               name="buyerName"
@@ -2163,417 +2324,545 @@ const WorkOrder = () => {
                                 handleVendorNameChange(val);
                               }}
                               options={dbSuggestions.vendorNames || []}
-                              placeholder="e.g. PH ENTERPRISE / ABC CORP"
                             />
-                          </div>
-                          <div style={{ marginBottom: '10px' }}>
                             <DbDropdownInput
-                              label="Vendor Address"
-                              name="buyerAddress"
-                              value={formData.buyerAddress}
+                              label="Vendor GST No."
+                              name="vendorGst"
+                              value={formData.vendorGst}
                               onChange={handleChange}
-                              options={dbSuggestions.vendorAddresses || []}
-                              placeholder="Vendor Address / Location..."
-                              isTextarea={true}
-                              rows={3}
+                              options={dbSuggestions.vendorGsts || []}
                             />
+                            <div style={{ gridColumn: '1 / -1' }}>
+                              <DbDropdownInput
+                                label="Vendor Address"
+                                name="buyerAddress"
+                                value={formData.buyerAddress}
+                                onChange={handleChange}
+                                options={dbSuggestions.vendorAddresses || []}
+                                isTextarea={true}
+                                rows={2}
+                              />
+                            </div>
                           </div>
                         </div>
-                        <div>
-                          <DbDropdownInput
-                            label="Vendor GST No."
-                            name="vendorGst"
-                            value={formData.vendorGst}
-                            onChange={handleChange}
-                            options={dbSuggestions.vendorGsts || []}
-                            placeholder="e.g. 22ABCDE1234F1Z5"
-                          />
-                        </div>
-                      </div>
+                      )}
 
-                      {/* 2. Buyer Details (Self Firm) */}
-                      <div style={{ backgroundColor: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                            <h4 style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', margin: 0, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
-                              Buyer (Self Firm)
-                            </h4>
+                      {/* 2. Buyer Details (Self Firm) Section */}
+                      {visibleSpecs.buyer !== false && (
+                        <div style={{ backgroundColor: '#f8fafc', padding: '16px 18px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <Building2 size={16} style={{ color: '#475569' }} />
+                              <h4 style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a', margin: 0, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                                Buyer (Self Firm)
+                              </h4>
+                            </div>
                             <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', backgroundColor: '#e2e8f0', color: '#334155' }}>
                               ISSUING
                             </span>
                           </div>
-                          <div style={{ marginBottom: '10px' }}>
+                          
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
                             <DbDropdownInput
-                              label="Buyer Name & Address"
-                              name="address"
-                              value={formData.address}
-                              onChange={handleChange}
-                              options={dbSuggestions.addresses}
-                              placeholder="Buyer Address..."
-                              isTextarea={true}
-                              rows={5}
+                              label="Buyer Firm Name"
+                              name="selfFirmName"
+                              value={formData.selfFirmName || ''}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                const comp = allCompanies[val];
+                                setFormData(prev => ({
+                                  ...prev,
+                                  selfFirmName: val,
+                                  buyerGst: comp?.gstin || prev.buyerGst,
+                                  address: comp?.address || prev.address
+                                }));
+                              }}
+                              options={Object.keys(allCompanies)}
                             />
+                            <DbDropdownInput
+                              label="Buyer GST No."
+                              name="buyerGst"
+                              value={formData.buyerGst}
+                              onChange={handleChange}
+                              options={dbSuggestions.buyerGsts}
+                            />
+                            <div style={{ gridColumn: '1 / -1' }}>
+                              <DbDropdownInput
+                                label="Buyer Name & Address"
+                                name="address"
+                                value={formData.address}
+                                onChange={handleChange}
+                                options={dbSuggestions.addresses}
+                                isTextarea={true}
+                                rows={2}
+                              />
+                            </div>
                           </div>
                         </div>
-                        <div>
-                          <DbDropdownInput
-                            label="Buyer GST No."
-                            name="buyerGst"
-                            value={formData.buyerGst}
-                            onChange={handleChange}
-                            options={dbSuggestions.buyerGsts}
-                            placeholder="e.g. 22AWGPA9068C1ZW"
-                          />
-                        </div>
-                      </div>
+                      )}
 
-                      {/* 3. Consignee Details */}
-                      <div style={{ backgroundColor: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                            <h4 style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', margin: 0, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
-                              Consignee (Delivery Point)
-                            </h4>
-                            <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', backgroundColor: '#e2e8f0', color: '#334155' }}>
+                      {/* 3. Consignee Details Section */}
+                      {visibleSpecs.consignee !== false && (
+                        <div style={{ backgroundColor: '#f8fafc', padding: '16px 18px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <Building2 size={16} style={{ color: '#2563eb' }} />
+                              <h4 style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a', margin: 0, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                                Consignee (Delivery Point)
+                              </h4>
+                            </div>
+                            <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', backgroundColor: '#dbeafe', color: '#1e40af' }}>
                               SHIP TO
                             </span>
                           </div>
-                          <div style={{ marginBottom: '10px' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
                             <DbDropdownInput
                               label="Consignee Name"
                               name="consigneeName"
                               value={formData.consigneeName}
                               onChange={handleChange}
                               options={dbSuggestions.consigneeNames}
-                              placeholder="e.g. Hindustan Structural Pipes Limited"
                             />
-                          </div>
-                          <div style={{ marginBottom: '10px' }}>
                             <DbDropdownInput
-                              label="Consignee Address"
-                              name="consigneeAddress"
-                              value={formData.consigneeAddress}
+                              label="Consignee GST No."
+                              name="consigneeGst"
+                              value={formData.consigneeGst}
                               onChange={handleChange}
-                              options={dbSuggestions.consigneeAddresses}
-                              placeholder="Plot No, Industrial Area, City..."
-                              isTextarea={true}
-                              rows={3}
+                              options={dbSuggestions.consigneeGsts}
                             />
-                          </div>
-                        </div>
-                        <div>
-                          <DbDropdownInput
-                            label="Consignee GST No."
-                            name="consigneeGst"
-                            value={formData.consigneeGst}
-                            onChange={handleChange}
-                            options={dbSuggestions.consigneeGsts}
-                            placeholder="e.g. 22AAHCH4703M1ZN"
-                          />
-                        </div>
-                      </div>
-
-                    </div>
-                  </div>
-
-                  {/* Material & Chemical Specifications */}
-                  <div style={{ gridColumn: '1 / -1', borderTop: '1px solid #e2e8f0', paddingTop: '16px', marginTop: '6px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                      <h3 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                        Material & Chemical Specifications
-                      </h3>
-                      <button
-                        type="button"
-                        onClick={() => setShowFieldsModal(true)}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          padding: '6px 14px',
-                          fontSize: '0.8rem',
-                          border: '1px solid #cbd5e1',
-                          borderRadius: '8px',
-                          backgroundColor: '#ffffff',
-                          cursor: 'pointer',
-                          fontWeight: 600,
-                          color: '#334155'
-                        }}
-                      >
-                        <Columns size={14} /> Toggle Fields
-                      </button>
-                    </div>
-
-                    <div style={{ marginBottom: '12px' }}>
-                      <DbDropdownInput
-                        label="Material Description"
-                        name="materialName"
-                        value={formData.materialName}
-                        onChange={handleChange}
-                        options={dbSuggestions.materials}
-                        placeholder="e.g. Ms Billet 160*160 (6 Mtr)"
-                      />
-                    </div>
-
-                    {/* Chemical Specs Dynamic Rows */}
-                    <div style={{ backgroundColor: '#f8fafc', padding: '14px 16px', borderRadius: '10px', border: '1px solid #e2e8f0', marginBottom: '14px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                        <div>
-                          <span style={{ fontSize: '0.76rem', fontWeight: 800, color: '#1e293b', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>
-                            Chemical Composition Limits
-                          </span>
-                          <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                            Add, edit or remove element limits (e.g. Sul., Phos., Car., etc.)
-                          </span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setFormData(prev => ({
-                              ...prev,
-                              chemicalSpecs: [...(prev.chemicalSpecs || []), { name: '', value: '' }]
-                            }));
-                          }}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '5px',
-                            padding: '5px 12px',
-                            fontSize: '0.76rem',
-                            fontWeight: 700,
-                            borderRadius: '6px',
-                            backgroundColor: '#fee2e2',
-                            color: '#dc2626',
-                            border: '1px solid #fecaca',
-                            cursor: 'pointer',
-                            transition: 'all 0.15s'
-                          }}
-                          onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#fecaca'; }}
-                          onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#fee2e2'; }}
-                        >
-                          <Plus size={14} /> Add Row
-                        </button>
-                      </div>
-
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        {(formData.chemicalSpecs || []).map((spec, idx) => (
-                          <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <div style={{ width: '38%' }}>
-                              <input
-                                type="text"
-                                value={spec.name}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  setFormData(prev => {
-                                    const next = [...(prev.chemicalSpecs || [])];
-                                    next[idx] = { ...next[idx], name: val };
-                                    return { ...prev, chemicalSpecs: next };
-                                  });
-                                }}
-                                placeholder="Element (e.g. Sul. / Carbon)"
-                                style={{
-                                  width: '100%',
-                                  padding: '7px 10px',
-                                  fontSize: '0.8rem',
-                                  borderRadius: '6px',
-                                  border: '1px solid #cbd5e1',
-                                  fontWeight: 600,
-                                  boxSizing: 'border-box'
-                                }}
+                            <div style={{ gridColumn: '1 / -1' }}>
+                              <DbDropdownInput
+                                label="Consignee Address"
+                                name="consigneeAddress"
+                                value={formData.consigneeAddress}
+                                onChange={handleChange}
+                                options={dbSuggestions.consigneeAddresses}
+                                isTextarea={true}
+                                rows={2}
                               />
                             </div>
-                            <div style={{ flex: 1 }}>
-                              <input
-                                type="text"
-                                value={spec.value}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  setFormData(prev => {
-                                    const next = [...(prev.chemicalSpecs || [])];
-                                    next[idx] = { ...next[idx], value: val };
-                                    return { ...prev, chemicalSpecs: next };
-                                  });
-                                }}
-                                placeholder="Value (e.g. 0.045 Max)"
-                                style={{
-                                  width: '100%',
-                                  padding: '7px 10px',
-                                  fontSize: '0.8rem',
-                                  borderRadius: '6px',
-                                  border: '1px solid #cbd5e1',
-                                  boxSizing: 'border-box'
-                                }}
-                              />
+                          </div>
+                        </div>
+                      )}
+
+                    </div>
+                  )}
+
+                  {/* Material & Chemical Specifications */}
+                  {(visibleSpecs.material !== false || visibleSpecs.chemicalSpecs !== false || visibleSpecs.quantity !== false || visibleSpecs.rate !== false || visibleSpecs.delivery !== false || visibleSpecs.paymentCondition !== false || visibleSpecs.gst !== false) && (
+                    <div style={{ gridColumn: '1 / -1', borderTop: '1px solid #e2e8f0', paddingTop: '16px', marginTop: '6px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                        <h3 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                          Material & Commercial Specifications
+                        </h3>
+                      </div>
+
+                      {visibleSpecs.material !== false && (
+                        <div style={{ marginBottom: '12px' }}>
+                          <DbDropdownInput
+                            label="Material Description"
+                            name="materialName"
+                            value={formData.materialName}
+                            onChange={handleChange}
+                            options={dbSuggestions.materials}
+                          />
+                        </div>
+                      )}
+
+                      {/* Chemical Specs Dynamic Rows */}
+                      {visibleSpecs.chemicalSpecs !== false && (
+                        <div style={{ backgroundColor: '#f8fafc', padding: '14px 16px', borderRadius: '10px', border: '1px solid #e2e8f0', marginBottom: '14px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                            <div>
+                              <span style={{ fontSize: '0.76rem', fontWeight: 800, color: '#1e293b', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>
+                                Chemical Composition Limits
+                              </span>
+                              <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                                Add, edit or remove element limits
+                              </span>
                             </div>
                             <button
                               type="button"
                               onClick={() => {
                                 setFormData(prev => ({
                                   ...prev,
-                                  chemicalSpecs: (prev.chemicalSpecs || []).filter((_, i) => i !== idx)
+                                  chemicalSpecs: [...(prev.chemicalSpecs || []), { name: '', value: '' }]
                                 }));
                               }}
-                              title="Delete Row"
                               style={{
-                                width: '32px',
-                                height: '32px',
-                                display: 'flex',
+                                display: 'inline-flex',
                                 alignItems: 'center',
-                                justifyContent: 'center',
-                                border: '1px solid #fecaca',
+                                gap: '5px',
+                                padding: '5px 12px',
+                                fontSize: '0.76rem',
+                                fontWeight: 700,
                                 borderRadius: '6px',
-                                backgroundColor: '#fff',
-                                color: '#ef4444',
+                                backgroundColor: '#fee2e2',
+                                color: '#dc2626',
+                                border: '1px solid #fecaca',
                                 cursor: 'pointer',
-                                flexShrink: 0
+                                transition: 'all 0.15s'
                               }}
-                              onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#fee2e2'; }}
-                              onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#fff'; }}
+                              onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#fecaca'; }}
+                              onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#fee2e2'; }}
                             >
-                              <Trash2 size={14} />
+                              <Plus size={14} /> Add Row
                             </button>
                           </div>
-                        ))}
 
-                        {(!formData.chemicalSpecs || formData.chemicalSpecs.length === 0) && (
-                          <div style={{ textAlign: 'center', padding: '12px', color: '#94a3b8', fontSize: '0.78rem' }}>
-                            No chemical specifications added. Click "+ Add Row" above to add one.
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {((formData.chemicalSpecs && formData.chemicalSpecs.length > 0) 
+                              ? formData.chemicalSpecs 
+                              : [{ name: '', value: '' }]
+                            ).map((spec, idx, arr) => (
+                              <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <div style={{ width: '38%' }}>
+                                  <input
+                                    type="text"
+                                    list="chemical-elements-list"
+                                    value={spec.name || ''}
+                                    placeholder=""
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      setFormData(prev => {
+                                        const currentSpecs = (prev.chemicalSpecs && prev.chemicalSpecs.length > 0) 
+                                          ? [...prev.chemicalSpecs] 
+                                          : [{ name: '', value: '' }];
+                                        currentSpecs[idx] = { ...(currentSpecs[idx] || { name: '', value: '' }), name: val };
+                                        return { ...prev, chemicalSpecs: currentSpecs };
+                                      });
+                                    }}
+                                    style={{
+                                      width: '100%',
+                                      padding: '7px 10px',
+                                      fontSize: '0.8rem',
+                                      borderRadius: '6px',
+                                      border: '1px solid #cbd5e1',
+                                      fontWeight: 600,
+                                      boxSizing: 'border-box'
+                                    }}
+                                  />
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                  <input
+                                    type="text"
+                                    list="chemical-values-list"
+                                    value={spec.value || ''}
+                                    placeholder=""
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      setFormData(prev => {
+                                        const currentSpecs = (prev.chemicalSpecs && prev.chemicalSpecs.length > 0) 
+                                          ? [...prev.chemicalSpecs] 
+                                          : [{ name: '', value: '' }];
+                                        currentSpecs[idx] = { ...(currentSpecs[idx] || { name: '', value: '' }), value: val };
+                                        return { ...prev, chemicalSpecs: currentSpecs };
+                                      });
+                                    }}
+                                    style={{
+                                      width: '100%',
+                                      padding: '7px 10px',
+                                      fontSize: '0.8rem',
+                                      borderRadius: '6px',
+                                      border: '1px solid #cbd5e1',
+                                      boxSizing: 'border-box'
+                                    }}
+                                  />
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setFormData(prev => {
+                                      const remaining = (prev.chemicalSpecs || []).filter((_, i) => i !== idx);
+                                      return {
+                                        ...prev,
+                                        chemicalSpecs: remaining.length > 0 ? remaining : [{ name: '', value: '' }]
+                                      };
+                                    });
+                                  }}
+                                  title="Delete or Clear Row"
+                                  style={{
+                                    width: '32px',
+                                    height: '32px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    border: '1px solid #fecaca',
+                                    borderRadius: '6px',
+                                    backgroundColor: '#fff',
+                                    color: '#ef4444',
+                                    cursor: 'pointer',
+                                    flexShrink: 0
+                                  }}
+                                  onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#fee2e2'; }}
+                                  onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#fff'; }}
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+
+                          <datalist id="chemical-elements-list">
+                            {(dbSuggestions.chemicalElements || []).map((el, i) => (
+                              <option key={i} value={el} />
+                            ))}
+                          </datalist>
+                          <datalist id="chemical-values-list">
+                            {(dbSuggestions.chemicalValues || []).map((val, i) => (
+                              <option key={i} value={val} />
+                            ))}
+                          </datalist>
+                        </div>
+                      )}
+
+                      {/* Order Commercial Terms Grid */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                        {visibleSpecs.quantity !== false && (
+                          <DbDropdownInput
+                            label="Quantity"
+                            name="quantity"
+                            value={formData.quantity}
+                            onChange={handleChange}
+                            options={dbSuggestions.quantities}
+                          />
+                        )}
+                        {visibleSpecs.rate !== false && (
+                          <DbDropdownInput
+                            label="Rate"
+                            name="price"
+                            value={formData.price}
+                            onChange={handleChange}
+                            options={dbSuggestions.prices}
+                          />
+                        )}
+                        {visibleSpecs.delivery !== false && (
+                          <DbDropdownInput
+                            label="Delivery"
+                            name="delivery"
+                            value={formData.delivery}
+                            onChange={handleChange}
+                            options={dbSuggestions.deliveries}
+                          />
+                        )}
+                        {visibleSpecs.paymentCondition !== false && (
+                          <DbDropdownInput
+                            label="Payment Condition"
+                            name="paymentCondition"
+                            value={formData.paymentCondition}
+                            onChange={handleChange}
+                            options={dbSuggestions.paymentConditions}
+                          />
+                        )}
+                        {visibleSpecs.gst !== false && (
+                          <div style={{ gridColumn: '1 / -1' }}>
+                            <DbDropdownInput
+                              label="GST Clause"
+                              name="gstRate"
+                              value={formData.gstRate}
+                              onChange={handleChange}
+                              options={dbSuggestions.gstClauses}
+                            />
                           </div>
                         )}
-                      </div>
-                    </div>
-
-                    {/* Order Commercial Terms Grid */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-                      <DbDropdownInput
-                        label="Quantity"
-                        name="quantity"
-                        value={formData.quantity}
-                        onChange={handleChange}
-                        options={dbSuggestions.quantities}
-                        placeholder="e.g. 300 MTS"
-                      />
-                      <DbDropdownInput
-                        label="Rate"
-                        name="price"
-                        value={formData.price}
-                        onChange={handleChange}
-                        options={dbSuggestions.prices}
-                        placeholder="e.g. 41000 PMT"
-                      />
-                      <DbDropdownInput
-                        label="Delivery"
-                        name="delivery"
-                        value={formData.delivery}
-                        onChange={handleChange}
-                        options={dbSuggestions.deliveries}
-                        placeholder="e.g. For"
-                      />
-                      <DbDropdownInput
-                        label="Payment Condition"
-                        name="paymentCondition"
-                        value={formData.paymentCondition}
-                        onChange={handleChange}
-                        options={dbSuggestions.paymentConditions}
-                        placeholder="e.g. Advance"
-                      />
-                      <div style={{ gridColumn: '1 / -1' }}>
-                        <DbDropdownInput
-                          label="GST Clause"
-                          name="gstRate"
-                          value={formData.gstRate}
-                          onChange={handleChange}
-                          options={dbSuggestions.gstClauses}
-                          placeholder="e.g. 18% of GST or AS Applicable at time of dispatch"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Signatory & Signature Block */}
-                  <div style={{ gridColumn: '1 / -1', borderTop: '1px solid #e2e8f0', paddingTop: '14px', marginTop: '4px' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-                      <div className="form-group">
-                        <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>Signatory Name / Firm</label>
-                        <input
-                          type="text"
-                          name="signatoryName"
-                          value={formData.signatoryName}
-                          onChange={handleChange}
-                          placeholder="e.g. Jai Bhole Traders"
-                          style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 12px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>
-                          Signature / Stamp (Click or Ctrl+V)
-                        </label>
-                        <div
-                          onPaste={handleSignaturePaste}
-                          tabIndex="0"
-                          style={{
-                            width: '100%',
-                            border: '2px dashed #cbd5e1',
-                            borderRadius: '8px',
-                            padding: '8px 12px',
-                            textAlign: 'center',
-                            color: '#64748b',
-                            cursor: 'pointer',
-                            position: 'relative',
-                            outline: 'none',
-                            backgroundColor: '#f8fafc',
-                            minHeight: '42px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            boxSizing: 'border-box'
-                          }}
-                        >
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleFileUpload}
-                            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', zIndex: 5 }}
-                          />
-                          {formData.signatureDataUrl ? (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', position: 'relative', zIndex: 10 }}>
-                              <img 
-                                src={formData.signatureDataUrl} 
-                                alt="Signature" 
-                                style={{ height: '32px', objectFit: 'contain' }} 
-                                onError={(e) => {
-                                  const compSig = COMPANY_DETAILS[formData.companyName]?.signature;
-                                  if (compSig && e.target.src !== compSig) {
-                                    e.target.src = compSig;
-                                  }
-                                }}
-                              />
-                              <span
-                                style={{ fontSize: '0.72rem', color: '#ef4444', cursor: 'pointer', fontWeight: 600 }}
-                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFormData(prev => ({ ...prev, signatureDataUrl: '' })); }}>
-                                Remove
-                              </span>
-                            </div>
-                          ) : (
-                            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                              Click to upload or Ctrl+V
+                        {/* Dynamic Custom Fields Section */}
+                        <div style={{ gridColumn: '1 / -1', marginTop: '6px', paddingTop: '10px', borderTop: '1px dashed #e2e8f0' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                            <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                              Custom Specification Fields (Add Extra Columns)
                             </span>
-                          )}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  customFields: [...(prev.customFields || []), { label: '', value: '' }]
+                                }));
+                              }}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                padding: '4px 10px',
+                                fontSize: '0.74rem',
+                                fontWeight: 700,
+                                borderRadius: '6px',
+                                backgroundColor: '#fee2e2',
+                                color: '#dc2626',
+                                border: '1px solid #fecaca',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              <Plus size={13} /> + Add Custom Field
+                            </button>
+                          </div>
+
+                          {Array.isArray(formData.customFields) && formData.customFields.map((field, cIdx) => (
+                            <div key={cIdx} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                              <div style={{ width: '38%' }}>
+                                <input
+                                  type="text"
+                                  placeholder="Field Name (e.g. Loading Point)"
+                                  value={field.label || ''}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setFormData(prev => {
+                                      const next = [...(prev.customFields || [])];
+                                      next[cIdx] = { ...next[cIdx], label: val };
+                                      return { ...prev, customFields: next };
+                                    });
+                                  }}
+                                  style={{
+                                    width: '100%',
+                                    border: '1px solid #cbd5e1',
+                                    borderRadius: '6px',
+                                    padding: '7px 10px',
+                                    fontSize: '0.8rem',
+                                    fontWeight: 600,
+                                    boxSizing: 'border-box'
+                                  }}
+                                />
+                              </div>
+                              <div style={{ flex: 1 }}>
+                                <input
+                                  type="text"
+                                  placeholder="Value / Details"
+                                  value={field.value || ''}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setFormData(prev => {
+                                      const next = [...(prev.customFields || [])];
+                                      next[cIdx] = { ...next[cIdx], value: val };
+                                      return { ...prev, customFields: next };
+                                    });
+                                  }}
+                                  style={{
+                                    width: '100%',
+                                    border: '1px solid #cbd5e1',
+                                    borderRadius: '6px',
+                                    padding: '7px 10px',
+                                    fontSize: '0.8rem',
+                                    boxSizing: 'border-box'
+                                  }}
+                                />
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    customFields: (prev.customFields || []).filter((_, i) => i !== cIdx)
+                                  }));
+                                }}
+                                style={{
+                                  width: '30px',
+                                  height: '30px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  border: '1px solid #fecaca',
+                                  borderRadius: '6px',
+                                  backgroundColor: '#fff',
+                                  color: '#ef4444',
+                                  cursor: 'pointer',
+                                  flexShrink: 0
+                                }}
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     </div>
-                  </div>
+                  )}
+
+                  {/* Signatory & Signature Block */}
+                  {visibleSpecs.signatory !== false && (
+                    <div style={{ gridColumn: '1 / -1', borderTop: '1px solid #e2e8f0', paddingTop: '14px', marginTop: '4px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                        <DbDropdownInput
+                          label="Signatory Name / Firm"
+                          name="signatoryName"
+                          value={formData.signatoryName}
+                          onChange={handleChange}
+                          options={dbSuggestions.signatories}
+                        />
+                        <div className="form-group">
+                          <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>
+                            Signature / Stamp (Click or Ctrl+V)
+                          </label>
+                          <div
+                            onPaste={handleSignaturePaste}
+                            tabIndex="0"
+                            style={{
+                              width: '100%',
+                              border: '2px dashed #cbd5e1',
+                              borderRadius: '8px',
+                              padding: '8px 12px',
+                              textAlign: 'center',
+                              color: '#64748b',
+                              cursor: 'pointer',
+                              position: 'relative',
+                              outline: 'none',
+                              backgroundColor: '#f8fafc',
+                              minHeight: '42px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              boxSizing: 'border-box'
+                            }}
+                          >
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleFileUpload}
+                              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', zIndex: 5 }}
+                            />
+                            {formData.signatureDataUrl ? (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', position: 'relative', zIndex: 10 }}>
+                                <img 
+                                  src={formData.signatureDataUrl} 
+                                  alt="Signature" 
+                                  style={{ height: '32px', objectFit: 'contain' }} 
+                                  onError={(e) => {
+                                    const compSig = COMPANY_DETAILS[formData.companyName]?.signature;
+                                    if (compSig && e.target.src !== compSig) {
+                                      e.target.src = compSig;
+                                    }
+                                  }}
+                                />
+                                <span
+                                  style={{ fontSize: '0.72rem', color: '#ef4444', cursor: 'pointer', fontWeight: 600 }}
+                                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFormData(prev => ({ ...prev, signatureDataUrl: '' })); }}>
+                                  Remove
+                                </span>
+                              </div>
+                            ) : (
+                              <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                                Click to upload or Ctrl+V
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Conditions & Jurisdiction */}
-                  <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                    <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>Jurisdiction & Closing Terms</label>
-                    <textarea
-                      name="terms"
-                      value={formData.terms}
-                      onChange={handleChange}
-                      rows="2"
-                      style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 12px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box', resize: 'vertical' }}
-                    />
-                  </div>
+                  {visibleSpecs.terms !== false && (
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <DbDropdownInput
+                        label="Jurisdiction & Closing Terms"
+                        name="terms"
+                        value={formData.terms}
+                        onChange={handleChange}
+                        options={dbSuggestions.termsList}
+                        isTextarea={true}
+                        rows={2}
+                      />
+                    </div>
+                  )}
                 </div>
               ) : (
                 /* ================= WORK ORDER FORM ================= */
@@ -2590,17 +2879,66 @@ const WorkOrder = () => {
                   />
                 </div>
 
-                <div className="form-group">
+                <div className="form-group" style={{ position: 'relative' }}>
                   <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>Issuing Company</label>
-                  <select
-                    name="companyName"
-                    value={formData.companyName}
-                    onChange={handleChange}
-                    style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 12px', fontSize: '0.85rem', outline: 'none', backgroundColor: '#fff', cursor: 'pointer', boxSizing: 'border-box' }}
-                  >
-                    {Object.keys(COMPANY_DETAILS).map(name => <option key={name} value={name}>{name}</option>)}
-                  </select>
+                  <div style={{ position: 'relative' }}>
+                    <select
+                      name="companyName"
+                      value={formData.companyName}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        const comp = allCompanies[val];
+                        setFormData(prev => ({
+                          ...prev,
+                          companyName: val,
+                          headerGstin: comp?.gstin || prev.headerGstin || '',
+                          address: comp?.address || prev.address,
+                          footerContact: comp?.footerContact || prev.footerContact,
+                          signatureDataUrl: comp?.signature || prev.signatureDataUrl || '',
+                          signatoryName: comp ? comp.name : prev.signatoryName
+                        }));
+                      }}
+                      style={{
+                        width: '100%',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '8px',
+                        padding: '8.5px 36px 8.5px 12px',
+                        fontSize: '0.85rem',
+                        outline: 'none',
+                        backgroundColor: '#fff',
+                        cursor: 'pointer',
+                        appearance: 'none',
+                        WebkitAppearance: 'none',
+                        MozAppearance: 'none',
+                        fontWeight: formData.companyName ? 600 : 400,
+                        color: formData.companyName ? '#0f172a' : '#64748b',
+                        boxSizing: 'border-box'
+                      }}
+                    >
+                      <option value="">-- Select Issuing Company --</option>
+                      {Object.keys(allCompanies).map(name => <option key={name} value={name}>{name}</option>)}
+                    </select>
+                    <ChevronDown
+                      size={15}
+                      style={{
+                        position: 'absolute',
+                        right: '12px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        color: '#64748b',
+                        pointerEvents: 'none'
+                      }}
+                    />
+                  </div>
                 </div>
+
+                <DbDropdownInput
+                  label="GSTIN No."
+                  name="headerGstin"
+                  value={formData.headerGstin}
+                  onChange={handleChange}
+                  options={dbSuggestions.buyerGsts || []}
+                />
 
                 <DbDropdownInput
                   label="Document Heading / Title"
@@ -2608,43 +2946,31 @@ const WorkOrder = () => {
                   value={formData.orderTitle}
                   onChange={handleChange}
                   options={dbSuggestions.orderTitles}
-                  placeholder="e.g. WORK ORDER or DELIVERY ORDER"
                 />
 
-                <div className="form-group">
-                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>Work Order No. (Auto)</label>
-                  <input
-                    type="text"
-                    name="workOrderNo"
-                    value={formData.workOrderNo || ''}
-                    onChange={handleChange}
-                    placeholder="Auto-generated e.g. WO-2026-001"
-                    style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 12px', fontSize: '0.85rem', outline: 'none', backgroundColor: '#f8fafc', color: '#0f172a', fontWeight: 600, boxSizing: 'border-box' }}
-                  />
-                </div>
+                <DbDropdownInput
+                  label="Work Order No. (Auto)"
+                  name="workOrderNo"
+                  value={formData.workOrderNo || ''}
+                  onChange={handleChange}
+                  options={dbSuggestions.orderNos || []}
+                />
 
-                <div className="form-group">
-                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>Signatory Name</label>
-                  <input
-                    type="text"
-                    name="signatoryName"
-                    value={formData.signatoryName}
-                    onChange={handleChange}
-                    style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 12px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
-                  />
-                </div>
+                <DbDropdownInput
+                  label="Signatory Name"
+                  name="signatoryName"
+                  value={formData.signatoryName}
+                  onChange={handleChange}
+                  options={dbSuggestions.signatories || []}
+                />
 
-                <div className="form-group">
-                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>Signatory Title / Phone</label>
-                  <input
-                    type="text"
-                    name="signatoryTitle"
-                    value={formData.signatoryTitle}
-                    onChange={handleChange}
-                    placeholder="e.g. 9165422000"
-                    style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 12px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
-                  />
-                </div>
+                <DbDropdownInput
+                  label="Signatory Title / Phone"
+                  name="signatoryTitle"
+                  value={formData.signatoryTitle}
+                  onChange={handleChange}
+                  options={dbSuggestions.signatoryTitles || []}
+                />
 
                 <div className="form-group">
                   <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>
@@ -2714,9 +3040,11 @@ const WorkOrder = () => {
                       label="Receiver / Buyer Name"
                       name="buyerName"
                       value={formData.buyerName}
-                      onChange={(e) => handleBuyerChange(e.target.value)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFormData(prev => ({ ...prev, buyerName: val }));
+                      }}
                       options={dbSuggestions.buyers}
-                      placeholder="Search or enter receiver name"
                       required={true}
                     />
                     <DbDropdownInput
@@ -2725,7 +3053,6 @@ const WorkOrder = () => {
                       value={formData.buyerDistState}
                       onChange={handleChange}
                       options={dbSuggestions.distStates}
-                      placeholder="e.g. Durg (C.G.)"
                     />
                     <div style={{ gridColumn: '1 / -1' }}>
                       <DbDropdownInput
@@ -2734,7 +3061,6 @@ const WorkOrder = () => {
                         value={formData.buyerAddress}
                         onChange={handleChange}
                         options={dbSuggestions.addresses}
-                        placeholder="Complete postal address with landmarks..."
                         isTextarea={true}
                         rows={2}
                       />
@@ -2771,14 +3097,13 @@ const WorkOrder = () => {
                     </div>
                   </div>
 
-                  <div className="form-group" style={{ marginBottom: '14px' }}>
-                    <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>Subject Line</label>
-                    <input
-                      type="text"
+                  <div style={{ marginBottom: '14px' }}>
+                    <DbDropdownInput
+                      label="Subject Line"
                       name="subject"
                       value={formData.subject}
                       onChange={handleChange}
-                      style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 12px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
+                      options={dbSuggestions.subjects || []}
                     />
                   </div>
 
@@ -2790,7 +3115,6 @@ const WorkOrder = () => {
                         value={formData.commodity}
                         onChange={handleChange}
                         options={dbSuggestions.commodities}
-                        placeholder="e.g. Coal / Wash Coal"
                       />
                     )}
                     {visibleSpecs.mines && (
@@ -2800,7 +3124,6 @@ const WorkOrder = () => {
                         value={formData.mines}
                         onChange={handleChange}
                         options={dbSuggestions.minesList}
-                        placeholder="e.g. Dipka / Gevra"
                       />
                     )}
                     {visibleSpecs.quantity && (
@@ -2810,7 +3133,6 @@ const WorkOrder = () => {
                         value={formData.quantity}
                         onChange={handleChange}
                         options={dbSuggestions.quantities}
-                        placeholder="e.g. 1000 MT"
                       />
                     )}
                     {visibleSpecs.fcGuarantee && (
@@ -2820,7 +3142,6 @@ const WorkOrder = () => {
                         value={formData.fcGuarantee}
                         onChange={handleChange}
                         options={dbSuggestions.fcGuarantees}
-                        placeholder="e.g. 45% or Nil"
                       />
                     )}
                     {visibleSpecs.shortageTolerance && (
@@ -2830,21 +3151,16 @@ const WorkOrder = () => {
                         value={formData.shortageTolerance}
                         onChange={handleChange}
                         options={dbSuggestions.shortageTolerances}
-                        placeholder="e.g. 0.5%"
                       />
                     )}
                     {visibleSpecs.doDueDate && (
-                      <div className="form-group">
-                        <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>D.O. Due Date</label>
-                        <input
-                          type="text"
-                          name="doDueDate"
-                          value={formData.doDueDate}
-                          onChange={handleChange}
-                          placeholder="e.g. 15 Days from order"
-                          style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 12px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
-                        />
-                      </div>
+                      <DbDropdownInput
+                        label="D.O. Due Date"
+                        name="doDueDate"
+                        value={formData.doDueDate}
+                        onChange={handleChange}
+                        options={dbSuggestions.doDueDates || []}
+                      />
                     )}
                     {visibleSpecs.doCopy && (
                       <DbDropdownInput
@@ -2853,7 +3169,6 @@ const WorkOrder = () => {
                         value={formData.doCopy}
                         onChange={handleChange}
                         options={dbSuggestions.doCopies}
-                        placeholder="Select or enter DO copy info"
                       />
                     )}
                     {visibleSpecs.price && (
@@ -2864,46 +3179,154 @@ const WorkOrder = () => {
                           value={formData.price}
                           onChange={handleChange}
                           options={dbSuggestions.prices}
-                          placeholder="Price description or structure..."
                           isTextarea={true}
                           rows={2}
                         />
                       </div>
                     )}
                     {visibleSpecs.destinationAdd && (
-                      <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                        <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>Destination Address</label>
-                        <input
-                          type="text"
+                      <div style={{ gridColumn: '1 / -1' }}>
+                        <DbDropdownInput
+                          label="Destination Address"
                           name="destinationAdd"
                           value={formData.destinationAdd}
                           onChange={handleChange}
-                          placeholder="Unloading destination address..."
-                          style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 12px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
+                          options={dbSuggestions.destinationAddresses || []}
                         />
                       </div>
                     )}
                     {visibleSpecs.note && (
-                      <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                        <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>Special Note</label>
-                        <textarea
+                      <div style={{ gridColumn: '1 / -1' }}>
+                        <DbDropdownInput
+                          label="Special Note"
                           name="note"
                           value={formData.note}
                           onChange={handleChange}
-                          rows="2"
-                          placeholder="Any special remarks or instructions..."
-                          style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 12px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box', resize: 'vertical' }}
+                          options={dbSuggestions.notes || []}
+                          isTextarea={true}
+                          rows={2}
                         />
                       </div>
                     )}
-                    <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                      <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>Terms & Conditions</label>
-                      <textarea
+
+                    {/* Custom Specification Fields in Work Order Form */}
+                    <div style={{ gridColumn: '1 / -1', marginTop: '6px', paddingTop: '10px', borderTop: '1px dashed #e2e8f0' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                          Custom Specification Fields (Add Extra Columns)
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData(prev => ({
+                              ...prev,
+                              customFields: [...(prev.customFields || []), { label: '', value: '' }]
+                            }));
+                          }}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            padding: '4px 10px',
+                            fontSize: '0.74rem',
+                            fontWeight: 700,
+                            borderRadius: '6px',
+                            backgroundColor: '#fee2e2',
+                            color: '#dc2626',
+                            border: '1px solid #fecaca',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <Plus size={13} /> + Add Custom Field
+                        </button>
+                      </div>
+
+                      {Array.isArray(formData.customFields) && formData.customFields.map((field, cIdx) => (
+                        <div key={cIdx} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                          <div style={{ width: '38%' }}>
+                            <input
+                              type="text"
+                              placeholder="Field Name (e.g. Loading Point)"
+                              value={field.label || ''}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setFormData(prev => {
+                                  const next = [...(prev.customFields || [])];
+                                  next[cIdx] = { ...next[cIdx], label: val };
+                                  return { ...prev, customFields: next };
+                                });
+                              }}
+                              style={{
+                                width: '100%',
+                                border: '1px solid #cbd5e1',
+                                borderRadius: '6px',
+                                padding: '7px 10px',
+                                fontSize: '0.8rem',
+                                fontWeight: 600,
+                                boxSizing: 'border-box'
+                              }}
+                            />
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <input
+                              type="text"
+                              placeholder="Value / Details"
+                              value={field.value || ''}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setFormData(prev => {
+                                  const next = [...(prev.customFields || [])];
+                                  next[cIdx] = { ...next[cIdx], value: val };
+                                  return { ...prev, customFields: next };
+                                });
+                              }}
+                              style={{
+                                width: '100%',
+                                border: '1px solid #cbd5e1',
+                                borderRadius: '6px',
+                                padding: '7px 10px',
+                                fontSize: '0.8rem',
+                                boxSizing: 'border-box'
+                              }}
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFormData(prev => ({
+                                ...prev,
+                                customFields: (prev.customFields || []).filter((_, i) => i !== cIdx)
+                              }));
+                            }}
+                            style={{
+                              width: '30px',
+                              height: '30px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              border: '1px solid #fecaca',
+                              borderRadius: '6px',
+                              backgroundColor: '#fff',
+                              color: '#ef4444',
+                              cursor: 'pointer',
+                              flexShrink: 0
+                            }}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <DbDropdownInput
+                        label="Terms & Conditions"
                         name="terms"
                         value={formData.terms}
                         onChange={handleChange}
-                        rows="3"
-                        style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 12px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box', resize: 'vertical', fontFamily: 'inherit' }}
+                        options={dbSuggestions.termsList || []}
+                        isTextarea={true}
+                        rows={3}
                       />
                     </div>
                   </div>
@@ -2915,30 +3338,477 @@ const WorkOrder = () => {
                     Firm Location Details (Printed at Bottom)
                   </h3>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px' }}>
-                    <div className="form-group">
-                      <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>Firm Address</label>
-                      <textarea
-                        name="address"
-                        value={formData.address}
-                        onChange={handleChange}
-                        rows="2"
-                        style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 12px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '6px' }}>Firm Footer Contact</label>
-                      <input
-                        type="text"
-                        name="footerContact"
-                        value={formData.footerContact}
-                        onChange={handleChange}
-                        style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 12px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
-                      />
-                    </div>
+                    <DbDropdownInput
+                      label="Firm Address"
+                      name="address"
+                      value={formData.address}
+                      onChange={handleChange}
+                      options={dbSuggestions.firmAddresses || []}
+                      isTextarea={true}
+                      rows={2}
+                    />
+                    <DbDropdownInput
+                      label="Firm Footer Contact"
+                      name="footerContact"
+                      value={formData.footerContact}
+                      onChange={handleChange}
+                      options={dbSuggestions.firmFooterContacts || []}
+                    />
                   </div>
                 </div>
                 </div>
               )}
+              </div>
+
+              {/* Right Column: Live Form Preview Document Sheet */}
+              <div style={{
+                flex: 1,
+                backgroundColor: '#1e293b',
+                padding: '12px 14px',
+                overflowY: 'auto',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center'
+              }}>
+                <div style={{
+                  width: '100%',
+                  maxWidth: '540px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: '8px',
+                  color: '#f8fafc'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Eye size={14} style={{ color: '#ef4444' }} />
+                    <span style={{ fontSize: '0.74rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Live Document Preview</span>
+                  </div>
+                  <span style={{ fontSize: '0.68rem', backgroundColor: '#334155', padding: '1.5px 7px', borderRadius: '4px', color: '#94a3b8' }}>
+                    Auto-updates live
+                  </span>
+                </div>
+
+                {/* Render Paper Preview */}
+                <div
+                  style={{
+                    backgroundColor: '#ffffff',
+                    color: '#000000',
+                    padding: '18px 22px',
+                    width: '100%',
+                    maxWidth: '540px',
+                    minHeight: 'auto',
+                    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
+                    borderRadius: '4px',
+                    fontFamily: '"Times New Roman", Times, serif',
+                    fontSize: '11.5px',
+                    lineHeight: '1.28',
+                    boxSizing: 'border-box',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between'
+                  }}
+                >
+                  {formData.docType === 'purchase_order' ? (
+                    /* LIVE PO PREVIEW */
+                    <>
+                      <div>
+                        {/* Header Top: GSTIN */}
+                        {formData.headerGstin && (
+                          <div style={{ textAlign: 'right', fontWeight: 'bold', color: '#1e3a8a', marginBottom: '3px', fontSize: '0.76rem' }}>
+                            GSTIN: {formData.headerGstin}
+                          </div>
+                        )}
+
+                        {/* Header Row: Company Title */}
+                        {formData.companyName && (
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            marginBottom: '6px',
+                            width: '100%'
+                          }}>
+                            {allCompanies[formData.companyName]?.logo && (
+                              <img
+                                src={allCompanies[formData.companyName].logo}
+                                alt="Logo"
+                                style={{ height: '42px', maxWidth: '50px', objectFit: 'contain', marginRight: '8px' }}
+                              />
+                            )}
+                            <h1 style={{
+                              fontSize: '1.65rem',
+                              fontWeight: 'bold',
+                              color: '#1e293b',
+                              fontFamily: '"Baloo 2", "Arial Black", "Segoe UI", sans-serif',
+                              lineHeight: 1,
+                              margin: 0,
+                              whiteSpace: 'nowrap'
+                            }}>
+                              {formData.companyName}
+                            </h1>
+                          </div>
+                        )}
+
+                        {/* Document Title */}
+                        {formData.orderTitle && (
+                          <div style={{ textAlign: 'center', marginBottom: '6px' }}>
+                            <span style={{
+                              fontSize: '0.95rem',
+                              fontWeight: 'bold',
+                              borderBottom: '1.2px solid #000000',
+                              paddingBottom: '3px',
+                              display: 'inline-block',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.04em'
+                            }}>
+                              {formData.orderTitle}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Order No & Date */}
+                        <table style={{ width: '100%', borderCollapse: 'collapse', border: 'none', marginBottom: '6px', fontSize: '11.5px' }}>
+                          <tbody>
+                            <tr style={{ border: 'none' }}>
+                              <td style={{ textAlign: 'left', fontWeight: 'bold', padding: 0, border: 'none' }}>
+                                Order No.: {formData.workOrderNo || '—'}
+                              </td>
+                              <td style={{ textAlign: 'right', fontWeight: 'bold', padding: 0, border: 'none' }}>
+                                Date – {formData.date ? formData.date.split('-').reverse().join('-') : '—'}
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+
+                        {/* Vendor Block */}
+                        {visibleSpecs.vendor !== false && (
+                          <div style={{ marginBottom: '6px', lineHeight: '1.26' }}>
+                            <p style={{ margin: '0 0 1px 0', fontWeight: 'bold' }}>
+                              {(formData.orderTitle || '').toUpperCase().includes('SALE') ? 'FROM,' : 'To,'}
+                            </p>
+                            <p style={{ margin: '0 0 1px 0', fontWeight: 'bold', fontSize: '12px' }}>
+                              {formData.buyerName || 'Vendor / Supplier Name'}
+                            </p>
+                            {formData.buyerAddress && (
+                              <p style={{ margin: '0 0 1px 0', whiteSpace: 'pre-wrap' }}>
+                                {formData.buyerAddress}
+                              </p>
+                            )}
+                            {formData.vendorGst && (
+                              <p style={{ margin: '1px 0 0 0', fontWeight: 'bold' }}>
+                                GST NO. {formData.vendorGst}
+                              </p>
+                            )}
+                          </div>
+                        )}
+
+                        <p style={{ margin: '0 0 3px 0', fontSize: '11px' }}>Dear Sir,</p>
+                        <p style={{ margin: '0 0 6px 0', fontSize: '11px' }}>
+                          Enclosed herewith details for order as given above please receive the same and do needful.
+                        </p>
+
+                        {/* Specs Table */}
+                        <table style={{ width: '100%', borderCollapse: 'collapse', border: 'none', fontSize: '11px', marginBottom: '6px' }}>
+                          <tbody>
+                            {/* Buyer */}
+                            {visibleSpecs.buyer !== false && (formData.selfFirmName || formData.address || formData.buyerGst) && (
+                              <tr>
+                                <td style={{ width: '30%', padding: '2px 0', verticalAlign: 'top', border: 'none', fontWeight: 600 }}>Buyer</td>
+                                <td style={{ width: '5%', verticalAlign: 'top', border: 'none' }}>:</td>
+                                <td style={{ padding: '2px 0', verticalAlign: 'top', border: 'none' }}>
+                                  {formData.selfFirmName && <div style={{ fontWeight: 600 }}>{formData.selfFirmName}</div>}
+                                  {formData.address && <div style={{ whiteSpace: 'pre-wrap' }}>{formData.address}</div>}
+                                  {formData.buyerGst && <div style={{ fontWeight: 'bold' }}>GST No- <span>{formData.buyerGst}</span></div>}
+                                </td>
+                              </tr>
+                            )}
+
+                            {/* Consignee */}
+                            {visibleSpecs.consignee !== false && (
+                              <tr>
+                                <td style={{ padding: '2px 0', verticalAlign: 'top', border: 'none', fontWeight: 600 }}>Consignee</td>
+                                <td style={{ verticalAlign: 'top', border: 'none' }}>:</td>
+                                <td style={{ padding: '2px 0', verticalAlign: 'top', border: 'none' }}>
+                                  <div style={{ fontWeight: 600 }}>{formData.consigneeName || '—'}</div>
+                                  {formData.consigneeAddress && <div style={{ whiteSpace: 'pre-wrap' }}>{formData.consigneeAddress}</div>}
+                                  {formData.consigneeGst && <div style={{ fontWeight: 'bold' }}>GST No - <span>{formData.consigneeGst}</span></div>}
+                                </td>
+                              </tr>
+                            )}
+
+                            {/* Material & Chemical */}
+                            {visibleSpecs.material !== false && (
+                              <tr>
+                                <td style={{ padding: '2px 0', verticalAlign: 'top', border: 'none', fontWeight: 600 }}>Material</td>
+                                <td style={{ verticalAlign: 'top', border: 'none' }}>:</td>
+                                <td style={{ padding: '2px 0', verticalAlign: 'top', border: 'none' }}>
+                                  <div style={{ fontWeight: 600 }}>{formData.materialName || '—'}</div>
+                                  {visibleSpecs.chemicalSpecs !== false && Array.isArray(formData.chemicalSpecs) && formData.chemicalSpecs.filter(s => s && (s.name || s.value)).length > 0 && (
+                                    <table style={{ borderCollapse: 'collapse', border: 'none', marginTop: '2px', fontSize: '10.5px' }}>
+                                      <tbody>
+                                        {formData.chemicalSpecs.filter(s => s && (s.name || s.value)).map((spec, i) => (
+                                          <tr key={i}>
+                                            <td style={{ width: '45px', padding: 0, fontWeight: 'bold', border: 'none' }}>{spec.name}</td>
+                                            <td style={{ padding: 0, border: 'none' }}>: {spec.value}</td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  )}
+                                </td>
+                              </tr>
+                            )}
+
+                            {visibleSpecs.quantity !== false && formData.quantity && (
+                              <tr>
+                                <td style={{ padding: '1.5px 0', border: 'none', fontWeight: 600 }}>Quantity</td>
+                                <td style={{ border: 'none' }}>:</td>
+                                <td style={{ padding: '1.5px 0', border: 'none', fontWeight: 600 }}>{formData.quantity}</td>
+                              </tr>
+                            )}
+
+                            {visibleSpecs.rate !== false && formData.price && (
+                              <tr>
+                                <td style={{ padding: '1.5px 0', border: 'none', fontWeight: 600 }}>Rate</td>
+                                <td style={{ border: 'none' }}>:</td>
+                                <td style={{ padding: '1.5px 0', border: 'none' }}>{formData.price}</td>
+                              </tr>
+                            )}
+
+                            {visibleSpecs.delivery !== false && formData.delivery && (
+                              <tr>
+                                <td style={{ padding: '1.5px 0', border: 'none', fontWeight: 600 }}>Delivery</td>
+                                <td style={{ border: 'none' }}>:</td>
+                                <td style={{ padding: '1.5px 0', border: 'none' }}>{formData.delivery}</td>
+                              </tr>
+                            )}
+
+                            {visibleSpecs.paymentCondition !== false && formData.paymentCondition && (
+                              <tr>
+                                <td style={{ padding: '1.5px 0', border: 'none', fontWeight: 600 }}>Payment Condition</td>
+                                <td style={{ border: 'none' }}>:</td>
+                                <td style={{ padding: '1.5px 0', border: 'none' }}>{formData.paymentCondition}</td>
+                              </tr>
+                            )}
+
+                            {visibleSpecs.gst !== false && formData.gstRate && (
+                              <tr>
+                                <td style={{ padding: '1.5px 0', border: 'none', fontWeight: 600 }}>Gst</td>
+                                <td style={{ border: 'none' }}>:</td>
+                                <td style={{ padding: '1.5px 0', border: 'none' }}>{formData.gstRate}</td>
+                              </tr>
+                            )}
+
+                            {/* Dynamic Custom Fields */}
+                            {Array.isArray(formData.customFields) && formData.customFields.filter(f => f && (f.label || f.value)).map((cf, cIdx) => (
+                              <tr key={cIdx}>
+                                <td style={{ padding: '1.5px 0', border: 'none', fontWeight: 600 }}>{cf.label || '—'}</td>
+                                <td style={{ border: 'none' }}>:</td>
+                                <td style={{ padding: '1.5px 0', border: 'none' }}>{cf.value || '—'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+
+                        {/* Terms */}
+                        {visibleSpecs.terms !== false && formData.terms && (
+                          <div style={{ marginTop: '3px', fontSize: '10.5px', lineHeight: '1.26', whiteSpace: 'pre-wrap' }}>
+                            {formData.terms}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Footer & Signature */}
+                      {visibleSpecs.signatory !== false && (
+                        <div style={{ marginTop: 'auto', paddingTop: '8px', fontSize: '11px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '3px' }}>
+                            <div>
+                              <p style={{ fontWeight: 'bold', margin: '0' }}>Thanking You</p>
+                              <p style={{ margin: '0 0 1px 0' }}>Yours truly</p>
+                              <p style={{ fontWeight: 'bold', margin: '0', whiteSpace: 'nowrap' }}>{formData.signatoryName || formData.companyName || ''}</p>
+                            </div>
+                            {(formData.signatureDataUrl || (formData.companyName && allCompanies[formData.companyName]?.signature)) && (
+                              <img 
+                                src={formData.signatureDataUrl || allCompanies[formData.companyName]?.signature} 
+                                alt="Signature" 
+                                style={{ height: '42px', maxWidth: '110px', objectFit: 'contain' }} 
+                              />
+                            )}
+                          </div>
+                          {((formData.companyName && allCompanies[formData.companyName]?.address) || formData.footerContact || (formData.companyName && allCompanies[formData.companyName]?.footerContact)) && (
+                            <div style={{ borderTop: '1px solid #1e3a8a', marginTop: '3px', paddingTop: '2px', textAlign: 'center', fontSize: '0.62rem', color: '#1d4ed8' }}>
+                              {formData.companyName && allCompanies[formData.companyName]?.address && <div>{allCompanies[formData.companyName].address}</div>}
+                              {(formData.footerContact || (formData.companyName && allCompanies[formData.companyName]?.footerContact)) && (
+                                <div>{formData.footerContact || allCompanies[formData.companyName]?.footerContact}</div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    /* LIVE WO PREVIEW (FULL RICH LETTER DESIGN SCALED) */
+                    <>
+                      <div>
+                        {/* Header Top: GSTIN */}
+                        {formData.headerGstin && (
+                          <div style={{ textAlign: 'right', fontWeight: 'bold', color: '#1e3a8a', marginBottom: '3px', fontSize: '0.76rem' }}>
+                            GSTIN : {formData.headerGstin}
+                          </div>
+                        )}
+
+                        {/* Header Row: Logo + Company Title */}
+                        {formData.companyName && (
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            marginBottom: '6px',
+                            width: '100%'
+                          }}>
+                            {allCompanies[formData.companyName]?.logo && (
+                              <img
+                                src={allCompanies[formData.companyName].logo}
+                                alt="Logo"
+                                style={{ height: '42px', maxWidth: '50px', objectFit: 'contain', marginRight: '8px' }}
+                              />
+                            )}
+                            <h1 style={{
+                              fontSize: '1.5rem',
+                              fontWeight: 'bold',
+                              color: allCompanies[formData.companyName]?.textColor || '#1e293b',
+                              fontFamily: '"Baloo 2", "Arial Black", "Segoe UI", sans-serif',
+                              lineHeight: 1,
+                              margin: 0,
+                              whiteSpace: 'nowrap'
+                            }}>
+                              {formData.companyName}
+                            </h1>
+                          </div>
+                        )}
+
+                        {/* Document Title & Date */}
+                        <table style={{ width: '100%', borderCollapse: 'collapse', border: 'none', marginBottom: '6px' }}>
+                          <tbody>
+                            <tr style={{ verticalAlign: 'middle', border: 'none' }}>
+                              <td style={{ textAlign: 'center', verticalAlign: 'middle', padding: 0, border: 'none' }}>
+                                {formData.orderTitle && (
+                                  <span style={{
+                                    fontSize: '0.95rem',
+                                    fontWeight: 'bold',
+                                    borderBottom: '1.2px solid #000000',
+                                    paddingBottom: '3px',
+                                    display: 'inline-block',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.04em'
+                                  }}>
+                                    {formData.orderTitle}
+                                  </span>
+                                )}
+                              </td>
+                              <td style={{ width: '110px', textAlign: 'right', verticalAlign: 'middle', padding: 0, fontWeight: 'bold', fontSize: '0.78rem', color: '#000000', whiteSpace: 'nowrap', border: 'none' }}>
+                                {formData.date ? `Date - ${formData.date.split('-').reverse().join('-')}` : ''}
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+
+                        {/* Order No */}
+                        {formData.workOrderNo && (
+                          <div style={{ fontSize: '11px', fontWeight: 'bold', marginBottom: '4px' }}>
+                            Order No: {formData.workOrderNo}
+                          </div>
+                        )}
+
+                        {/* Receiver (To) Block */}
+                        {(formData.buyerName || formData.buyerAddress || formData.buyerDistState) && (
+                          <div style={{ marginBottom: '5px', lineHeight: '1.3', fontSize: '11px' }}>
+                            <p style={{ margin: '0 0 1px 0' }}>To,</p>
+                            {formData.buyerName && <p style={{ margin: '0 0 1px 0', fontWeight: 'bold' }}>{formData.buyerName}</p>}
+                            {formData.buyerAddress && <p style={{ margin: '0 0 1px 0', whiteSpace: 'pre-wrap' }}>{formData.buyerAddress}</p>}
+                            {formData.buyerDistState && <p style={{ margin: 0 }}>Dist :- {formData.buyerDistState}</p>}
+                          </div>
+                        )}
+
+                        {/* Subject */}
+                        {formData.subject && (
+                          <p style={{ margin: '0 0 4px 0', fontSize: '11px' }}>
+                            <span style={{ fontWeight: 'bold', borderBottom: '1px solid #000', paddingBottom: '2px' }}>
+                              Subject: - {formData.subject}
+                            </span>
+                          </p>
+                        )}
+
+                        <p style={{ margin: '0 0 3px 0', fontSize: '11px' }}>Dear Sir,</p>
+                        <p style={{ margin: '0 0 6px 0', fontSize: '11px' }}>
+                          With Reference to telephonic discussion, we are pleased to give you a work order for Transporting Work of coal.
+                        </p>
+
+                        {/* Specifications Table */}
+                        <table style={{ width: '96%', margin: '0 auto 6px auto', borderCollapse: 'collapse', lineHeight: '1.28', border: 'none', fontSize: '11px' }}>
+                          <tbody>
+                            {visibleSpecs.commodity && formData.commodity && <tr><td style={{ width: '42%', padding: '1.5px 0', border: 'none' }}>Name of Commodity</td><td style={{ width: '8%', border: 'none' }}>:-</td><td style={{ border: 'none' }}><b>{formData.commodity}</b></td></tr>}
+                            {visibleSpecs.mines && formData.mines && <tr><td style={{ padding: '1.5px 0', border: 'none' }}>Mines</td><td style={{ border: 'none' }}>:-</td><td style={{ border: 'none' }}>{formData.mines}</td></tr>}
+                            {visibleSpecs.price && formData.price && <tr><td style={{ verticalAlign: 'top', padding: '1.5px 0', border: 'none' }}>Price</td><td style={{ verticalAlign: 'top', border: 'none' }}>:-</td><td style={{ whiteSpace: 'pre-wrap', fontWeight: 'bold', border: 'none' }}>{formData.price}</td></tr>}
+                            {visibleSpecs.quantity && formData.quantity && <tr><td style={{ padding: '1.5px 0', border: 'none' }}>Quantity</td><td style={{ border: 'none' }}>:-</td><td style={{ border: 'none' }}><b>{formData.quantity}</b></td></tr>}
+                            {visibleSpecs.fcGuarantee && formData.fcGuarantee && <tr><td style={{ padding: '1.5px 0', border: 'none' }}>FC Guarantee</td><td style={{ border: 'none' }}>:-</td><td style={{ border: 'none' }}>{formData.fcGuarantee}</td></tr>}
+                            {visibleSpecs.shortageTolerance && formData.shortageTolerance && <tr><td style={{ padding: '1.5px 0', border: 'none' }}>Shortage Tolerance</td><td style={{ border: 'none' }}>:-</td><td style={{ border: 'none' }}>{formData.shortageTolerance}</td></tr>}
+                            {visibleSpecs.doDueDate && formData.doDueDate && <tr><td style={{ padding: '1.5px 0', border: 'none' }}>D.O.Due Date</td><td style={{ border: 'none' }}>:-</td><td style={{ border: 'none' }}>{formData.doDueDate}</td></tr>}
+                            {visibleSpecs.doCopy && formData.doCopy && <tr><td style={{ padding: '1.5px 0', border: 'none' }}>D.O.Copy</td><td style={{ border: 'none' }}>:-</td><td style={{ border: 'none' }}>{formData.doCopy}</td></tr>}
+                            {visibleSpecs.destinationAdd && formData.destinationAdd && <tr><td style={{ padding: '1.5px 0', border: 'none' }}>Destination Add.</td><td style={{ border: 'none' }}>:-</td><td style={{ border: 'none' }}>{formData.destinationAdd}</td></tr>}
+                            {visibleSpecs.note && formData.note && <tr><td style={{ verticalAlign: 'top', padding: '1.5px 0', border: 'none' }}>Note</td><td style={{ verticalAlign: 'top', border: 'none' }}>:-</td><td style={{ whiteSpace: 'pre-wrap', border: 'none' }}>{formData.note}</td></tr>}
+                            {/* Dynamic Custom Fields */}
+                            {Array.isArray(formData.customFields) && formData.customFields.filter(f => f && (f.label || f.value)).map((cf, cIdx) => (
+                              <tr key={cIdx}>
+                                <td style={{ padding: '1.5px 0', border: 'none' }}>{cf.label || '—'}</td>
+                                <td style={{ border: 'none' }}>:-</td>
+                                <td style={{ border: 'none' }}><b>{cf.value || '—'}</b></td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+
+                        {/* Terms */}
+                        {formData.terms && (
+                          <div style={{ marginTop: '4px', fontSize: '10.5px', lineHeight: '1.25' }}>
+                            <span style={{ fontWeight: 'bold', borderBottom: '1px solid #000', paddingBottom: '2px', display: 'inline-block', marginBottom: '3px' }}>
+                              Term & Conditions
+                            </span>
+                            <div style={{ paddingLeft: '8px', whiteSpace: 'pre-wrap' }}>{formData.terms}</div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Footer & Signature */}
+                      {(formData.companyName || formData.signatoryName || formData.signatureDataUrl || formData.address) && (
+                        <div style={{ marginTop: 'auto', paddingTop: '8px', fontSize: '11px' }}>
+                          <p style={{ fontWeight: 'bold', margin: '0 0 2px 0' }}>For {formData.companyName || ''}</p>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '3px' }}>
+                            <div>
+                              <p style={{ fontWeight: 'bold', margin: '0', whiteSpace: 'nowrap' }}>{formData.signatoryName || ''}</p>
+                              <p style={{ margin: '0', fontSize: '0.68rem', color: '#334155' }}>{formData.signatoryTitle || ''}</p>
+                            </div>
+                            {(formData.signatureDataUrl || (formData.companyName && allCompanies[formData.companyName]?.signature)) && (
+                              <img 
+                                src={formData.signatureDataUrl || allCompanies[formData.companyName]?.signature} 
+                                alt="Signature" 
+                                style={{ height: '42px', maxWidth: '110px', objectFit: 'contain' }} 
+                              />
+                            )}
+                          </div>
+                          {((formData.companyName && allCompanies[formData.companyName]?.address) || formData.footerContact || (formData.companyName && allCompanies[formData.companyName]?.footerContact)) && (
+                            <div style={{ borderTop: '1px solid #ccc', marginTop: '3px', paddingTop: '2px', textAlign: 'center', fontSize: '0.62rem', color: '#1d4ed8' }}>
+                              {formData.companyName && allCompanies[formData.companyName]?.address && <div>{allCompanies[formData.companyName].address}</div>}
+                              {(formData.footerContact || (formData.companyName && allCompanies[formData.companyName]?.footerContact)) && (
+                                <div>{formData.footerContact || allCompanies[formData.companyName]?.footerContact}</div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Modal Actions Footer */}
@@ -3210,6 +4080,235 @@ const WorkOrder = () => {
         </div>
       )}
 
+      {/* Modal: Add New Issuing Company Modal */}
+      {newCompanyModal.isOpen && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(4px)',
+          zIndex: 100000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '16px'
+        }}>
+          <div style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '16px',
+            width: '100%',
+            maxWidth: '460px',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            border: '1px solid #e2e8f0',
+            overflow: 'hidden'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '14px 18px',
+              borderBottom: '1px solid #f1f5f9',
+              background: 'linear-gradient(to right, #fef2f2, #ffffff)'
+            }}>
+              <div>
+                <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Company Master</span>
+                <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', margin: '2px 0 0 0' }}>Add New Issuing Company</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setNewCompanyModal({ isOpen: false, name: '', gstin: '', address: '', footerContact: '', signatoryName: '' })}
+                style={{ background: '#f1f5f9', border: 'none', borderRadius: '8px', width: '28px', height: '28px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '11px', maxHeight: '72vh', overflowY: 'auto' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '4px' }}>
+                  Company Name <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  value={newCompanyModal.name}
+                  onChange={e => setNewCompanyModal(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="e.g. M/s Maa Sharda Transport"
+                  style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '7px 10px', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '4px' }}>
+                  GSTIN
+                </label>
+                <input
+                  type="text"
+                  value={newCompanyModal.gstin}
+                  onChange={e => setNewCompanyModal(prev => ({ ...prev, gstin: e.target.value }))}
+                  placeholder="e.g. 22AAAAA0000A1Z5"
+                  style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '7px 10px', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '4px' }}>
+                  Registered Address
+                </label>
+                <textarea
+                  rows={2}
+                  value={newCompanyModal.address}
+                  onChange={e => setNewCompanyModal(prev => ({ ...prev, address: e.target.value }))}
+                  placeholder="Office address / location..."
+                  style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '7px 10px', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box', resize: 'vertical' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '4px' }}>
+                  Footer Contact Info
+                </label>
+                <input
+                  type="text"
+                  value={newCompanyModal.footerContact}
+                  onChange={e => setNewCompanyModal(prev => ({ ...prev, footerContact: e.target.value }))}
+                  placeholder="e.g. Mo.: 9876543210, E-mail: info@example.com"
+                  style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '7px 10px', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '4px' }}>
+                  Default Signatory Name / Firm
+                </label>
+                <input
+                  type="text"
+                  value={newCompanyModal.signatoryName}
+                  onChange={e => setNewCompanyModal(prev => ({ ...prev, signatoryName: e.target.value }))}
+                  placeholder="e.g. Authorized Signatory"
+                  style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '7px 10px', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '4px' }}>
+                  Signature / Stamp Image
+                </label>
+                <div
+                  style={{
+                    width: '100%',
+                    border: '2px dashed #cbd5e1',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    textAlign: 'center',
+                    color: '#64748b',
+                    cursor: 'pointer',
+                    position: 'relative',
+                    outline: 'none',
+                    backgroundColor: '#f8fafc',
+                    minHeight: '42px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxSizing: 'border-box'
+                  }}
+                >
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (ev) => setNewCompanyModal(prev => ({ ...prev, signature: ev.target.result }));
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', zIndex: 5 }}
+                  />
+                  {newCompanyModal.signature ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', position: 'relative', zIndex: 10 }}>
+                      <img 
+                        src={newCompanyModal.signature} 
+                        alt="Signature Preview" 
+                        style={{ height: '32px', maxWidth: '120px', objectFit: 'contain' }} 
+                      />
+                      <span
+                        style={{ fontSize: '0.72rem', color: '#ef4444', cursor: 'pointer', fontWeight: 700 }}
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setNewCompanyModal(prev => ({ ...prev, signature: '' })); }}>
+                        Remove
+                      </span>
+                    </div>
+                  ) : (
+                    <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 500 }}>
+                      Click to upload Signature / Stamp (PNG, JPG)
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'flex-end',
+              gap: '10px',
+              padding: '14px 20px',
+              backgroundColor: '#f8fafc',
+              borderTop: '1px solid #e2e8f0'
+            }}>
+              <button
+                type="button"
+                onClick={() => setNewCompanyModal({ isOpen: false, name: '', gstin: '', address: '', footerContact: '', signatoryName: '', signature: '' })}
+                style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#fff', fontSize: '0.82rem', fontWeight: 600, color: '#475569', cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const compName = (newCompanyModal.name || '').trim();
+                  if (!compName) {
+                    toast.error('Company Name is required');
+                    return;
+                  }
+                  const newComp = {
+                    name: compName,
+                    gstin: (newCompanyModal.gstin || '').trim(),
+                    address: (newCompanyModal.address || '').trim(),
+                    footerContact: (newCompanyModal.footerContact || '').trim(),
+                    signatoryName: (newCompanyModal.signatoryName || compName).trim(),
+                    signature: newCompanyModal.signature || '',
+                    textColor: '#1e293b'
+                  };
+                  const updated = { ...customCompanies, [compName]: newComp };
+                  setCustomCompanies(updated);
+                  try {
+                    localStorage.setItem('CUSTOM_ISSUING_COMPANIES', JSON.stringify(updated));
+                  } catch (e) {
+                    console.error(e);
+                  }
+                  // Select newly added company into form
+                  setFormData(prev => ({
+                    ...prev,
+                    companyName: compName,
+                    buyerGst: newComp.gstin || prev.buyerGst,
+                    address: newComp.address || prev.address,
+                    footerContact: newComp.footerContact || prev.footerContact,
+                    signatoryName: newComp.signatoryName || prev.signatoryName,
+                    signatureDataUrl: newComp.signature || prev.signatureDataUrl || ''
+                  }));
+                  setNewCompanyModal({ isOpen: false, name: '', gstin: '', address: '', footerContact: '', signatoryName: '', signature: '' });
+                  toast.success(`Company "${compName}" added & selected!`);
+                }}
+                style={{ padding: '8px 18px', borderRadius: '8px', border: 'none', background: '#dc2626', color: '#fff', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer' }}
+              >
+                Save & Select Company
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* PRINT / PDF PREVIEW MODAL */}
       {showPreviewModal && previewData && (
         <div className="no-print"
@@ -3333,7 +4432,7 @@ const WorkOrder = () => {
                   style={{
                     backgroundColor: '#ffffff',
                     color: '#000000',
-                    padding: '30px 42px 24px 42px',
+                    padding: '24px 38px 36px 38px',
                     width: '794px',
                     minHeight: '1123px',
                     height: 'auto',
@@ -3343,8 +4442,8 @@ const WorkOrder = () => {
                     justifyContent: 'space-between',
                     fontFamily: '"Times New Roman", Times, serif',
                     boxSizing: 'border-box',
-                    fontSize: '14px',
-                    lineHeight: '1.34',
+                    fontSize: '13.5px',
+                    lineHeight: '1.28',
                     borderRadius: '2px',
                     marginBottom: '20px',
                     position: 'relative'
@@ -3354,73 +4453,79 @@ const WorkOrder = () => {
                     /* ================= PURCHASE ORDER LETTER DESIGN ================= */
                     <>
                       {/* Header Top: GSTIN Right */}
-                      <div style={{ textAlign: 'right', fontWeight: 'bold', color: '#1e3a8a', marginBottom: '4px', fontSize: '0.92rem' }}>
-                        GSTIN: {previewData.buyerGst || activeFirm.gstin}
-                      </div>
+                      {(previewData.headerGstin || previewData.buyerGst) && (
+                        <div style={{ textAlign: 'right', fontWeight: 'bold', color: '#1e3a8a', marginBottom: '4px', fontSize: '0.92rem' }}>
+                          GSTIN: {previewData.headerGstin || previewData.buyerGst}
+                        </div>
+                      )}
 
                       {/* Header Row: Big Bold Logo + Company Title */}
-                      <div style={{
-                        display: 'flex',
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        marginBottom: '6px',
-                        width: '100%'
-                      }}>
-                        {activeFirm.logo && (
-                          <div style={{
-                            width: '95px',
-                            height: '85px',
+                      {previewData.companyName && (
+                        <div style={{
+                          display: 'flex',
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          marginBottom: '6px',
+                          width: '100%'
+                        }}>
+                          {activeFirm.logo && (
+                            <div style={{
+                              width: '95px',
+                              height: '85px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                              marginRight: '14px'
+                            }}>
+                              <img
+                                src={activeFirm.logo}
+                                alt={activeFirm.name}
+                                style={{
+                                  height: '82px',
+                                  width: '90px',
+                                  objectFit: 'contain',
+                                  display: 'block'
+                                }}
+                              />
+                            </div>
+                          )}
+                          <h1 style={{
+                            fontSize: '3rem',
+                            fontWeight: 'bold',
+                            color: '#1e293b',
+                            fontFamily: '"Baloo 2", "Arial Black", "Segoe UI", sans-serif',
+                            letterSpacing: '-0.02em',
+                            lineHeight: 1,
+                            margin: 0,
+                            padding: 0,
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0,
-                            marginRight: '14px'
+                            whiteSpace: 'nowrap'
                           }}>
-                            <img
-                              src={activeFirm.logo}
-                              alt={activeFirm.name}
-                              style={{
-                                height: '82px',
-                                width: '90px',
-                                objectFit: 'contain',
-                                display: 'block'
-                              }}
-                            />
-                          </div>
-                        )}
-                        <h1 style={{
-                          fontSize: '3rem',
-                          fontWeight: 'bold',
-                          color: '#1e293b',
-                          fontFamily: '"Baloo 2", "Arial Black", "Segoe UI", sans-serif',
-                          letterSpacing: '-0.02em',
-                          lineHeight: 1,
-                          margin: 0,
-                          padding: 0,
-                          display: 'flex',
-                          alignItems: 'center',
-                          whiteSpace: 'nowrap'
-                        }}>
-                          {previewData.companyName || 'M/s Jai Bhole Traders'}
-                        </h1>
-                      </div>
+                            {previewData.companyName}
+                          </h1>
+                        </div>
+                      )}
 
                       {/* Document Title: PURCHASE ORDER */}
-                      <div style={{ textAlign: 'center', marginBottom: '10px' }}>
-                        <span style={{
-                          fontSize: '1.35rem',
-                          fontWeight: 'bold',
-                          borderBottom: '1.5px solid #000000',
-                          paddingBottom: '7px',
-                          lineHeight: '1.5',
-                          display: 'inline-block',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.04em'
-                        }}>
-                          {previewData.orderTitle || 'PURCHASE ORDER'}
-                        </span>
-                      </div>
+                      {previewData.orderTitle && (
+                        <div style={{ textAlign: 'center', marginBottom: '10px' }}>
+                          <span style={{
+                            fontSize: '1.35rem',
+                            fontWeight: 'bold',
+                            borderBottom: '1.5px solid #000000',
+                            paddingBottom: '7px',
+                            lineHeight: '1.5',
+                            display: 'inline-block',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.04em'
+                          }}>
+                            {previewData.orderTitle}
+                          </span>
+                        </div>
+                      )}
 
                       {/* Order No and Date Row */}
                       <table style={{ width: '100%', borderCollapse: 'collapse', border: 'none', marginBottom: '10px', fontSize: '14.5px' }}>
@@ -3468,14 +4573,14 @@ const WorkOrder = () => {
                       <table style={{ width: '96%', margin: '0 auto 10px auto', borderCollapse: 'collapse', lineHeight: '1.36', border: 'none', fontSize: '14px' }}>
                         <tbody>
                           {/* Buyer */}
-                          {previewSpecs?.buyer !== false && (
+                          {previewSpecs?.buyer !== false && (previewData.selfFirmName || previewData.address || previewData.buyerGst) && (
                             <tr>
                               <td style={{ width: '32%', padding: '3px 0', verticalAlign: 'top', border: 'none', fontWeight: 600 }}>Buyer</td>
                               <td style={{ width: '6%', verticalAlign: 'top', border: 'none' }}>:</td>
                               <td style={{ padding: '3px 0', verticalAlign: 'top', border: 'none' }}>
-                                <div style={{ fontWeight: 600 }}>{previewData.companyName || 'Jai Bhole Traders'}</div>
-                                <div style={{ whiteSpace: 'pre-wrap' }}>{previewData.address}</div>
-                                <div style={{ fontWeight: 'bold' }}>GST No- <span style={{ fontWeight: 'bold' }}>{previewData.buyerGst || activeFirm.gstin}</span></div>
+                                {previewData.selfFirmName && <div style={{ fontWeight: 600 }}>{previewData.selfFirmName}</div>}
+                                {previewData.address && <div style={{ whiteSpace: 'pre-wrap' }}>{previewData.address}</div>}
+                                {previewData.buyerGst && <div style={{ fontWeight: 'bold' }}>GST No- <span style={{ fontWeight: 'bold' }}>{previewData.buyerGst}</span></div>}
                               </td>
                             </tr>
                           )}
@@ -3562,6 +4667,15 @@ const WorkOrder = () => {
                               <td style={{ padding: '3px 0', border: 'none' }}>{previewData.gstRate}</td>
                             </tr>
                           )}
+
+                          {/* Dynamic Custom Fields */}
+                          {Array.isArray(previewData.customFields) && previewData.customFields.filter(f => f && (f.label || f.value)).map((cf, cIdx) => (
+                            <tr key={cIdx}>
+                              <td style={{ padding: '3px 0', border: 'none', fontWeight: 600 }}>{cf.label || '—'}</td>
+                              <td style={{ border: 'none' }}>:</td>
+                              <td style={{ padding: '3px 0', border: 'none' }}>{cf.value || '—'}</td>
+                            </tr>
+                          ))}
                         </tbody>
                       </table>
 
@@ -3579,65 +4693,100 @@ const WorkOrder = () => {
                           <div>
                             <p style={{ fontWeight: 'bold', margin: '0' }}>Thanking You</p>
                             <p style={{ margin: '0 0 2px 0' }}>Yours truly</p>
-                            <p style={{ fontWeight: 'bold', margin: '0', whiteSpace: 'nowrap' }}>{previewData.companyName || 'Jai Bhole Traders'}</p>
+                            <p style={{ fontWeight: 'bold', margin: '0', whiteSpace: 'nowrap' }}>{previewData.signatoryName || previewData.companyName || ''}</p>
                           </div>
 
                           <div style={{ minHeight: '80px', height: '80px', display: 'flex', alignItems: 'center' }}>
-                            <img 
-                              src={previewData.signatureDataUrl || activeFirm?.signature || jbtSignature} 
-                              alt="Signature" 
-                              style={{ height: '80px', maxWidth: '200px', objectFit: 'contain' }}
-                              onError={(e) => {
-                                const fallbackSig = activeFirm?.signature || jbtSignature;
-                                if (fallbackSig && e.target.src !== fallbackSig) {
-                                  e.target.src = fallbackSig;
-                                }
-                              }}
-                            />
+                            {(previewData.signatureDataUrl || (previewData.companyName && activeFirm?.signature)) && (
+                              <img 
+                                src={previewData.signatureDataUrl || activeFirm?.signature} 
+                                alt="Signature" 
+                                style={{ height: '70px', maxWidth: '160px', objectFit: 'contain', display: 'block' }} 
+                              />
+                            )}
                           </div>
                         </div>
 
-                        <div style={{ borderTop: '1.5px solid #1e3a8a', marginTop: '6px', paddingTop: '4px', textAlign: 'center', fontSize: '0.74rem', color: '#1d4ed8' }}>
-                          <div style={{ lineHeight: '1.25', whiteSpace: 'normal' }}>
-                            {previewData.address || 'N.K. Agrawal & Sons Tower, 2nd Floor, Lane No. 8, Near State Bank of India, New Shanti Nagar, Shankar Nagar, Raipur 492 004 (C.G.)'}
+                        {((previewData.companyName && allCompanies[previewData.companyName]?.address) || previewData.footerContact || (previewData.companyName && allCompanies[previewData.companyName]?.footerContact)) && (
+                          <div style={{ borderTop: '1.5px solid #1e3a8a', marginTop: '6px', paddingTop: '4px', textAlign: 'center', fontSize: '0.74rem', color: '#1d4ed8' }}>
+                            {previewData.companyName && allCompanies[previewData.companyName]?.address && (
+                              <div style={{ lineHeight: '1.25', whiteSpace: 'normal' }}>
+                                {allCompanies[previewData.companyName].address}
+                              </div>
+                            )}
+                            {(previewData.footerContact || (previewData.companyName && allCompanies[previewData.companyName]?.footerContact)) && (
+                              <div style={{ lineHeight: '1.25', marginTop: '2px', whiteSpace: 'normal' }}>
+                                {previewData.footerContact || allCompanies[previewData.companyName]?.footerContact}
+                              </div>
+                            )}
                           </div>
-                          <div style={{ lineHeight: '1.25', marginTop: '2px', whiteSpace: 'normal' }}>
-                            {previewData.footerContact || 'Mo.: 78736 50000, 91091 61144, E-mail : bisiwanath23@gmail.com, jaibholetraderacc@gmail.com'}
-                          </div>
-                        </div>
+                        )}
                       </div>
                     </>
                   ) : (
                     /* ================= WORK ORDER LETTER DESIGN ================= */
+                    (() => {
+                      // Dynamically calculate row count to auto-scale font, spacing & signature size
+                      const customCount = Array.isArray(previewData.customFields)
+                        ? previewData.customFields.filter(f => f && (f.label || f.value)).length
+                        : 0;
+                      const standardCount = [
+                        previewSpecs?.commodity,
+                        previewSpecs?.mines,
+                        previewSpecs?.price,
+                        previewSpecs?.quantity,
+                        previewSpecs?.fcGuarantee,
+                        previewSpecs?.shortageTolerance,
+                        previewSpecs?.doDueDate,
+                        previewSpecs?.doCopy,
+                        previewSpecs?.destinationAdd,
+                        previewSpecs?.note && previewData.note
+                      ].filter(Boolean).length;
+
+                      const totalRows = standardCount + customCount;
+                      // Dynamic auto-scaling factors:
+                      // If rows > 11, scale down progressively so it always fits 1 single page without shrinking excessively
+                      const isHighDensity = totalRows > 12;
+                      const isMediumDensity = totalRows > 9 && !isHighDensity;
+
+                      const tableFontSize = isHighDensity ? '12.5px' : isMediumDensity ? '13.5px' : '14.5px';
+                      const rowPadding = isHighDensity ? '1px 0' : isMediumDensity ? '1.5px 0' : '2px 0';
+                      const termsFontSize = isHighDensity ? '12.5px' : isMediumDensity ? '13px' : '14px';
+                      const sigHeight = isHighDensity ? '50px' : isMediumDensity ? '60px' : '65px';
+                      const headerMarginBottom = isHighDensity ? '4px' : '8px';
+
+                      return (
                     <>
-                      <div style={{ textAlign: 'right', fontWeight: 'bold', color: '#1e3a8a', marginBottom: '6px', fontSize: '0.9rem' }}>
-                        GSTIN : {activeFirm.gstin}
-                      </div>
+                      {previewData.headerGstin && (
+                        <div style={{ textAlign: 'right', fontWeight: 'bold', color: '#1e3a8a', marginBottom: isHighDensity ? '2px' : '6px', fontSize: isHighDensity ? '0.82rem' : '0.9rem' }}>
+                          GSTIN : {previewData.headerGstin}
+                        </div>
+                      )}
 
                       {/* Header Row: Logo at Left, followed immediately by Big Bold Company Title */}
                       <div style={{
                         display: 'flex',
                         flexDirection: 'row',
                         alignItems: 'center',
-                        marginBottom: '10px',
+                        marginBottom: headerMarginBottom,
                         width: '100%'
                       }}>
                         {activeFirm.logo && (
                           <div style={{
-                            width: '105px',
-                            height: '92px',
+                            width: isHighDensity ? '85px' : '105px',
+                            height: isHighDensity ? '75px' : '92px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             flexShrink: 0,
-                            marginRight: '16px'
+                            marginRight: '14px'
                           }}>
                             <img
                               src={activeFirm.logo}
                               alt={activeFirm.name}
                               style={{
-                                height: '90px',
-                                width: '100px',
+                                height: isHighDensity ? '72px' : '90px',
+                                width: isHighDensity ? '80px' : '100px',
                                 objectFit: 'contain',
                                 display: 'block'
                               }}
@@ -3645,7 +4794,9 @@ const WorkOrder = () => {
                           </div>
                         )}
                         <h1 style={{
-                          fontSize: activeFirm.name.length > 20 ? '2.8rem' : '3.3rem',
+                          fontSize: activeFirm.name.length > 20 
+                            ? (isHighDensity ? '2.3rem' : '2.8rem') 
+                            : (isHighDensity ? '2.8rem' : '3.3rem'),
                           fontWeight: 'bold',
                           color: activeFirm.textColor,
                           fontFamily: '"Baloo 2", "Arial Black", "Segoe UI", sans-serif',
@@ -3662,16 +4813,16 @@ const WorkOrder = () => {
                       </div>
 
                       {/* Title and Date Row */}
-                      <table style={{ width: '100%', borderCollapse: 'collapse', border: 'none', marginBottom: '10px' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', border: 'none', marginBottom: isHighDensity ? '4px' : '8px' }}>
                         <tbody>
                           <tr style={{ verticalAlign: 'middle', border: 'none' }}>
                             <td style={{ width: '120px', padding: 0, border: 'none' }}></td>
                             <td style={{ textAlign: 'center', verticalAlign: 'middle', padding: 0, border: 'none' }}>
                               <span style={{
-                                fontSize: '1.35rem',
+                                fontSize: isHighDensity ? '1.18rem' : '1.35rem',
                                 fontWeight: 'bold',
                                 borderBottom: '1.5px solid #000000',
-                                paddingBottom: '5px',
+                                paddingBottom: '3px',
                                 display: 'inline-block',
                                 textTransform: 'uppercase',
                                 letterSpacing: '0.04em'
@@ -3679,69 +4830,77 @@ const WorkOrder = () => {
                                 {previewData.orderTitle || 'WORK ORDER'}
                               </span>
                             </td>
-                            <td style={{ width: '150px', textAlign: 'right', verticalAlign: 'middle', padding: 0, fontWeight: 'bold', fontSize: '0.92rem', color: '#000000', whiteSpace: 'nowrap', border: 'none' }}>
+                            <td style={{ width: '150px', textAlign: 'right', verticalAlign: 'middle', padding: 0, fontWeight: 'bold', fontSize: isHighDensity ? '0.84rem' : '0.92rem', color: '#000000', whiteSpace: 'nowrap', border: 'none' }}>
                               Date - {previewData.date ? previewData.date.split('-').reverse().join('-') : ''}
                             </td>
                           </tr>
                         </tbody>
                       </table>
 
-                      <div style={{ marginBottom: '6px', lineHeight: '1.32', fontSize: '14.5px' }}>
+                      <div style={{ marginBottom: isHighDensity ? '3px' : '6px', lineHeight: '1.25', fontSize: isHighDensity ? '13px' : '14.5px' }}>
                         <p style={{ margin: '0 0 1px 0' }}>To,</p>
                         <p style={{ margin: '0 0 1px 0', fontWeight: 'bold' }}>{previewData.buyerName}</p>
                         <p style={{ margin: '0 0 1px 0', whiteSpace: 'pre-wrap' }}>{previewData.buyerAddress}</p>
                         {previewData.buyerDistState && <p style={{ margin: 0 }}>Dist :- {previewData.buyerDistState}</p>}
                       </div>
 
-                      <p style={{ marginBottom: '6px' }}>
+                      <p style={{ marginBottom: isHighDensity ? '3px' : '6px' }}>
                         <span style={{
                           fontWeight: 'bold',
                           borderBottom: '1.2px solid #000000',
-                          paddingBottom: '5px',
+                          paddingBottom: '3px',
                           display: 'inline-block',
-                          fontSize: '15px'
+                          fontSize: isHighDensity ? '13.5px' : '15px'
                         }}>
                           Subject: - {previewData.subject}
                         </span>
                       </p>
-                      <p style={{ marginBottom: '4px', fontSize: '14.5px' }}>Dear Sir,</p>
-                      <p style={{ marginBottom: '8px', fontSize: '14.5px' }}>With Reference to telephonic discussion, we are pleased to give you a work order for Transporting Work of coal.</p>
+                      <p style={{ marginBottom: isHighDensity ? '2px' : '4px', fontSize: isHighDensity ? '13px' : '14.5px' }}>Dear Sir,</p>
+                      <p style={{ marginBottom: isHighDensity ? '4px' : '8px', fontSize: isHighDensity ? '13px' : '14.5px' }}>With Reference to telephonic discussion, we are pleased to give you a work order for Transporting Work of coal.</p>
 
-                      <table style={{ width: '92%', margin: '0 auto 8px auto', borderCollapse: 'collapse', lineHeight: '1.32', border: 'none', fontSize: '14.5px' }}>
+                      <table style={{ width: '92%', margin: '0 auto 6px auto', borderCollapse: 'collapse', lineHeight: '1.25', border: 'none', fontSize: tableFontSize }}>
                         <tbody>
-                          {previewSpecs?.commodity && <tr><td style={{ width: '40%', padding: '2px 0', border: 'none' }}>Name of Commodity</td><td style={{ width: '10%', border: 'none' }}>:-</td><td style={{ border: 'none' }}><b>{previewData.commodity}</b></td></tr>}
-                          {previewSpecs?.mines && <tr><td style={{ padding: '2px 0', border: 'none' }}>Mines</td><td style={{ border: 'none' }}>:-</td><td style={{ border: 'none' }}>{previewData.mines}</td></tr>}
-                          {previewSpecs?.price && <tr><td style={{ verticalAlign: 'top', padding: '2px 0', border: 'none' }}>Price</td><td style={{ verticalAlign: 'top', border: 'none' }}>:-</td><td style={{ whiteSpace: 'pre-wrap', fontWeight: 'bold', border: 'none' }}>{previewData.price}</td></tr>}
-                          {previewSpecs?.quantity && <tr><td style={{ padding: '2px 0', border: 'none' }}>Quantity</td><td style={{ border: 'none' }}>:-</td><td style={{ border: 'none' }}><b>{previewData.quantity}</b></td></tr>}
-                          {previewSpecs?.fcGuarantee && <tr><td style={{ padding: '2px 0', border: 'none' }}>FC Guarantee</td><td style={{ border: 'none' }}>:-</td><td style={{ border: 'none' }}>{previewData.fcGuarantee}</td></tr>}
-                          {previewSpecs?.shortageTolerance && <tr><td style={{ padding: '2px 0', border: 'none' }}>Shortage Tolerance</td><td style={{ border: 'none' }}>:-</td><td style={{ border: 'none' }}>{previewData.shortageTolerance}</td></tr>}
-                          {previewSpecs?.doDueDate && <tr><td style={{ padding: '2px 0', border: 'none' }}>D.O.Due Date</td><td style={{ border: 'none' }}>:-</td><td style={{ border: 'none' }}>{previewData.doDueDate}</td></tr>}
-                          {previewSpecs?.doCopy && <tr><td style={{ padding: '2px 0', border: 'none' }}>D.O.Copy</td><td style={{ border: 'none' }}>:-</td><td style={{ border: 'none' }}>{previewData.doCopy}</td></tr>}
-                          {previewSpecs?.destinationAdd && <tr><td style={{ padding: '2px 0', border: 'none' }}>Destination Add.</td><td style={{ border: 'none' }}>:-</td><td style={{ border: 'none' }}>{previewData.destinationAdd}</td></tr>}
-                          {previewSpecs?.note && previewData.note && <tr><td style={{ verticalAlign: 'top', padding: '2px 0', border: 'none' }}>Note</td><td style={{ verticalAlign: 'top', border: 'none' }}>:-</td><td style={{ whiteSpace: 'pre-wrap', border: 'none' }}>{previewData.note}</td></tr>}
+                          {previewSpecs?.commodity && <tr><td style={{ width: '40%', padding: rowPadding, border: 'none' }}>Name of Commodity</td><td style={{ width: '10%', border: 'none' }}>:-</td><td style={{ border: 'none' }}><b>{previewData.commodity}</b></td></tr>}
+                          {previewSpecs?.mines && <tr><td style={{ padding: rowPadding, border: 'none' }}>Mines</td><td style={{ border: 'none' }}>:-</td><td style={{ border: 'none' }}>{previewData.mines}</td></tr>}
+                          {previewSpecs?.price && <tr><td style={{ verticalAlign: 'top', padding: rowPadding, border: 'none' }}>Price</td><td style={{ verticalAlign: 'top', border: 'none' }}>:-</td><td style={{ whiteSpace: 'pre-wrap', fontWeight: 'bold', border: 'none' }}>{previewData.price}</td></tr>}
+                          {previewSpecs?.quantity && <tr><td style={{ padding: rowPadding, border: 'none' }}>Quantity</td><td style={{ border: 'none' }}>:-</td><td style={{ border: 'none' }}><b>{previewData.quantity}</b></td></tr>}
+                          {previewSpecs?.fcGuarantee && <tr><td style={{ padding: rowPadding, border: 'none' }}>FC Guarantee</td><td style={{ border: 'none' }}>:-</td><td style={{ border: 'none' }}>{previewData.fcGuarantee}</td></tr>}
+                          {previewSpecs?.shortageTolerance && <tr><td style={{ padding: rowPadding, border: 'none' }}>Shortage Tolerance</td><td style={{ border: 'none' }}>:-</td><td style={{ border: 'none' }}>{previewData.shortageTolerance}</td></tr>}
+                          {previewSpecs?.doDueDate && <tr><td style={{ padding: rowPadding, border: 'none' }}>D.O.Due Date</td><td style={{ border: 'none' }}>:-</td><td style={{ border: 'none' }}>{previewData.doDueDate}</td></tr>}
+                          {previewSpecs?.doCopy && <tr><td style={{ padding: rowPadding, border: 'none' }}>D.O.Copy</td><td style={{ border: 'none' }}>:-</td><td style={{ border: 'none' }}>{previewData.doCopy}</td></tr>}
+                          {previewSpecs?.destinationAdd && <tr><td style={{ padding: rowPadding, border: 'none' }}>Destination Add.</td><td style={{ border: 'none' }}>:-</td><td style={{ border: 'none' }}>{previewData.destinationAdd}</td></tr>}
+                          {previewSpecs?.note && previewData.note && <tr><td style={{ verticalAlign: 'top', padding: rowPadding, border: 'none' }}>Note</td><td style={{ verticalAlign: 'top', border: 'none' }}>:-</td><td style={{ whiteSpace: 'pre-wrap', border: 'none' }}>{previewData.note}</td></tr>}
+                          {/* Dynamic Custom Fields */}
+                          {Array.isArray(previewData.customFields) && previewData.customFields.filter(f => f && (f.label || f.value)).map((cf, cIdx) => (
+                            <tr key={cIdx}>
+                              <td style={{ padding: rowPadding, border: 'none' }}>{cf.label || '—'}</td>
+                              <td style={{ border: 'none' }}>:-</td>
+                              <td style={{ border: 'none' }}><b>{cf.value || '—'}</b></td>
+                            </tr>
+                          ))}
                         </tbody>
                       </table>
 
-                      <h3 style={{ margin: '0 0 4px 0', fontSize: '1.05rem' }}>
+                      <h3 style={{ margin: '0 0 3px 0', fontSize: isHighDensity ? '0.95rem' : '1.05rem' }}>
                         <span style={{
                           fontWeight: 'bold',
                           borderBottom: '1.2px solid #000000',
-                          paddingBottom: '5px',
+                          paddingBottom: '3px',
                           display: 'inline-block'
                         }}>
                           Term & Conditions
                         </span>
                       </h3>
-                      <div style={{ paddingLeft: '14px', marginBottom: '6px', lineHeight: '1.34', whiteSpace: 'pre-wrap', fontSize: '14px' }}>{previewData.terms}</div>
+                      <div style={{ paddingLeft: '14px', marginBottom: isHighDensity ? '3px' : '6px', lineHeight: '1.26', whiteSpace: 'pre-wrap', fontSize: termsFontSize }}>{previewData.terms}</div>
 
-                      <div style={{ marginTop: 'auto', paddingTop: '16px', lineHeight: '1.32', fontSize: '14px' }}>
+                      <div style={{ marginTop: 'auto', paddingTop: isHighDensity ? '6px' : '10px', lineHeight: '1.24', fontSize: termsFontSize }}>
                         <p style={{ fontWeight: 'bold', margin: '0 0 2px 0' }}>For {previewData.companyName}</p>
-                        <div style={{ minHeight: '85px', height: '85px', display: 'flex', alignItems: 'center', marginTop: '2px', marginBottom: '2px' }}>
+                        <div style={{ minHeight: sigHeight, height: sigHeight, display: 'flex', alignItems: 'center', marginTop: '1px', marginBottom: '1px' }}>
                           {(previewData.signatureDataUrl || activeFirm?.signature) && (
                             <img 
                               src={previewData.signatureDataUrl || activeFirm?.signature} 
                               alt="Signature" 
-                              style={{ height: '85px', maxWidth: '240px', objectFit: 'contain' }}
+                              style={{ height: sigHeight, maxWidth: '200px', objectFit: 'contain' }}
                               onError={(e) => {
                                 if (activeFirm?.signature && e.target.src !== activeFirm.signature) {
                                   e.target.src = activeFirm.signature;
@@ -3752,12 +4911,14 @@ const WorkOrder = () => {
                         </div>
                         <p style={{ fontWeight: 'bold', margin: '0' }}>{previewData.signatoryName}</p>
                         <p style={{ margin: '0', color: '#334155' }}>{previewData.signatoryTitle}</p>
-                        <div style={{ borderTop: '1.5px solid #ccc', marginTop: '6px', paddingTop: '4px', textAlign: 'center', fontSize: '0.74rem', color: '#1d4ed8' }}>
-                          <div style={{ lineHeight: '1.25', whiteSpace: 'normal' }}>{previewData.address}</div>
-                          <div style={{ lineHeight: '1.25', marginTop: '2px', whiteSpace: 'normal' }}>{previewData.footerContact}</div>
+                        <div style={{ borderTop: '1.5px solid #ccc', marginTop: isHighDensity ? '3px' : '6px', paddingTop: '3px', textAlign: 'center', fontSize: '0.72rem', color: '#1d4ed8' }}>
+                          <div style={{ lineHeight: '1.2', whiteSpace: 'normal', wordBreak: 'break-word' }}>{previewData.address}</div>
+                          <div style={{ lineHeight: '1.2', marginTop: '1px', whiteSpace: 'normal', wordBreak: 'break-word' }}>{previewData.footerContact}</div>
                         </div>
                       </div>
                     </>
+                      );
+                    })()
                   )}
 
                 </div>

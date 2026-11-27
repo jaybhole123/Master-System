@@ -142,5 +142,50 @@ create table public.sauda_purchase (
 ) TABLESPACE pg_default;
 
 
+( PURCHASE ORDERS / WORK ORDERS SCHEMA & ALTER QUERIES )
+
+-- ALTER queries to add new fields in existing table:
+ALTER TABLE public.purchase_orders ADD COLUMN IF NOT EXISTS header_gstin text DEFAULT NULL;
+ALTER TABLE public.purchase_orders ADD COLUMN IF NOT EXISTS custom_fields jsonb DEFAULT '[]'::jsonb;
+
+-- Full Table Definition for reference:
+CREATE TABLE IF NOT EXISTS public.purchase_orders (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  purchase_order_no text NOT NULL,
+  order_date date DEFAULT CURRENT_DATE,
+  company_name text DEFAULT 'M/s Jai Bhole Traders'::text,
+  header_gstin text,
+  order_title text DEFAULT 'PURCHASE ORDER'::text,
+  buyer_name text,
+  buyer_address text,
+  buyer_gst text,
+  consignee_name text,
+  consignee_address text,
+  consignee_gst text,
+  material_name text,
+  chemical_specs jsonb DEFAULT '[]'::jsonb,
+  quantity text,
+  rate text,
+  delivery text DEFAULT 'For'::text,
+  payment_condition text DEFAULT 'Advance'::text,
+  gst_clause text DEFAULT '18% of GST or AS Applicable at time of dispatch'::text,
+  custom_fields jsonb DEFAULT '[]'::jsonb,
+  terms text,
+  signatory_name text DEFAULT 'Jai Bhole Traders'::text,
+  signature_url text,
+  firm_address text,
+  firm_footer_contact text,
+  visible_specs jsonb DEFAULT '{}'::jsonb,
+  status text DEFAULT 'Draft'::text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  vendor_name text DEFAULT ''::text,
+  vendor_address text DEFAULT ''::text,
+  vendor_gst text DEFAULT ''::text,
+  CONSTRAINT purchase_orders_pkey PRIMARY KEY (id)
+);
+
+
+
 
 

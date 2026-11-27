@@ -283,10 +283,51 @@ const serializePagePermissions = (permObj) => {
 
 // Stages where tasks & pending works are tracked for MIS Score eligibility
 const MIS_TASK_STAGES = new Set([
+  // 1. Checklist & Delegation
   'Checklist & Delegation::Checklist',
   'Checklist & Delegation::Delegation',
   'Checklist & Delegation::Task Manager',
-  'Checklist & Delegation::Assign Task'
+  'Checklist & Delegation::Assign Task',
+
+  // 2. Rent Management Tracker
+  'Rent Management Tracker::Monthly Tracker',
+  'Rent Management Tracker::Rent Management',
+
+  // 3. Document & Subscription
+  'Document & Substruction::Document Renewal',
+  'Document & Substruction::Subscription Renewal',
+  'Document & Substruction::Request Forecloser',
+  'Document & Substruction::Collect NOC',
+  'Document & Substruction::Subscription Approval',
+  'Document & Substruction::Subscription Payment',
+
+  // 4. HR System
+  'HR System::Leave Tracker',
+  'HR System::Create Indent',
+  'HR System::Payroll Process',
+
+  // 5. Letter Head & Offer Letters
+  'Letter::Offer Letter',
+  'Letter::Letter Head',
+
+  // 6. Transport Reporting
+  'Transport Reporting::Purchase Truck',
+  'Transport Reporting::Fastag',
+  'Transport Reporting::Challan',
+
+  // 7. Coal System (Stages)
+  'Coal System::Auction',
+  'Coal System::Payment Advice',
+  'Coal System::SECL Payment Advice',
+  'Coal System::Sales Order',
+  'Coal System::SECL Intimation',
+  'Coal System::Invoice',
+  'Coal System::Dispatch',
+  'Coal System::Sauda Sale',
+
+  // 8. Inventory System (IMS)
+  'Inventory (IMS)::Re-Orders',
+  'Inventory (IMS)::Transactions'
 ]);
 
 const isMisEligibleStage = (moduleId, page) => {
