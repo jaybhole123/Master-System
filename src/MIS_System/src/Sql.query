@@ -1138,6 +1138,7 @@ CREATE TABLE public.do_master (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   do_no text NOT NULL UNIQUE,
   company_name text NOT NULL,
+  mines text,
   valid_from date,
   valid_to date,
   do_qty numeric NOT NULL DEFAULT 0,

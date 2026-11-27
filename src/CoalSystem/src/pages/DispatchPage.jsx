@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import supabase from "../../../SupabaseClient";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { exportToExcel, exportToPDF } from "../utils/exportHelpers";
 import { usePagePermission } from "../../../hooks/usePagePermission";
 import {
@@ -113,6 +115,7 @@ function DispatchPageContent() {
   });
 
   const [selectedTruckFilter, setSelectedTruckFilter] = useState("");
+  const [selectedPartyLifterFilter, setSelectedPartyLifterFilter] = useState("");
   const [selectedTruckIds, setSelectedTruckIds] = useState(new Set());
   const [selectedCompanyFilter, setSelectedCompanyFilter] = useState("ALL");
   const [mainSectionTab, setMainSectionTab] = useState("do-master"); // 'do-master' | 'party-order' | 'truck-dispatch'
@@ -139,6 +142,11 @@ function DispatchPageContent() {
 
   // Form Fields State
   const [formData, setFormData] = useState({});
+  const [isPartyDropdownOpen, setIsPartyDropdownOpen] = useState(false);
+  const [isMinesDropdownOpen, setIsMinesDropdownOpen] = useState(false);
+  const [isLifterDropdownOpen, setIsLifterDropdownOpen] = useState(false);
+  const [isTruckNoDropdownOpen, setIsTruckNoDropdownOpen] = useState(false);
+  const [isDriverDropdownOpen, setIsDriverDropdownOpen] = useState(false);
   const [isLoadingDOs, setIsLoadingDOs] = useState(false);
 
   // Fetch DOs, Parties and Trucks directly from Supabase
@@ -146,7 +154,7 @@ function DispatchPageContent() {
     setIsLoadingDOs(true);
     try {
       const [dosRes, partiesRes, trucksRes] = await Promise.all([
-        supabase.from("do_master").select("*").order("created_at", { ascending: false }),
+        supabase.from("do_master").select("*").order("created_at", { ascending: true }),
         supabase.from("party_order").select("*").order("created_at", { ascending: true }),
         supabase.from("truck_dispatch").select("*").order("created_at", { ascending: false })
       ]);
@@ -179,6 +187,7 @@ function DispatchPageContent() {
         did: t.do_id,
         pid: t.party_id,
         no: t.truck_no,
+        driver: t.driver_name || "",
         tp: t.tp_no || "",
         date: t.dispatch_date || "",
         qty: parseFloat(t.net_weight_mt) || 0,
@@ -198,6 +207,7 @@ function DispatchPageContent() {
               tot: parseFloat(item.do_qty) || 0,
               vf: item.valid_from || "",
               vt: item.valid_to || "",
+              mines: item.mines || "",
               parties: dbParties
             };
           });
@@ -248,6 +258,47 @@ function DispatchPageContent() {
     return val.split("-").reverse().join("-");
   };
 
+  const getExpiryDetails = (validTo, validFrom) => {
+    if (!validTo) return { text: "-", badgeClass: "bg-slate-100 text-slate-500", days: null };
+    try {
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+      const toDate = new Date(validTo);
+      toDate.setHours(0, 0, 0, 0);
+
+      const diffTime = toDate.getTime() - now.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      if (diffDays < 0) {
+        return {
+          text: `Expired (${Math.abs(diffDays)}d ago)`,
+          badgeClass: "bg-rose-100 text-rose-700 border border-rose-300",
+          days: diffDays
+        };
+      } else if (diffDays === 0) {
+        return {
+          text: "Expires Today",
+          badgeClass: "bg-amber-100 text-amber-800 border border-amber-300 font-extrabold animate-pulse",
+          days: 0
+        };
+      } else if (diffDays <= 3) {
+        return {
+          text: `${diffDays} days left`,
+          badgeClass: "bg-amber-50 text-amber-700 border border-amber-200 font-bold",
+          days: diffDays
+        };
+      } else {
+        return {
+          text: `${diffDays} days left`,
+          badgeClass: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+          days: diffDays
+        };
+      }
+    } catch (e) {
+      return { text: "-", badgeClass: "bg-slate-100 text-slate-500", days: null };
+    }
+  };
+
   const getActiveDO = () => {
     const list = store?.dos || [];
     return list.find((d) => d.id === store?.act) || list[0] || { id: 0, co: "", no: "", tot: 0, parties: [] };
@@ -293,6 +344,10 @@ function DispatchPageContent() {
     return [...new Set((store?.trucks || []).map((t) => (t?.no || "").trim()).filter(Boolean))];
   }, [store?.trucks]);
 
+  const uniqueDriverNames = useMemo(() => {
+    return [...new Set((store?.trucks || []).map((t) => (t?.driver || "").trim()).filter(Boolean))];
+  }, [store?.trucks]);
+
   // Filtered Trucks list
   const visibleTrucks = useMemo(() => {
     return (store?.trucks || []).filter((t) => {
@@ -316,6 +371,11 @@ function DispatchPageContent() {
   const closeModal = () => {
     setModalConfig({ isOpen: false, title: "", type: "", data: null, error: "" });
     setFormData({});
+    setIsPartyDropdownOpen(false);
+    setIsMinesDropdownOpen(false);
+    setIsLifterDropdownOpen(false);
+    setIsTruckNoDropdownOpen(false);
+    setIsDriverDropdownOpen(false);
   };
 
   // DO Selection for Company Filter in Party Tab
@@ -335,6 +395,7 @@ function DispatchPageContent() {
     setFormData({
       co: d ? d.co : "",
       no: d ? d.no : "",
+      mines: d && d.mines ? d.mines : "",
       tot: d ? d.tot : "",
       vf: d && d.vf ? d.vf : "",
       vt: d && d.vt ? d.vt : ""
@@ -351,6 +412,7 @@ function DispatchPageContent() {
   const saveDO = async (id) => {
     const co = (formData.co || "").trim();
     const no = (formData.no || "").trim();
+    const mines = (formData.mines || "").trim();
     const tot = parseFloat(formData.tot);
     const vf = formData.vf || null;
     const vt = formData.vt || null;
@@ -375,13 +437,14 @@ function DispatchPageContent() {
         return;
       }
 
-      // Update in Supabase do_master
+      // Update directly in Supabase do_master table
       try {
         const { error } = await supabase
           .from("do_master")
           .update({
             company_name: co,
             do_no: no,
+            mines: mines || null,
             valid_from: vf,
             valid_to: vt,
             do_qty: tot,
@@ -400,7 +463,7 @@ function DispatchPageContent() {
 
       setStore((prev) => ({
         ...prev,
-        dos: prev.dos.map((d) => (d.id === id ? { ...d, co, no, tot, vf: vf || "", vt: vt || "" } : d))
+        dos: prev.dos.map((d) => (d.id === id ? { ...d, co, no, mines, tot, vf: vf || "", vt: vt || "" } : d))
       }));
     } else {
       // Check duplicate locally first
@@ -417,6 +480,7 @@ function DispatchPageContent() {
             {
               company_name: co,
               do_no: no,
+              mines: mines || null,
               valid_from: vf,
               valid_to: vt,
               do_qty: tot
@@ -442,6 +506,7 @@ function DispatchPageContent() {
         id: newRecordId,
         co,
         no,
+        mines,
         tot,
         vf: vf || "",
         vt: vt || "",
@@ -451,8 +516,8 @@ function DispatchPageContent() {
       setStore((prev) => ({
         ...prev,
         nid: typeof prev.nid === "number" ? prev.nid + 1 : prev.nid,
-        dos: [newDO, ...prev.dos],
-        act: newDO.id
+        dos: [...prev.dos, newDO]
+        // Note: Keep previous active DO as active so its existing allotment/trucks don't disappear!
       }));
     }
     closeModal();
@@ -706,6 +771,7 @@ function DispatchPageContent() {
     setFormData({
       pid: initialPid,
       truckNo: t ? t.no : "",
+      driver: t ? (t.driver || "") : "",
       tp: t ? t.tp : "",
       date: t ? t.date : new Date().toISOString().slice(0, 10),
       qty: t ? t.qty : ""
@@ -724,6 +790,7 @@ function DispatchPageContent() {
     const pid = formData.pid ? formData.pid : currentDO.parties[0]?.id;
     const party = currentDO.parties.find((p) => String(p.id) === String(pid));
     const truckNo = (formData.truckNo || "").trim().toUpperCase();
+    const driver = (formData.driver || "").trim();
     const tp = (formData.tp || "").trim();
     const date = formData.date || new Date().toISOString().slice(0, 10);
     const qty = parseFloat(formData.qty);
@@ -753,6 +820,7 @@ function DispatchPageContent() {
           .update({
             party_id: party.id,
             truck_no: truckNo,
+            driver_name: driver,
             tp_no: tp,
             dispatch_date: date,
             net_weight_mt: qty,
@@ -771,7 +839,7 @@ function DispatchPageContent() {
 
       setStore((prev) => ({
         ...prev,
-        trucks: prev.trucks.map((t) => (t.id === id ? { ...t, pid: party.id, no: truckNo, tp, date, qty } : t))
+        trucks: prev.trucks.map((t) => (t.id === id ? { ...t, pid: party.id, no: truckNo, driver, tp, date, qty } : t))
       }));
     } else {
       // Insert in Supabase truck_dispatch
@@ -784,6 +852,7 @@ function DispatchPageContent() {
               do_id: currentDO.id,
               party_id: party.id,
               truck_no: truckNo,
+              driver_name: driver,
               tp_no: tp,
               dispatch_date: date,
               net_weight_mt: qty,
@@ -815,6 +884,7 @@ function DispatchPageContent() {
             did: currentDO.id,
             pid: party.id,
             no: truckNo,
+            driver,
             tp,
             date,
             qty,
@@ -991,8 +1061,9 @@ function DispatchPageContent() {
   const exportDOMasterExcel = () => {
     const cols = [
       { key: "sno", label: "S.No" },
+      { key: "doParty", label: "DO Party Name" },
+      { key: "mines", label: "Mines" },
       { key: "doNo", label: "DO No." },
-      { key: "company", label: "Company" },
       { key: "validFrom", label: "Valid From" },
       { key: "validTo", label: "Valid To" },
       { key: "doQty", label: "DO Qty (MT)" },
@@ -1004,8 +1075,9 @@ function DispatchPageContent() {
       const disp = getDODispatched(d);
       return {
         sno: idx + 1,
+        doParty: d.co || "-",
+        mines: d.mines || "-",
         doNo: getDOName(d),
-        company: d.co || "-",
         validFrom: formatDate(d.vf),
         validTo: formatDate(d.vt),
         doQty: formatNumber(d.tot),
@@ -1018,90 +1090,353 @@ function DispatchPageContent() {
   };
 
   const exportDOMasterPDF = () => {
-    const cols = [
-      { key: "sno", label: "S.No" },
-      { key: "doNo", label: "DO No." },
-      { key: "company", label: "Company" },
-      { key: "validFrom", label: "Valid From" },
-      { key: "validTo", label: "Valid To" },
-      { key: "doQty", label: "DO Qty" },
-      { key: "allotted", label: "Allotted" },
-      { key: "dispatched", label: "Dispatched" },
-      { key: "balance", label: "Balance" }
-    ];
-    const data = filteredDOs.map((d, idx) => {
-      const disp = getDODispatched(d);
-      return {
-        sno: idx + 1,
-        doNo: getDOName(d),
-        company: d.co || "-",
-        validFrom: formatDate(d.vf),
-        validTo: formatDate(d.vt),
-        doQty: `${formatNumber(d.tot)} MT`,
-        allotted: `${formatNumber(getDOAllotted(d))} MT`,
-        dispatched: `${formatNumber(disp)} MT`,
-        balance: `${formatNumber(d.tot - disp)} MT`
-      };
+    const doc = new jsPDF("l", "mm", "a4");
+
+    const todayStr = new Date().toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric"
     });
-    exportToPDF(data, cols, `DO_Master_${new Date().toISOString().slice(0, 10)}`, "DO Master Report");
+
+    const activeFilterText = selectedCompanyFilter === "ALL" ? "All Parties" : selectedCompanyFilter;
+
+    // Top Header Banner
+    doc.setFillColor(143, 0, 9); // #8f0009
+    doc.rect(10, 10, 277, 24, "F");
+
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(255, 255, 255);
+    doc.text("COAL DO MASTER OVERVIEW REPORT", 16, 20);
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Party Scope: ${activeFilterText}`, 16, 28);
+
+    // Meta Box right side inside banner
+    doc.setFontSize(9);
+    doc.text(`Date: ${todayStr}`, 240, 20);
+    doc.text(`Total DOs: ${filteredDOs.length}`, 240, 28);
+
+    // Sub-header details card below banner
+    doc.setFillColor(248, 250, 252); // slate-50
+    doc.setDrawColor(226, 232, 240); // slate-200
+    doc.roundedRect(10, 37, 277, 16, 2, 2, "FD");
+
+    doc.setTextColor(30, 41, 59); // slate-800
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+
+    doc.text("Total DO Qty:", 16, 47);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(231, 0, 11);
+    doc.text(`${formatNumber(totalDOQty)} MT`, 44, 47);
+
+    doc.setTextColor(30, 41, 59);
+    doc.setFont("helvetica", "bold");
+    doc.text("Total Allotted:", 85, 47);
+    doc.setFont("helvetica", "normal");
+    doc.text(`${formatNumber(totalAllotted)} MT`, 112, 47);
+
+    doc.setFont("helvetica", "bold");
+    doc.text("Unallocated:", 150, 47);
+    doc.setFont("helvetica", "normal");
+    doc.text(`${formatNumber(totalUnallocated)} MT`, 175, 47);
+
+    doc.setFont("helvetica", "bold");
+    doc.text("Dispatched:", 208, 47);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(5, 150, 105);
+    doc.text(`${formatNumber(totalDispatched)} MT`, 232, 47);
+
+    doc.setTextColor(30, 41, 59);
+    doc.setFont("helvetica", "bold");
+    doc.text("Balance:", 254, 47);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(217, 119, 6);
+    doc.text(`${formatNumber(totalBalance)} MT`, 271, 47);
+
+    // Table Data
+    const headers = [
+      "#",
+      "DO Party Name",
+      "Mines",
+      "DO No.",
+      "Valid From",
+      "Valid To",
+      "Expiry Status",
+      "DO Qty (MT)",
+      "Allotted (MT)",
+      "Dispatched (MT)",
+      "Balance (MT)"
+    ];
+
+    const body = filteredDOs.map((d, idx) => {
+      const disp = getDODispatched(d);
+      const expiry = getExpiryDetails(d.vt, d.vf);
+      return [
+        idx + 1,
+        d.co || "-",
+        d.mines || "-",
+        getDOName(d),
+        formatDate(d.vf),
+        formatDate(d.vt),
+        expiry.text,
+        formatNumber(d.tot),
+        formatNumber(getDOAllotted(d)),
+        formatNumber(disp),
+        formatNumber(d.tot - disp)
+      ];
+    });
+
+    autoTable(doc, {
+      startY: 57,
+      head: [headers],
+      body: body,
+      theme: "grid",
+      styles: {
+        fontSize: 8.5,
+        cellPadding: 3,
+        valign: "middle",
+        halign: "left"
+      },
+      headStyles: {
+        fillColor: [143, 0, 9],
+        textColor: [255, 255, 255],
+        fontStyle: "bold",
+        fontSize: 8.5
+      },
+      columnStyles: {
+        0: { halign: "center", cellWidth: 10 },
+        1: { cellWidth: 42, fontStyle: "bold" },
+        2: { cellWidth: 28 },
+        3: { cellWidth: 24 },
+        4: { cellWidth: 24 },
+        5: { halign: "center", cellWidth: 28 },
+        6: { halign: "right", cellWidth: 30, fontStyle: "bold" },
+        7: { halign: "right", cellWidth: 30 },
+        8: { halign: "right", cellWidth: 30 },
+        9: { halign: "right", cellWidth: 31, fontStyle: "bold" }
+      },
+      alternateRowStyles: {
+        fillColor: [255, 245, 245]
+      },
+      margin: { top: 57, left: 10, right: 10 },
+      tableWidth: "auto",
+      didDrawPage: (data) => {
+        const str = `Page ${doc.internal.getNumberOfPages()}`;
+        doc.setFontSize(8);
+        doc.setTextColor(150);
+        doc.text(
+          str,
+          doc.internal.pageSize.getWidth() - 25,
+          doc.internal.pageSize.getHeight() - 8
+        );
+      }
+    });
+
+    // Summary footer total bar
+    const finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY : 70;
+    if (finalY < doc.internal.pageSize.getHeight() - 20) {
+      doc.setFillColor(254, 242, 242);
+      doc.rect(10, finalY + 2, 277, 8, "F");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(143, 0, 9);
+      doc.text("Grand Total Summary", 16, finalY + 7.5);
+      doc.text(`DO Qty: ${formatNumber(totalDOQty)} MT`, 120, finalY + 7.5);
+      doc.text(`Allotted: ${formatNumber(totalAllotted)} MT`, 170, finalY + 7.5);
+      doc.text(`Disp: ${formatNumber(totalDispatched)} MT`, 220, finalY + 7.5);
+      doc.text(`Bal: ${formatNumber(totalBalance)} MT`, 260, finalY + 7.5);
+    }
+
+    doc.save(`DO_Master_${new Date().toISOString().slice(0, 10)}.pdf`);
   };
 
   // Dedicated Tab Exports: Party Wise Order
   const exportPartyOrderExcel = () => {
     const cols = [
       { key: "sno", label: "S.No" },
-      { key: "partyName", label: "Party Name" },
+      { key: "doParty", label: "DO Party Name" },
       { key: "doNo", label: "DO No." },
+      { key: "lifterParty", label: "Lifter Party Name" },
       { key: "orderQty", label: "Order Qty (MT)" },
       { key: "dispatched", label: "Dispatched (MT)" },
       { key: "balance", label: "Balance (MT)" },
-      { key: "trucks", label: "Trucks Count" }
+      { key: "trucks", label: "Total Trucks" },
+      { key: "progress", label: "Progress (%)" }
     ];
     const data = (currentDO?.parties || []).map((p, idx) => {
       const disp = getPartyDispatched(p.id);
       const truckCount = (store.trucks || []).filter((t) => t.pid === p.id).length;
+      const pct = p.qty > 0 ? Math.round(Math.min(100, (disp / p.qty) * 100)) : 0;
       return {
         sno: idx + 1,
-        partyName: p.name,
+        doParty: currentDO?.co || "-",
         doNo: getDOName(currentDO),
+        lifterParty: p.name,
         orderQty: formatNumber(p.qty),
         dispatched: formatNumber(disp),
         balance: formatNumber(p.qty - disp),
-        trucks: truckCount
+        trucks: truckCount,
+        progress: `${pct}%`
       };
     });
-    exportToExcel(data, cols, `Party_Wise_Order_${getDOName(currentDO)}_${new Date().toISOString().slice(0, 10)}`);
+    exportToExcel(data, cols, `DO_Allotment_${getDOName(currentDO)}_${new Date().toISOString().slice(0, 10)}`);
   };
 
   const exportPartyOrderPDF = () => {
-    const cols = [
-      { key: "sno", label: "S.No" },
-      { key: "partyName", label: "Party Name" },
-      { key: "doNo", label: "DO No." },
-      { key: "orderQty", label: "Order Qty" },
-      { key: "dispatched", label: "Dispatched" },
-      { key: "balance", label: "Balance" },
-      { key: "trucks", label: "Trucks" }
-    ];
-    const data = (currentDO?.parties || []).map((p, idx) => {
-      const disp = getPartyDispatched(p.id);
-      const truckCount = (store.trucks || []).filter((t) => t.pid === p.id).length;
-      return {
-        sno: idx + 1,
-        partyName: p.name,
-        doNo: getDOName(currentDO),
-        orderQty: `${formatNumber(p.qty)} MT`,
-        dispatched: `${formatNumber(disp)} MT`,
-        balance: `${formatNumber(p.qty - disp)} MT`,
-        trucks: truckCount
-      };
+    const doc = new jsPDF("l", "mm", "a4");
+
+    const doPartyName = currentDO?.co || "-";
+    const doNumber = getDOName(currentDO);
+    const totalDOQtyMT = currentDO?.tot || 0;
+    const todayStr = new Date().toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric"
     });
-    exportToPDF(
-      data,
-      cols,
-      `Party_Wise_Order_${getDOName(currentDO)}_${new Date().toISOString().slice(0, 10)}`,
-      `Party Wise Order Qty - DO: ${getDOName(currentDO)} (${currentDO?.co || ""})`
-    );
+
+    // Top Header Banner
+    doc.setFillColor(143, 0, 9); // #8f0009
+    doc.rect(10, 10, 277, 24, "F");
+
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(255, 255, 255);
+    doc.text("COAL DO ALLOTMENT REPORT", 16, 20);
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`DO No: ${doNumber}`, 16, 28);
+
+    // Meta Box right side inside banner
+    doc.setFontSize(9);
+    doc.text(`Date: ${todayStr}`, 240, 20);
+    doc.text(`DO Qty: ${formatNumber(totalDOQtyMT)} MT`, 240, 28);
+
+    // Sub-header details card below banner
+    doc.setFillColor(248, 250, 252); // slate-50
+    doc.setDrawColor(226, 232, 240); // slate-200
+    doc.roundedRect(10, 37, 277, 16, 2, 2, "FD");
+
+    doc.setTextColor(30, 41, 59); // slate-800
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+
+    doc.text("DO Party Name:", 16, 47);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(231, 0, 11);
+    doc.text(`${doPartyName}`, 46, 47);
+
+    doc.setTextColor(30, 41, 59);
+    doc.setFont("helvetica", "bold");
+    doc.text("Allotted Parties:", 100, 47);
+    doc.setFont("helvetica", "normal");
+    doc.text(`${(currentDO?.parties || []).length}`, 130, 47);
+
+    doc.setFont("helvetica", "bold");
+    doc.text("Allotted Qty:", 160, 47);
+    doc.setFont("helvetica", "normal");
+    doc.text(`${formatNumber(partiesTotalQty)} MT`, 185, 47);
+
+    doc.setFont("helvetica", "bold");
+    doc.text("Total Dispatched:", 218, 47);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(5, 150, 105);
+    doc.text(`${formatNumber(partiesTotalDisp)} MT`, 252, 47);
+
+    // Table Data
+    const headers = [
+      "#",
+      "DO Party Name",
+      "DO No.",
+      "Lifter Party Name",
+      "Order Qty (MT)",
+      "Dispatched (MT)",
+      "Balance (MT)",
+      "Trucks",
+      "Progress"
+    ];
+
+    const body = (currentDO?.parties || []).map((p, idx) => {
+      const disp = getPartyDispatched(p.id);
+      const bal = p.qty - disp;
+      const truckCount = (store.trucks || []).filter((t) => t.pid === p.id).length;
+      const pct = p.qty > 0 ? Math.round(Math.min(100, (disp / p.qty) * 100)) : 0;
+      return [
+        idx + 1,
+        currentDO?.co || "-",
+        getDOName(currentDO),
+        p.name || "-",
+        formatNumber(p.qty),
+        formatNumber(disp),
+        formatNumber(bal),
+        truckCount,
+        `${pct}%`
+      ];
+    });
+
+    autoTable(doc, {
+      startY: 57,
+      head: [headers],
+      body: body,
+      theme: "grid",
+      styles: {
+        fontSize: 9,
+        cellPadding: 3.5,
+        valign: "middle",
+        halign: "left"
+      },
+      headStyles: {
+        fillColor: [143, 0, 9],
+        textColor: [255, 255, 255],
+        fontStyle: "bold",
+        fontSize: 9
+      },
+      columnStyles: {
+        0: { halign: "center", cellWidth: 12 },
+        1: { cellWidth: 38, fontStyle: "bold" },
+        2: { cellWidth: 30 },
+        3: { cellWidth: 50, fontStyle: "bold" },
+        4: { halign: "right", cellWidth: 32, fontStyle: "bold" },
+        5: { halign: "right", cellWidth: 32 },
+        6: { halign: "right", cellWidth: 32, fontStyle: "bold" },
+        7: { halign: "center", cellWidth: 22 },
+        8: { halign: "center", cellWidth: 29 }
+      },
+      alternateRowStyles: {
+        fillColor: [255, 245, 245]
+      },
+      margin: { top: 57, left: 10, right: 10 },
+      tableWidth: "auto",
+      didDrawPage: (data) => {
+        const str = `Page ${doc.internal.getNumberOfPages()}`;
+        doc.setFontSize(8);
+        doc.setTextColor(150);
+        doc.text(
+          str,
+          doc.internal.pageSize.getWidth() - 25,
+          doc.internal.pageSize.getHeight() - 8
+        );
+      }
+    });
+
+    // Summary footer total bar
+    const finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY : 70;
+    if (finalY < doc.internal.pageSize.getHeight() - 20) {
+      doc.setFillColor(254, 242, 242);
+      doc.rect(10, finalY + 2, 277, 8, "F");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(143, 0, 9);
+      doc.text("Total Allotted Summary", 16, finalY + 7.5);
+      doc.text(`Order: ${formatNumber(partiesTotalQty)} MT`, 140, finalY + 7.5);
+      doc.text(`Disp: ${formatNumber(partiesTotalDisp)} MT`, 185, finalY + 7.5);
+      doc.text(`Bal: ${formatNumber(partiesTotalQty - partiesTotalDisp)} MT`, 230, finalY + 7.5);
+    }
+
+    doc.save(`DO_Allotment_${getDOName(currentDO)}_${new Date().toISOString().slice(0, 10)}.pdf`);
   };
 
   // Dedicated Tab Exports: Truck Wise Dispatch
@@ -1109,21 +1444,26 @@ function DispatchPageContent() {
     const cols = [
       { key: "sno", label: "S.No" },
       { key: "date", label: "Dispatch Date" },
-      { key: "party", label: "Party" },
+      { key: "doParty", label: "DO Party Name" },
       { key: "doNo", label: "DO No." },
+      { key: "lifterParty", label: "Lifter Party Name" },
       { key: "truckNo", label: "Truck No." },
+      { key: "driverName", label: "Driver Name" },
       { key: "tpNo", label: "TP No." },
       { key: "netWt", label: "Net Wt (MT)" },
       { key: "status", label: "Status" }
     ];
     const data = visibleTrucks.map((t, idx) => {
       const party = (currentDO?.parties || []).find((p) => p.id === t.pid);
+      const truckDO = (store?.dos || []).find((d) => d.id === t.did) || currentDO;
       return {
         sno: idx + 1,
         date: formatDate(t.date),
-        party: party ? party.name : "-",
-        doNo: getDOName(currentDO),
+        doParty: truckDO?.co || "-",
+        doNo: getDOName(truckDO),
+        lifterParty: party ? party.name : "-",
         truckNo: t.no,
+        driverName: t.driver || "-",
         tpNo: t.tp || "-",
         netWt: formatNumber(t.qty),
         status: t.done ? "Done" : "Pending"
@@ -1133,35 +1473,310 @@ function DispatchPageContent() {
   };
 
   const exportTruckDispatchPDF = () => {
-    const cols = [
-      { key: "sno", label: "S.No" },
-      { key: "date", label: "Date" },
-      { key: "party", label: "Party" },
-      { key: "doNo", label: "DO No." },
-      { key: "truckNo", label: "Truck No." },
-      { key: "tpNo", label: "TP No." },
-      { key: "netWt", label: "Net Wt" },
-      { key: "status", label: "Status" }
-    ];
-    const data = visibleTrucks.map((t, idx) => {
-      const party = (currentDO?.parties || []).find((p) => p.id === t.pid);
-      return {
-        sno: idx + 1,
-        date: formatDate(t.date),
-        party: party ? party.name : "-",
-        doNo: getDOName(currentDO),
-        truckNo: t.no,
-        tpNo: t.tp || "-",
-        netWt: `${formatNumber(t.qty)} MT`,
-        status: t.done ? "Done" : "Pending"
-      };
+    const doc = new jsPDF("l", "mm", "a4");
+
+    const activePartyObj = selectedTruckFilter
+      ? (currentDO.parties || []).find((p) => String(p.id) === String(selectedTruckFilter))
+      : null;
+
+    const doPartyName = currentDO?.co || "-";
+    const lifterName = activePartyObj ? activePartyObj.name : "All Lifters";
+    const doNumber = getDOName(currentDO);
+    const todayStr = new Date().toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric"
     });
-    exportToPDF(
-      data,
-      cols,
-      `Truck_Wise_Dispatch_${activeTab}_${new Date().toISOString().slice(0, 10)}`,
-      `Truck Wise Dispatch (${activeTab.toUpperCase()}) - DO: ${getDOName(currentDO)}`
-    );
+
+    // Top Header Banner
+    doc.setFillColor(143, 0, 9); // #8f0009
+    doc.rect(10, 10, 277, 24, "F");
+
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(255, 255, 255);
+    doc.text("COAL TRUCK DISPATCH REPORT", 16, 20);
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Status: ${activeTab.toUpperCase()}`, 16, 28);
+
+    // Meta Box right side inside banner
+    doc.setFontSize(9);
+    doc.text(`Date: ${todayStr}`, 240, 20);
+    doc.text(`DO No: ${doNumber}`, 240, 28);
+
+    // Sub-header details card below banner
+    doc.setFillColor(248, 250, 252); // slate-50
+    doc.setDrawColor(226, 232, 240); // slate-200
+    doc.roundedRect(10, 37, 277, 16, 2, 2, "FD");
+
+    doc.setTextColor(30, 41, 59); // slate-800
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+
+    doc.text("DO Party Name:", 16, 47);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(231, 0, 11);
+    doc.text(`${doPartyName}`, 46, 47);
+
+    doc.setTextColor(30, 41, 59);
+    doc.setFont("helvetica", "bold");
+    doc.text("Lifter Party Name:", 100, 47);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(231, 0, 11);
+    doc.text(`${lifterName}`, 136, 47);
+
+    doc.setTextColor(30, 41, 59);
+    doc.setFont("helvetica", "bold");
+    doc.text("Total Trucks:", 190, 47);
+    doc.setFont("helvetica", "normal");
+    doc.text(`${visibleTrucks.length}`, 215, 47);
+
+    doc.setFont("helvetica", "bold");
+    doc.text("Net Wt:", 235, 47);
+    doc.setFont("helvetica", "normal");
+    doc.text(`${formatNumber(trucksTotalWeight)} MT`, 252, 47);
+
+    // Table Data
+    const headers = [
+      "#",
+      "Date",
+      "DO Party Name",
+      "DO No.",
+      "Lifter Party Name",
+      "Truck No.",
+      "Driver Name",
+      "TP No.",
+      "Net Wt (MT)",
+      "Status"
+    ];
+
+    const body = visibleTrucks.map((t, idx) => {
+      const party = (currentDO?.parties || []).find((p) => p.id === t.pid);
+      const truckDO = (store?.dos || []).find((d) => d.id === t.did) || currentDO;
+      return [
+        idx + 1,
+        formatDate(t.date),
+        truckDO?.co || "-",
+        getDOName(truckDO),
+        party ? party.name : "-",
+        t.no || "-",
+        t.driver || "-",
+        t.tp || "-",
+        formatNumber(t.qty),
+        t.done ? "Done" : "Pending"
+      ];
+    });
+
+    autoTable(doc, {
+      startY: 57,
+      head: [headers],
+      body: body,
+      theme: "grid",
+      styles: {
+        fontSize: 8.5,
+        cellPadding: 3,
+        valign: "middle",
+        halign: "left"
+      },
+      headStyles: {
+        fillColor: [143, 0, 9],
+        textColor: [255, 255, 255],
+        fontStyle: "bold",
+        fontSize: 8.5
+      },
+      columnStyles: {
+        0: { halign: "center", cellWidth: 10 },
+        1: { cellWidth: 24 },
+        2: { cellWidth: 32 },
+        3: { cellWidth: 26 },
+        4: { cellWidth: 38 },
+        5: { cellWidth: 32, fontStyle: "bold" },
+        6: { cellWidth: 32 },
+        7: { cellWidth: 28 },
+        8: { halign: "right", cellWidth: 27, fontStyle: "bold" },
+        9: { halign: "center", cellWidth: 28 }
+      },
+      alternateRowStyles: {
+        fillColor: [255, 245, 245]
+      },
+      margin: { top: 57, left: 10, right: 10 },
+      tableWidth: "auto",
+      didDrawPage: (data) => {
+        // Footer page numbering
+        const str = `Page ${doc.internal.getNumberOfPages()}`;
+        doc.setFontSize(8);
+        doc.setTextColor(150);
+        doc.text(
+          str,
+          doc.internal.pageSize.getWidth() - 25,
+          doc.internal.pageSize.getHeight() - 8
+        );
+      }
+    });
+
+    // Add total row at bottom if needed
+    const finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY : 70;
+    if (finalY < doc.internal.pageSize.getHeight() - 20) {
+      doc.setFillColor(254, 242, 242);
+      doc.rect(10, finalY + 2, 277, 8, "F");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(143, 0, 9);
+      doc.text("Grand Total", 16, finalY + 7.5);
+      doc.text(`${formatNumber(trucksTotalWeight)} MT`, 232, finalY + 7.5, { align: "right" });
+    }
+
+    doc.save(`Truck_Wise_Dispatch_${activeTab}_${new Date().toISOString().slice(0, 10)}.pdf`);
+  };
+
+  // Main Combined Consolidated Report (DO Master + DO Allotment + Truck Dispatch)
+  const exportMainReportPDF = () => {
+    const doc = new jsPDF("l", "mm", "a4");
+
+    const todayStr = new Date().toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric"
+    });
+
+    const activeFilterText = selectedCompanyFilter === "ALL" ? "All Parties" : selectedCompanyFilter;
+    const currentDOName = getDOName(currentDO);
+
+    // Check if a specific lifter party is selected in Tab 3 filter
+    const selectedParty = selectedTruckFilter
+      ? (currentDO?.parties || []).find((p) => String(p.id) === String(selectedTruckFilter))
+      : null;
+
+    const doPartyName = currentDO?.co || activeFilterText;
+    const lifterPartyName = selectedParty ? selectedParty.name : "All Lifters";
+    const displayOrderQty = selectedParty ? (selectedParty.qty || 0) : (currentDO?.tot || 0);
+    const displayAllottedQty = selectedParty ? (selectedParty.qty || 0) : partiesTotalQty;
+    const displayDispatchedQty = selectedParty ? getPartyDispatched(selectedParty.id) : partiesTotalDisp;
+    const displayPendingBal = Math.max(0, displayOrderQty - displayDispatchedQty);
+
+    // Top Header Banner
+    doc.setFillColor(143, 0, 9); // #8f0009
+    doc.rect(10, 10, 277, 24, "F");
+
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(255, 255, 255);
+    doc.text("COAL DISPATCH SYSTEM - MAIN CONSOLIDATED REPORT", 16, 20);
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    const headerSubText = selectedParty
+      ? `DO Party: ${doPartyName} | Lifter: ${lifterPartyName} | DO: ${currentDOName} | Mines: ${currentDO?.mines || "-"}`
+      : `DO Party: ${doPartyName} | DO: ${currentDOName} | Mines: ${currentDO?.mines || "-"}`;
+    doc.text(headerSubText, 16, 28);
+
+    doc.setFontSize(9);
+    doc.text(`Date: ${todayStr}`, 240, 20);
+    doc.text(`Total Trucks: ${activeTrucks.length}`, 240, 28);
+
+    // Top Summary Card
+    doc.setFillColor(248, 250, 252);
+    doc.setDrawColor(226, 232, 240);
+    doc.roundedRect(10, 37, 277, 16, 2, 2, "FD");
+
+    doc.setTextColor(30, 41, 59);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.text(selectedParty ? "Party Order Qty:" : "DO Qty:", 16, 47);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(231, 0, 11);
+    doc.text(`${formatNumber(displayOrderQty)} MT`, selectedParty ? 48 : 35, 47);
+
+    doc.setTextColor(30, 41, 59);
+    doc.setFont("helvetica", "bold");
+    doc.text("Allotted:", selectedParty ? 80 : 70, 47);
+    doc.setFont("helvetica", "normal");
+    doc.text(`${formatNumber(displayAllottedQty)} MT`, selectedParty ? 98 : 90, 47);
+
+    doc.setFont("helvetica", "bold");
+    doc.text("Total Dispatched:", 130, 47);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(5, 150, 105);
+    doc.text(`${formatNumber(displayDispatchedQty)} MT`, 168, 47);
+
+    doc.setTextColor(30, 41, 59);
+    doc.setFont("helvetica", "bold");
+    doc.text("Pending Balance:", 205, 47);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(217, 119, 6);
+    doc.text(`${formatNumber(displayPendingBal)} MT`, 245, 47);
+
+    // Section 1: DO Allotment Table
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(143, 0, 9);
+    doc.text(selectedParty ? "1. Lifter Party Order Details" : "1. DO Allotment Details (Lifter Parties)", 12, 60);
+
+    const partyHeaders = ["#", "Lifter Party", "Order Qty (MT)", "Dispatched (MT)", "Balance (MT)", "Trucks", "Progress"];
+    const partyList = selectedParty
+      ? [selectedParty]
+      : (currentDO?.parties || []);
+
+    const partyBody = partyList.map((p, idx) => {
+      const disp = getPartyDispatched(p.id);
+      const bal = Math.max(0, (p.qty || 0) - disp);
+      const truckCount = (store.trucks || []).filter((t) => t.pid === p.id).length;
+      const pct = p.qty > 0 ? Math.round(Math.min(100, (disp / p.qty) * 100)) : 0;
+      return [idx + 1, p.name || "-", formatNumber(p.qty), formatNumber(disp), formatNumber(bal), truckCount, `${pct}%`];
+    });
+
+    autoTable(doc, {
+      startY: 64,
+      head: [partyHeaders],
+      body: partyBody,
+      theme: "grid",
+      styles: { fontSize: 8.5, cellPadding: 2.5 },
+      headStyles: { fillColor: [143, 0, 9], textColor: [255, 255, 255], fontStyle: "bold" },
+      margin: { left: 10, right: 10 },
+      tableWidth: "auto"
+    });
+
+    // Section 2: Truck wise Dispatch Table
+    const nextY = (doc.lastAutoTable ? doc.lastAutoTable.finalY : 100) + 8;
+    if (nextY > doc.internal.pageSize.getHeight() - 40) {
+      doc.addPage();
+      doc.text("2. Truck Wise Dispatch List", 12, 20);
+    } else {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.setTextColor(143, 0, 9);
+      doc.text("2. Truck Wise Dispatch List", 12, nextY);
+    }
+
+    const truckHeaders = ["#", "Date", "Lifter Party", "Truck No.", "Driver Name", "TP No.", "Net Wt (MT)", "Status"];
+    const truckBody = activeTrucks.map((t, idx) => {
+      const party = (currentDO?.parties || []).find((p) => p.id === t.pid);
+      return [
+        idx + 1,
+        formatDate(t.date),
+        party ? party.name : "-",
+        t.no || "-",
+        t.driver || "-",
+        t.tp || "-",
+        formatNumber(t.qty),
+        t.done ? "Done" : "Pending"
+      ];
+    });
+
+    autoTable(doc, {
+      startY: (doc.lastAutoTable && nextY <= doc.internal.pageSize.getHeight() - 40 ? nextY + 4 : 24),
+      head: [truckHeaders],
+      body: truckBody,
+      theme: "grid",
+      styles: { fontSize: 8, cellPadding: 2.5 },
+      headStyles: { fillColor: [180, 20, 30], textColor: [255, 255, 255], fontStyle: "bold" },
+      margin: { left: 10, right: 10 },
+      tableWidth: "auto"
+    });
+
+    doc.save(`Main_Consolidated_Report_${getDOName(currentDO)}_${new Date().toISOString().slice(0, 10)}.pdf`);
   };
 
   // Calculations for DO Stats (filtered by Company if selected, or total across DOs)
@@ -1195,6 +1810,62 @@ function DispatchPageContent() {
     return (store?.trucks || []).filter((t) => t && t.did === currentDO?.id);
   }, [store?.trucks, currentDO?.id]);
 
+  // Tab 3 Filter-based Truck Stats
+  const partyFilteredTrucks = useMemo(() => {
+    return (store?.trucks || []).filter((t) => {
+      if (!t || t.did !== currentDO?.id) return false;
+      if (selectedTruckFilter && String(t.pid) !== String(selectedTruckFilter)) return false;
+      return true;
+    });
+  }, [store?.trucks, currentDO?.id, selectedTruckFilter]);
+
+  const partyFilteredPendingTrucks = useMemo(() => {
+    return partyFilteredTrucks.filter((t) => !t.done).length;
+  }, [partyFilteredTrucks]);
+
+  const partyFilteredHistoryTrucks = useMemo(() => {
+    return partyFilteredTrucks.filter((t) => !!t.done).length;
+  }, [partyFilteredTrucks]);
+
+  const partyFilteredTrucksWeight = useMemo(() => {
+    return partyFilteredTrucks.reduce((acc, t) => acc + (parseFloat(t.qty) || 0), 0);
+  }, [partyFilteredTrucks]);
+
+  const selectedPartyObj = useMemo(() => {
+    if (!selectedTruckFilter) return null;
+    return (currentDO?.parties || []).find((p) => String(p.id) === String(selectedTruckFilter)) || null;
+  }, [currentDO?.parties, selectedTruckFilter]);
+
+  const partyFilteredDispatchedQty = useMemo(() => {
+    if (selectedPartyObj) {
+      return getPartyDispatched(selectedPartyObj.id);
+    }
+    return getDODispatched(currentDO);
+  }, [selectedPartyObj, currentDO, store?.trucks]);
+
+  const partyFilteredRemainingBal = useMemo(() => {
+    if (selectedPartyObj) {
+      const disp = getPartyDispatched(selectedPartyObj.id);
+      return Math.max(0, (selectedPartyObj.qty || 0) - disp);
+    }
+    return Math.max(0, (currentDO?.tot || 0) - getDODispatched(currentDO));
+  }, [selectedPartyObj, currentDO, store?.trucks]);
+
+  // Visible Parties in DO Allotment Tab (Filterable by Lifter Party)
+  const visibleParties = useMemo(() => {
+    const list = currentDO?.parties || [];
+    if (!selectedPartyLifterFilter) return list;
+    return list.filter((p) => String(p.id) === String(selectedPartyLifterFilter));
+  }, [currentDO?.parties, selectedPartyLifterFilter]);
+
+  const partiesTotalQty = useMemo(() => {
+    return (visibleParties || []).reduce((acc, p) => acc + (p?.qty || 0), 0);
+  }, [visibleParties]);
+
+  const partiesTotalDisp = useMemo(() => {
+    return (visibleParties || []).reduce((acc, p) => acc + getPartyDispatched(p?.id), 0);
+  }, [visibleParties, store?.trucks]);
+
   const activeAllotted = useMemo(() => {
     return getDOAllotted(currentDO);
   }, [currentDO]);
@@ -1203,8 +1874,6 @@ function DispatchPageContent() {
     return (currentDO?.tot || 0) - activeAllotted;
   }, [currentDO, activeAllotted]);
 
-  const partiesTotalQty = (currentDO?.parties || []).reduce((acc, p) => acc + (p?.qty || 0), 0);
-  const partiesTotalDisp = (currentDO?.parties || []).reduce((acc, p) => acc + getPartyDispatched(p?.id), 0);
   const trucksTotalWeight = (visibleTrucks || []).reduce((acc, t) => acc + (t?.qty || 0), 0);
 
   return (
@@ -1233,27 +1902,6 @@ function DispatchPageContent() {
                 )}
               </p>
             </div>
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            <button
-              onClick={exportCSV}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white/15 hover:bg-white/25 border border-white/30 text-white transition-all active:scale-95 shadow-xs"
-            >
-              <Download className="w-3.5 h-3.5" /> CSV Export
-            </button>
-            <button
-              onClick={() => window.print()}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white/15 hover:bg-white/25 border border-white/30 text-white transition-all active:scale-95 shadow-xs"
-            >
-              <Printer className="w-3.5 h-3.5" /> Print
-            </button>
-            <button
-              onClick={handleResetAll}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white/15 hover:bg-white/25 border border-white/30 text-white transition-all active:scale-95 shadow-xs"
-            >
-              <RotateCcw className="w-3.5 h-3.5" /> Clear All
-            </button>
           </div>
         </div>
       </div>
@@ -1423,9 +2071,11 @@ function DispatchPageContent() {
                   <Truck className="w-5 h-5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">Total Trucks</span>
+                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">
+                    {selectedPartyObj ? "Party Trucks" : "Total Trucks"}
+                  </span>
                   <div className="text-[16px] sm:text-[17px] font-bold text-slate-900 leading-tight">
-                    {activeTrucks.length}
+                    {partyFilteredTrucks.length}
                   </div>
                 </div>
               </div>
@@ -1435,9 +2085,11 @@ function DispatchPageContent() {
                   <Hourglass className="w-5 h-5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">Pending Trucks</span>
+                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">
+                    {selectedPartyObj ? "Party Running" : "Pending Trucks"}
+                  </span>
                   <div className="text-[16px] sm:text-[17px] font-bold text-amber-600 leading-tight">
-                    {pendingTruckCount}
+                    {partyFilteredPendingTrucks}
                   </div>
                 </div>
               </div>
@@ -1447,9 +2099,11 @@ function DispatchPageContent() {
                   <Check className="w-5 h-5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">Done / History</span>
+                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">
+                    {selectedPartyObj ? "Party Done" : "Done / History"}
+                  </span>
                   <div className="text-[16px] sm:text-[17px] font-bold text-emerald-600 leading-tight">
-                    {historyTruckCount}
+                    {partyFilteredHistoryTrucks}
                   </div>
                 </div>
               </div>
@@ -1471,9 +2125,11 @@ function DispatchPageContent() {
                   <List className="w-5 h-5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">DO Dispatched</span>
+                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">
+                    {selectedPartyObj ? "Party Dispatched" : "DO Dispatched"}
+                  </span>
                   <div className="text-[16px] sm:text-[17px] font-bold text-slate-900 leading-tight truncate">
-                    {formatNumber(getDODispatched(currentDO))} <span className="text-xs font-semibold text-slate-400">MT</span>
+                    {formatNumber(partyFilteredDispatchedQty)} <span className="text-xs font-semibold text-slate-400">MT</span>
                   </div>
                 </div>
               </div>
@@ -1483,9 +2139,11 @@ function DispatchPageContent() {
                   <Package className="w-5 h-5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">DO Rem. Bal</span>
-                  <div className={`text-[16px] sm:text-[17px] font-bold leading-tight truncate ${(currentDO?.tot || 0) - getDODispatched(currentDO) > 0 ? "text-amber-600" : "text-emerald-600"}`}>
-                    {formatNumber((currentDO?.tot || 0) - getDODispatched(currentDO))} <span className="text-xs font-semibold text-slate-400">MT</span>
+                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">
+                    {selectedPartyObj ? "Party Balance" : "DO Rem. Bal"}
+                  </span>
+                  <div className={`text-[16px] sm:text-[17px] font-bold leading-tight truncate ${partyFilteredRemainingBal > 0 ? "text-amber-600" : "text-emerald-600"}`}>
+                    {formatNumber(partyFilteredRemainingBal)} <span className="text-xs font-semibold text-slate-400">MT</span>
                   </div>
                 </div>
               </div>
@@ -1493,25 +2151,25 @@ function DispatchPageContent() {
           )}
         </div>
 
-        {/* Main 3 Section Tabs - Executive Pill Design with smooth mobile horizontal scroll */}
+        {/* Main 3 Section Tabs - Executive Segmented Pill Design */}
         <div className="w-full overflow-x-auto pb-1 scrollbar-none">
-          <div className="flex items-center gap-1.5 sm:gap-2.5 p-1 sm:p-1.5 bg-slate-100/90 rounded-2xl w-max border border-slate-200/80 shadow-2xs">
+          <div className="inline-flex items-center gap-1.5 p-1.5 bg-slate-100/90 rounded-2xl border border-slate-200/90 shadow-inner">
             <button
               onClick={() => setMainSectionTab("do-master")}
-              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer ${
+              className={`px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2.5 whitespace-nowrap cursor-pointer ${
                 mainSectionTab === "do-master"
-                  ? "bg-gradient-to-r from-[#e7000b] to-[#ff3340] text-white shadow-sm shadow-red-200 ring-2 ring-red-300/40"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-white/70"
+                  ? "bg-gradient-to-r from-[#dc2626] to-[#ef4444] text-white shadow-md shadow-red-500/20 ring-2 ring-red-400/30"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-white/80"
               }`}
             >
-              <span className={`w-5 h-5 rounded-lg flex items-center justify-center text-[10px] font-extrabold ${
-                mainSectionTab === "do-master" ? "bg-white/20 text-white" : "bg-slate-200 text-slate-700"
+              <span className={`w-5 h-5 rounded-lg flex items-center justify-center text-[10px] font-black ${
+                mainSectionTab === "do-master" ? "bg-white/25 text-white" : "bg-slate-200 text-slate-700"
               }`}>
                 1
               </span>
-              DO Master
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                mainSectionTab === "do-master" ? "bg-white text-red-600" : "bg-slate-200 text-slate-600"
+              <span>DO Master</span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black tracking-tight ${
+                mainSectionTab === "do-master" ? "bg-white text-red-700 shadow-2xs" : "bg-slate-200 text-slate-700"
               }`}>
                 {(store?.dos || []).length}
               </span>
@@ -1519,20 +2177,20 @@ function DispatchPageContent() {
 
             <button
               onClick={() => setMainSectionTab("party-order")}
-              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer ${
+              className={`px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2.5 whitespace-nowrap cursor-pointer ${
                 mainSectionTab === "party-order"
-                  ? "bg-gradient-to-r from-[#e7000b] to-[#ff3340] text-white shadow-sm shadow-red-200 ring-2 ring-red-300/40"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-white/70"
+                  ? "bg-gradient-to-r from-[#dc2626] to-[#ef4444] text-white shadow-md shadow-red-500/20 ring-2 ring-red-400/30"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-white/80"
               }`}
             >
-              <span className={`w-5 h-5 rounded-lg flex items-center justify-center text-[10px] font-extrabold ${
-                mainSectionTab === "party-order" ? "bg-white/20 text-white" : "bg-slate-200 text-slate-700"
+              <span className={`w-5 h-5 rounded-lg flex items-center justify-center text-[10px] font-black ${
+                mainSectionTab === "party-order" ? "bg-white/25 text-white" : "bg-slate-200 text-slate-700"
               }`}>
                 2
               </span>
-              DO Allotment
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                mainSectionTab === "party-order" ? "bg-white text-red-600" : "bg-slate-200 text-slate-600"
+              <span>DO Allotment</span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black tracking-tight ${
+                mainSectionTab === "party-order" ? "bg-white text-red-700 shadow-2xs" : "bg-slate-200 text-slate-700"
               }`}>
                 {currentDO.parties?.length || 0}
               </span>
@@ -1540,20 +2198,20 @@ function DispatchPageContent() {
 
             <button
               onClick={() => setMainSectionTab("truck-dispatch")}
-              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer ${
+              className={`px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2.5 whitespace-nowrap cursor-pointer ${
                 mainSectionTab === "truck-dispatch"
-                  ? "bg-gradient-to-r from-[#e7000b] to-[#ff3340] text-white shadow-sm shadow-red-200 ring-2 ring-red-300/40"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-white/70"
+                  ? "bg-gradient-to-r from-[#dc2626] to-[#ef4444] text-white shadow-md shadow-red-500/20 ring-2 ring-red-400/30"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-white/80"
               }`}
             >
-              <span className={`w-5 h-5 rounded-lg flex items-center justify-center text-[10px] font-extrabold ${
-                mainSectionTab === "truck-dispatch" ? "bg-white/20 text-white" : "bg-slate-200 text-slate-700"
+              <span className={`w-5 h-5 rounded-lg flex items-center justify-center text-[10px] font-black ${
+                mainSectionTab === "truck-dispatch" ? "bg-white/25 text-white" : "bg-slate-200 text-slate-700"
               }`}>
                 3
               </span>
-              Truck wise Dispatch
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                mainSectionTab === "truck-dispatch" ? "bg-white text-red-600" : "bg-slate-200 text-slate-600"
+              <span>Truck wise Dispatch</span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black tracking-tight ${
+                mainSectionTab === "truck-dispatch" ? "bg-white text-red-700 shadow-2xs" : "bg-slate-200 text-slate-700"
               }`}>
                 {activeTrucks.length}
               </span>
@@ -1599,15 +2257,15 @@ function DispatchPageContent() {
             </div>
           </div>
 
-          {/* Filter Bar Just Above DO Master Table - Single Line on Mobile */}
-          <div className="flex items-center justify-between gap-2 bg-white border border-slate-200/90 p-2.5 sm:p-3 rounded-lg shadow-2xs">
-            <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
-              <span className="text-[11px] sm:text-xs font-bold text-slate-700 whitespace-nowrap">Filter:</span>
+          {/* Filter Bar Just Above DO Master Table - Professional Card Layout */}
+          <div className="flex items-center justify-between gap-3 bg-white border border-slate-200/90 p-3 sm:p-3.5 rounded-xl shadow-xs">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <span className="text-xs font-extrabold text-slate-700 tracking-wide uppercase">Party Filter:</span>
               <div className="relative min-w-0">
                 <select
                   value={selectedCompanyFilter}
                   onChange={(e) => setSelectedCompanyFilter(e.target.value)}
-                  className="px-2.5 sm:px-3.5 py-1.5 pr-7 sm:pr-8 rounded-lg border border-slate-200 bg-slate-50/70 hover:bg-slate-50 text-[11px] sm:text-xs font-bold text-slate-800 shadow-2xs focus:outline-none focus:ring-2 focus:ring-red-200 cursor-pointer appearance-none transition-colors truncate max-w-[150px] sm:max-w-xs"
+                  className="px-3.5 py-1.5 pr-8 rounded-lg border border-slate-300/80 bg-slate-50/70 hover:bg-white text-xs font-bold text-slate-800 shadow-2xs focus:outline-none focus:ring-2 focus:ring-red-400/40 focus:border-red-500 cursor-pointer appearance-none transition-all truncate max-w-[180px] sm:max-w-xs"
                 >
                   <option value="ALL">All Parties ({(store?.dos || []).length} DOs)</option>
                   {uniqueCompanies.map((co) => (
@@ -1616,13 +2274,13 @@ function DispatchPageContent() {
                     </option>
                   ))}
                 </select>
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
             </div>
 
-            <div className="text-[11px] sm:text-xs text-slate-500 font-medium whitespace-nowrap flex items-center gap-1 shrink-0">
-              <span className="hidden sm:inline">Showing DOs for:</span>
-              <span className="font-bold text-slate-800 bg-slate-100 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md truncate max-w-[110px] sm:max-w-none text-[10px] sm:text-xs">
+            <div className="text-xs text-slate-500 font-semibold whitespace-nowrap flex items-center gap-1.5 shrink-0">
+              <span className="hidden sm:inline">Active Scope:</span>
+              <span className="font-extrabold text-slate-800 bg-slate-100 border border-slate-200/80 px-2.5 py-1 rounded-lg text-xs truncate max-w-[140px] sm:max-w-none shadow-2xs">
                 {selectedCompanyFilter === "ALL" ? "All Parties" : selectedCompanyFilter}
               </span>
             </div>
@@ -1630,69 +2288,99 @@ function DispatchPageContent() {
 
           {/* DO Master Table - Desktop View */}
           <div className="hidden md:block overflow-x-auto rounded-lg border border-slate-200/90 bg-white shadow-xs">
-            <table className="w-full text-left border-collapse min-w-[700px]">
+            <table className="w-full text-left border-collapse min-w-max">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200/90 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  <th className="py-3.5 px-4 w-12">#</th>
-                  <th className="py-3.5 px-4">DO No.</th>
-                  <th className="py-3.5 px-4">Party</th>
-                  <th className="py-3.5 px-4">Valid From</th>
-                  <th className="py-3.5 px-4">Valid To</th>
-                  <th className="py-3.5 px-4 text-right">DO Qty</th>
-                  <th className="py-3.5 px-4 text-right">Allotted</th>
-                  <th className="py-3.5 px-4 text-right">Dispatched</th>
-                  <th className="py-3.5 px-4 text-right">Balance</th>
-                  <th className="py-3.5 px-4 text-center w-16">View</th>
-                  <th className="py-3.5 px-4 text-right w-24">Actions</th>
+                <tr className="bg-slate-50 border-b border-slate-200/90 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
+                  <th className="py-3.5 px-4 w-12 whitespace-nowrap">#</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap">DO Party Name</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap">Mines</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap">DO No.</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap">Valid From</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap">Valid To</th>
+                  <th className="py-3.5 px-4 text-center whitespace-nowrap">Expiry Status</th>
+                  <th className="py-3.5 px-4 text-right whitespace-nowrap">DO Qty</th>
+                  <th className="py-3.5 px-4 text-right whitespace-nowrap">Allotted</th>
+                  <th className="py-3.5 px-4 text-right whitespace-nowrap">Dispatched</th>
+                  <th className="py-3.5 px-4 text-right whitespace-nowrap">Balance</th>
+                  <th className="py-3.5 px-4 text-center w-16 whitespace-nowrap">View</th>
+                  <th className="py-3.5 px-4 text-right w-24 whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-[13.5px]">
+              <tbody className="divide-y divide-slate-100 text-[13.5px] whitespace-nowrap">
                 {filteredDOs.length ? (
                   filteredDOs.map((d, idx) => {
                     const dispatched = getDODispatched(d);
                     const bal = d.tot - dispatched;
                     const isActive = d.id === currentDO.id;
+                    const expiry = getExpiryDetails(d.vt, d.vf);
+
                     return (
-                      <tr key={d.id} className={`hover:bg-red-50/40 transition-colors ${isActive ? "bg-red-50/50" : ""}`}>
-                        <td className="py-3.5 px-4 font-medium text-slate-400">{idx + 1}</td>
-                        <td className="py-3.5 px-4">
+                      <tr
+                        key={d.id}
+                        className={`hover:bg-red-50/40 transition-colors whitespace-nowrap ${isActive ? "bg-red-50/50" : ""}`}
+                      >
+                        <td className="py-3.5 px-4 font-medium text-slate-400 whitespace-nowrap">{idx + 1}</td>
+                        <td className="py-3.5 px-4 font-bold text-slate-900 whitespace-nowrap">{d.co || "-"}</td>
+                        <td className="py-3.5 px-4 font-semibold text-slate-700 whitespace-nowrap">{d.mines || "-"}</td>
+                        <td className="py-3.5 px-4 whitespace-nowrap">
                           <span className="font-bold text-slate-900 text-sm">{getDOName(d)}</span>
-                          {isActive && (
+                          {isActive ? (
                             <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-red-100 text-[#e7000b]">
                               Active
                             </span>
+                          ) : (
+                            <button
+                              onClick={() => selectActiveDO(d.id)}
+                              className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-600 border border-slate-200 transition-colors cursor-pointer"
+                              title="Make this DO Active"
+                            >
+                              Make Active
+                            </button>
                           )}
                         </td>
-                        <td className="py-3.5 px-4 text-slate-700 font-medium">{d.co || "-"}</td>
-                        <td className="py-3.5 px-4 text-slate-600 font-medium">{formatDate(d.vf)}</td>
-                        <td className="py-3.5 px-4 text-slate-600 font-medium">{formatDate(d.vt)}</td>
-                        <td className="py-3.5 px-4 text-right font-bold text-slate-900">{formatNumber(d.tot)}</td>
-                        <td className="py-3.5 px-4 text-right font-semibold text-slate-700">{formatNumber(getDOAllotted(d))}</td>
-                        <td className="py-3.5 px-4 text-right font-semibold text-slate-700">{formatNumber(dispatched)}</td>
-                        <td className={`py-3.5 px-4 text-right font-bold ${bal > 0 ? "text-amber-600" : "text-emerald-600"}`}>
+                        <td className="py-3.5 px-4 text-slate-600 font-medium whitespace-nowrap">{formatDate(d.vf)}</td>
+                        <td className="py-3.5 px-4 text-slate-600 font-medium whitespace-nowrap">{formatDate(d.vt)}</td>
+                        <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold ${expiry.badgeClass}`}>
+                            {expiry.text}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 text-right font-bold text-slate-900 whitespace-nowrap">{formatNumber(d.tot)}</td>
+                        <td className="py-3.5 px-4 text-right font-semibold text-slate-700 whitespace-nowrap">{formatNumber(getDOAllotted(d))}</td>
+                        <td className="py-3.5 px-4 text-right font-semibold text-slate-700 whitespace-nowrap">{formatNumber(dispatched)}</td>
+                        <td className={`py-3.5 px-4 text-right font-bold whitespace-nowrap ${bal > 0 ? "text-amber-600" : "text-emerald-600"}`}>
                           {formatNumber(bal)}
                         </td>
-                        <td className="py-3.5 px-4 text-center">
+                        <td className="py-3.5 px-4 text-center whitespace-nowrap">
                           <button
-                            onClick={() => openViewDO(d.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openViewDO(d.id);
+                            }}
                             className="w-8 h-8 rounded-full bg-red-50 text-[#e7000b] hover:bg-red-100 border border-red-200 inline-flex items-center justify-center transition-colors cursor-pointer"
                             title="View DO"
                           >
                             <Eye className="w-4 h-4" />
                           </button>
                         </td>
-                        <td className="py-3.5 px-4 text-right">
+                        <td className="py-3.5 px-4 text-right whitespace-nowrap">
                           {canWrite ? (
                             <div className="inline-flex items-center gap-1.5 justify-end">
                               <button
-                                onClick={() => openDOForm(d.id)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openDOForm(d.id);
+                                }}
                                 className="w-8 h-8 rounded-full bg-white hover:bg-slate-50 text-[#e7000b] border border-red-200 inline-flex items-center justify-center transition-colors cursor-pointer"
                                 title="Edit DO"
                               >
                                 <Pencil className="w-4 h-4" />
                               </button>
                               <button
-                                onClick={() => deleteDO(d.id)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteDO(d.id);
+                                }}
                                 className="w-8 h-8 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 inline-flex items-center justify-center transition-colors cursor-pointer"
                                 title="Delete DO"
                               >
@@ -1708,7 +2396,7 @@ function DispatchPageContent() {
                   })
                 ) : (
                   <tr>
-                    <td colSpan={11} className="py-10 text-center text-slate-400 font-medium">
+                    <td colSpan={12} className="py-10 text-center text-slate-400 font-medium">
                       No DO found. Click "New DO Add" above to create one.
                     </td>
                   </tr>
@@ -1745,7 +2433,9 @@ function DispatchPageContent() {
                               </span>
                             )}
                           </div>
-                          <span className="text-xs text-slate-500 font-medium">{d.co || "No Company"}</span>
+                          <span className="text-xs text-slate-500 font-medium">
+                            {d.co || "No Company"}{d.mines ? ` • Mines: ${d.mines}` : ""}
+                          </span>
                         </div>
                       </div>
 
@@ -1779,6 +2469,12 @@ function DispatchPageContent() {
                         <span className="text-[10px] text-slate-400 font-medium block">VALIDITY</span>
                         <span className="text-slate-700 font-medium text-[11px] block truncate">
                           {formatDate(d.vf)} to {formatDate(d.vt)}
+                        </span>
+                      </div>
+                      <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
+                        <span className="text-[10px] text-slate-400 font-medium block">EXPIRY STATUS</span>
+                        <span className={`text-[11px] font-bold block truncate ${getExpiryDetails(d.vt, d.vf).badgeClass} px-1.5 py-0.5 rounded text-center`}>
+                          {getExpiryDetails(d.vt, d.vf).text}
                         </span>
                       </div>
                       <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
@@ -1856,52 +2552,79 @@ function DispatchPageContent() {
             </div>
           </div>
 
-          {/* Filter Bar Just Above Party Table - Single Line on Mobile */}
-          <div className="flex items-center justify-between gap-2 bg-white border border-slate-200/90 p-2.5 sm:p-3 rounded-lg shadow-2xs">
-            <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
-              <span className="text-[11px] sm:text-xs font-bold text-slate-700 whitespace-nowrap">Filter:</span>
-              <div className="relative min-w-0">
-                <select
-                  value={selectedCompanyFilter}
-                  onChange={(e) => handleSelectCompanyInPartyTab(e.target.value)}
-                  className="px-2.5 sm:px-3.5 py-1.5 pr-7 sm:pr-8 rounded-lg border border-slate-200 bg-slate-50/70 hover:bg-slate-50 text-[11px] sm:text-xs font-bold text-slate-800 shadow-2xs focus:outline-none focus:ring-2 focus:ring-red-200 cursor-pointer appearance-none transition-colors truncate max-w-[130px] sm:max-w-xs"
-                >
-                  <option value="ALL">All Companies ({(store?.dos || []).length} DOs)</option>
-                  {uniqueCompanies.map((co) => (
-                    <option key={co} value={co}>
-                      {co} ({(store?.dos || []).filter((d) => (d.co || "").trim() === co).length} DOs)
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+          {/* Filter Bar Just Above Party Table - DO Party Name & Lifter Party Name Dropdown Filters */}
+          <div className="flex items-center justify-between gap-3 bg-white border border-slate-200/90 p-2.5 sm:p-3 rounded-lg shadow-2xs flex-wrap">
+            <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
+              {/* DO Party Filter */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] sm:text-xs font-bold text-slate-700 whitespace-nowrap">DO Party:</span>
+                <div className="relative">
+                  <select
+                    value={selectedCompanyFilter}
+                    onChange={(e) => {
+                      handleSelectCompanyInPartyTab(e.target.value);
+                      setSelectedPartyLifterFilter("");
+                    }}
+                    className="px-2.5 sm:px-3 py-1.5 pr-7 rounded-lg border border-slate-200 bg-slate-50/70 hover:bg-white text-[11px] sm:text-xs font-bold text-slate-800 shadow-2xs focus:outline-none focus:ring-2 focus:ring-red-200 cursor-pointer appearance-none transition-colors max-w-[150px] sm:max-w-[200px] truncate"
+                  >
+                    <option value="ALL">All DO Parties ({(store?.dos || []).length} DOs)</option>
+                    {uniqueCompanies.map((co) => (
+                      <option key={co} value={co}>
+                        {co} ({(store?.dos || []).filter((d) => (d.co || "").trim() === co).length} DOs)
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
               </div>
 
               {/* Quick DO Switcher if multiple DOs match */}
               {(store?.dos || []).length > 1 && (
-                <div className="hidden sm:flex items-center gap-2">
-                  <span className="text-xs font-medium text-slate-500">Select DO:</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] sm:text-xs font-medium text-slate-500 whitespace-nowrap">DO No:</span>
                   <div className="relative">
                     <select
                       value={currentDO.id}
                       onChange={(e) => {
                         const targetId = parseInt(e.target.value);
                         setStore((prev) => ({ ...prev, act: targetId }));
+                        setSelectedPartyLifterFilter("");
                       }}
-                      className="px-3 py-1.5 pr-8 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-800 shadow-2xs focus:outline-none focus:ring-2 focus:ring-red-200 cursor-pointer appearance-none transition-colors"
+                      className="px-2.5 sm:px-3 py-1.5 pr-7 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-[11px] sm:text-xs font-semibold text-slate-800 shadow-2xs focus:outline-none focus:ring-2 focus:ring-red-200 cursor-pointer appearance-none transition-colors max-w-[140px] truncate"
                     >
                       {(selectedCompanyFilter === "ALL"
                         ? store?.dos || []
                         : (store?.dos || []).filter((d) => (d.co || "").trim() === selectedCompanyFilter)
                       ).map((d) => (
                         <option key={d.id} value={d.id}>
-                          {getDOName(d)} ({d.co || "No Co."} - {formatNumber(d.tot)} MT)
+                          {getDOName(d)} ({formatNumber(d.tot)} MT)
                         </option>
                       ))}
                     </select>
-                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
                   </div>
                 </div>
               )}
+
+              {/* Lifter Party Name Filter */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] sm:text-xs font-bold text-slate-700 whitespace-nowrap">Lifter Party:</span>
+                <div className="relative">
+                  <select
+                    value={selectedPartyLifterFilter}
+                    onChange={(e) => setSelectedPartyLifterFilter(e.target.value)}
+                    className="px-2.5 sm:px-3 py-1.5 pr-7 rounded-lg border border-slate-200 bg-slate-50/70 hover:bg-white text-[11px] sm:text-xs font-bold text-slate-800 shadow-2xs focus:outline-none focus:ring-2 focus:ring-red-200 cursor-pointer appearance-none transition-colors max-w-[150px] sm:max-w-[200px] truncate"
+                  >
+                    <option value="">All Lifter Parties ({(currentDO?.parties || []).length})</option>
+                    {(currentDO?.parties || []).map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} ({formatNumber(p.qty)} MT)
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+              </div>
             </div>
 
             <div className="text-[11px] sm:text-xs text-slate-500 font-medium whitespace-nowrap flex items-center gap-1 shrink-0">
@@ -1914,42 +2637,51 @@ function DispatchPageContent() {
 
           {/* Party Table - Desktop View */}
           <div className="hidden md:block overflow-x-auto rounded-lg border border-slate-200/90 bg-white shadow-xs">
-            <table className="w-full text-left border-collapse table-auto">
+            <table className="w-full text-left border-collapse min-w-max">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200/90 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  <th className="py-3.5 px-4 w-12 text-center">#</th>
-                  <th className="py-3.5 px-4">Party</th>
-                  <th className="py-3.5 px-4 w-32">DO No.</th>
-                  <th className="py-3.5 px-4 text-right w-32">Order Qty</th>
-                  <th className="py-3.5 px-4 text-right w-32">Dispatched</th>
-                  <th className="py-3.5 px-4 text-right w-32">Balance</th>
-                  <th className="py-3.5 px-4 w-40">Progress</th>
-                  <th className="py-3.5 px-4 text-center w-24">Trucks</th>
-                  <th className="py-3.5 px-4 text-center w-16">View</th>
-                  <th className="py-3.5 px-4 text-right w-24">Actions</th>
+                <tr className="bg-slate-50 border-b border-slate-200/90 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
+                  <th className="py-3.5 px-4 w-12 text-center whitespace-nowrap">#</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap">DO Party Name</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap">Lifter Party Name</th>
+                  <th className="py-3.5 px-4 w-32 whitespace-nowrap">DO No.</th>
+                  <th className="py-3.5 px-4 text-center whitespace-nowrap">Expiry Status</th>
+                  <th className="py-3.5 px-4 text-right w-32 whitespace-nowrap">Order Qty</th>
+                  <th className="py-3.5 px-4 text-right w-32 whitespace-nowrap">Dispatched</th>
+                  <th className="py-3.5 px-4 text-right w-32 whitespace-nowrap">Balance</th>
+                  <th className="py-3.5 px-4 w-40 whitespace-nowrap">Progress</th>
+                  <th className="py-3.5 px-4 text-center w-24 whitespace-nowrap">Trucks</th>
+                  <th className="py-3.5 px-4 text-center w-16 whitespace-nowrap">View</th>
+                  <th className="py-3.5 px-4 text-right w-24 whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-[13.5px]">
-                {currentDO.parties && currentDO.parties.length ? (
-                  currentDO.parties.map((p, idx) => {
+              <tbody className="divide-y divide-slate-100 text-[13.5px] whitespace-nowrap">
+                {visibleParties && visibleParties.length ? (
+                  visibleParties.map((p, idx) => {
                     const dispatched = getPartyDispatched(p.id);
                     const bal = p.qty - dispatched;
                     const pct = p.qty > 0 ? Math.min(100, (dispatched / p.qty) * 100) : 0;
                     const truckCount = (store.trucks || []).filter((t) => t.pid === p.id).length;
+                    const expiry = getExpiryDetails(currentDO?.vt, currentDO?.vf);
 
                     return (
-                      <tr key={p.id} className="hover:bg-red-50/40 transition-colors">
-                        <td className="py-3.5 px-4 font-medium text-slate-400 text-center">{idx + 1}</td>
-                        <td className="py-3.5 px-4 font-bold text-slate-900 text-sm">{p.name}</td>
-                        <td className="py-3.5 px-4 text-slate-600 font-medium">{getDOName(currentDO)}</td>
-                        <td className="py-3.5 px-4 text-right font-bold text-slate-900">{formatNumber(p.qty)}</td>
-                        <td className="py-3.5 px-4 text-right font-semibold text-slate-700">{formatNumber(dispatched)}</td>
-                        <td className={`py-3.5 px-4 text-right font-bold ${bal > 0 ? "text-amber-600" : "text-emerald-600"}`}>
+                      <tr key={p.id} className="hover:bg-red-50/40 transition-colors whitespace-nowrap">
+                        <td className="py-3.5 px-4 font-medium text-slate-400 text-center whitespace-nowrap">{idx + 1}</td>
+                        <td className="py-3.5 px-4 font-bold text-slate-800 whitespace-nowrap">{currentDO?.co || "-"}</td>
+                        <td className="py-3.5 px-4 font-bold text-slate-900 text-sm whitespace-nowrap">{p.name}</td>
+                        <td className="py-3.5 px-4 text-slate-600 font-medium whitespace-nowrap">{getDOName(currentDO)}</td>
+                        <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10.5px] font-bold ${expiry.badgeClass}`}>
+                            {expiry.text}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 text-right font-bold text-slate-900 whitespace-nowrap">{formatNumber(p.qty)}</td>
+                        <td className="py-3.5 px-4 text-right font-semibold text-slate-700 whitespace-nowrap">{formatNumber(dispatched)}</td>
+                        <td className={`py-3.5 px-4 text-right font-bold whitespace-nowrap ${bal > 0 ? "text-amber-600" : "text-emerald-600"}`}>
                           {formatNumber(bal)}
                         </td>
-                        <td className="py-3.5 px-4">
+                        <td className="py-3.5 px-4 whitespace-nowrap">
                           <div className="flex items-center gap-2">
-                            <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                            <div className="flex-1 min-w-[70px] h-2 bg-slate-100 rounded-full overflow-hidden">
                               <div
                                 className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-300"
                                 style={{ width: `${pct}%` }}
@@ -1960,8 +2692,8 @@ function DispatchPageContent() {
                             </span>
                           </div>
                         </td>
-                        <td className="py-3.5 px-4 text-center font-bold text-slate-800">{truckCount}</td>
-                        <td className="py-3.5 px-4 text-center">
+                        <td className="py-3.5 px-4 text-center font-bold text-slate-800 whitespace-nowrap">{truckCount}</td>
+                        <td className="py-3.5 px-4 text-center whitespace-nowrap">
                           <button
                             onClick={() => openViewParty(p.id)}
                             className="w-8 h-8 rounded-full bg-red-50 text-[#e7000b] hover:bg-red-100 border border-red-200 inline-flex items-center justify-center transition-colors cursor-pointer"
@@ -1970,7 +2702,7 @@ function DispatchPageContent() {
                             <Eye className="w-4 h-4" />
                           </button>
                         </td>
-                        <td className="py-3.5 px-4 text-right">
+                        <td className="py-3.5 px-4 text-right whitespace-nowrap">
                           {canWrite ? (
                             <div className="inline-flex items-center gap-1.5 justify-end">
                               <button
@@ -1997,25 +2729,30 @@ function DispatchPageContent() {
                   })
                 ) : (
                   <tr>
-                    <td colSpan={10} className="py-10 text-center text-slate-400 font-medium">
-                      {(store?.dos || []).length ? "No party in this DO yet. Click Add Party." : "Add a DO first."}
+                    <td colSpan={12} className="py-10 text-center text-slate-400 font-medium">
+                      {selectedPartyLifterFilter
+                        ? `No records found for lifter party "${selectedPartyLifterFilter}".`
+                        : (store?.dos || []).length
+                        ? "No party in this DO yet. Click Add Party."
+                        : "Add a DO first."}
                     </td>
                   </tr>
                 )}
               </tbody>
-              {currentDO.parties && currentDO.parties.length > 0 && (
+              {visibleParties && visibleParties.length > 0 && (
                 <tfoot>
-                  <tr className="bg-red-50/80 font-bold text-xs sm:text-[13px] text-[#8f0009] border-t border-red-200">
-                    <td className="py-3.5 px-4"></td>
-                    <td className="py-3.5 px-4">Total</td>
-                    <td className="py-3.5 px-4"></td>
-                    <td className="py-3.5 px-4 text-right">{formatNumber(partiesTotalQty)}</td>
-                    <td className="py-3.5 px-4 text-right">{formatNumber(partiesTotalDisp)}</td>
-                    <td className="py-3.5 px-4 text-right">{formatNumber(partiesTotalQty - partiesTotalDisp)}</td>
-                    <td className="py-3.5 px-4"></td>
-                    <td className="py-3.5 px-4 text-center">{activeTrucks.length}</td>
-                    <td className="py-3.5 px-4"></td>
-                    <td className="py-3.5 px-4"></td>
+                  <tr className="bg-red-50/80 font-bold text-xs sm:text-[13px] text-[#8f0009] border-t border-red-200 whitespace-nowrap">
+                    <td className="py-3.5 px-4 whitespace-nowrap"></td>
+                    <td className="py-3.5 px-4 whitespace-nowrap">Total</td>
+                    <td className="py-3.5 px-4 whitespace-nowrap"></td>
+                    <td className="py-3.5 px-4 whitespace-nowrap"></td>
+                    <td className="py-3.5 px-4 text-right whitespace-nowrap">{formatNumber(partiesTotalQty)}</td>
+                    <td className="py-3.5 px-4 text-right whitespace-nowrap">{formatNumber(partiesTotalDisp)}</td>
+                    <td className="py-3.5 px-4 text-right whitespace-nowrap">{formatNumber(partiesTotalQty - partiesTotalDisp)}</td>
+                    <td className="py-3.5 px-4 whitespace-nowrap"></td>
+                    <td className="py-3.5 px-4 text-center whitespace-nowrap">{activeTrucks.length}</td>
+                    <td className="py-3.5 px-4 whitespace-nowrap"></td>
+                    <td className="py-3.5 px-4 whitespace-nowrap"></td>
                   </tr>
                 </tfoot>
               )}
@@ -2023,8 +2760,8 @@ function DispatchPageContent() {
           </div>
           {/* Party Cards - Mobile View */}
           <div className="md:hidden space-y-3">
-            {currentDO.parties && currentDO.parties.length ? (
-              currentDO.parties.map((p, idx) => {
+            {visibleParties && visibleParties.length ? (
+              visibleParties.map((p, idx) => {
                 const dispatched = getPartyDispatched(p.id);
                 const bal = p.qty - dispatched;
                 const pct = p.qty > 0 ? Math.min(100, (dispatched / p.qty) * 100) : 0;
@@ -2039,7 +2776,9 @@ function DispatchPageContent() {
                         </span>
                         <div>
                           <h3 className="font-bold text-slate-900 text-sm">{p.name}</h3>
-                          <span className="text-[11px] text-slate-500 font-medium">DO No: {getDOName(currentDO)}</span>
+                          <span className="text-[11px] text-slate-500 font-medium">
+                            {currentDO?.co ? `${currentDO.co} • ` : ""}DO No: {getDOName(currentDO)}
+                          </span>
                         </div>
                       </div>
 
@@ -2134,16 +2873,21 @@ function DispatchPageContent() {
                 className="px-2.5 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-red-200"
               >
                 <option value="">All parties</option>
-                {(currentDO.parties || []).map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
+                {(currentDO.parties || []).map((p) => {
+                  const partyTrucks = (store?.trucks || []).filter((t) => t && t.did === currentDO.id && String(t.pid) === String(p.id));
+                  const runningCount = partyTrucks.filter((t) => !t.done).length;
+                  const doneCount = partyTrucks.filter((t) => !!t.done).length;
+                  return (
+                    <option key={p.id} value={p.id}>
+                      {p.name} (Running: {runningCount} | Done: {doneCount})
+                    </option>
+                  );
+                })}
               </select>
 
               <button
                 onClick={exportTruckDispatchExcel}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 transition-all shadow-2xs active:scale-95 cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 transition-all shadow-2xs active:scale-95 cursor-pointer"
                 title="Download Excel"
               >
                 <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
@@ -2151,17 +2895,25 @@ function DispatchPageContent() {
               </button>
               <button
                 onClick={exportTruckDispatchPDF}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 transition-all shadow-2xs active:scale-95 cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 transition-all shadow-2xs active:scale-95 cursor-pointer"
                 title="Download PDF"
               >
                 <FileText className="w-3.5 h-3.5 text-rose-600" />
                 <span>PDF</span>
               </button>
+              <button
+                onClick={exportMainReportPDF}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 transition-all shadow-2xs active:scale-95 cursor-pointer"
+                title="Download Main Consolidated Report (DO + Allotment + Trucks)"
+              >
+                <Download className="w-3.5 h-3.5 text-amber-600" />
+                <span>Main Report</span>
+              </button>
 
               {canWrite && (
                 <button
                   onClick={() => openTruckForm(0)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-[#ff3340] to-[#e7000b] hover:brightness-105 text-white transition-all shadow-xs active:scale-95 cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-[#ff3340] to-[#e7000b] hover:brightness-105 text-white transition-all shadow-xs active:scale-95 cursor-pointer"
                 >
                   <Plus className="w-4 h-4" /> Add Truck
                 </button>
@@ -2169,41 +2921,63 @@ function DispatchPageContent() {
             </div>
           </div>
 
-          {/* Pending / History Tabs */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => {
-                setActiveTab("pending");
-                setSelectedTruckIds(new Set());
-              }}
-              className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all inline-flex items-center gap-2 ${
-                activeTab === "pending"
-                  ? "bg-red-50 text-[#e7000b] border border-red-200 shadow-2xs"
-                  : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"
-              }`}
-            >
-              Pending
-              <span className="px-2 py-0.5 rounded-full text-[10px] bg-white border border-slate-200 text-slate-700">
-                {pendingTruckCount}
-              </span>
-            </button>
+          {/* Pending / History Tabs & Lifter Party Live Status */}
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setActiveTab("pending");
+                  setSelectedTruckIds(new Set());
+                }}
+                className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all inline-flex items-center gap-2 ${
+                  activeTab === "pending"
+                    ? "bg-red-50 text-[#e7000b] border border-red-200 shadow-2xs"
+                    : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"
+                }`}
+              >
+                Pending
+                <span className="px-2 py-0.5 rounded-full text-[10px] bg-white border border-slate-200 text-slate-700">
+                  {pendingTruckCount}
+                </span>
+              </button>
 
-            <button
-              onClick={() => {
-                setActiveTab("history");
-                setSelectedTruckIds(new Set());
-              }}
-              className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all inline-flex items-center gap-2 ${
-                activeTab === "history"
-                  ? "bg-red-50 text-[#e7000b] border border-red-200 shadow-2xs"
-                  : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"
-              }`}
-            >
-              History
-              <span className="px-2 py-0.5 rounded-full text-[10px] bg-white border border-slate-200 text-slate-700">
-                {historyTruckCount}
-              </span>
-            </button>
+              <button
+                onClick={() => {
+                  setActiveTab("history");
+                  setSelectedTruckIds(new Set());
+                }}
+                className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all inline-flex items-center gap-2 ${
+                  activeTab === "history"
+                    ? "bg-red-50 text-[#e7000b] border border-red-200 shadow-2xs"
+                    : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"
+                }`}
+              >
+                History
+                <span className="px-2 py-0.5 rounded-full text-[10px] bg-white border border-slate-200 text-slate-700">
+                  {historyTruckCount}
+                </span>
+              </button>
+            </div>
+
+            {/* Selected Lifter Party Running / Done Truck Summary */}
+            {selectedTruckFilter && (() => {
+              const selectedParty = (currentDO.parties || []).find((p) => String(p.id) === String(selectedTruckFilter));
+              const partyTrucks = (store?.trucks || []).filter((t) => t && t.did === currentDO.id && String(t.pid) === String(selectedTruckFilter));
+              const runningCount = partyTrucks.filter((t) => !t.done).length;
+              const doneCount = partyTrucks.filter((t) => !!t.done).length;
+
+              return (
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs">
+                  <span className="font-bold text-slate-800">{selectedParty?.name || "Party"}:</span>
+                  <span className="inline-flex items-center gap-1 font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                    Running: <b>{runningCount}</b>
+                  </span>
+                  <span className="inline-flex items-center gap-1 font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                    Done: <b>{doneCount}</b>
+                  </span>
+                </div>
+              );
+            })()}
           </div>
 
           {/* Bulk Action Bar */}
@@ -2247,10 +3021,10 @@ function DispatchPageContent() {
 
           {/* Trucks Table - Desktop View */}
           <div className="hidden md:block overflow-x-auto rounded-lg border border-slate-200/90 bg-white shadow-xs">
-            <table className="w-full text-left border-collapse min-w-[700px]">
+            <table className="w-full text-left border-collapse min-w-max">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200/90 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  <th className="py-3.5 px-4 w-10 text-center">
+                <tr className="bg-slate-50 border-b border-slate-200/90 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
+                  <th className="py-3.5 px-4 w-10 text-center whitespace-nowrap">
                     <input
                       type="checkbox"
                       checked={visibleTrucks.length > 0 && selectedTruckIds.size === visibleTrucks.length}
@@ -2258,29 +3032,34 @@ function DispatchPageContent() {
                       className="rounded accent-[#e7000b] cursor-pointer"
                     />
                   </th>
-                  <th className="py-3.5 px-4 w-12">#</th>
-                  <th className="py-3.5 px-4">Date</th>
-                  <th className="py-3.5 px-4">Party</th>
-                  <th className="py-3.5 px-4">DO No.</th>
-                  <th className="py-3.5 px-4">Truck No.</th>
-                  <th className="py-3.5 px-4">TP No.</th>
-                  <th className="py-3.5 px-4 text-right">Net Wt (MT)</th>
-                  <th className="py-3.5 px-4 text-center w-16">View</th>
-                  <th className="py-3.5 px-4 text-right w-44">Actions</th>
+                  <th className="py-3.5 px-4 w-12 whitespace-nowrap">#</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap">Date</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap">DO Party Name</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap">DO No.</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap">Lifter Party Name</th>
+                  <th className="py-3.5 px-4 text-center whitespace-nowrap">Expiry Status</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap">Truck No.</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap">Driver Name</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap">TP No.</th>
+                  <th className="py-3.5 px-4 text-right whitespace-nowrap">Net Wt (MT)</th>
+                  <th className="py-3.5 px-4 text-center w-16 whitespace-nowrap">View</th>
+                  <th className="py-3.5 px-4 text-right w-44 whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-[13.5px]">
+              <tbody className="divide-y divide-slate-100 text-[13.5px] whitespace-nowrap">
                 {visibleTrucks.length ? (
                   visibleTrucks.map((t, idx) => {
                     const party = (currentDO.parties || []).find((p) => p.id === t.pid);
+                    const truckDO = (store?.dos || []).find((d) => d.id === t.did) || currentDO;
                     const isSelected = selectedTruckIds.has(t.id);
+                    const expiry = getExpiryDetails(truckDO?.vt, truckDO?.vf);
 
                     return (
                       <tr
                         key={t.id}
-                        className={`hover:bg-red-50/40 transition-colors ${isSelected ? "bg-red-50/60" : ""}`}
+                        className={`hover:bg-red-50/40 transition-colors whitespace-nowrap ${isSelected ? "bg-red-50/60" : ""}`}
                       >
-                        <td className="py-3.5 px-4 text-center">
+                        <td className="py-3.5 px-4 text-center whitespace-nowrap">
                           <input
                             type="checkbox"
                             checked={isSelected}
@@ -2288,14 +3067,37 @@ function DispatchPageContent() {
                             className="rounded accent-[#e7000b] cursor-pointer"
                           />
                         </td>
-                        <td className="py-3.5 px-4 font-medium text-slate-400">{idx + 1}</td>
-                        <td className="py-3.5 px-4 text-slate-600 font-medium">{formatDate(t.date)}</td>
-                        <td className="py-3.5 px-4 font-bold text-slate-900">{party ? party.name : "-"}</td>
-                        <td className="py-3.5 px-4 text-slate-600 font-medium">{getDOName(currentDO)}</td>
-                        <td className="py-3.5 px-4 font-bold text-slate-900 text-sm">{t.no}</td>
-                        <td className="py-3.5 px-4 text-slate-600 font-medium">{t.tp || "-"}</td>
-                        <td className="py-3.5 px-4 text-right font-bold text-slate-900 text-[14px]">{formatNumber(t.qty)}</td>
-                        <td className="py-3.5 px-4 text-center">
+                        <td className="py-3.5 px-4 font-medium text-slate-400 whitespace-nowrap">{idx + 1}</td>
+                        <td className="py-3.5 px-4 text-slate-600 font-medium whitespace-nowrap">{formatDate(t.date)}</td>
+                        <td className="py-3.5 px-4 font-bold text-slate-800 whitespace-nowrap">{truckDO?.co || "-"}</td>
+                        <td className="py-3.5 px-4 text-slate-600 font-medium whitespace-nowrap">{getDOName(truckDO)}</td>
+                        <td className="py-3.5 px-4 font-bold text-slate-900 whitespace-nowrap">
+                          <div className="flex items-center gap-1.5">
+                            <span>{party ? party.name : "-"}</span>
+                            {party && (() => {
+                              const pTrucks = (store?.trucks || []).filter((tr) => tr && tr.did === currentDO.id && String(tr.pid) === String(party.id));
+                              const rCount = pTrucks.filter((tr) => !tr.done).length;
+                              const dCount = pTrucks.filter((tr) => !!tr.done).length;
+                              return (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-500 bg-slate-100 border border-slate-200/90 px-1.5 py-0.5 rounded-md" title={`Running: ${rCount} | Done: ${dCount}`}>
+                                  <span className="text-amber-700">R:{rCount}</span>
+                                  <span>|</span>
+                                  <span className="text-emerald-700">D:{dCount}</span>
+                                </span>
+                              );
+                            })()}
+                          </div>
+                        </td>
+                        <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10.5px] font-bold ${expiry.badgeClass}`}>
+                            {expiry.text}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 font-bold text-slate-900 text-sm whitespace-nowrap">{t.no}</td>
+                        <td className="py-3.5 px-4 text-slate-700 font-medium whitespace-nowrap">{t.driver || "-"}</td>
+                        <td className="py-3.5 px-4 text-slate-600 font-medium whitespace-nowrap">{t.tp || "-"}</td>
+                        <td className="py-3.5 px-4 text-right font-bold text-slate-900 text-[14px] whitespace-nowrap">{formatNumber(t.qty)}</td>
+                        <td className="py-3.5 px-4 text-center whitespace-nowrap">
                           <button
                             onClick={() => openViewTruck(t.id)}
                             className="w-8 h-8 rounded-full bg-red-50 text-[#e7000b] hover:bg-red-100 border border-red-200 inline-flex items-center justify-center transition-colors cursor-pointer"
@@ -2304,7 +3106,7 @@ function DispatchPageContent() {
                             <Eye className="w-4 h-4" />
                           </button>
                         </td>
-                        <td className="py-3.5 px-4 text-right">
+                        <td className="py-3.5 px-4 text-right whitespace-nowrap">
                           {canWrite ? (
                             <div className="inline-flex items-center gap-1.5 justify-end">
                               {t.done ? (
@@ -2346,7 +3148,7 @@ function DispatchPageContent() {
                   })
                 ) : (
                   <tr>
-                    <td colSpan={10} className="py-10 text-center text-slate-400 font-medium">
+                    <td colSpan={12} className="py-10 text-center text-slate-400 font-medium">
                       {!(store?.dos || []).length
                         ? "Add a DO first."
                         : activeTab === "history"
@@ -2358,9 +3160,9 @@ function DispatchPageContent() {
               </tbody>
               {visibleTrucks.length > 0 && (
                 <tfoot>
-                  <tr className="bg-red-50/80 font-bold text-xs sm:text-[13px] text-[#8f0009] border-t border-red-200">
-                    <td className="py-3.5 px-4"></td>
-                    <td colSpan={6} className="py-3.5 px-4">
+                  <tr className="bg-red-50/80 font-bold text-xs sm:text-[13px] text-[#8f0009] border-t border-red-200 whitespace-nowrap">
+                    <td className="py-3.5 px-4 whitespace-nowrap"></td>
+                    <td colSpan={9} className="py-3.5 px-4 whitespace-nowrap">
                       Total
                     </td>
                     <td className="py-3.5 px-4 text-right">{formatNumber(trucksTotalWeight)}</td>
@@ -2377,6 +3179,7 @@ function DispatchPageContent() {
             {visibleTrucks.length ? (
               visibleTrucks.map((t, idx) => {
                 const party = (currentDO.parties || []).find((p) => p.id === t.pid);
+                const truckDO = (store?.dos || []).find((d) => d.id === t.did) || currentDO;
                 const isSelected = selectedTruckIds.has(t.id);
 
                 return (
@@ -2400,7 +3203,7 @@ function DispatchPageContent() {
                         <div>
                           <h3 className="font-bold text-slate-900 text-sm">{t.no}</h3>
                           <span className="text-[11px] text-slate-500 font-medium">
-                            {party ? party.name : "-"}
+                            {truckDO?.co ? `${truckDO.co} • ` : ""}{party ? party.name : "-"}
                           </span>
                         </div>
                       </div>
@@ -2434,6 +3237,10 @@ function DispatchPageContent() {
                       <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
                         <span className="text-[10px] text-slate-400 font-medium block">DATE</span>
                         <span className="text-slate-800 font-medium text-[11px]">{formatDate(t.date)}</span>
+                      </div>
+                      <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
+                        <span className="text-[10px] text-slate-400 font-medium block">DRIVER NAME</span>
+                        <span className="text-slate-800 font-medium text-[11px] truncate block">{t.driver || "-"}</span>
                       </div>
                       <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
                         <span className="text-[10px] text-slate-400 font-medium block">TP NO.</span>
@@ -2492,100 +3299,178 @@ function DispatchPageContent() {
             if (e.target === e.currentTarget) closeModal();
           }}
         >
-          <div className={`bg-white rounded-2xl w-full ${modalConfig.type === "confirm" ? "max-w-sm" : "max-w-2xl"} max-h-[92vh] overflow-hidden shadow-2xl border border-slate-200 flex flex-col transition-all`}>
+          <div className={`bg-white rounded-3xl w-full ${modalConfig.type === "confirm" ? "max-w-sm" : "max-w-2xl"} max-h-[92vh] shadow-2xl border border-slate-100 flex flex-col transition-all animate-scaleUp`}>
             {/* Modal Header */}
-            <div className="px-6 py-4 bg-gradient-to-r from-[#8f0009] via-[#e7000b] to-[#ff4d57] text-white flex items-center justify-between shrink-0">
-              <h3 className="font-bold text-base tracking-tight">{modalConfig.title}</h3>
+            <div className="px-6 py-4.5 bg-gradient-to-r from-[#800008] via-[#dc2626] to-[#ef4444] text-white flex items-center justify-between shrink-0 shadow-sm">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-white/15 flex items-center justify-center backdrop-blur-xs">
+                  <Package className="w-4 h-4 text-white" />
+                </div>
+                <h3 className="font-extrabold text-base tracking-tight">{modalConfig.title}</h3>
+              </div>
               <button
                 onClick={closeModal}
-                className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-colors cursor-pointer"
+                className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center text-white transition-all cursor-pointer active:scale-95"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Modal Content */}
-            <div className="p-6 overflow-y-auto space-y-4 text-xs">
+            <div className="p-6 overflow-y-auto space-y-4 text-xs bg-slate-50/30 min-h-[320px] pb-32">
               {/* DO Form */}
               {modalConfig.type === "doForm" && (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="font-semibold text-slate-700 block mb-1.5">Party</label>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* DO Party Name Searchable Combobox */}
+                    <div className="relative">
+                      <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5">DO Party Name *</label>
                       <div className="relative">
-                        <select
+                        <input
+                          type="text"
                           value={formData.co || ""}
                           onChange={(e) => {
-                            const val = e.target.value;
-                            if (val === "__new__") {
-                              setQuickAddModal({
-                                isOpen: true,
-                                title: "Add New Party",
-                                label: "Party Name *",
-                                placeholder: "e.g. Jindal Steel & Power",
-                                value: "",
-                                onConfirm: (val) => setFormData((prev) => ({ ...prev, co: val }))
-                              });
-                            } else {
-                              setFormData({ ...formData, co: val });
-                            }
+                            setFormData({ ...formData, co: e.target.value });
+                            setIsPartyDropdownOpen(true);
                           }}
-                          className="w-full px-3.5 py-2.5 pr-8 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-200 text-xs font-semibold text-slate-800 transition-colors shadow-2xs cursor-pointer appearance-none"
+                          onFocus={() => setIsPartyDropdownOpen(true)}
+                          placeholder="Type or select Party..."
+                          className="w-full px-3.5 py-2.5 pr-8 border border-slate-300 rounded-xl bg-white hover:border-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-400/40 focus:border-red-500 text-xs font-bold text-slate-900 transition-all shadow-xs"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setIsPartyDropdownOpen((prev) => !prev)}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
                         >
-                          <option value="">Select Party</option>
-                          {uniqueCompanies.map((c) => (
-                            <option key={c} value={c}>
-                              {c}
-                            </option>
-                          ))}
-                          <option value="__new__">+ Add New Party...</option>
-                        </select>
-                        <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        </button>
                       </div>
+
+                      {/* Custom Clean Dropdown Popup */}
+                      {isPartyDropdownOpen && (
+                        <>
+                          <div className="fixed inset-0 z-20" onClick={() => setIsPartyDropdownOpen(false)} />
+                          <div className="absolute left-0 right-0 top-full mt-1.5 z-30 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto divide-y divide-slate-50 py-1">
+                            {uniqueCompanies.filter((c) => !formData.co || c.toLowerCase().includes((formData.co || "").toLowerCase())).length > 0 ? (
+                              uniqueCompanies
+                                .filter((c) => !formData.co || c.toLowerCase().includes((formData.co || "").toLowerCase()))
+                                .map((c) => (
+                                  <div
+                                    key={c}
+                                    onClick={() => {
+                                      setFormData((prev) => ({ ...prev, co: c }));
+                                      setIsPartyDropdownOpen(false);
+                                    }}
+                                    className="px-3 py-2 text-xs font-semibold text-slate-800 hover:bg-red-50 hover:text-red-600 cursor-pointer flex items-center justify-between transition-colors"
+                                  >
+                                    <span>{c}</span>
+                                    {formData.co === c && <Check className="w-3.5 h-3.5 text-red-600" />}
+                                  </div>
+                                ))
+                            ) : (
+                              <div className="px-3 py-2 text-xs text-slate-400 italic">No existing matches. Press tab or type to use this name.</div>
+                            )}
+                          </div>
+                        </>
+                      )}
                     </div>
 
                     <div>
-                      <label className="font-semibold text-slate-700 block mb-1.5">DO No. *</label>
+                      <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5">DO No. *</label>
                       <input
                         type="text"
                         value={formData.no || ""}
                         onChange={(e) => setFormData({ ...formData, no: e.target.value })}
                         placeholder="e.g. DO-12345"
-                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50/50 hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-200 text-xs font-bold text-slate-900 transition-colors shadow-2xs"
+                        className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white hover:border-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-400/40 focus:border-red-500 text-xs font-bold text-slate-900 transition-all shadow-xs"
                       />
+                    </div>
+
+                    {/* Mines Searchable Combobox */}
+                    <div className="relative">
+                      <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5">Mines</label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={formData.mines || ""}
+                          onChange={(e) => {
+                            setFormData({ ...formData, mines: e.target.value });
+                            setIsMinesDropdownOpen(true);
+                          }}
+                          onFocus={() => setIsMinesDropdownOpen(true)}
+                          placeholder="Type or select Mine..."
+                          className="w-full px-3.5 py-2.5 pr-8 border border-slate-300 rounded-xl bg-white hover:border-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-400/40 focus:border-red-500 text-xs font-semibold text-slate-800 transition-all shadow-xs"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setIsMinesDropdownOpen((prev) => !prev)}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                        >
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      {/* Custom Clean Dropdown Popup */}
+                      {isMinesDropdownOpen && (
+                        <>
+                          <div className="fixed inset-0 z-20" onClick={() => setIsMinesDropdownOpen(false)} />
+                          <div className="absolute left-0 right-0 top-full mt-1.5 z-30 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto divide-y divide-slate-50 py-1">
+                            {Array.from(new Set((store?.dos || []).map((d) => (d.mines || "").trim()).filter(Boolean)))
+                              .filter((m) => !formData.mines || m.toLowerCase().includes((formData.mines || "").toLowerCase())).length > 0 ? (
+                              Array.from(new Set((store?.dos || []).map((d) => (d.mines || "").trim()).filter(Boolean)))
+                                .filter((m) => !formData.mines || m.toLowerCase().includes((formData.mines || "").toLowerCase()))
+                                .map((m) => (
+                                  <div
+                                    key={m}
+                                    onClick={() => {
+                                      setFormData((prev) => ({ ...prev, mines: m }));
+                                      setIsMinesDropdownOpen(false);
+                                    }}
+                                    className="px-3 py-2 text-xs font-semibold text-slate-800 hover:bg-red-50 hover:text-red-600 cursor-pointer flex items-center justify-between transition-colors"
+                                  >
+                                    <span>{m}</span>
+                                    {formData.mines === m && <Check className="w-3.5 h-3.5 text-red-600" />}
+                                  </div>
+                                ))
+                            ) : (
+                              <div className="px-3 py-2 text-xs text-slate-400 italic">No existing mines. Type any name to save.</div>
+                            )}
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                      <label className="font-semibold text-slate-700 block mb-1.5">DO Qty (MT) *</label>
+                      <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5">DO Qty (MT) *</label>
                       <input
                         type="number"
                         step="0.01"
                         value={formData.tot || ""}
                         onChange={(e) => setFormData({ ...formData, tot: e.target.value })}
                         placeholder="e.g. 500.00"
-                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50/50 hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-200 text-xs font-semibold text-slate-800 transition-colors shadow-2xs"
+                        className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white hover:border-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-400/40 focus:border-red-500 text-xs font-bold text-slate-900 transition-all shadow-xs"
                       />
                     </div>
 
                     <div>
-                      <label className="font-semibold text-slate-700 block mb-1.5">Valid From</label>
+                      <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5">Valid From</label>
                       <input
                         type="date"
                         value={formData.vf || ""}
                         onChange={(e) => setFormData({ ...formData, vf: e.target.value })}
-                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50/50 hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-200 text-xs font-medium text-slate-700 cursor-pointer shadow-2xs"
+                        className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white hover:border-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-400/40 focus:border-red-500 text-xs font-semibold text-slate-800 transition-all shadow-xs cursor-pointer"
                       />
                     </div>
 
                     <div>
-                      <label className="font-semibold text-slate-700 block mb-1.5">Valid To</label>
+                      <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5">Valid To</label>
                       <input
                         type="date"
                         value={formData.vt || ""}
                         onChange={(e) => setFormData({ ...formData, vt: e.target.value })}
-                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50/50 hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-200 text-xs font-medium text-slate-700 cursor-pointer shadow-2xs"
+                        className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white hover:border-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-400/40 focus:border-red-500 text-xs font-semibold text-slate-800 transition-all shadow-xs cursor-pointer"
                       />
                     </div>
                   </div>
@@ -2605,6 +3490,10 @@ function DispatchPageContent() {
                       <b className="font-semibold text-slate-800">{modalConfig.data.co || "-"}</b>
                     </div>
                     <div className="flex justify-between p-2.5 bg-slate-50">
+                      <span className="text-slate-500">Mines</span>
+                      <b className="font-semibold text-slate-800">{modalConfig.data.mines || "-"}</b>
+                    </div>
+                    <div className="flex justify-between p-2.5">
                       <span className="text-slate-500">Valid From</span>
                       <span className="font-medium">{formatDate(modalConfig.data.vf)}</span>
                     </div>
@@ -2668,7 +3557,7 @@ function DispatchPageContent() {
                   <div className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="font-semibold text-slate-700 block mb-1.5">Company</label>
+                        <label className="font-semibold text-slate-700 block mb-1.5">Party Name</label>
                         <div className="relative">
                           <select
                             value={selectedDO?.co || ""}
@@ -2734,38 +3623,57 @@ function DispatchPageContent() {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="font-semibold text-slate-700 block mb-1.5">Party Name *</label>
+                      {/* Lifter Name Searchable Combobox */}
+                      <div className="relative">
+                        <label className="font-semibold text-slate-700 block mb-1.5">Lifter Name *</label>
                         <div className="relative">
-                          <select
+                          <input
+                            type="text"
                             value={formData.partyName || ""}
                             onChange={(e) => {
-                              const val = e.target.value;
-                              if (val === "__new__") {
-                                setQuickAddModal({
-                                  isOpen: true,
-                                  title: "Add New Party",
-                                  label: "Party Name *",
-                                  placeholder: "e.g. Shyam Traders",
-                                  value: "",
-                                  onConfirm: (val) => setFormData((prev) => ({ ...prev, partyName: val }))
-                                });
-                              } else {
-                                setFormData({ ...formData, partyName: val });
-                              }
+                              setFormData({ ...formData, partyName: e.target.value });
+                              setIsLifterDropdownOpen(true);
                             }}
-                            className="w-full px-3.5 py-2.5 pr-8 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-200 text-xs font-semibold text-slate-800 transition-colors shadow-2xs cursor-pointer appearance-none"
+                            onFocus={() => setIsLifterDropdownOpen(true)}
+                            placeholder="Type or select Lifter..."
+                            className="w-full px-3.5 py-2.5 pr-8 border border-slate-300 rounded-xl bg-white hover:border-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-400/40 focus:border-red-500 text-xs font-bold text-slate-900 transition-all shadow-xs"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setIsLifterDropdownOpen((prev) => !prev)}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
                           >
-                            <option value="">Select Party</option>
-                            {uniquePartyNames.map((p) => (
-                              <option key={p} value={p}>
-                                {p}
-                              </option>
-                            ))}
-                            <option value="__new__">+ Add New Party...</option>
-                          </select>
-                          <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                            <ChevronDown className="w-3.5 h-3.5" />
+                          </button>
                         </div>
+
+                        {/* Custom Clean Dropdown Popup */}
+                        {isLifterDropdownOpen && (
+                          <>
+                            <div className="fixed inset-0 z-20" onClick={() => setIsLifterDropdownOpen(false)} />
+                            <div className="absolute left-0 right-0 top-full mt-1.5 z-30 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto divide-y divide-slate-50 py-1">
+                              {uniquePartyNames.filter((p) => !formData.partyName || p.toLowerCase().includes((formData.partyName || "").toLowerCase())).length > 0 ? (
+                                uniquePartyNames
+                                  .filter((p) => !formData.partyName || p.toLowerCase().includes((formData.partyName || "").toLowerCase()))
+                                  .map((p) => (
+                                    <div
+                                      key={p}
+                                      onClick={() => {
+                                        setFormData((prev) => ({ ...prev, partyName: p }));
+                                        setIsLifterDropdownOpen(false);
+                                      }}
+                                      className="px-3 py-2 text-xs font-semibold text-slate-800 hover:bg-red-50 hover:text-red-600 cursor-pointer flex items-center justify-between transition-colors"
+                                    >
+                                      <span>{p}</span>
+                                      {formData.partyName === p && <Check className="w-3.5 h-3.5 text-red-600" />}
+                                    </div>
+                                  ))
+                              ) : (
+                                <div className="px-3 py-2 text-xs text-slate-400 italic">No existing lifters. Type to create new.</div>
+                              )}
+                            </div>
+                          </>
+                        )}
                       </div>
 
                       <div>
@@ -2776,7 +3684,7 @@ function DispatchPageContent() {
                           value={formData.qty || ""}
                           onChange={(e) => setFormData({ ...formData, qty: e.target.value })}
                           placeholder="e.g. 150.00"
-                          className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50/50 hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-200 text-xs font-semibold text-slate-900 transition-colors shadow-2xs"
+                          className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white hover:border-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-400/40 focus:border-red-500 text-xs font-bold text-slate-900 transition-all shadow-xs"
                         />
                       </div>
                     </div>
@@ -2789,11 +3697,11 @@ function DispatchPageContent() {
                 <div className="space-y-4">
                   <div className="rounded-xl border border-slate-200 divide-y divide-slate-100 overflow-hidden">
                     <div className="flex justify-between p-2.5 bg-slate-50">
-                      <span className="text-slate-500">Party</span>
+                      <span className="text-slate-500">Lifter Party Name</span>
                       <b className="font-bold text-slate-900">{modalConfig.data.name}</b>
                     </div>
                     <div className="flex justify-between p-2.5">
-                      <span className="text-slate-500">Company</span>
+                      <span className="text-slate-500">DO PARTY Name</span>
                       <span className="font-medium">{currentDO.co}</span>
                     </div>
                     <div className="flex justify-between p-2.5 bg-slate-50">
@@ -2864,39 +3772,111 @@ function DispatchPageContent() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* Truck No Searchable Combobox */}
+                      <div className="relative">
                         <label className="font-semibold text-slate-700 block mb-1.5">Truck No. *</label>
                         <div className="relative">
-                          <select
+                          <input
+                            type="text"
                             value={formData.truckNo || ""}
                             onChange={(e) => {
-                              const val = e.target.value;
-                              if (val === "__new__") {
-                                setQuickAddModal({
-                                  isOpen: true,
-                                  title: "Add New Truck",
-                                  label: "Truck Number *",
-                                  placeholder: "e.g. CG04 AB 1234",
-                                  value: "",
-                                  onConfirm: (val) => setFormData((prev) => ({ ...prev, truckNo: val.toUpperCase() }))
-                                });
-                              } else {
-                                setFormData({ ...formData, truckNo: val });
-                              }
+                              setFormData({ ...formData, truckNo: e.target.value.toUpperCase() });
+                              setIsTruckNoDropdownOpen(true);
                             }}
-                            className="w-full px-3.5 py-2.5 pr-8 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-200 text-xs font-bold text-slate-900 transition-colors shadow-2xs cursor-pointer appearance-none uppercase"
+                            onFocus={() => setIsTruckNoDropdownOpen(true)}
+                            placeholder="Type or select Truck No..."
+                            className="w-full px-3.5 py-2.5 pr-8 border border-slate-300 rounded-xl bg-white hover:border-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-400/40 focus:border-red-500 text-xs font-bold text-slate-900 transition-all shadow-xs uppercase"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setIsTruckNoDropdownOpen((prev) => !prev)}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
                           >
-                            <option value="">Select Truck No.</option>
-                            {uniqueTruckNumbers.map((no) => (
-                              <option key={no} value={no}>
-                                {no}
-                              </option>
-                            ))}
-                            <option value="__new__">+ Add New Truck...</option>
-                          </select>
-                          <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                            <ChevronDown className="w-3.5 h-3.5" />
+                          </button>
                         </div>
+
+                        {/* Custom Clean Dropdown Popup */}
+                        {isTruckNoDropdownOpen && (
+                          <>
+                            <div className="fixed inset-0 z-20" onClick={() => setIsTruckNoDropdownOpen(false)} />
+                            <div className="absolute left-0 right-0 top-full mt-1.5 z-30 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto divide-y divide-slate-50 py-1">
+                              {uniqueTruckNumbers.filter((no) => !formData.truckNo || no.toUpperCase().includes((formData.truckNo || "").toUpperCase())).length > 0 ? (
+                                uniqueTruckNumbers
+                                  .filter((no) => !formData.truckNo || no.toUpperCase().includes((formData.truckNo || "").toUpperCase()))
+                                  .map((no) => (
+                                    <div
+                                      key={no}
+                                      onClick={() => {
+                                        setFormData((prev) => ({ ...prev, truckNo: no }));
+                                        setIsTruckNoDropdownOpen(false);
+                                      }}
+                                      className="px-3 py-2 text-xs font-bold text-slate-800 hover:bg-red-50 hover:text-red-600 cursor-pointer flex items-center justify-between transition-colors uppercase"
+                                    >
+                                      <span>{no}</span>
+                                      {formData.truckNo === no && <Check className="w-3.5 h-3.5 text-red-600" />}
+                                    </div>
+                                  ))
+                              ) : (
+                                <div className="px-3 py-2 text-xs text-slate-400 italic">No matching truck. Type to use this number.</div>
+                              )}
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Driver Name Searchable Combobox */}
+                      <div className="relative">
+                        <label className="font-semibold text-slate-700 block mb-1.5">Driver Name</label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={formData.driver || ""}
+                            onChange={(e) => {
+                              setFormData({ ...formData, driver: e.target.value });
+                              setIsDriverDropdownOpen(true);
+                            }}
+                            onFocus={() => setIsDriverDropdownOpen(true)}
+                            placeholder="Type or select Driver..."
+                            className="w-full px-3.5 py-2.5 pr-8 border border-slate-300 rounded-xl bg-white hover:border-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-400/40 focus:border-red-500 text-xs font-semibold text-slate-800 transition-all shadow-xs"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setIsDriverDropdownOpen((prev) => !prev)}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                          >
+                            <ChevronDown className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+
+                        {/* Custom Clean Dropdown Popup */}
+                        {isDriverDropdownOpen && (
+                          <>
+                            <div className="fixed inset-0 z-20" onClick={() => setIsDriverDropdownOpen(false)} />
+                            <div className="absolute left-0 right-0 top-full mt-1.5 z-30 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto divide-y divide-slate-50 py-1">
+                              {uniqueDriverNames.filter((dName) => !formData.driver || dName.toLowerCase().includes((formData.driver || "").toLowerCase())).length > 0 ? (
+                                uniqueDriverNames
+                                  .filter((dName) => !formData.driver || dName.toLowerCase().includes((formData.driver || "").toLowerCase()))
+                                  .map((dName) => (
+                                    <div
+                                      key={dName}
+                                      onClick={() => {
+                                        setFormData((prev) => ({ ...prev, driver: dName }));
+                                        setIsDriverDropdownOpen(false);
+                                      }}
+                                      className="px-3 py-2 text-xs font-semibold text-slate-800 hover:bg-red-50 hover:text-red-600 cursor-pointer flex items-center justify-between transition-colors"
+                                    >
+                                      <span>{dName}</span>
+                                      {formData.driver === dName && <Check className="w-3.5 h-3.5 text-red-600" />}
+                                    </div>
+                                  ))
+                              ) : (
+                                <div className="px-3 py-2 text-xs text-slate-400 italic">No matching driver. Type to use this name.</div>
+                              )}
+                            </div>
+                          </>
+                        )}
                       </div>
 
                       <div>
@@ -2906,7 +3886,7 @@ function DispatchPageContent() {
                           value={formData.tp || ""}
                           onChange={(e) => setFormData({ ...formData, tp: e.target.value })}
                           placeholder="Transit pass / TP number"
-                          className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-slate-50/50 hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-200 text-xs font-medium text-slate-800 transition-colors shadow-2xs"
+                          className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white hover:border-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-400/40 focus:border-red-500 text-xs font-medium text-slate-800 transition-all shadow-xs"
                         />
                       </div>
                     </div>
@@ -2950,13 +3930,27 @@ function DispatchPageContent() {
                       <b className="font-bold text-slate-900">{modalConfig.data.no}</b>
                     </div>
                     <div className="flex justify-between p-2.5 bg-slate-50">
-                      <span className="text-slate-500">DO No.</span>
-                      <span className="font-medium">{getDOName(currentDO)}</span>
+                      <span className="text-slate-500">DO PARTY Name</span>
+                      <b className="font-semibold text-slate-800">
+                        {((store?.dos || []).find((d) => d.id === modalConfig.data.did) || currentDO)?.co || "-"}
+                      </b>
                     </div>
                     <div className="flex justify-between p-2.5">
-                      <span className="text-slate-500">Party</span>
+                      <span className="text-slate-500">DO No.</span>
+                      <span className="font-medium">
+                        {getDOName(((store?.dos || []).find((d) => d.id === modalConfig.data.did) || currentDO))}
+                      </span>
+                    </div>
+                    <div className="flex justify-between p-2.5 bg-slate-50">
+                      <span className="text-slate-500">Lifter Party Name</span>
                       <span className="font-bold text-slate-800">
                         {currentDO.parties?.find((p) => p.id === modalConfig.data.pid)?.name || "-"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between p-2.5">
+                      <span className="text-slate-500">Driver Name</span>
+                      <span className="font-semibold text-slate-800">
+                        {modalConfig.data.driver || "-"}
                       </span>
                     </div>
                     <div className="flex justify-between p-2.5 bg-slate-50">
