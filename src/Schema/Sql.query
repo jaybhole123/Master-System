@@ -761,6 +761,7 @@ CREATE TABLE public.truck_reports (
   total_freight numeric DEFAULT 0,
   created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
   diesel_price numeric DEFAULT 0,
+  diesel_amount numeric DEFAULT 0,
   party_name text,
   do_party_name text,
   departure_time timestamp with time zone,

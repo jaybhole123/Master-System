@@ -98,6 +98,9 @@ export default function TruckReports() {
         doPartyName: item.do_party_name,
         diesel: item.diesel,
         dieselPrice: item.diesel_price,
+        dieselAmount: item.diesel_amount !== undefined && item.diesel_amount !== null
+          ? item.diesel_amount
+          : (parseFloat(String(item.diesel || '').replace(/[^0-9.]/g, '')) || 0) * (parseFloat(item.diesel_price) || 0),
         advance: item.advance,
         doNo: item.do_no,
         tonnage: item.tonnage,
@@ -715,6 +718,7 @@ export default function TruckReports() {
     let recWtSum = 0;
     let freightRateSum = 0;
     let dieselSum = 0;
+    let dieselAmountSum = 0;
     let minesExpSum = 0;
     let biltyExpSum = 0;
     let advanceSum = 0;
@@ -732,6 +736,9 @@ export default function TruckReports() {
       
       const dL = parseFloat(String(row.diesel || '').replace(/[^0-9.]/g, '')) || 0;
       dieselSum += dL;
+
+      const dAmt = parseFloat(row.dieselAmount) || (dL * (parseFloat(row.dieselPrice) || 0));
+      dieselAmountSum += dAmt;
 
       minesExpSum += parseFloat(row.minesExp) || 0;
       biltyExpSum += parseFloat(row.biltyExp) || 0;
@@ -758,6 +765,7 @@ export default function TruckReports() {
       recWtSum: Math.round(recWtSum * 100) / 100,
       freightRateSum: Math.round(freightRateSum),
       dieselSum: Math.round(dieselSum),
+      dieselAmountSum: Math.round(dieselAmountSum * 100) / 100,
       minesExpSum: Math.round(minesExpSum),
       biltyExpSum: Math.round(biltyExpSum),
       advanceSum: Math.round(advanceSum),
@@ -1360,6 +1368,7 @@ export default function TruckReports() {
         "Received Party": "NANDAN SMELTER",
         "Billing PARTY": "JAY BHOLE ENTERPRISES",
         "DIESEL in Litre": 35,
+        "Diesel Amount": 3307.50,
         "MINES EXP.": 100,
         "BILTY EXP.": 50,
         "ADV": 500,
@@ -1384,6 +1393,7 @@ export default function TruckReports() {
         "Received Party": "NANDAN SMELTER",
         "Billing PARTY": "JAY BHOLE ENTERPRISES",
         "DIESEL in Litre": 37.85,
+        "Diesel Amount": 3576.82,
         "MINES EXP.": 100,
         "BILTY EXP.": 50,
         "ADV": 500,
@@ -1587,9 +1597,20 @@ export default function TruckReports() {
     let dieselNumeric = parseFloat(dieselRaw.replace(/[^0-9.]/g, '')) || 0;
     let diesel = dieselNumeric > 0 ? String(dieselNumeric) : '';
 
+    // Diesel Amount (e.g. 7637.25)
+    const dieselAmountRaw = String(getVal('dieselamount', 'totaldieselamount', 'dieselcost', 'fuelamount', 'dieselamt') || '');
+    let dieselAmount = parseFloat(dieselAmountRaw.replace(/[^0-9.]/g, '')) || 0;
+
     // Diesel Price (e.g. 94.50)
     const dieselPriceRaw = String(getVal('dieselpricers', 'dieselprice', 'fuelprice', 'rateperliter', 'price') || '');
-    const dieselPrice = parseFloat(dieselPriceRaw.replace(/[^0-9.]/g, '')) || 0;
+    let dieselPrice = parseFloat(dieselPriceRaw.replace(/[^0-9.]/g, '')) || 0;
+
+    // Auto-calculate Diesel Amount or Diesel Price if one is given
+    if (dieselAmount > 0 && dieselPrice === 0 && dieselNumeric > 0) {
+      dieselPrice = Math.round((dieselAmount / dieselNumeric) * 100) / 100;
+    } else if (dieselPrice > 0 && dieselAmount === 0 && dieselNumeric > 0) {
+      dieselAmount = Math.round(dieselNumeric * dieselPrice * 100) / 100;
+    }
 
     // Advance (e.g. 500)
     const advanceRaw = String(getVal('adv', 'advancers', 'advance', 'driveradvance') || '');
@@ -1627,8 +1648,10 @@ export default function TruckReports() {
     const shortageAmount = Math.round(parsedShortage * 100) / 100;
 
     // Calculations:
-    // 1. Total Diesel Price = Diesel(L) * Diesel Price(₹)
-    const totalDieselPrice = Math.round(dieselNumeric * dieselPrice);
+    // 1. Total Diesel Price = Diesel Amount directly, or Diesel(L) * Diesel Price(₹)
+    const totalDieselPrice = dieselAmount > 0 
+      ? Math.round(dieselAmount * 100) / 100 
+      : Math.round(dieselNumeric * dieselPrice * 100) / 100;
 
     // 2. Total Freight = Rate Per MT * Tonnage (DISP. WT.)
     const userFreightAmount = parseFloat(String(getVal('freightamount', 'totalfreight') || '').replace(/[^0-9.]/g, '')) || 0;
@@ -1662,6 +1685,7 @@ export default function TruckReports() {
       diesel,
       dieselNumeric,
       dieselPrice,
+      dieselAmount: totalDieselPrice,
       totalDieselPrice,
       advance,
       totalTrips,
@@ -1846,6 +1870,7 @@ export default function TruckReports() {
         driver_name: r.driverName || null,
         diesel: r.diesel,
         diesel_price: Number(r.dieselPrice) || 0,
+        diesel_amount: Number(r.dieselAmount) || 0,
         advance: Number(r.advance) || 0,
         do_no: r.doNo,
         tonnage: Number(r.tonnage) || 0,
@@ -1881,7 +1906,7 @@ export default function TruckReports() {
       // Fallback if TAT columns are not present in DB
       if (error && error.message?.includes('column')) {
         console.warn("TAT columns missing during bulk upload, falling back to core fields:", error.message);
-        const fallbackRows = rowsToInsert.map(({ departure_time, arrival_time, unloading_time, turnaround_hours, turnaround_days, tat_status, ...rest }) => rest);
+        const fallbackRows = rowsToInsert.map(({ departure_time, arrival_time, unloading_time, turnaround_hours, turnaround_days, tat_status, diesel_amount, ...rest }) => rest);
         const res = await supabase.from('truck_reports').insert(fallbackRows);
         error = res.error;
       }
@@ -2282,6 +2307,7 @@ export default function TruckReports() {
                 <th className="py-3.5 px-3.5 whitespace-nowrap">Received Party</th>
                 <th className="py-3.5 px-3.5 whitespace-nowrap">Billing Party</th>
                 <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Diesel (L)</th>
+                <th className="py-3.5 px-3.5 text-right whitespace-nowrap text-purple-700">Diesel Amount</th>
                 <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Mines Exp</th>
                 <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Bilty Exp</th>
                 <th className="py-3.5 px-3.5 text-right whitespace-nowrap">Advance</th>
@@ -2432,6 +2458,12 @@ export default function TruckReports() {
                           return cleanVal ? `${cleanVal} L` : '—';
                         })()}
                       </td>
+                      <td className="py-3.5 px-3.5 text-right font-black text-purple-800 whitespace-nowrap">
+                        {(() => {
+                          const dAmt = parseFloat(row.dieselAmount) || 0;
+                          return dAmt > 0 ? `₹${dAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : (totalDieselPrice > 0 ? `₹${totalDieselPrice.toLocaleString('en-IN')}` : '₹0');
+                        })()}
+                      </td>
                       <td className="py-3.5 px-3.5 text-right font-medium text-slate-600 whitespace-nowrap">
                         ₹{row.minesExp || 0}
                       </td>
@@ -2527,6 +2559,9 @@ export default function TruckReports() {
                   <td className="py-3 px-3.5 text-center text-slate-300 bg-white">—</td>
                   <td className="py-3 px-3.5 text-right text-purple-700 bg-white whitespace-nowrap font-bold">
                     {tableSubtotals.dieselSum.toLocaleString('en-IN')} L
+                  </td>
+                  <td className="py-3 px-3.5 text-right text-purple-800 bg-white whitespace-nowrap font-bold">
+                    ₹{tableSubtotals.dieselAmountSum.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </td>
                   <td className="py-3 px-3.5 text-right text-slate-700 bg-white whitespace-nowrap">
                     ₹{tableSubtotals.minesExpSum.toLocaleString('en-IN')}
@@ -3856,6 +3891,7 @@ export default function TruckReports() {
                           <th className="p-2 border-b">Received Party</th>
                           <th className="p-2 border-b">Billing Party</th>
                           <th className="p-2 border-b">Diesel (L)</th>
+                          <th className="p-2 border-b text-purple-700">Diesel Amount</th>
                           <th className="p-2 border-b">Mines Exp</th>
                           <th className="p-2 border-b">Bilty Exp</th>
                           <th className="p-2 border-b">Adv</th>
@@ -3897,6 +3933,9 @@ export default function TruckReports() {
                                   const c = String(row.diesel).replace(/[^0-9.]/g, '').trim();
                                   return c ? `${c} L` : '0 L';
                                 })()}
+                              </td>
+                              <td className="p-2 font-bold text-purple-800 font-mono">
+                                ₹{row.totalDieselPrice ? Number(row.totalDieselPrice).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : (row.dieselAmount ? Number(row.dieselAmount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00')}
                               </td>
                               <td className="p-2 font-mono">₹{row.minesExp || 0}</td>
                               <td className="p-2 font-mono">₹{row.biltyExp || 0}</td>

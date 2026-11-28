@@ -53,26 +53,14 @@ export default function MonthlyTruckMaintenance() {
   });
 
   // State to store saved monthly records
-  const [savedRecordsMap, setSavedRecordsMap] = useState(() => {
-    const map = {};
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith('truck_monthly_form_')) {
-        const m = key.replace('truck_monthly_form_', '');
-        try {
-          map[m] = JSON.parse(localStorage.getItem(key));
-        } catch (e) {}
-      }
-    }
-    return map;
-  });
+  const [savedRecordsMap, setSavedRecordsMap] = useState({});
 
-  // Dynamic Options for Form Fields (fetched from DB / saved records with custom additions)
+  // Dynamic Options for Form Fields (fetched from DB monthly_truck_maintenance)
   const [dbOptions, setDbOptions] = useState({
-    amcEmiPerTruck: ['5,066', '6,000', '7,500'],
-    officeRent: ['5,000', '10,000', '15,000'],
-    staffSalary: ['30,000', '35,000', '40,000', '50,000'],
-    driverSalaryPerTruck: ['15,000', '18,000', '20,000']
+    amcEmiPerTruck: [],
+    officeRent: [],
+    staffSalary: [],
+    driverSalaryPerTruck: []
   });
   const [openDropdownField, setOpenDropdownField] = useState(null);
   const [newOptionInputs, setNewOptionInputs] = useState({});
@@ -89,34 +77,50 @@ export default function MonthlyTruckMaintenance() {
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, []);
 
-  // Load trucks, trips and extract existing historical values for dropdowns
+  // Load trucks, trips and fetch from monthly_truck_maintenance Supabase table
   useEffect(() => {
     let isMounted = true;
     async function loadData() {
       setLoading(true);
       try {
-        const [trucksRes, reportsRes] = await Promise.all([
+        const [trucksRes, reportsRes, monthlyRes] = await Promise.all([
           supabase.from('trucks').select('id'),
-          supabase.from('truck_reports').select('*').order('date', { ascending: false })
+          supabase.from('truck_reports').select('*').order('date', { ascending: false }),
+          supabase.from('monthly_truck_maintenance').select('*').order('month', { ascending: false })
         ]);
 
         if (isMounted) {
           if (trucksRes.data) setRegisteredTrucksCount(trucksRes.data.length);
           if (reportsRes.data) setTripsData(reportsRes.data);
 
-          // Extract past values from localStorage records & custom options
-          const customStorage = JSON.parse(localStorage.getItem('truck_expense_custom_options') || '{}');
-          const amcSet = new Set(['5,066', '6,000', '7,500', ...(customStorage.amcEmiPerTruck || [])]);
-          const rentSet = new Set(['5,000', '10,000', '15,000', ...(customStorage.officeRent || [])]);
-          const staffSet = new Set(['30,000', '35,000', '40,000', '50,000', ...(customStorage.staffSalary || [])]);
-          const driverSet = new Set(['15,000', '18,000', '20,000', ...(customStorage.driverSalaryPerTruck || [])]);
+          const dbRecords = {};
+          const amcSet = new Set();
+          const rentSet = new Set();
+          const staffSet = new Set();
+          const driverSet = new Set();
 
-          Object.values(savedRecordsMap).forEach(rec => {
-            if (rec?.amcEmiPerTruck) amcSet.add(formatWithCommas(rec.amcEmiPerTruck));
-            if (rec?.officeRent) rentSet.add(formatWithCommas(rec.officeRent));
-            if (rec?.staffSalary) staffSet.add(formatWithCommas(rec.staffSalary));
-            if (rec?.driverSalaryPerTruck) driverSet.add(formatWithCommas(rec.driverSalaryPerTruck));
-          });
+          if (monthlyRes.data && Array.isArray(monthlyRes.data)) {
+            monthlyRes.data.forEach((row) => {
+              if (row.month) {
+                dbRecords[row.month] = {
+                  fleetCount: String(row.fleet_count || 20),
+                  otherExpensesItems: Array.isArray(row.other_expenses_items) ? row.other_expenses_items : [],
+                  amcEmiPerTruck: row.amc_emi_per_truck ? formatWithCommas(row.amc_emi_per_truck) : '',
+                  officeRent: row.office_rent ? formatWithCommas(row.office_rent) : '',
+                  staffSalary: row.staff_salary ? formatWithCommas(row.staff_salary) : '',
+                  driverSalaryPerTruck: row.driver_salary_per_truck ? formatWithCommas(row.driver_salary_per_truck) : '',
+                  monthlyEmi: row.monthly_emi_formula || (row.monthly_emi_total ? formatWithCommas(row.monthly_emi_total) : DEFAULT_MONTHLY_EMI),
+                  manualRevenue: row.manual_revenue !== null && row.manual_revenue !== undefined ? String(row.manual_revenue) : ''
+                };
+              }
+              if (row.amc_emi_per_truck) amcSet.add(formatWithCommas(row.amc_emi_per_truck));
+              if (row.office_rent) rentSet.add(formatWithCommas(row.office_rent));
+              if (row.staff_salary) staffSet.add(formatWithCommas(row.staff_salary));
+              if (row.driver_salary_per_truck) driverSet.add(formatWithCommas(row.driver_salary_per_truck));
+            });
+          }
+
+          setSavedRecordsMap(dbRecords);
 
           setDbOptions({
             amcEmiPerTruck: Array.from(amcSet).filter(Boolean),
@@ -126,14 +130,14 @@ export default function MonthlyTruckMaintenance() {
           });
         }
       } catch (err) {
-        console.error('Error fetching data:', err);
+        console.error('Error fetching data from monthly_truck_maintenance:', err);
       } finally {
         if (isMounted) setLoading(false);
       }
     }
     loadData();
     return () => { isMounted = false; };
-  }, [savedRecordsMap]);
+  }, []);
 
   // Handler to add a new custom option into a field's dropdown list
   const handleAddNewOption = (field) => {
@@ -313,13 +317,55 @@ export default function MonthlyTruckMaintenance() {
     : currentMonthFreight;
   const modalProfitLoss = modalTotalExpenses > 0 ? (modalRevenue - modalTotalExpenses) : 0;
 
-  // Save Form Handler
-  const handleSaveForm = (e) => {
+  // Save Form Handler (Persist directly to monthly_truck_maintenance Supabase Table)
+  const handleSaveForm = async (e) => {
     if (e) e.preventDefault();
     if (!selectedMonth) return;
-    const storageKey = `truck_monthly_form_${selectedMonth}`;
-    localStorage.setItem(storageKey, JSON.stringify(formData));
+
+    const payload = {
+      month: selectedMonth,
+      fleet_count: modalFleetCount,
+      other_expenses_items: formData.otherExpensesItems || [],
+      other_expenses_total: modalOtherExpensesVal,
+      amc_emi_per_truck: parseAmount(formData.amcEmiPerTruck),
+      amc_emi_total: modalAmcTotal,
+      office_rent: modalOfficeRent,
+      staff_salary: modalStaffSalary,
+      driver_salary_per_truck: parseAmount(formData.driverSalaryPerTruck),
+      driver_salary_total: modalDriverSalaryTotal,
+      monthly_emi_formula: formData.monthlyEmi || '',
+      monthly_emi_total: modalEmiTotal,
+      manual_revenue: formData.manualRevenue !== '' ? parseAmount(formData.manualRevenue) : null,
+      gross_revenue: modalRevenue,
+      trips_count: tripsData.filter(t => (t.date || t.trip_date || t.created_at || '').startsWith(selectedMonth)).length,
+      total_expenses: modalTotalExpenses,
+      net_profit_loss: modalProfitLoss,
+      is_loss: modalProfitLoss < 0,
+      updated_at: new Date().toISOString()
+    };
+
+    try {
+      const { error } = await supabase
+        .from('monthly_truck_maintenance')
+        .upsert(payload, { onConflict: 'month' });
+
+      if (error) {
+        console.error('Error saving to monthly_truck_maintenance:', error);
+      }
+    } catch (err) {
+      console.error('Exception saving to monthly_truck_maintenance:', err);
+    }
+
     setSavedRecordsMap(prev => ({ ...prev, [selectedMonth]: { ...formData } }));
+
+    // Dynamically update dropdown lists with the newly saved values
+    setDbOptions(prev => ({
+      amcEmiPerTruck: Array.from(new Set([...prev.amcEmiPerTruck, formData.amcEmiPerTruck].filter(Boolean))),
+      officeRent: Array.from(new Set([...prev.officeRent, formData.officeRent].filter(Boolean))),
+      staffSalary: Array.from(new Set([...prev.staffSalary, formData.staffSalary].filter(Boolean))),
+      driverSalaryPerTruck: Array.from(new Set([...prev.driverSalaryPerTruck, formData.driverSalaryPerTruck].filter(Boolean)))
+    }));
+
     setIsSaved(true);
     setTimeout(() => {
       setIsSaved(false);

@@ -21,6 +21,7 @@ import {
   Plus,
   Check,
   ChevronDown,
+  Clock,
   FileSpreadsheet,
   FileText
 } from "lucide-react";
@@ -116,6 +117,7 @@ function DispatchPageContent() {
 
   const [selectedTruckFilter, setSelectedTruckFilter] = useState("");
   const [selectedTruckCompanyFilter, setSelectedTruckCompanyFilter] = useState("ALL");
+  const [selectedTruckDONoFilter, setSelectedTruckDONoFilter] = useState("ALL");
   const [selectedPartyLifterFilter, setSelectedPartyLifterFilter] = useState("");
   const [selectedTruckIds, setSelectedTruckIds] = useState(new Set());
   const [selectedCompanyFilter, setSelectedCompanyFilter] = useState("ALL");
@@ -150,94 +152,7 @@ function DispatchPageContent() {
   const [isDriverDropdownOpen, setIsDriverDropdownOpen] = useState(false);
   const [isLoadingDOs, setIsLoadingDOs] = useState(false);
 
-  // Fetch DOs, Parties and Trucks directly from Supabase
-  const fetchDOsFromSupabase = useCallback(async () => {
-    setIsLoadingDOs(true);
-    try {
-      const [dosRes, partiesRes, trucksRes] = await Promise.all([
-        supabase.from("do_master").select("*").order("created_at", { ascending: true }),
-        supabase.from("party_order").select("*").order("created_at", { ascending: true }),
-        supabase.from("truck_dispatch").select("*").order("created_at", { ascending: false })
-      ]);
-
-      if (dosRes.error) {
-        console.error("Error fetching from do_master:", dosRes.error);
-        return;
-      }
-
-      const partiesList = Array.isArray(partiesRes?.data) ? partiesRes.data : [];
-      const trucksList = Array.isArray(trucksRes?.data) ? trucksRes.data : [];
-
-      // Group parties by do_id
-      const partiesByDO = new Map();
-      partiesList.forEach((p) => {
-        const doIdStr = String(p.do_id);
-        if (!partiesByDO.has(doIdStr)) {
-          partiesByDO.set(doIdStr, []);
-        }
-        partiesByDO.get(doIdStr).push({
-          id: p.id,
-          name: p.party_name,
-          qty: parseFloat(p.order_qty) || 0
-        });
-      });
-
-      // Map trucks
-      const mappedTrucks = trucksList.map((t) => ({
-        id: t.id,
-        did: t.do_id,
-        pid: t.party_id,
-        no: t.truck_no,
-        driver: t.driver_name || "",
-        tp: t.tp_no || "",
-        date: t.dispatch_date || "",
-        qty: parseFloat(t.net_weight_mt) || 0,
-        done: t.status === "done"
-      }));
-
-      if (Array.isArray(dosRes.data)) {
-        setStore((prev) => {
-          const mappedDOs = dosRes.data.map((item) => {
-            const doIdStr = String(item.id);
-            const dbParties = partiesByDO.get(doIdStr) || [];
-
-            return {
-              id: item.id,
-              co: item.company_name || "",
-              no: item.do_no || "",
-              tot: parseFloat(item.do_qty) || 0,
-              vf: item.valid_from || "",
-              vt: item.valid_to || "",
-              mines: item.mines || "",
-              parties: dbParties
-            };
-          });
-
-          const nextAct = mappedDOs.some((d) => d.id === prev.act)
-            ? prev.act
-            : (mappedDOs[0]?.id || 0);
-
-          return {
-            ...prev,
-            dos: mappedDOs,
-            trucks: mappedTrucks,
-            act: nextAct
-          };
-        });
-      }
-    } catch (err) {
-      console.error("fetchDOsFromSupabase failed:", err);
-    } finally {
-      setIsLoadingDOs(false);
-    }
-  }, []);
-
-  // Fetch on mount
-  useEffect(() => {
-    fetchDOsFromSupabase();
-  }, [fetchDOsFromSupabase]);
-
-  // Sync to localStorage
+  // LocalStorage initialization & Sync
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
@@ -245,6 +160,108 @@ function DispatchPageContent() {
       console.error("Failed to save to localStorage:", e);
     }
   }, [store]);
+
+  // Fetch DO Master, DO Allotment & Truck Entries from Supabase
+  const fetchDOMasterFromDB = useCallback(async () => {
+    if (!supabase) return;
+    try {
+      setIsLoadingDOs(true);
+      // Fetch DO Masters
+      const { data: doData, error: doError } = await supabase
+        .from("dispatch_do_master")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (doError) {
+        console.warn("Could not fetch from dispatch_do_master table, falling back to local storage:", doError.message);
+        return;
+      }
+
+      // Fetch DO Allotments
+      const { data: allotData, error: allotError } = await supabase
+        .from("dispatch_do_allotment")
+        .select("*")
+        .order("created_at", { ascending: true });
+
+      if (allotError) {
+        console.warn("Could not fetch from dispatch_do_allotment table:", allotError.message);
+      }
+
+      // Fetch Truck Entries
+      const { data: truckData, error: truckError } = await supabase
+        .from("dispatch_truck_entries")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (truckError) {
+        console.warn("Could not fetch from dispatch_truck_entries table:", truckError.message);
+      }
+
+      if (doData && doData.length > 0) {
+        setStore((prev) => {
+          const mergedDOs = doData.map((d) => {
+            // Find DB allotments for this DO
+            const dbParties = (allotData || [])
+              .filter((a) => String(a.do_id) === String(d.id))
+              .map((a) => ({
+                id: a.id,
+                name: a.receiver_party_name || "",
+                qty: parseFloat(a.order_qty) || 0
+              }));
+
+            const existingLocalDO = (prev.dos || []).find(
+              (ld) => ld.id === d.id || (ld.no && d.do_no && ld.no.trim() === d.do_no.trim())
+            );
+
+            return {
+              id: d.id,
+              co: d.do_party_name || "",
+              no: d.do_no || "",
+              mines: d.mines || "",
+              grade: d.grade || "",
+              tot: parseFloat(d.total_do_qty) || 0,
+              vf: d.valid_from || "",
+              vt: d.valid_to || "",
+              parties: dbParties.length > 0 ? dbParties : (existingLocalDO?.parties || [])
+            };
+          });
+
+          // Map DB trucks
+          const mergedTrucks = (truckData && truckData.length > 0)
+            ? truckData.map((t) => ({
+                id: t.id,
+                did: t.do_id,
+                pid: t.party_id,
+                no: t.truck_no,
+                driver: t.transporter_name || "",
+                tp: t.tp_no || "",
+                fromLoc: t.route_from || "",
+                toLoc: t.route_to || "",
+                freight: t.freight_rate || 0,
+                date: t.dispatch_date,
+                qty: parseFloat(t.net_wt) || 0,
+                done: !!t.done
+              }))
+            : prev.trucks;
+
+          return {
+            ...prev,
+            dos: mergedDOs,
+            trucks: mergedTrucks,
+            act: prev.act && mergedDOs.some((d) => d.id === prev.act) ? prev.act : mergedDOs[0]?.id || 0
+          };
+        });
+      }
+    } catch (err) {
+      console.error("Error fetching dispatch tables:", err);
+    } finally {
+      setIsLoadingDOs(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchDOMasterFromDB();
+  }, [fetchDOMasterFromDB]);
 
   // Helpers
   const formatNumber = (num) => {
@@ -327,8 +344,28 @@ function DispatchPageContent() {
   };
 
   const uniqueCompanies = useMemo(() => {
-    const list = (store?.dos || []).map((d) => (d?.co || "").trim()).filter(Boolean);
-    return [...new Set(list)];
+    // Strictly only from do_master table
+    const listFromDos = (store?.dos || []).map((d) => (d?.co || "").trim()).filter(Boolean);
+    return [...new Set(listFromDos)];
+  }, [store?.dos]);
+
+  // DO reference items for party auto-fetch strictly from do_master table
+  const partyDORefs = useMemo(() => {
+    const map = new Map();
+    (store?.dos || []).forEach((d) => {
+      const coName = (d?.co || "").trim();
+      if (coName) {
+        map.set(coName.toLowerCase(), {
+          co: coName,
+          no: d.no || "",
+          mines: d.mines || "",
+          tot: parseFloat(d.tot) || 0,
+          vf: d.vf || "",
+          vt: d.vt || ""
+        });
+      }
+    });
+    return map;
   }, [store?.dos]);
 
   const uniquePartyNames = useMemo(() => {
@@ -349,13 +386,33 @@ function DispatchPageContent() {
     return [...new Set((store?.trucks || []).map((t) => (t?.driver || "").trim()).filter(Boolean))];
   }, [store?.trucks]);
 
+  const uniqueTpNumbers = useMemo(() => {
+    return [...new Set((store?.trucks || []).map((t) => (t?.tp || "").trim()).filter(Boolean))];
+  }, [store?.trucks]);
+
+  const uniqueFromLocations = useMemo(() => {
+    const listFromTrucks = (store?.trucks || []).map((t) => (t?.fromLoc || "").trim()).filter(Boolean);
+    const listFromMines = (store?.dos || []).map((d) => (d?.mines || "").trim()).filter(Boolean);
+    return [...new Set([...listFromTrucks, ...listFromMines])];
+  }, [store?.trucks, store?.dos]);
+
+  const uniqueToLocations = useMemo(() => {
+    const listFromTrucks = (store?.trucks || []).map((t) => (t?.toLoc || "").trim()).filter(Boolean);
+    return [...new Set(listFromTrucks)];
+  }, [store?.trucks]);
+
+  const uniqueFreights = useMemo(() => {
+    return [...new Set((store?.trucks || []).map((t) => String(t?.freight || "")).filter((f) => f && f !== "0" && f !== "0.00"))];
+  }, [store?.trucks]);
+
   // Filtered Trucks list
   const visibleTrucks = useMemo(() => {
     return (store?.trucks || []).filter((t) => {
       if (!t) return false;
       const truckDO = (store?.dos || []).find((d) => d.id === t.did);
       const matchCompany = selectedTruckCompanyFilter === "ALL" || (truckDO?.co || "").trim() === selectedTruckCompanyFilter;
-      const matchDO = selectedTruckCompanyFilter !== "ALL" ? true : (t.did === currentDO?.id);
+      const matchDONo = selectedTruckDONoFilter === "ALL" || String(t.did) === String(selectedTruckDONoFilter) || String(truckDO?.no) === String(selectedTruckDONoFilter);
+      const matchDO = selectedTruckCompanyFilter !== "ALL" || selectedTruckDONoFilter !== "ALL" ? true : (t.did === currentDO?.id);
       const matchTab = activeTab === "history" ? !!t.done : !t.done;
 
       // Party match: can match by PID or party name if selectedTruckFilter is set
@@ -365,29 +422,31 @@ function DispatchPageContent() {
         matchParty = String(t.pid) === String(selectedTruckFilter) || (partyObj && String(t.pid) === String(partyObj.id));
       }
 
-      return matchCompany && matchDO && matchTab && matchParty;
+      return matchCompany && matchDONo && matchDO && matchTab && matchParty;
     });
-  }, [store?.trucks, store?.dos, currentDO?.id, activeTab, selectedTruckFilter, selectedTruckCompanyFilter]);
+  }, [store?.trucks, store?.dos, currentDO?.id, activeTab, selectedTruckFilter, selectedTruckCompanyFilter, selectedTruckDONoFilter]);
 
   const pendingTruckCount = useMemo(() => {
     return (store?.trucks || []).filter((t) => {
       if (!t || t.done) return false;
       const truckDO = (store?.dos || []).find((d) => d.id === t.did);
       const matchCompany = selectedTruckCompanyFilter === "ALL" || (truckDO?.co || "").trim() === selectedTruckCompanyFilter;
-      const matchDO = selectedTruckCompanyFilter !== "ALL" ? true : (t.did === currentDO?.id);
-      return matchCompany && matchDO;
+      const matchDONo = selectedTruckDONoFilter === "ALL" || String(t.did) === String(selectedTruckDONoFilter) || String(truckDO?.no) === String(selectedTruckDONoFilter);
+      const matchDO = selectedTruckCompanyFilter !== "ALL" || selectedTruckDONoFilter !== "ALL" ? true : (t.did === currentDO?.id);
+      return matchCompany && matchDONo && matchDO;
     }).length;
-  }, [store?.trucks, store?.dos, currentDO?.id, selectedTruckCompanyFilter]);
+  }, [store?.trucks, store?.dos, currentDO?.id, selectedTruckCompanyFilter, selectedTruckDONoFilter]);
 
   const historyTruckCount = useMemo(() => {
     return (store?.trucks || []).filter((t) => {
       if (!t || !t.done) return false;
       const truckDO = (store?.dos || []).find((d) => d.id === t.did);
       const matchCompany = selectedTruckCompanyFilter === "ALL" || (truckDO?.co || "").trim() === selectedTruckCompanyFilter;
-      const matchDO = selectedTruckCompanyFilter !== "ALL" ? true : (t.did === currentDO?.id);
-      return matchCompany && matchDO;
+      const matchDONo = selectedTruckDONoFilter === "ALL" || String(t.did) === String(selectedTruckDONoFilter) || String(truckDO?.no) === String(selectedTruckDONoFilter);
+      const matchDO = selectedTruckCompanyFilter !== "ALL" || selectedTruckDONoFilter !== "ALL" ? true : (t.did === currentDO?.id);
+      return matchCompany && matchDONo && matchDO;
     }).length;
-  }, [store?.trucks, store?.dos, currentDO?.id, selectedTruckCompanyFilter]);
+  }, [store?.trucks, store?.dos, currentDO?.id, selectedTruckCompanyFilter, selectedTruckDONoFilter]);
 
   // Close Modal
   const closeModal = () => {
@@ -414,17 +473,24 @@ function DispatchPageContent() {
   // DO Actions
   const openDOForm = (id = 0) => {
     const d = id ? store.dos.find((x) => x.id === id) : null;
+    const existingLifterRows = d && d.parties && d.parties.length
+      ? d.parties.map((p) => ({ id: p.id, partyName: p.name || "", partyQty: p.qty || "" }))
+      : [{ id: Date.now(), partyName: "", partyQty: "" }];
+
     setFormData({
       co: d ? d.co : "",
       no: d ? d.no : "",
       mines: d && d.mines ? d.mines : "",
+      grade: d && d.grade ? d.grade : "",
       tot: d ? d.tot : "",
       vf: d && d.vf ? d.vf : "",
-      vt: d && d.vt ? d.vt : ""
+      vt: d && d.vt ? d.vt : "",
+      // Multi-row lifter allotment rows
+      lifterRows: existingLifterRows
     });
     setModalConfig({
       isOpen: true,
-      title: d ? "Edit DO" : "New DO Add",
+      title: d ? "Edit DO" : "New DO & Party Allotment",
       type: "doForm",
       data: { id },
       error: ""
@@ -435,9 +501,13 @@ function DispatchPageContent() {
     const co = (formData.co || "").trim();
     const no = (formData.no || "").trim();
     const mines = (formData.mines || "").trim();
+    const grade = (formData.grade || "").trim();
     const tot = parseFloat(formData.tot);
     const vf = formData.vf || null;
     const vt = formData.vt || null;
+    const lifterRows = (formData.lifterRows || []).filter(
+      (r) => (r.partyName || "").trim() !== "" && parseFloat(r.partyQty) > 0
+    );
 
     if (!no || !(tot > 0)) {
       setModalConfig((prev) => ({ ...prev, error: "Enter DO No. and DO Qty." }));
@@ -448,44 +518,69 @@ function DispatchPageContent() {
       return;
     }
 
+    const totalLifterQty = lifterRows.reduce((sum, r) => sum + (parseFloat(r.partyQty) || 0), 0);
+    if (totalLifterQty > tot + 0.001) {
+      setModalConfig((prev) => ({
+        ...prev,
+        error: `Total Lifter Allotted Qty (${formatNumber(totalLifterQty)} MT) cannot exceed DO Qty (${formatNumber(tot)} MT).`
+      }));
+      return;
+    }
+
     if (id) {
       const existing = store.dos.find((d) => d.id === id);
-      const allotted = getDOAllotted(existing);
-      if (tot < allotted - 0.001) {
-        setModalConfig((prev) => ({
-          ...prev,
-          error: `Allotted qty is ${formatNumber(allotted)} MT; DO Qty cannot be lower than that.`
-        }));
-        return;
-      }
+      const updatedParties = lifterRows.map((r, idx) => {
+        const matchedParty = (existing?.parties || []).find((p) => p.id === r.id);
+        return {
+          id: matchedParty ? matchedParty.id : Date.now() + idx,
+          name: (r.partyName || "").trim(),
+          qty: parseFloat(r.partyQty) || 0
+        };
+      });
 
-      // Update directly in Supabase do_master table
+      // Update in Supabase dispatch_do_master table if connected
       try {
-        const { error } = await supabase
-          .from("do_master")
-          .update({
-            company_name: co,
-            do_no: no,
-            mines: mines || null,
-            valid_from: vf,
-            valid_to: vt,
-            do_qty: tot,
-            updated_at: new Date().toISOString()
-          })
-          .eq("id", id);
+        if (supabase) {
+          const { error: dbErr } = await supabase
+            .from("dispatch_do_master")
+            .update({
+              do_party_name: co,
+              do_no: no,
+              mines,
+              grade,
+              total_do_qty: tot,
+              valid_from: vf || null,
+              valid_to: vt || null,
+              updated_at: new Date().toISOString()
+            })
+            .match({ id });
 
-        if (error) {
-          console.error("Supabase DO update error:", error);
-          setModalConfig((prev) => ({ ...prev, error: error.message || "Failed to update DO in database." }));
-          return;
+          if (dbErr) {
+            console.error("Supabase DO update error:", dbErr);
+            alert(`Database Update Error: ${dbErr.message || JSON.stringify(dbErr)}`);
+            setModalConfig((prev) => ({ ...prev, error: `DB Error: ${dbErr.message}` }));
+            return;
+          }
+
+          // Sync allotment parties for this DO in dispatch_do_allotment
+          if (lifterRows.length > 0) {
+            // Delete previous allotments for this DO and re-insert fresh updated list
+            await supabase.from("dispatch_do_allotment").delete().match({ do_id: id });
+            const freshAllots = lifterRows.map((r) => ({
+              do_id: id,
+              receiver_party_name: r.partyName.trim(),
+              order_qty: parseFloat(r.partyQty) || 0
+            }));
+            await supabase.from("dispatch_do_allotment").insert(freshAllots);
+          }
         }
       } catch (err) {
-        console.error("DO update exception:", err);
+        console.error("Failed to update in dispatch_do_master & dispatch_do_allotment:", err);
       }
 
       setStore((prev) => ({
         ...prev,
-        dos: prev.dos.map((d) => (d.id === id ? { ...d, co, no, mines, tot, vf: vf || "", vt: vt || "" } : d))
+        dos: prev.dos.map((d) => (d.id === id ? { ...d, co, no, mines, grade, tot, vf: vf || "", vt: vt || "", parties: updatedParties } : d))
       }));
     } else {
       // Check duplicate locally first
@@ -495,33 +590,73 @@ function DispatchPageContent() {
       }
 
       let newRecordId = store.nid;
+
+      // Insert into Supabase dispatch_do_master table
       try {
-        const { data, error } = await supabase
-          .from("do_master")
-          .insert([
-            {
-              company_name: co,
-              do_no: no,
-              mines: mines || null,
-              valid_from: vf,
-              valid_to: vt,
-              do_qty: tot
-            }
-          ])
-          .select()
-          .single();
+        if (supabase) {
+          const payload = {
+            do_party_name: co,
+            do_no: no,
+            mines: mines || null,
+            grade: grade || null,
+            total_do_qty: tot,
+            valid_from: vf || null,
+            valid_to: vt || null
+          };
 
-        if (error) {
-          console.error("Supabase DO insert error:", error);
-          setModalConfig((prev) => ({ ...prev, error: error.message || "Failed to insert DO in database." }));
-          return;
-        }
+          const { data: insertedData, error: dbErr } = await supabase
+            .from("dispatch_do_master")
+            .insert([payload])
+            .select();
 
-        if (data && data.id) {
-          newRecordId = data.id;
+          if (dbErr) {
+            console.error("Supabase DO insert error:", dbErr);
+            alert(`Database Save Error: ${dbErr.message || JSON.stringify(dbErr)}\n\n(Tip: Make sure you ran the CREATE TABLE query in Supabase SQL editor and RLS allows INSERT).`);
+            setModalConfig((prev) => ({ ...prev, error: `DB Error: ${dbErr.message}` }));
+            return;
+          } else if (insertedData && insertedData[0]?.id) {
+            newRecordId = insertedData[0].id;
+          }
         }
       } catch (err) {
-        console.error("DO insert exception:", err);
+        console.error("Failed to insert into dispatch_do_master:", err);
+        alert(`Database Connection Error: ${err.message}`);
+        setModalConfig((prev) => ({ ...prev, error: `DB Error: ${err.message}` }));
+        return;
+      }
+
+      let createdParties = lifterRows.map((r, idx) => ({
+        id: Date.now() + idx,
+        name: r.partyName.trim(),
+        qty: parseFloat(r.partyQty)
+      }));
+
+      // Insert parties into dispatch_do_allotment table
+      try {
+        if (supabase && lifterRows.length > 0) {
+          const allotPayload = lifterRows.map((r) => ({
+            do_id: newRecordId,
+            receiver_party_name: r.partyName.trim(),
+            order_qty: parseFloat(r.partyQty) || 0
+          }));
+
+          const { data: allotSaved, error: allotErr } = await supabase
+            .from("dispatch_do_allotment")
+            .insert(allotPayload)
+            .select();
+
+          if (allotErr) {
+            console.warn("Supabase DO Allotment insert warning:", allotErr.message);
+          } else if (allotSaved && allotSaved.length > 0) {
+            createdParties = allotSaved.map((a) => ({
+              id: a.id,
+              name: a.receiver_party_name,
+              qty: parseFloat(a.order_qty)
+            }));
+          }
+        }
+      } catch (err) {
+        console.error("Failed to insert into dispatch_do_allotment:", err);
       }
 
       const newDO = {
@@ -529,17 +664,18 @@ function DispatchPageContent() {
         co,
         no,
         mines,
+        grade,
         tot,
         vf: vf || "",
         vt: vt || "",
-        parties: []
+        parties: createdParties
       };
 
       setStore((prev) => ({
         ...prev,
-        nid: typeof prev.nid === "number" ? prev.nid + 1 : prev.nid,
-        dos: [...prev.dos, newDO]
-        // Note: Keep previous active DO as active so its existing allotment/trucks don't disappear!
+        nid: typeof prev.nid === "number" ? prev.nid + 1 + lifterRows.length : prev.nid + 1,
+        dos: [...prev.dos, newDO],
+        act: newRecordId
       }));
     }
     closeModal();
@@ -573,11 +709,20 @@ function DispatchPageContent() {
       data: {
         message: `Delete DO "${getDOName(d)}"? Its parties and trucks will also be deleted.`,
         onConfirm: async () => {
-          // Delete from Supabase if valid UUID
+          // Delete from Supabase dispatch_do_master
           try {
-            await supabase.from("do_master").delete().eq("id", id);
+            if (supabase) {
+              const { error: dbErr } = await supabase
+                .from("dispatch_do_master")
+                .delete()
+                .match({ id });
+
+              if (dbErr) {
+                console.warn("Supabase delete error:", dbErr.message);
+              }
+            }
           } catch (err) {
-            console.error("Error deleting from do_master:", err);
+            console.error("Failed to delete from dispatch_do_master:", err);
           }
 
           setStore((prev) => {
@@ -655,24 +800,24 @@ function DispatchPageContent() {
     }
 
     if (id) {
-      // Update in Supabase
+      // Update in Supabase dispatch_do_allotment
       try {
-        const { error } = await supabase
-          .from("party_order")
-          .update({
-            party_name: name,
-            order_qty: qty,
-            updated_at: new Date().toISOString()
-          })
-          .eq("id", id);
+        if (supabase) {
+          const { error: dbErr } = await supabase
+            .from("dispatch_do_allotment")
+            .update({
+              receiver_party_name: name,
+              order_qty: qty,
+              updated_at: new Date().toISOString()
+            })
+            .match({ id });
 
-        if (error) {
-          console.error("Supabase party update error:", error);
-          setModalConfig((prev) => ({ ...prev, error: error.message || "Failed to update party in database." }));
-          return;
+          if (dbErr) {
+            console.warn("Supabase party update warning:", dbErr.message);
+          }
         }
       } catch (err) {
-        console.error("Party update exception:", err);
+        console.error("Failed to update dispatch_do_allotment:", err);
       }
 
       setStore((prev) => {
@@ -686,36 +831,34 @@ function DispatchPageContent() {
         return { ...prev, dos: updatedDos };
       });
     } else {
-      // Insert in Supabase
-      let newPartyId = prev => prev.nid;
+      let assignedId = store.nid;
+
+      // Insert into Supabase dispatch_do_allotment
       try {
-        const { data, error } = await supabase
-          .from("party_order")
-          .insert([
-            {
-              do_id: targetDO.id,
-              party_name: name,
-              order_qty: qty
-            }
-          ])
-          .select()
-          .single();
+        if (supabase && targetDO?.id) {
+          const { data: inserted, error: dbErr } = await supabase
+            .from("dispatch_do_allotment")
+            .insert([
+              {
+                do_id: targetDO.id,
+                receiver_party_name: name,
+                order_qty: qty
+              }
+            ])
+            .select();
 
-        if (error) {
-          console.error("Supabase party insert error:", error);
-          setModalConfig((prev) => ({ ...prev, error: error.message || "Failed to insert party in database." }));
-          return;
-        }
-
-        if (data && data.id) {
-          newPartyId = data.id;
+          if (dbErr) {
+            console.warn("Supabase party insert warning:", dbErr.message);
+            alert(`Database Allotment Error: ${dbErr.message}`);
+          } else if (inserted && inserted[0]?.id) {
+            assignedId = inserted[0].id;
+          }
         }
       } catch (err) {
-        console.error("Party insert exception:", err);
+        console.error("Failed to insert into dispatch_do_allotment:", err);
       }
 
       setStore((prev) => {
-        const assignedId = typeof newPartyId === "string" ? newPartyId : prev.nid;
         const updatedDos = prev.dos.map((d) => {
           if (d.id !== targetDO.id) return d;
           return {
@@ -726,7 +869,7 @@ function DispatchPageContent() {
 
         return {
           ...prev,
-          nid: typeof prev.nid === "number" ? prev.nid + 1 : prev.nid,
+          nid: typeof prev.nid === "number" ? prev.nid + 1 : prev.nid + 1,
           dos: updatedDos,
           act: targetDO.id
         };
@@ -758,11 +901,20 @@ function DispatchPageContent() {
       data: {
         message: `Delete party "${p?.name}"? ${truckCount ? `Its ${truckCount} truck(s) will also be deleted.` : ""}`,
         onConfirm: async () => {
-          // Delete from Supabase party_order
+          // Delete from Supabase dispatch_do_allotment
           try {
-            await supabase.from("party_order").delete().eq("id", id);
+            if (supabase) {
+              const { error: dbErr } = await supabase
+                .from("dispatch_do_allotment")
+                .delete()
+                .match({ id });
+
+              if (dbErr) {
+                console.warn("Supabase party delete warning:", dbErr.message);
+              }
+            }
           } catch (err) {
-            console.error("Error deleting from party_order:", err);
+            console.error("Failed to delete from dispatch_do_allotment:", err);
           }
 
           setStore((prev) => ({
@@ -790,13 +942,20 @@ function DispatchPageContent() {
     const t = id ? store.trucks.find((x) => x.id === id) : null;
     const initialPid = t ? t.pid : defaultPartyId || currentDO.parties[0]?.id;
 
+    const defaultDate = new Date().toISOString().slice(0, 10);
     setFormData({
       pid: initialPid,
       truckNo: t ? t.no : "",
       driver: t ? (t.driver || "") : "",
       tp: t ? t.tp : "",
-      date: t ? t.date : new Date().toISOString().slice(0, 10),
-      qty: t ? t.qty : ""
+      fromLoc: t ? (t.fromLoc || "") : "",
+      toLoc: t ? (t.toLoc || "") : "",
+      freight: t ? (t.freight || "") : "",
+      date: t ? t.date : defaultDate,
+      qty: t ? t.qty : "",
+      rows: t
+        ? [{ id: 1, truckNo: t.no || "", driver: t.driver || "", tp: t.tp || "", fromLoc: t.fromLoc || "", toLoc: t.toLoc || "", freight: t.freight || "", date: t.date || defaultDate, qty: t.qty || "" }]
+        : [{ id: 1, truckNo: "", driver: "", tp: "", fromLoc: "", toLoc: "", freight: "", date: defaultDate, qty: "" }]
     });
 
     setModalConfig({
@@ -810,111 +969,175 @@ function DispatchPageContent() {
 
   const saveTruck = async (id) => {
     const pid = formData.pid ? formData.pid : currentDO.parties[0]?.id;
-    const party = currentDO.parties.find((p) => String(p.id) === String(pid));
-    const truckNo = (formData.truckNo || "").trim().toUpperCase();
-    const driver = (formData.driver || "").trim();
-    const tp = (formData.tp || "").trim();
-    const date = formData.date || new Date().toISOString().slice(0, 10);
-    const qty = parseFloat(formData.qty);
-    const existing = id ? store.trucks.find((t) => t.id === id) : null;
+    const allPartiesList = (store?.dos || []).flatMap((d) => d.parties || []);
+    const availableParties = (currentDO.parties && currentDO.parties.length) ? currentDO.parties : allPartiesList;
+    const party = availableParties.find((p) => String(p.id) === String(pid)) || availableParties[0];
 
-    if (!party || !truckNo || !(qty > 0)) {
-      setModalConfig((prev) => ({ ...prev, error: "Enter party, truck no. and net weight." }));
+    if (!party) {
+      setModalConfig((prev) => ({ ...prev, error: "Please select a valid party." }));
       return;
     }
 
+    // Determine rows to save (multiple rows in add mode, single in edit mode)
+    const rows = id
+      ? [{
+          truckNo: (formData.truckNo || "").trim().toUpperCase(),
+          driver: (formData.driver || "").trim(),
+          tp: (formData.tp || "").trim(),
+          fromLoc: (formData.fromLoc || "").trim(),
+          toLoc: (formData.toLoc || "").trim(),
+          freight: parseFloat(formData.freight) || 0,
+          date: formData.date || new Date().toISOString().slice(0, 10),
+          qty: parseFloat(formData.qty)
+        }]
+      : (formData.rows && formData.rows.length ? formData.rows : [{ truckNo: formData.truckNo, driver: formData.driver, tp: formData.tp, fromLoc: formData.fromLoc, toLoc: formData.toLoc, freight: formData.freight, date: formData.date, qty: formData.qty }])
+          .map((r) => ({
+            truckNo: (r.truckNo || "").trim().toUpperCase(),
+            driver: (r.driver || "").trim(),
+            tp: (r.tp || "").trim(),
+            fromLoc: (r.fromLoc || "").trim(),
+            toLoc: (r.toLoc || "").trim(),
+            freight: parseFloat(r.freight) || 0,
+            date: r.date || new Date().toISOString().slice(0, 10),
+            qty: parseFloat(r.qty)
+          }));
+
+    // Validate rows
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i];
+      if (!r.truckNo || !(r.qty > 0)) {
+        setModalConfig((prev) => ({
+          ...prev,
+          error: `Row #${i + 1}: Please enter Truck No. and Net Wt.`
+        }));
+        return;
+      }
+    }
+
+    const totalNewQty = rows.reduce((acc, r) => acc + r.qty, 0);
     const currentDispatched = getPartyDispatched(party.id);
+    const existing = id ? store.trucks.find((t) => t.id === id) : null;
     const balance = party.qty - currentDispatched + (existing && String(existing.pid) === String(party.id) ? existing.qty : 0);
 
-    if (qty > balance + 0.001) {
+    if (totalNewQty > balance + 0.001) {
       setModalConfig((prev) => ({
         ...prev,
-        error: `${party.name} has only ${formatNumber(balance)} MT balance, so ${formatNumber(qty)} MT cannot be dispatched.`
+        error: `${party.name} has only ${formatNumber(balance)} MT balance, but total entered is ${formatNumber(totalNewQty)} MT.`
       }));
       return;
     }
 
     if (id) {
-      // Update in Supabase truck_dispatch
-      try {
-        const { error } = await supabase
-          .from("truck_dispatch")
-          .update({
-            party_id: party.id,
-            truck_no: truckNo,
-            driver_name: driver,
-            tp_no: tp,
-            dispatch_date: date,
-            net_weight_mt: qty,
-            updated_at: new Date().toISOString()
-          })
-          .eq("id", id);
+      const r = rows[0];
 
-        if (error) {
-          console.error("Supabase truck update error:", error);
-          setModalConfig((prev) => ({ ...prev, error: error.message || "Failed to update truck in database." }));
-          return;
+      // Update in Supabase dispatch_truck_entries
+      try {
+        if (supabase) {
+          const { error: dbErr } = await supabase
+            .from("dispatch_truck_entries")
+            .update({
+              party_id: party.id,
+              truck_no: r.truckNo,
+              transporter_name: r.driver || null,
+              tp_no: r.tp || null,
+              route_from: r.fromLoc || null,
+              route_to: r.toLoc || null,
+              freight_rate: r.freight || 0,
+              dispatch_date: r.date,
+              net_wt: r.qty,
+              updated_at: new Date().toISOString()
+            })
+            .match({ id });
+
+          if (dbErr) {
+            console.warn("Supabase truck update warning:", dbErr.message);
+          }
         }
       } catch (err) {
-        console.error("Truck update exception:", err);
+        console.error("Failed to update in dispatch_truck_entries:", err);
       }
 
       setStore((prev) => ({
         ...prev,
-        trucks: prev.trucks.map((t) => (t.id === id ? { ...t, pid: party.id, no: truckNo, driver, tp, date, qty } : t))
+        trucks: prev.trucks.map((t) =>
+          t.id === id
+            ? {
+                ...t,
+                pid: party.id,
+                no: r.truckNo,
+                driver: r.driver,
+                tp: r.tp,
+                fromLoc: r.fromLoc,
+                toLoc: r.toLoc,
+                freight: r.freight,
+                date: r.date,
+                qty: r.qty
+              }
+            : t
+        )
       }));
     } else {
-      // Insert in Supabase truck_dispatch
-      let newTruckId = store.nid;
+      let savedDbTrucks = [];
+
+      // Insert multiple rows into Supabase dispatch_truck_entries
       try {
-        const { data, error } = await supabase
-          .from("truck_dispatch")
-          .insert([
-            {
-              do_id: currentDO.id,
-              party_id: party.id,
-              truck_no: truckNo,
-              driver_name: driver,
-              tp_no: tp,
-              dispatch_date: date,
-              net_weight_mt: qty,
-              status: "pending"
-            }
-          ])
-          .select()
-          .single();
+        if (supabase) {
+          const truckPayload = rows.map((r) => ({
+            do_id: currentDO.id,
+            party_id: party.id,
+            dispatch_date: r.date,
+            truck_no: r.truckNo,
+            transporter_name: r.driver || null,
+            tp_no: r.tp || null,
+            route_from: r.fromLoc || null,
+            route_to: r.toLoc || null,
+            freight_rate: r.freight || 0,
+            net_wt: r.qty,
+            done: false
+          }));
 
-        if (error) {
-          console.error("Supabase truck insert error:", error);
-          setModalConfig((prev) => ({ ...prev, error: error.message || "Failed to insert truck in database." }));
-          return;
-        }
+          const { data: insertedTrucks, error: dbErr } = await supabase
+            .from("dispatch_truck_entries")
+            .insert(truckPayload)
+            .select();
 
-        if (data && data.id) {
-          newTruckId = data.id;
+          if (dbErr) {
+            console.error("Supabase truck insert error:", dbErr);
+            alert(`Database Truck Save Error: ${dbErr.message}`);
+          } else if (insertedTrucks && insertedTrucks.length > 0) {
+            savedDbTrucks = insertedTrucks;
+          }
         }
       } catch (err) {
-        console.error("Truck insert exception:", err);
+        console.error("Failed to insert into dispatch_truck_entries:", err);
       }
 
-      setStore((prev) => ({
-        ...prev,
-        nid: typeof prev.nid === "number" ? prev.nid + 1 : prev.nid,
-        trucks: [
-          {
-            id: newTruckId,
+      setStore((prev) => {
+        let baseNid = prev.nid;
+        const newTruckObjects = rows.map((r, idx) => {
+          const matchedDbTruck = savedDbTrucks[idx];
+          return {
+            id: matchedDbTruck ? matchedDbTruck.id : baseNid + idx,
             did: currentDO.id,
             pid: party.id,
-            no: truckNo,
-            driver,
-            tp,
-            date,
-            qty,
+            no: r.truckNo,
+            driver: r.driver,
+            tp: r.tp,
+            fromLoc: r.fromLoc,
+            toLoc: r.toLoc,
+            freight: r.freight,
+            date: r.date,
+            qty: r.qty,
             done: false
-          },
-          ...prev.trucks
-        ]
-      }));
+          };
+        });
+
+        return {
+          ...prev,
+          nid: typeof prev.nid === "number" ? prev.nid + rows.length : prev.nid + rows.length,
+          trucks: [...newTruckObjects, ...prev.trucks]
+        };
+      });
     }
 
     closeModal();
@@ -933,16 +1156,16 @@ function DispatchPageContent() {
   };
 
   const setTruckStatus = async (id, done) => {
+    // Update status in Supabase dispatch_truck_entries
     try {
-      await supabase
-        .from("truck_dispatch")
-        .update({
-          status: done ? "done" : "pending",
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", id);
+      if (supabase) {
+        await supabase
+          .from("dispatch_truck_entries")
+          .update({ done, updated_at: new Date().toISOString() })
+          .match({ id });
+      }
     } catch (err) {
-      console.error("Error updating truck status in Supabase:", err);
+      console.error("Failed to update status in dispatch_truck_entries:", err);
     }
 
     setStore((prev) => ({
@@ -966,10 +1189,16 @@ function DispatchPageContent() {
       data: {
         message: `Delete truck "${t?.no}" (${formatNumber(t?.qty)} MT) entry?`,
         onConfirm: async () => {
+          // Delete from Supabase dispatch_truck_entries
           try {
-            await supabase.from("truck_dispatch").delete().eq("id", id);
+            if (supabase) {
+              await supabase
+                .from("dispatch_truck_entries")
+                .delete()
+                .match({ id });
+            }
           } catch (err) {
-            console.error("Error deleting truck from Supabase:", err);
+            console.error("Failed to delete from dispatch_truck_entries:", err);
           }
 
           setStore((prev) => ({
@@ -1005,8 +1234,21 @@ function DispatchPageContent() {
     });
   };
 
-  const handleBulkStatus = (done) => {
+  const handleBulkStatus = async (done) => {
     if (!selectedTruckIds.size) return;
+    const ids = Array.from(selectedTruckIds);
+
+    try {
+      if (supabase && ids.length > 0) {
+        await supabase
+          .from("dispatch_truck_entries")
+          .update({ done, updated_at: new Date().toISOString() })
+          .in("id", ids);
+      }
+    } catch (err) {
+      console.error("Bulk status error in dispatch_truck_entries:", err);
+    }
+
     setStore((prev) => ({
       ...prev,
       trucks: prev.trucks.map((t) => (selectedTruckIds.has(t.id) ? { ...t, done } : t))
@@ -1017,13 +1259,26 @@ function DispatchPageContent() {
   const handleBulkDelete = () => {
     const count = selectedTruckIds.size;
     if (!count) return;
+    const ids = Array.from(selectedTruckIds);
+
     setModalConfig({
       isOpen: true,
       title: "Confirm Bulk Delete",
       type: "confirm",
       data: {
         message: `Delete ${count} selected truck entries? This cannot be undone.`,
-        onConfirm: () => {
+        onConfirm: async () => {
+          try {
+            if (supabase && ids.length > 0) {
+              await supabase
+                .from("dispatch_truck_entries")
+                .delete()
+                .in("id", ids);
+            }
+          } catch (err) {
+            console.error("Bulk delete error in dispatch_truck_entries:", err);
+          }
+
           setStore((prev) => ({
             ...prev,
             trucks: prev.trucks.filter((t) => !selectedTruckIds.has(t.id))
@@ -1280,8 +1535,10 @@ function DispatchPageContent() {
     const cols = [
       { key: "sno", label: "S.No" },
       { key: "doParty", label: "DO Party Name" },
+      { key: "lifterParty", label: "Receiver Party Name" },
       { key: "doNo", label: "DO No." },
-      { key: "lifterParty", label: "Lifter Party Name" },
+      { key: "mines", label: "Mines" },
+      { key: "grade", label: "Grade" },
       { key: "orderQty", label: "Order Qty (MT)" },
       { key: "dispatched", label: "Dispatched (MT)" },
       { key: "balance", label: "Balance (MT)" },
@@ -1295,8 +1552,10 @@ function DispatchPageContent() {
       return {
         sno: idx + 1,
         doParty: currentDO?.co || "-",
-        doNo: getDOName(currentDO),
         lifterParty: p.name,
+        doNo: getDOName(currentDO),
+        mines: currentDO?.mines || "-",
+        grade: currentDO?.grade || "-",
         orderQty: formatNumber(p.qty),
         dispatched: formatNumber(disp),
         balance: formatNumber(p.qty - disp),
@@ -1372,8 +1631,10 @@ function DispatchPageContent() {
     const headers = [
       "#",
       "DO Party Name",
+      "Receiver Party Name",
       "DO No.",
-      "Lifter Party Name",
+      "Mines",
+      "Grade",
       "Order Qty (MT)",
       "Dispatched (MT)",
       "Balance (MT)",
@@ -1389,8 +1650,10 @@ function DispatchPageContent() {
       return [
         idx + 1,
         currentDO?.co || "-",
-        getDOName(currentDO),
         p.name || "-",
+        getDOName(currentDO),
+        currentDO?.mines || "-",
+        currentDO?.grade || "-",
         formatNumber(p.qty),
         formatNumber(disp),
         formatNumber(bal),
@@ -1470,8 +1733,10 @@ function DispatchPageContent() {
       { key: "doNo", label: "DO No." },
       { key: "lifterParty", label: "Lifter Party Name" },
       { key: "truckNo", label: "Truck No." },
-      { key: "driverName", label: "Driver Name" },
+      { key: "driverName", label: "Transporter / Lifter Name" },
       { key: "tpNo", label: "TP No." },
+      { key: "route", label: "Route (From - To)" },
+      { key: "freight", label: "Freight (₹/MT)" },
       { key: "netWt", label: "Net Wt (MT)" },
       { key: "status", label: "Status" }
     ];
@@ -1487,6 +1752,8 @@ function DispatchPageContent() {
         truckNo: t.no,
         driverName: t.driver || "-",
         tpNo: t.tp || "-",
+        route: t.fromLoc || t.toLoc ? `${t.fromLoc || "-"} → ${t.toLoc || "-"}` : "-",
+        freight: t.freight ? formatNumber(t.freight) : "-",
         netWt: formatNumber(t.qty),
         status: t.done ? "Done" : "Pending"
       };
@@ -1564,13 +1831,15 @@ function DispatchPageContent() {
     const headers = [
       "#",
       "Date",
-      "DO Party Name",
+      "DO Party",
       "DO No.",
-      "Lifter Party Name",
+      "Lifter Party",
       "Truck No.",
-      "Driver Name",
+      "Driver",
       "TP No.",
-      "Net Wt (MT)",
+      "Route",
+      "Freight",
+      "Net Wt",
       "Status"
     ];
 
@@ -1586,6 +1855,8 @@ function DispatchPageContent() {
         t.no || "-",
         t.driver || "-",
         t.tp || "-",
+        t.fromLoc || t.toLoc ? `${t.fromLoc || "-"} → ${t.toLoc || "-"}` : "-",
+        t.freight ? `${formatNumber(t.freight)}` : "-",
         formatNumber(t.qty),
         t.done ? "Done" : "Pending"
       ];
@@ -1597,8 +1868,8 @@ function DispatchPageContent() {
       body: body,
       theme: "grid",
       styles: {
-        fontSize: 8.5,
-        cellPadding: 3,
+        fontSize: 8,
+        cellPadding: 2.5,
         valign: "middle",
         halign: "left"
       },
@@ -1606,7 +1877,7 @@ function DispatchPageContent() {
         fillColor: [143, 0, 9],
         textColor: [255, 255, 255],
         fontStyle: "bold",
-        fontSize: 8.5
+        fontSize: 8
       },
       columnStyles: {
         0: { halign: "center", cellWidth: 10 },
@@ -1930,77 +2201,77 @@ function DispatchPageContent() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
         {/* Statistics Cards - Dynamic according to active tab */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3">
           {/* TAB 1: DO MASTER STATS (Across All / Selected Company) */}
           {mainSectionTab === "do-master" && (
             <>
-              <div className="bg-white border border-slate-200/90 rounded-md p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
-                <div className="w-10 h-10 rounded-md bg-red-50 text-[#e7000b] flex items-center justify-center shrink-0 border border-red-100/80">
-                  <Package className="w-5 h-5" />
+              <div className="bg-white border border-slate-200/90 rounded-md p-2.5 sm:p-3 flex items-center gap-2 sm:gap-2.5 shadow-2xs hover:shadow-xs transition-all min-w-0">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-md bg-red-50 text-[#e7000b] flex items-center justify-center shrink-0 border border-red-100/80">
+                  <Package className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">Total DO Qty</span>
-                  <div className="text-[16px] sm:text-[17px] font-bold text-slate-900 leading-tight truncate">
-                    {formatNumber(totalDOQty)} <span className="text-xs font-semibold text-slate-400">MT</span>
+                  <span className="text-[10px] sm:text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">Total DO Qty</span>
+                  <div className="text-[13px] sm:text-[14px] xl:text-[15px] font-bold text-slate-900 leading-tight whitespace-nowrap">
+                    {formatNumber(totalDOQty)} <span className="text-[10px] sm:text-[11px] font-semibold text-slate-400">MT</span>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white border border-slate-200/90 rounded-md p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
-                <div className="w-10 h-10 rounded-md bg-slate-50 text-slate-600 flex items-center justify-center shrink-0 border border-slate-200">
-                  <List className="w-5 h-5" />
+              <div className="bg-white border border-slate-200/90 rounded-md p-2.5 sm:p-3 flex items-center gap-2 sm:gap-2.5 shadow-2xs hover:shadow-xs transition-all min-w-0">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-md bg-slate-50 text-slate-600 flex items-center justify-center shrink-0 border border-slate-200">
+                  <List className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">Allotted Parties</span>
-                  <div className="text-[16px] sm:text-[17px] font-bold text-slate-900 leading-tight truncate">
-                    {formatNumber(totalAllotted)} <span className="text-xs font-semibold text-slate-400">MT</span>
+                  <span className="text-[10px] sm:text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">Allotted Parties</span>
+                  <div className="text-[13px] sm:text-[14px] xl:text-[15px] font-bold text-slate-900 leading-tight whitespace-nowrap">
+                    {formatNumber(totalAllotted)} <span className="text-[10px] sm:text-[11px] font-semibold text-slate-400">MT</span>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white border border-slate-200/90 rounded-md p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
-                <div className="w-10 h-10 rounded-md bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-100">
-                  <Hourglass className="w-5 h-5" />
+              <div className="bg-white border border-slate-200/90 rounded-md p-2.5 sm:p-3 flex items-center gap-2 sm:gap-2.5 shadow-2xs hover:shadow-xs transition-all min-w-0">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-md bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-100">
+                  <Hourglass className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">Unallocated Bal</span>
-                  <div className={`text-[16px] sm:text-[17px] font-bold leading-tight truncate ${totalUnallocated > 0 ? "text-amber-600" : "text-emerald-600"}`}>
-                    {formatNumber(totalUnallocated)} <span className="text-xs font-semibold text-slate-400">MT</span>
+                  <span className="text-[10px] sm:text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">Unallocated Bal</span>
+                  <div className={`text-[13px] sm:text-[14px] xl:text-[15px] font-bold leading-tight whitespace-nowrap ${totalUnallocated > 0 ? "text-amber-600" : "text-emerald-600"}`}>
+                    {formatNumber(totalUnallocated)} <span className="text-[10px] sm:text-[11px] font-semibold text-slate-400">MT</span>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white border border-slate-200/90 rounded-md p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
-                <div className="w-10 h-10 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100">
-                  <Truck className="w-5 h-5" />
+              <div className="bg-white border border-slate-200/90 rounded-md p-2.5 sm:p-3 flex items-center gap-2 sm:gap-2.5 shadow-2xs hover:shadow-xs transition-all min-w-0">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100">
+                  <Truck className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">Total Dispatched</span>
-                  <div className="text-[16px] sm:text-[17px] font-bold text-slate-900 leading-tight truncate">
-                    {formatNumber(totalDispatched)} <span className="text-xs font-semibold text-slate-400">MT</span>
+                  <span className="text-[10px] sm:text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">Total Dispatched</span>
+                  <div className="text-[13px] sm:text-[14px] xl:text-[15px] font-bold text-slate-900 leading-tight whitespace-nowrap">
+                    {formatNumber(totalDispatched)} <span className="text-[10px] sm:text-[11px] font-semibold text-slate-400">MT</span>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white border border-slate-200/90 rounded-md p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
-                <div className="w-10 h-10 rounded-md bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-100">
-                  <Scale className="w-5 h-5" />
+              <div className="bg-white border border-slate-200/90 rounded-md p-2.5 sm:p-3 flex items-center gap-2 sm:gap-2.5 shadow-2xs hover:shadow-xs transition-all min-w-0">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-md bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-100">
+                  <Scale className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">DO Balance</span>
-                  <div className={`text-[16px] sm:text-[17px] font-bold leading-tight truncate ${totalBalance > 0 ? "text-amber-600" : "text-emerald-600"}`}>
-                    {formatNumber(totalBalance)} <span className="text-xs font-semibold text-slate-400">MT</span>
+                  <span className="text-[10px] sm:text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">DO Balance</span>
+                  <div className={`text-[13px] sm:text-[14px] xl:text-[15px] font-bold leading-tight whitespace-nowrap ${totalBalance > 0 ? "text-amber-600" : "text-emerald-600"}`}>
+                    {formatNumber(totalBalance)} <span className="text-[10px] sm:text-[11px] font-semibold text-slate-400">MT</span>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white border border-slate-200/90 rounded-md p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
-                <div className="w-10 h-10 rounded-md bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 border border-purple-100">
-                  <Hash className="w-5 h-5" />
+              <div className="bg-white border border-slate-200/90 rounded-md p-2.5 sm:p-3 flex items-center gap-2 sm:gap-2.5 shadow-2xs hover:shadow-xs transition-all min-w-0">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-md bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 border border-purple-100">
+                  <Hash className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">Total Trucks</span>
-                  <div className="text-[16px] sm:text-[17px] font-bold text-slate-900 leading-tight">
+                  <span className="text-[10px] sm:text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">Total Trucks</span>
+                  <div className="text-[13px] sm:text-[14px] xl:text-[15px] font-bold text-slate-900 leading-tight whitespace-nowrap">
                     {totalTrucksCount}
                   </div>
                 </div>
@@ -2011,73 +2282,73 @@ function DispatchPageContent() {
           {/* TAB 2: PARTY WISE ORDER QTY STATS (For Current Active DO) */}
           {mainSectionTab === "party-order" && (
             <>
-              <div className="bg-white border border-slate-200/90 rounded-md p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
-                <div className="w-10 h-10 rounded-md bg-red-50 text-[#e7000b] flex items-center justify-center shrink-0 border border-red-100">
-                  <Package className="w-5 h-5" />
+              <div className="bg-white border border-slate-200/90 rounded-md p-2.5 sm:p-3 flex items-center gap-2 sm:gap-2.5 shadow-2xs hover:shadow-xs transition-all min-w-0">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-md bg-red-50 text-[#e7000b] flex items-center justify-center shrink-0 border border-red-100">
+                  <Package className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">Current DO Qty</span>
-                  <div className="text-[16px] sm:text-[17px] font-bold text-slate-900 leading-tight truncate">
-                    {formatNumber(currentDO?.tot || 0)} <span className="text-xs font-semibold text-slate-400">MT</span>
+                  <span className="text-[10px] sm:text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">Current DO Qty</span>
+                  <div className="text-[13px] sm:text-[14px] xl:text-[15px] font-bold text-slate-900 leading-tight whitespace-nowrap">
+                    {formatNumber(currentDO?.tot || 0)} <span className="text-[10px] sm:text-[11px] font-semibold text-slate-400">MT</span>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white border border-slate-200/90 rounded-md p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
-                <div className="w-10 h-10 rounded-md bg-slate-50 text-slate-600 flex items-center justify-center shrink-0 border border-slate-200">
-                  <List className="w-5 h-5" />
+              <div className="bg-white border border-slate-200/90 rounded-md p-2.5 sm:p-3 flex items-center gap-2 sm:gap-2.5 shadow-2xs hover:shadow-xs transition-all min-w-0">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-md bg-slate-50 text-slate-600 flex items-center justify-center shrink-0 border border-slate-200">
+                  <List className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">Party Order Qty</span>
-                  <div className="text-[16px] sm:text-[17px] font-bold text-slate-900 leading-tight truncate">
-                    {formatNumber(partiesTotalQty)} <span className="text-xs font-semibold text-slate-400">MT</span>
+                  <span className="text-[10px] sm:text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">Party Order Qty</span>
+                  <div className="text-[13px] sm:text-[14px] xl:text-[15px] font-bold text-slate-900 leading-tight whitespace-nowrap">
+                    {formatNumber(partiesTotalQty)} <span className="text-[10px] sm:text-[11px] font-semibold text-slate-400">MT</span>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white border border-slate-200/90 rounded-md p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
-                <div className="w-10 h-10 rounded-md bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-100">
-                  <Hourglass className="w-5 h-5" />
+              <div className="bg-white border border-slate-200/90 rounded-md p-2.5 sm:p-3 flex items-center gap-2 sm:gap-2.5 shadow-2xs hover:shadow-xs transition-all min-w-0">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-md bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-100">
+                  <Hourglass className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">Unallocated DO</span>
-                  <div className={`text-[16px] sm:text-[17px] font-bold leading-tight truncate ${(currentDO?.tot || 0) - partiesTotalQty > 0 ? "text-amber-600" : "text-emerald-600"}`}>
-                    {formatNumber((currentDO?.tot || 0) - partiesTotalQty)} <span className="text-xs font-semibold text-slate-400">MT</span>
+                  <span className="text-[10px] sm:text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">Unallocated DO</span>
+                  <div className={`text-[13px] sm:text-[14px] xl:text-[15px] font-bold leading-tight whitespace-nowrap ${(currentDO?.tot || 0) - partiesTotalQty > 0 ? "text-amber-600" : "text-emerald-600"}`}>
+                    {formatNumber((currentDO?.tot || 0) - partiesTotalQty)} <span className="text-[10px] sm:text-[11px] font-semibold text-slate-400">MT</span>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white border border-slate-200/90 rounded-md p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
-                <div className="w-10 h-10 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100">
-                  <Truck className="w-5 h-5" />
+              <div className="bg-white border border-slate-200/90 rounded-md p-2.5 sm:p-3 flex items-center gap-2 sm:gap-2.5 shadow-2xs hover:shadow-xs transition-all min-w-0">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100">
+                  <Truck className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">Dispatched</span>
-                  <div className="text-[16px] sm:text-[17px] font-bold text-slate-900 leading-tight truncate">
-                    {formatNumber(partiesTotalDisp)} <span className="text-xs font-semibold text-slate-400">MT</span>
+                  <span className="text-[10px] sm:text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">Dispatched</span>
+                  <div className="text-[13px] sm:text-[14px] xl:text-[15px] font-bold text-slate-900 leading-tight whitespace-nowrap">
+                    {formatNumber(partiesTotalDisp)} <span className="text-[10px] sm:text-[11px] font-semibold text-slate-400">MT</span>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white border border-slate-200/90 rounded-md p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
-                <div className="w-10 h-10 rounded-md bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-100">
-                  <Scale className="w-5 h-5" />
+              <div className="bg-white border border-slate-200/90 rounded-md p-2.5 sm:p-3 flex items-center gap-2 sm:gap-2.5 shadow-2xs hover:shadow-xs transition-all min-w-0">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-md bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-100">
+                  <Scale className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">Pending Balance</span>
-                  <div className={`text-[16px] sm:text-[17px] font-bold leading-tight truncate ${partiesTotalQty - partiesTotalDisp > 0 ? "text-amber-600" : "text-emerald-600"}`}>
-                    {formatNumber(partiesTotalQty - partiesTotalDisp)} <span className="text-xs font-semibold text-slate-400">MT</span>
+                  <span className="text-[10px] sm:text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">Pending Balance</span>
+                  <div className={`text-[13px] sm:text-[14px] xl:text-[15px] font-bold leading-tight whitespace-nowrap ${partiesTotalQty - partiesTotalDisp > 0 ? "text-amber-600" : "text-emerald-600"}`}>
+                    {formatNumber(partiesTotalQty - partiesTotalDisp)} <span className="text-[10px] sm:text-[11px] font-semibold text-slate-400">MT</span>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white border border-slate-200/90 rounded-md p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
-                <div className="w-10 h-10 rounded-md bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 border border-purple-100">
-                  <Hash className="w-5 h-5" />
+              <div className="bg-white border border-slate-200/90 rounded-md p-2.5 sm:p-3 flex items-center gap-2 sm:gap-2.5 shadow-2xs hover:shadow-xs transition-all min-w-0">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-md bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 border border-purple-100">
+                  <Hash className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">Total Parties</span>
-                  <div className="text-[16px] sm:text-[17px] font-bold text-slate-900 leading-tight">
+                  <span className="text-[10px] sm:text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">Total Parties</span>
+                  <div className="text-[13px] sm:text-[14px] xl:text-[15px] font-bold text-slate-900 leading-tight whitespace-nowrap">
                     {currentDO?.parties?.length || 0}
                   </div>
                 </div>
@@ -2088,84 +2359,84 @@ function DispatchPageContent() {
           {/* TAB 3: TRUCK WISE DISPATCH STATS */}
           {mainSectionTab === "truck-dispatch" && (
             <>
-              <div className="bg-white border border-slate-200/90 rounded-md p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
-                <div className="w-10 h-10 rounded-md bg-red-50 text-[#e7000b] flex items-center justify-center shrink-0 border border-red-100">
-                  <Truck className="w-5 h-5" />
+              <div className="bg-white border border-slate-200/90 rounded-md p-2.5 sm:p-3 flex items-center gap-2 sm:gap-2.5 shadow-2xs hover:shadow-xs transition-all min-w-0">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-md bg-red-50 text-[#e7000b] flex items-center justify-center shrink-0 border border-red-100">
+                  <Truck className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">
+                  <span className="text-[10px] sm:text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">
                     {selectedPartyObj ? "Party Trucks" : "Total Trucks"}
                   </span>
-                  <div className="text-[16px] sm:text-[17px] font-bold text-slate-900 leading-tight">
+                  <div className="text-[13px] sm:text-[14px] xl:text-[15px] font-bold text-slate-900 leading-tight whitespace-nowrap">
                     {partyFilteredTrucks.length}
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white border border-slate-200/90 rounded-md p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
-                <div className="w-10 h-10 rounded-md bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-100">
-                  <Hourglass className="w-5 h-5" />
+              <div className="bg-white border border-slate-200/90 rounded-md p-2.5 sm:p-3 flex items-center gap-2 sm:gap-2.5 shadow-2xs hover:shadow-xs transition-all min-w-0">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-md bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-100">
+                  <Hourglass className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">
+                  <span className="text-[10px] sm:text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">
                     {selectedPartyObj ? "Party Running" : "Pending Trucks"}
                   </span>
-                  <div className="text-[16px] sm:text-[17px] font-bold text-amber-600 leading-tight">
+                  <div className="text-[13px] sm:text-[14px] xl:text-[15px] font-bold text-amber-600 leading-tight whitespace-nowrap">
                     {partyFilteredPendingTrucks}
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white border border-slate-200/90 rounded-md p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
-                <div className="w-10 h-10 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100">
-                  <Check className="w-5 h-5" />
+              <div className="bg-white border border-slate-200/90 rounded-md p-2.5 sm:p-3 flex items-center gap-2 sm:gap-2.5 shadow-2xs hover:shadow-xs transition-all min-w-0">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100">
+                  <Check className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">
+                  <span className="text-[10px] sm:text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">
                     {selectedPartyObj ? "Party Done" : "Done / History"}
                   </span>
-                  <div className="text-[16px] sm:text-[17px] font-bold text-emerald-600 leading-tight">
+                  <div className="text-[13px] sm:text-[14px] xl:text-[15px] font-bold text-emerald-600 leading-tight whitespace-nowrap">
                     {partyFilteredHistoryTrucks}
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white border border-slate-200/90 rounded-md p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
-                <div className="w-10 h-10 rounded-md bg-slate-50 text-slate-600 flex items-center justify-center shrink-0 border border-slate-200">
-                  <Scale className="w-5 h-5" />
+              <div className="bg-white border border-slate-200/90 rounded-md p-2.5 sm:p-3 flex items-center gap-2 sm:gap-2.5 shadow-2xs hover:shadow-xs transition-all min-w-0">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-md bg-slate-50 text-slate-600 flex items-center justify-center shrink-0 border border-slate-200">
+                  <Scale className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">Tab Net Wt</span>
-                  <div className="text-[16px] sm:text-[17px] font-bold text-slate-900 leading-tight truncate">
-                    {formatNumber(trucksTotalWeight)} <span className="text-xs font-semibold text-slate-400">MT</span>
+                  <span className="text-[10px] sm:text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">Tab Net Wt</span>
+                  <div className="text-[13px] sm:text-[14px] xl:text-[15px] font-bold text-slate-900 leading-tight whitespace-nowrap">
+                    {formatNumber(trucksTotalWeight)} <span className="text-[10px] sm:text-[11px] font-semibold text-slate-400">MT</span>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white border border-slate-200/90 rounded-md p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
-                <div className="w-10 h-10 rounded-md bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 border border-purple-100">
-                  <List className="w-5 h-5" />
+              <div className="bg-white border border-slate-200/90 rounded-md p-2.5 sm:p-3 flex items-center gap-2 sm:gap-2.5 shadow-2xs hover:shadow-xs transition-all min-w-0">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-md bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 border border-purple-100">
+                  <List className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">
+                  <span className="text-[10px] sm:text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">
                     {selectedPartyObj ? "Party Dispatched" : "DO Dispatched"}
                   </span>
-                  <div className="text-[16px] sm:text-[17px] font-bold text-slate-900 leading-tight truncate">
-                    {formatNumber(partyFilteredDispatchedQty)} <span className="text-xs font-semibold text-slate-400">MT</span>
+                  <div className="text-[13px] sm:text-[14px] xl:text-[15px] font-bold text-slate-900 leading-tight whitespace-nowrap">
+                    {formatNumber(partyFilteredDispatchedQty)} <span className="text-[10px] sm:text-[11px] font-semibold text-slate-400">MT</span>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white border border-slate-200/90 rounded-md p-3.5 sm:p-4 flex items-center gap-3 shadow-2xs hover:shadow-xs transition-all min-w-0">
-                <div className="w-10 h-10 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100">
-                  <Package className="w-5 h-5" />
+              <div className="bg-white border border-slate-200/90 rounded-md p-2.5 sm:p-3 flex items-center gap-2 sm:gap-2.5 shadow-2xs hover:shadow-xs transition-all min-w-0">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100">
+                  <Package className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">
+                  <span className="text-[10px] sm:text-[11px] font-semibold text-slate-500 uppercase tracking-tight block truncate">
                     {selectedPartyObj ? "Party Balance" : "DO Rem. Bal"}
                   </span>
-                  <div className={`text-[16px] sm:text-[17px] font-bold leading-tight truncate ${partyFilteredRemainingBal > 0 ? "text-amber-600" : "text-emerald-600"}`}>
-                    {formatNumber(partyFilteredRemainingBal)} <span className="text-xs font-semibold text-slate-400">MT</span>
+                  <div className={`text-[13px] sm:text-[14px] xl:text-[15px] font-bold leading-tight whitespace-nowrap ${partyFilteredRemainingBal > 0 ? "text-amber-600" : "text-emerald-600"}`}>
+                    {formatNumber(partyFilteredRemainingBal)} <span className="text-[10px] sm:text-[11px] font-semibold text-slate-400">MT</span>
                   </div>
                 </div>
               </div>
@@ -2184,11 +2455,6 @@ function DispatchPageContent() {
                   : "text-slate-600 hover:text-slate-900 hover:bg-white/80"
               }`}
             >
-              <span className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-black ${
-                mainSectionTab === "do-master" ? "bg-white/25 text-white" : "bg-slate-200 text-slate-700"
-              }`}>
-                1
-              </span>
               <span>DO Master</span>
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-black tracking-tight ${
                 mainSectionTab === "do-master" ? "bg-white text-red-700 shadow-2xs" : "bg-slate-200 text-slate-700"
@@ -2205,11 +2471,6 @@ function DispatchPageContent() {
                   : "text-slate-600 hover:text-slate-900 hover:bg-white/80"
               }`}
             >
-              <span className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-black ${
-                mainSectionTab === "party-order" ? "bg-white/25 text-white" : "bg-slate-200 text-slate-700"
-              }`}>
-                2
-              </span>
               <span>DO Allotment</span>
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-black tracking-tight ${
                 mainSectionTab === "party-order" ? "bg-white text-red-700 shadow-2xs" : "bg-slate-200 text-slate-700"
@@ -2226,11 +2487,6 @@ function DispatchPageContent() {
                   : "text-slate-600 hover:text-slate-900 hover:bg-white/80"
               }`}
             >
-              <span className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-black ${
-                mainSectionTab === "truck-dispatch" ? "bg-white/25 text-white" : "bg-slate-200 text-slate-700"
-              }`}>
-                3
-              </span>
               <span>Truck wise Dispatch</span>
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-black tracking-tight ${
                 mainSectionTab === "truck-dispatch" ? "bg-white text-red-700 shadow-2xs" : "bg-slate-200 text-slate-700"
@@ -2246,9 +2502,6 @@ function DispatchPageContent() {
           <section className="space-y-3">
           <div className="flex items-center justify-between gap-2.5 flex-wrap">
             <h2 className="text-base font-bold text-slate-900 flex items-center gap-2.5">
-              <span className="w-6 h-6 rounded-lg bg-red-100 text-[#e7000b] text-xs font-bold flex items-center justify-center">
-                1
-              </span>
               DO Master
             </h2>
             <div className="flex items-center gap-2 flex-wrap">
@@ -2536,9 +2789,6 @@ function DispatchPageContent() {
           <section className="space-y-3">
           <div className="flex items-center justify-between gap-2.5 flex-wrap">
             <h2 className="text-base font-bold text-slate-900 flex items-center gap-2.5">
-              <span className="w-6 h-6 rounded-lg bg-red-100 text-[#e7000b] text-xs font-bold flex items-center justify-center">
-                2
-              </span>
               DO Allotment
               {(store?.dos || []).length > 0 && (
                 <span className="text-xs text-slate-400 font-normal">
@@ -2563,14 +2813,6 @@ function DispatchPageContent() {
                 <FileText className="w-3.5 h-3.5 text-rose-600" />
                 <span>PDF</span>
               </button>
-              {canWrite && (
-                <button
-                  onClick={() => openPartyForm(0)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-[#ff3340] to-[#e7000b] hover:brightness-105 text-white transition-all shadow-xs active:scale-95 cursor-pointer"
-                >
-                  <Plus className="w-4 h-4" /> Add Party
-                </button>
-              )}
             </div>
           </div>
 
@@ -2628,16 +2870,16 @@ function DispatchPageContent() {
                 </div>
               )}
 
-              {/* Lifter Party Name Filter */}
+              {/* Receiver Party Name Filter */}
               <div className="flex items-center gap-1.5">
-                <span className="text-[11px] sm:text-xs font-bold text-slate-700 whitespace-nowrap">Lifter Party:</span>
+                <span className="text-[11px] sm:text-xs font-bold text-slate-700 whitespace-nowrap">Receiver Party:</span>
                 <div className="relative">
                   <select
                     value={selectedPartyLifterFilter}
                     onChange={(e) => setSelectedPartyLifterFilter(e.target.value)}
                     className="px-2.5 sm:px-3 py-1.5 pr-7 rounded-lg border border-slate-200 bg-slate-50/70 hover:bg-white text-[11px] sm:text-xs font-bold text-slate-800 shadow-2xs focus:outline-none focus:ring-2 focus:ring-red-200 cursor-pointer appearance-none transition-colors max-w-[150px] sm:max-w-[200px] truncate"
                   >
-                    <option value="">All Lifter Parties ({(currentDO?.parties || []).length})</option>
+                    <option value="">All Receiver Parties ({(currentDO?.parties || []).length})</option>
                     {(currentDO?.parties || []).map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.name} ({formatNumber(p.qty)} MT)
@@ -2664,8 +2906,10 @@ function DispatchPageContent() {
                 <tr className="bg-slate-50 border-b border-slate-200/90 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
                   <th className="py-3.5 px-4 w-12 text-center whitespace-nowrap">#</th>
                   <th className="py-3.5 px-4 whitespace-nowrap">DO Party Name</th>
-                  <th className="py-3.5 px-4 whitespace-nowrap">Lifter Party Name</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap">Receiver Party Name</th>
                   <th className="py-3.5 px-4 w-32 whitespace-nowrap">DO No.</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap">Mines</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap">Grade</th>
                   <th className="py-3.5 px-4 text-center whitespace-nowrap">Expiry Status</th>
                   <th className="py-3.5 px-4 text-right w-32 whitespace-nowrap">Order Qty</th>
                   <th className="py-3.5 px-4 text-right w-32 whitespace-nowrap">Dispatched</th>
@@ -2691,6 +2935,8 @@ function DispatchPageContent() {
                         <td className="py-3.5 px-4 font-bold text-slate-800 whitespace-nowrap">{currentDO?.co || "-"}</td>
                         <td className="py-3.5 px-4 font-bold text-slate-900 text-sm whitespace-nowrap">{p.name}</td>
                         <td className="py-3.5 px-4 text-slate-600 font-medium whitespace-nowrap">{getDOName(currentDO)}</td>
+                        <td className="py-3.5 px-4 text-slate-700 font-semibold whitespace-nowrap">{currentDO?.mines || "-"}</td>
+                        <td className="py-3.5 px-4 text-slate-800 font-bold whitespace-nowrap">{currentDO?.grade || "-"}</td>
                         <td className="py-3.5 px-4 text-center whitespace-nowrap">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10.5px] font-bold ${expiry.badgeClass}`}>
                             {expiry.text}
@@ -2751,7 +2997,7 @@ function DispatchPageContent() {
                   })
                 ) : (
                   <tr>
-                    <td colSpan={12} className="py-10 text-center text-slate-400 font-medium">
+                    <td colSpan={14} className="py-10 text-center text-slate-400 font-medium">
                       {selectedPartyLifterFilter
                         ? `No records found for lifter party "${selectedPartyLifterFilter}".`
                         : (store?.dos || []).length
@@ -2766,6 +3012,9 @@ function DispatchPageContent() {
                   <tr className="bg-red-50/80 font-bold text-xs sm:text-[13px] text-[#8f0009] border-t border-red-200 whitespace-nowrap">
                     <td className="py-3.5 px-4 whitespace-nowrap"></td>
                     <td className="py-3.5 px-4 whitespace-nowrap">Total</td>
+                    <td className="py-3.5 px-4 whitespace-nowrap"></td>
+                    <td className="py-3.5 px-4 whitespace-nowrap"></td>
+                    <td className="py-3.5 px-4 whitespace-nowrap"></td>
                     <td className="py-3.5 px-4 whitespace-nowrap"></td>
                     <td className="py-3.5 px-4 whitespace-nowrap"></td>
                     <td className="py-3.5 px-4 text-right whitespace-nowrap">{formatNumber(partiesTotalQty)}</td>
@@ -2800,6 +3049,8 @@ function DispatchPageContent() {
                           <h3 className="font-bold text-slate-900 text-sm">{p.name}</h3>
                           <span className="text-[11px] text-slate-500 font-medium">
                             {currentDO?.co ? `${currentDO.co} • ` : ""}DO No: {getDOName(currentDO)}
+                            {currentDO?.mines ? ` • Mines: ${currentDO.mines}` : ""}
+                            {currentDO?.grade ? ` • Grade: ${currentDO.grade}` : ""}
                           </span>
                         </div>
                       </div>
@@ -2879,121 +3130,168 @@ function DispatchPageContent() {
           <section className="space-y-3">
           <div className="flex items-center justify-between gap-2.5 flex-wrap">
             <h2 className="text-base font-bold text-slate-900 flex items-center gap-2.5">
-              <span className="w-6 h-6 rounded-lg bg-red-100 text-[#e7000b] text-xs font-bold flex items-center justify-center">
-                3
-              </span>
               Truck wise Dispatch
             </h2>
 
-            <div className="flex items-center gap-2 flex-wrap">
-              {/* DO Party Filter Dropdown */}
-              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/90 rounded-lg px-2.5 py-1">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">DO Party:</span>
-                <select
-                  value={selectedTruckCompanyFilter}
-                  onChange={(e) => {
-                    const co = e.target.value;
-                    setSelectedTruckCompanyFilter(co);
-                    setSelectedTruckIds(new Set());
-                    if (co !== "ALL") {
-                      const matchDO = (store?.dos || []).find((d) => (d.co || "").trim() === co);
-                      if (matchDO) {
-                        setStore((prev) => ({ ...prev, act: matchDO.id }));
-                      }
-                    }
-                  }}
-                  className="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer"
-                >
-                  <option value="ALL">All DO Parties</option>
-                  {uniqueCompanies.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Lifter Party Filter Dropdown */}
-              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/90 rounded-lg px-2.5 py-1">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">Lifter:</span>
-                <select
-                  value={selectedTruckFilter}
-                  onChange={(e) => {
-                    setSelectedTruckFilter(e.target.value);
-                    setSelectedTruckIds(new Set());
-                  }}
-                  className="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer"
-                >
-                  <option value="">All Lifters</option>
-                  {(() => {
-                    const relevantDOs = selectedTruckCompanyFilter === "ALL"
-                      ? (store?.dos || [])
-                      : (store?.dos || []).filter((d) => (d.co || "").trim() === selectedTruckCompanyFilter);
-
-                    const lifterMap = new Map();
-                    relevantDOs.forEach((d) => {
-                      (d.parties || []).forEach((p) => {
-                        const trimmedName = (p.name || "").trim();
-                        if (trimmedName && !lifterMap.has(trimmedName)) {
-                          lifterMap.set(trimmedName, p.id);
+            <div className="flex items-center gap-3 flex-wrap">
+              {/* Filter Group with its own spacing */}
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* DO Party Filter Dropdown */}
+                <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/90 rounded-lg px-2.5 py-1.5 shadow-2xs">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">DO Party:</span>
+                  <select
+                    value={selectedTruckCompanyFilter}
+                    onChange={(e) => {
+                      const co = e.target.value;
+                      setSelectedTruckCompanyFilter(co);
+                      setSelectedTruckDONoFilter("ALL");
+                      setSelectedTruckFilter("");
+                      setSelectedTruckIds(new Set());
+                      if (co !== "ALL") {
+                        const matchDO = (store?.dos || []).find((d) => (d.co || "").trim() === co);
+                        if (matchDO) {
+                          setStore((prev) => ({ ...prev, act: matchDO.id }));
                         }
-                      });
-                    });
+                      }
+                    }}
+                    className="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer"
+                  >
+                    <option value="ALL">All DO Parties</option>
+                    {uniqueCompanies.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-                    return Array.from(lifterMap.entries()).map(([name, pid]) => {
-                      const partyTrucks = (store?.trucks || []).filter((t) => {
-                        if (!t) return false;
-                        const tDO = (store?.dos || []).find((d) => d.id === t.did);
-                        const matchCo = selectedTruckCompanyFilter === "ALL" || (tDO?.co || "").trim() === selectedTruckCompanyFilter;
-                        const matchParty = String(t.pid) === String(pid) || (relevantDOs.flatMap(d => d.parties || []).find(p => p.id === t.pid)?.name === name);
-                        return matchCo && matchParty;
-                      });
-                      const runningCount = partyTrucks.filter((t) => !t.done).length;
-                      const doneCount = partyTrucks.filter((t) => !!t.done).length;
+                {/* DO Number Filter Dropdown */}
+                <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/90 rounded-lg px-2.5 py-1.5 shadow-2xs">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">DO No:</span>
+                  <select
+                    value={selectedTruckDONoFilter}
+                    onChange={(e) => {
+                      const doVal = e.target.value;
+                      setSelectedTruckDONoFilter(doVal);
+                      setSelectedTruckFilter("");
+                      setSelectedTruckIds(new Set());
+                      if (doVal !== "ALL") {
+                        const foundDO = (store?.dos || []).find((d) => String(d.id) === String(doVal) || String(d.no) === String(doVal));
+                        if (foundDO) {
+                          setStore((prev) => ({ ...prev, act: foundDO.id }));
+                        }
+                      }
+                    }}
+                    className="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer"
+                  >
+                    <option value="ALL">All DO Numbers</option>
+                    {(() => {
+                      const candidateDOs = selectedTruckCompanyFilter === "ALL"
+                        ? (store?.dos || [])
+                        : (store?.dos || []).filter((d) => (d.co || "").trim() === selectedTruckCompanyFilter);
 
-                      return (
-                        <option key={name} value={pid}>
-                          {name} (Run: {runningCount} | Done: {doneCount})
+                      return candidateDOs.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {getDOName(d)} {d.mines ? `(${d.mines})` : ""}
                         </option>
-                      );
-                    });
-                  })()}
-                </select>
+                      ));
+                    })()}
+                  </select>
+                </div>
+
+                {/* Receiver Party Filter Dropdown */}
+                <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/90 rounded-lg px-2.5 py-1.5 shadow-2xs">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">Receiver Party:</span>
+                  <select
+                    value={selectedTruckFilter}
+                    onChange={(e) => {
+                      setSelectedTruckFilter(e.target.value);
+                      setSelectedTruckIds(new Set());
+                    }}
+                    className="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer"
+                  >
+                    <option value="">All Receiver Parties</option>
+                    {(() => {
+                      let relevantDOs = selectedTruckCompanyFilter === "ALL"
+                        ? (store?.dos || [])
+                        : (store?.dos || []).filter((d) => (d.co || "").trim() === selectedTruckCompanyFilter);
+
+                      if (selectedTruckDONoFilter !== "ALL") {
+                        relevantDOs = relevantDOs.filter((d) => String(d.id) === String(selectedTruckDONoFilter) || String(d.no) === String(selectedTruckDONoFilter));
+                      }
+
+                      const lifterMap = new Map();
+                      relevantDOs.forEach((d) => {
+                        (d.parties || []).forEach((p) => {
+                          const trimmedName = (p.name || "").trim();
+                          if (trimmedName && !lifterMap.has(trimmedName)) {
+                            lifterMap.set(trimmedName, p.id);
+                          }
+                        });
+                      });
+
+                      return Array.from(lifterMap.entries()).map(([name, pid]) => {
+                        const partyTrucks = (store?.trucks || []).filter((t) => {
+                          if (!t) return false;
+                          const tDO = (store?.dos || []).find((d) => d.id === t.did);
+                          const matchCo = selectedTruckCompanyFilter === "ALL" || (tDO?.co || "").trim() === selectedTruckCompanyFilter;
+                          const matchDONo = selectedTruckDONoFilter === "ALL" || String(t.did) === String(selectedTruckDONoFilter) || String(tDO?.no) === String(selectedTruckDONoFilter);
+                          const matchParty = String(t.pid) === String(pid) || (relevantDOs.flatMap(d => d.parties || []).find(p => p.id === t.pid)?.name === name);
+                          return matchCo && matchDONo && matchParty;
+                        });
+                        const runningCount = partyTrucks.filter((t) => !t.done).length;
+                        const doneCount = partyTrucks.filter((t) => !!t.done).length;
+
+                        return (
+                          <option key={name} value={pid}>
+                            {name} (Run: {runningCount} | Done: {doneCount})
+                          </option>
+                        );
+                      });
+                    })()}
+                  </select>
+                </div>
               </div>
 
-              <button
-                onClick={exportTruckDispatchExcel}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 transition-all shadow-2xs active:scale-95 cursor-pointer"
-                title="Download Excel"
-              >
-                <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Excel</span>
-              </button>
-              <button
-                onClick={exportTruckDispatchPDF}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 transition-all shadow-2xs active:scale-95 cursor-pointer"
-                title="Download PDF"
-              >
-                <FileText className="w-3.5 h-3.5 text-rose-600" />
-                <span>PDF</span>
-              </button>
-              <button
-                onClick={exportMainReportPDF}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 transition-all shadow-2xs active:scale-95 cursor-pointer"
-                title="Download Main Consolidated Report (DO + Allotment + Trucks)"
-              >
-                <Download className="w-3.5 h-3.5 text-amber-600" />
-                <span>Main Report</span>
-              </button>
+              {/* Subtle Vertical Divider between Filters and Action Buttons */}
+              <div className="hidden sm:block h-6 w-px bg-slate-200 mx-0.5" />
 
-              {canWrite && (
+              {/* Action Buttons Group with generous spacing */}
+              <div className="flex items-center gap-2 flex-wrap">
                 <button
-                  onClick={() => openTruckForm(0)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-[#ff3340] to-[#e7000b] hover:brightness-105 text-white transition-all shadow-xs active:scale-95 cursor-pointer"
+                  onClick={exportTruckDispatchExcel}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 transition-all shadow-2xs active:scale-95 cursor-pointer"
+                  title="Download Excel"
                 >
-                  <Plus className="w-4 h-4" /> Add Truck
+                  <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Excel</span>
                 </button>
-              )}
+                <button
+                  onClick={exportTruckDispatchPDF}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 transition-all shadow-2xs active:scale-95 cursor-pointer"
+                  title="Download PDF"
+                >
+                  <FileText className="w-3.5 h-3.5 text-rose-600" />
+                  <span>PDF</span>
+                </button>
+                <button
+                  onClick={exportMainReportPDF}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 transition-all shadow-2xs active:scale-95 cursor-pointer"
+                  title="Download Main Consolidated Report (DO + Allotment + Trucks)"
+                >
+                  <Download className="w-3.5 h-3.5 text-amber-600" />
+                  <span>Main Report</span>
+                </button>
+
+                {canWrite && (
+                  <button
+                    onClick={() => openTruckForm(0)}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-[#ff3340] to-[#e7000b] hover:brightness-105 text-white transition-all shadow-xs active:scale-95 cursor-pointer ml-1"
+                  >
+                    <Plus className="w-4 h-4" /> Add Truck
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -3128,8 +3426,10 @@ function DispatchPageContent() {
                   <th className="py-3.5 px-4 whitespace-nowrap">Lifter Party Name</th>
                   <th className="py-3.5 px-4 text-center whitespace-nowrap">Expiry Status</th>
                   <th className="py-3.5 px-4 whitespace-nowrap">Truck No.</th>
-                  <th className="py-3.5 px-4 whitespace-nowrap">Driver Name</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap">Transporter / Lifter Name</th>
                   <th className="py-3.5 px-4 whitespace-nowrap">TP No.</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap">Route (From - To)</th>
+                  <th className="py-3.5 px-4 text-right whitespace-nowrap">Freight (₹)</th>
                   <th className="py-3.5 px-4 text-right whitespace-nowrap">Net Wt (MT)</th>
                   <th className="py-3.5 px-4 text-center w-16 whitespace-nowrap">View</th>
                   <th className="py-3.5 px-4 text-right w-44 whitespace-nowrap">Actions</th>
@@ -3185,6 +3485,16 @@ function DispatchPageContent() {
                         <td className="py-3.5 px-4 font-bold text-slate-900 text-sm whitespace-nowrap">{t.no}</td>
                         <td className="py-3.5 px-4 text-slate-700 font-medium whitespace-nowrap">{t.driver || "-"}</td>
                         <td className="py-3.5 px-4 text-slate-600 font-medium whitespace-nowrap">{t.tp || "-"}</td>
+                        <td className="py-3.5 px-4 text-slate-700 font-semibold whitespace-nowrap">
+                          {t.fromLoc || t.toLoc ? (
+                            <span>{t.fromLoc || "-"} <span className="text-red-500 font-bold">→</span> {t.toLoc || "-"}</span>
+                          ) : (
+                            <span className="text-slate-400 font-normal">-</span>
+                          )}
+                        </td>
+                        <td className="py-3.5 px-4 text-right font-semibold text-slate-800 whitespace-nowrap">
+                          {t.freight ? `₹${formatNumber(t.freight)}` : "-"}
+                        </td>
                         <td className="py-3.5 px-4 text-right font-bold text-slate-900 text-[14px] whitespace-nowrap">{formatNumber(t.qty)}</td>
                         <td className="py-3.5 px-4 text-center whitespace-nowrap">
                           <button
@@ -3237,7 +3547,7 @@ function DispatchPageContent() {
                   })
                 ) : (
                   <tr>
-                    <td colSpan={12} className="py-10 text-center text-slate-400 font-medium">
+                    <td colSpan={15} className="py-10 text-center text-slate-400 font-medium">
                       {!(store?.dos || []).length
                         ? "Add a DO first."
                         : activeTab === "history"
@@ -3251,7 +3561,7 @@ function DispatchPageContent() {
                 <tfoot>
                   <tr className="bg-red-50/80 font-bold text-xs sm:text-[13px] text-[#8f0009] border-t border-red-200 whitespace-nowrap">
                     <td className="py-3.5 px-4 whitespace-nowrap"></td>
-                    <td colSpan={9} className="py-3.5 px-4 whitespace-nowrap">
+                    <td colSpan={11} className="py-3.5 px-4 whitespace-nowrap">
                       Total
                     </td>
                     <td className="py-3.5 px-4 text-right">{formatNumber(trucksTotalWeight)}</td>
@@ -3328,7 +3638,7 @@ function DispatchPageContent() {
                         <span className="text-slate-800 font-medium text-[11px]">{formatDate(t.date)}</span>
                       </div>
                       <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
-                        <span className="text-[10px] text-slate-400 font-medium block">DRIVER NAME</span>
+                        <span className="text-[10px] text-slate-400 font-medium block">TRANSPORTER / LIFTER</span>
                         <span className="text-slate-800 font-medium text-[11px] truncate block">{t.driver || "-"}</span>
                       </div>
                       <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
@@ -3338,6 +3648,18 @@ function DispatchPageContent() {
                       <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
                         <span className="text-[10px] text-slate-400 font-medium block">NET WEIGHT</span>
                         <b className="text-slate-900 font-bold">{formatNumber(t.qty)} MT</b>
+                      </div>
+                      <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
+                        <span className="text-[10px] text-slate-400 font-medium block">ROUTE (FROM → TO)</span>
+                        <span className="text-slate-800 font-semibold text-[11px] truncate block">
+                          {t.fromLoc || t.toLoc ? `${t.fromLoc || "-"} → ${t.toLoc || "-"}` : "-"}
+                        </span>
+                      </div>
+                      <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
+                        <span className="text-[10px] text-slate-400 font-medium block">FREIGHT</span>
+                        <span className="text-emerald-700 font-bold text-[11px] truncate block">
+                          {t.freight ? `₹${formatNumber(t.freight)}/MT` : "-"}
+                        </span>
                       </div>
                       <div className="bg-slate-50 p-2 rounded-xl border border-slate-100 flex items-center justify-between">
                         <div>
@@ -3388,7 +3710,13 @@ function DispatchPageContent() {
             if (e.target === e.currentTarget) closeModal();
           }}
         >
-          <div className={`bg-white rounded-2xl w-full ${modalConfig.type === "confirm" ? "max-w-md" : "max-w-2xl"} max-h-[92vh] shadow-2xl border border-slate-200/80 flex flex-col transition-all animate-scaleUp overflow-hidden`}>
+          <div className={`bg-white rounded-2xl w-full ${
+            modalConfig.type === "confirm"
+              ? "max-w-md"
+              : modalConfig.type === "truckForm" || modalConfig.type === "doForm" || modalConfig.type === "partyForm"
+              ? "max-w-4xl"
+              : "max-w-2xl"
+          } max-h-[92vh] shadow-2xl border border-slate-200/80 flex flex-col transition-all animate-scaleUp overflow-hidden`}>
             {/* Modal Header */}
             <div className="px-6 py-4 bg-gradient-to-r from-[#700007] via-[#b91c1c] to-[#dc2626] text-white flex items-center justify-between shrink-0 shadow-sm border-b border-white/10">
               <div className="flex items-center gap-3">
@@ -3409,7 +3737,7 @@ function DispatchPageContent() {
             </div>
 
             {/* Modal Content */}
-            <div className="p-6 overflow-y-auto space-y-5 text-xs bg-slate-50/50 min-h-[300px]">
+            <div className="p-6 overflow-y-auto space-y-5 text-xs bg-slate-50/50 min-h-[300px] pb-32">
               {/* DO Form */}
               {modalConfig.type === "doForm" && (
                 <div className="space-y-4">
@@ -3419,7 +3747,7 @@ function DispatchPageContent() {
                       <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wider">DO Identification & Mines</span>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                       {/* DO Party Name Searchable Combobox */}
                       <div className="relative">
                         <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between mb-1.5">
@@ -3459,7 +3787,10 @@ function DispatchPageContent() {
                                     <div
                                       key={c}
                                       onClick={() => {
-                                        setFormData((prev) => ({ ...prev, co: c }));
+                                        setFormData((prev) => ({
+                                          ...prev,
+                                          co: c
+                                        }));
                                         setIsPartyDropdownOpen(false);
                                       }}
                                       className="px-3 py-2 text-xs font-semibold text-slate-800 hover:bg-red-50 hover:text-red-600 cursor-pointer flex items-center justify-between transition-colors"
@@ -3543,6 +3874,18 @@ function DispatchPageContent() {
                           </>
                         )}
                       </div>
+
+                      {/* Grade Field */}
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5">Grade</label>
+                        <input
+                          type="text"
+                          value={formData.grade || ""}
+                          onChange={(e) => setFormData({ ...formData, grade: e.target.value.toUpperCase() })}
+                          placeholder="e.g. G-11, G-12, ROM"
+                          className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg bg-white hover:border-slate-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-xs font-bold text-slate-900 transition-all shadow-xs uppercase"
+                        />
+                      </div>
                     </div>
                   </div>
 
@@ -3552,7 +3895,7 @@ function DispatchPageContent() {
                       <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wider">Quantity & Validity Window</span>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                       <div>
                         <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between mb-1.5">
                           <span>DO Qty (MT)</span>
@@ -3572,11 +3915,24 @@ function DispatchPageContent() {
                       </div>
 
                       <div>
-                        <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5">Valid From</label>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">Valid From</label>
+                          <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">Auto +45 Days</span>
+                        </div>
                         <input
                           type="date"
                           value={formData.vf || ""}
-                          onChange={(e) => setFormData({ ...formData, vf: e.target.value })}
+                          onChange={(e) => {
+                            const newFrom = e.target.value;
+                            if (newFrom) {
+                              const d = new Date(newFrom);
+                              d.setDate(d.getDate() + 45);
+                              const autoTo = d.toISOString().split("T")[0];
+                              setFormData({ ...formData, vf: newFrom, vt: autoTo });
+                            } else {
+                              setFormData({ ...formData, vf: newFrom });
+                            }
+                          }}
                           className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg bg-white hover:border-slate-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-xs font-semibold text-slate-800 transition-all shadow-xs cursor-pointer"
                         />
                       </div>
@@ -3590,78 +3946,377 @@ function DispatchPageContent() {
                           className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg bg-white hover:border-slate-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-xs font-semibold text-slate-800 transition-all shadow-xs cursor-pointer"
                         />
                       </div>
+
+                      {/* Dynamic Expiry Status Badge */}
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5">Expiry Status</label>
+                        {(() => {
+                          const expiry = getExpiryDetails(formData.vt, formData.vf);
+                          return (
+                            <div className={`px-3 py-2 rounded-lg border text-xs font-bold flex items-center justify-between shadow-xs ${expiry.badgeClass}`}>
+                              <span className="flex items-center gap-1.5">
+                                <Clock className="w-3.5 h-3.5" />
+                                {expiry.text}
+                              </span>
+                              <span className="text-[10px] uppercase font-extrabold opacity-75 tracking-wider">
+                                {formData.vt ? "Live" : "No Date"}
+                              </span>
+                            </div>
+                          );
+                        })()}
+                      </div>
                     </div>
                   </div>
+
+                  {/* Section 3: Lifter Party Allotment Multi-Row Entry */}
+                  {(() => {
+                    const doQtyTotal = parseFloat(formData.tot) || 0;
+                    const totalAllottedQty = (formData.lifterRows || []).reduce((sum, r) => sum + (parseFloat(r.partyQty) || 0), 0);
+                    const remainingBalance = Math.max(0, doQtyTotal - totalAllottedQty);
+
+                    return (
+                      <div className="bg-white p-4.5 rounded-xl border border-slate-200/80 shadow-xs space-y-4">
+                        {/* Live Stat Cards: Order Qty & Balance Qty */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                          <div className="p-3.5 rounded-xl border border-blue-200/90 bg-gradient-to-br from-blue-50/90 to-blue-50/40 flex items-center justify-between shadow-2xs">
+                            <div>
+                              <div className="text-[10px] font-bold uppercase tracking-wider text-blue-700">Allotted Order Qty</div>
+                              <div className="text-base font-extrabold text-blue-950 mt-0.5">
+                                {formatNumber(totalAllottedQty)} <span className="text-xs font-semibold text-blue-800">MT</span>
+                              </div>
+                            </div>
+                            <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs border border-blue-200">
+                              <Check className="w-4 h-4 text-blue-700" />
+                            </div>
+                          </div>
+
+                          <div className={`p-3.5 rounded-xl border flex items-center justify-between shadow-2xs ${
+                            totalAllottedQty > doQtyTotal && doQtyTotal > 0
+                              ? "border-red-200 bg-red-50/80 text-red-900"
+                              : "border-amber-200/90 bg-gradient-to-br from-amber-50/90 to-amber-50/40 text-amber-950"
+                          }`}>
+                            <div>
+                              <div className={`text-[10px] font-bold uppercase tracking-wider ${
+                                totalAllottedQty > doQtyTotal && doQtyTotal > 0 ? "text-red-700" : "text-amber-700"
+                              }`}>
+                                Unallocated Balance Qty
+                              </div>
+                              <div className="text-base font-extrabold mt-0.5">
+                                {formatNumber(remainingBalance)} <span className="text-xs font-semibold">MT</span>
+                              </div>
+                            </div>
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs border ${
+                              totalAllottedQty > doQtyTotal && doQtyTotal > 0
+                                ? "bg-red-100 text-red-700 border-red-200"
+                                : "bg-amber-100 text-amber-700 border-amber-200"
+                            }`}>
+                              <Clock className="w-4 h-4" />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-blue-600"></div>
+                            <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wider">
+                              Receiver Party Allotment Details ({(formData.lifterRows || []).length} { (formData.lifterRows || []).length === 1 ? 'Party' : 'Parties' })
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newRows = [
+                                ...(formData.lifterRows || []),
+                                { id: Date.now(), partyName: "", partyQty: "" }
+                              ];
+                              setFormData({ ...formData, lifterRows: newRows });
+                            }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 rounded-lg text-xs font-bold transition-all shadow-xs border border-red-200"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Add Row</span>
+                          </button>
+                        </div>
+                        <div className="space-y-3 pr-1">
+                        {(formData.lifterRows || []).map((row, idx) => (
+                          <div key={row.id || idx} className="p-3 bg-slate-50/70 border border-slate-200 rounded-xl relative hover:border-slate-300 transition-all">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-[10px] font-bold px-2 py-0.5 bg-slate-200/80 text-slate-700 rounded-md uppercase">
+                                #{idx + 1} Receiver Party
+                              </span>
+                              {(formData.lifterRows || []).length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const updated = (formData.lifterRows || []).filter((_, i) => i !== idx);
+                                    setFormData({ ...formData, lifterRows: updated });
+                                  }}
+                                  className="text-slate-400 hover:text-red-600 hover:bg-red-50 p-1 rounded-md transition-colors"
+                                  title="Remove this row"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              {/* Receiver Party Name */}
+                              <div className="relative">
+                                <label className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+                                  Receiver Party Name
+                                </label>
+                                <div className="relative">
+                                  <input
+                                    type="text"
+                                    value={row.partyName || ""}
+                                    onChange={(e) => {
+                                      const updated = [...(formData.lifterRows || [])];
+                                      updated[idx] = { ...updated[idx], partyName: e.target.value };
+                                      setFormData({ ...formData, lifterRows: updated });
+                                    }}
+                                    placeholder="Type or select Receiver Party..."
+                                    className="w-full px-3 py-2 pr-7 border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-red-500 text-xs font-semibold text-slate-800 shadow-xs"
+                                  />
+                                  {uniquePartyNames.length > 0 && (
+                                    <button
+                                      type="button"
+                                      tabIndex={-1}
+                                      onClick={() => {
+                                        const updated = [...(formData.lifterRows || [])];
+                                        updated[idx] = { ...updated[idx], isDropdownOpen: !updated[idx].isDropdownOpen };
+                                        setFormData({ ...formData, lifterRows: updated });
+                                      }}
+                                      className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                                    >
+                                      <ChevronDown className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                                </div>
+
+                                {row.isDropdownOpen && (
+                                  <>
+                                    <div
+                                      className="fixed inset-0 z-20"
+                                      onClick={() => {
+                                        const updated = [...(formData.lifterRows || [])];
+                                        updated[idx] = { ...updated[idx], isDropdownOpen: false };
+                                        setFormData({ ...formData, lifterRows: updated });
+                                      }}
+                                    />
+                                    <div className="absolute left-0 right-0 top-full mt-1 z-30 bg-white border border-slate-200 rounded-lg shadow-lg max-h-40 overflow-y-auto divide-y divide-slate-50 py-1">
+                                      {uniquePartyNames
+                                        .filter((pn) => !row.partyName || pn.toLowerCase().includes((row.partyName || "").toLowerCase()))
+                                        .map((pn) => (
+                                          <div
+                                            key={pn}
+                                            onClick={() => {
+                                              const updated = [...(formData.lifterRows || [])];
+                                              updated[idx] = { ...updated[idx], partyName: pn, isDropdownOpen: false };
+                                              setFormData({ ...formData, lifterRows: updated });
+                                            }}
+                                            className="px-3 py-1.5 text-xs text-slate-800 hover:bg-red-50 hover:text-red-600 cursor-pointer flex items-center justify-between"
+                                          >
+                                            <span>{pn}</span>
+                                            {row.partyName === pn && <Check className="w-3 h-3 text-red-600" />}
+                                          </div>
+                                        ))}
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+
+                              {/* Order Qty */}
+                              <div>
+                                <label className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+                                  Order Qty (MT)
+                                </label>
+                                <div className="relative">
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    value={row.partyQty || ""}
+                                    onChange={(e) => {
+                                      const updated = [...(formData.lifterRows || [])];
+                                      updated[idx] = { ...updated[idx], partyQty: e.target.value };
+                                      setFormData({ ...formData, lifterRows: updated });
+                                    }}
+                                    placeholder="0.00"
+                                    className="w-full pl-3 pr-10 py-2 border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-red-500 text-xs font-bold text-slate-900 shadow-xs"
+                                  />
+                                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-bold text-slate-400 pointer-events-none">MT</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Summary Bar */}
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newRows = [
+                              ...(formData.lifterRows || []),
+                              { id: Date.now(), partyName: "", partyQty: "" }
+                            ];
+                            setFormData({ ...formData, lifterRows: newRows });
+                          }}
+                          className="inline-flex items-center gap-1 text-red-600 hover:text-red-700 font-bold"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Add Another Receiver Party</span>
+                        </button>
+
+                        <div className="flex items-center gap-3 font-semibold text-slate-700">
+                          <span>Total Allotted:</span>
+                          <span className="font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                            {formatNumber((formData.lifterRows || []).reduce((sum, r) => sum + (parseFloat(r.partyQty) || 0), 0))} MT
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    );
+                  })()}
                 </div>
               )}
 
               {/* View DO */}
-              {modalConfig.type === "viewDO" && modalConfig.data && (
-                <div className="space-y-4">
-                  <div className="rounded-xl border border-slate-200 divide-y divide-slate-100 overflow-hidden bg-white shadow-xs">
-                    <div className="flex justify-between p-3 bg-slate-50/80">
-                      <span className="text-slate-500 font-medium">DO No.</span>
-                      <b className="font-bold text-slate-900">{getDOName(modalConfig.data)}</b>
+              {modalConfig.type === "viewDO" && modalConfig.data && (() => {
+                const d = modalConfig.data;
+                const allotted = getDOAllotted(d);
+                const unalloc = Math.max(0, (d.tot || 0) - allotted);
+                const disp = getDODispatched(d);
+                const bal = Math.max(0, (d.tot || 0) - disp);
+                const expiry = getExpiryDetails(d.vt, d.vf);
+                const truckCount = (store.trucks || []).filter((t) => t.did === d.id).length;
+                const progressPct = d.tot > 0 ? Math.min(100, (disp / d.tot) * 100) : 0;
+
+                return (
+                  <div className="space-y-4">
+                    {/* Header Highlight Card - Clean Light Theme */}
+                    <div className="bg-gradient-to-br from-slate-50 via-red-50/20 to-white p-4 rounded-xl border border-slate-200/90 shadow-xs">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="text-[10px] uppercase font-bold tracking-widest text-[#e7000b]">DO Overview</div>
+                          <h4 className="text-xl font-extrabold tracking-tight text-slate-900 mt-0.5">{getDOName(d)}</h4>
+                          <p className="text-xs text-slate-600 font-semibold mt-0.5">{d.co || "-"}</p>
+                        </div>
+                        <div className="flex flex-col items-end gap-1.5">
+                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold tracking-wide uppercase ${expiry.badgeClass}`}>
+                            {expiry.text}
+                          </span>
+                          <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold ${currentDO.id === d.id ? "bg-red-50 text-red-700 border border-red-200" : "bg-slate-100 text-slate-600 border border-slate-200"}`}>
+                            {currentDO.id === d.id ? "Active Selected DO" : "Inactive"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Mini Progress */}
+                      <div className="mt-3.5 pt-3 border-t border-slate-100">
+                        <div className="flex justify-between items-center text-[11px] mb-1.5 font-bold">
+                          <span className="text-slate-600">Dispatch Progress</span>
+                          <span className="text-emerald-700 font-extrabold">{Math.round(progressPct)}% Completed</span>
+                        </div>
+                        <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden border border-slate-200/50">
+                          <div
+                            className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-300"
+                            style={{ width: `${progressPct}%` }}
+                          />
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex justify-between p-3">
-                      <span className="text-slate-500 font-medium">Company</span>
-                      <b className="font-semibold text-slate-800">{modalConfig.data.co || "-"}</b>
+
+                    {/* Metric Stats Cards */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                      <div className="bg-slate-50 border border-slate-200/90 rounded-xl p-3 shadow-2xs">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Total DO Qty</span>
+                        <div className="text-base font-extrabold text-slate-900 mt-0.5">{formatNumber(d.tot)} <span className="text-[10px] text-slate-500">MT</span></div>
+                      </div>
+                      <div className="bg-blue-50/70 border border-blue-200/80 rounded-xl p-3 shadow-2xs">
+                        <span className="text-[10px] font-bold text-blue-700 uppercase tracking-wider block">Allotted</span>
+                        <div className="text-base font-extrabold text-blue-900 mt-0.5">{formatNumber(allotted)} <span className="text-[10px] text-blue-700">MT</span></div>
+                      </div>
+                      <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-xl p-3 shadow-2xs">
+                        <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">Dispatched</span>
+                        <div className="text-base font-extrabold text-emerald-900 mt-0.5">{formatNumber(disp)} <span className="text-[10px] text-emerald-700">MT</span></div>
+                      </div>
+                      <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-3 shadow-2xs">
+                        <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider block">Balance</span>
+                        <div className="text-base font-extrabold text-amber-900 mt-0.5">{formatNumber(bal)} <span className="text-[10px] text-amber-700">MT</span></div>
+                      </div>
                     </div>
-                    <div className="flex justify-between p-3 bg-slate-50/80">
-                      <span className="text-slate-500 font-medium">Mines</span>
-                      <b className="font-semibold text-slate-800">{modalConfig.data.mines || "-"}</b>
+
+                    {/* Detailed Specifications Grid */}
+                    <div className="bg-white rounded-xl border border-slate-200/90 shadow-2xs overflow-hidden">
+                      <div className="px-3.5 py-2.5 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between">
+                        <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                          <Package className="w-3.5 h-3.5 text-red-600" /> Key Attributes
+                        </span>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase">DO Reference</span>
+                      </div>
+                      <div className="p-3 grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+                        <div className="p-2 bg-slate-50/60 rounded-lg border border-slate-100">
+                          <span className="text-[10px] font-semibold text-slate-400 uppercase block">Mines</span>
+                          <span className="font-bold text-slate-800">{d.mines || "-"}</span>
+                        </div>
+                        <div className="p-2 bg-slate-50/60 rounded-lg border border-slate-100">
+                          <span className="text-[10px] font-semibold text-slate-400 uppercase block">Grade</span>
+                          <span className="font-bold text-slate-800">{d.grade || "-"}</span>
+                        </div>
+                        <div className="p-2 bg-slate-50/60 rounded-lg border border-slate-100">
+                          <span className="text-[10px] font-semibold text-slate-400 uppercase block">Unallocated</span>
+                          <span className="font-bold text-amber-600">{formatNumber(unalloc)} MT</span>
+                        </div>
+                        <div className="p-2 bg-slate-50/60 rounded-lg border border-slate-100">
+                          <span className="text-[10px] font-semibold text-slate-400 uppercase block">Valid From</span>
+                          <span className="font-semibold text-slate-700">{formatDate(d.vf)}</span>
+                        </div>
+                        <div className="p-2 bg-slate-50/60 rounded-lg border border-slate-100">
+                          <span className="text-[10px] font-semibold text-slate-400 uppercase block">Valid To</span>
+                          <span className="font-semibold text-slate-700">{formatDate(d.vt)}</span>
+                        </div>
+                        <div className="p-2 bg-slate-50/60 rounded-lg border border-slate-100">
+                          <span className="text-[10px] font-semibold text-slate-400 uppercase block">Parties / Trucks</span>
+                          <span className="font-bold text-slate-800">{d.parties?.length || 0} Parties • {truckCount} Trucks</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex justify-between p-3">
-                      <span className="text-slate-500 font-medium">Valid From</span>
-                      <span className="font-medium text-slate-700">{formatDate(modalConfig.data.vf)}</span>
-                    </div>
-                    <div className="flex justify-between p-3 bg-slate-50/80">
-                      <span className="text-slate-500 font-medium">Valid To</span>
-                      <span className="font-medium text-slate-700">{formatDate(modalConfig.data.vt)}</span>
-                    </div>
-                    <div className="flex justify-between p-3">
-                      <span className="text-slate-500 font-medium">DO Qty</span>
-                      <b className="font-bold text-slate-900">{formatNumber(modalConfig.data.tot)} MT</b>
-                    </div>
-                    <div className="flex justify-between p-3 bg-slate-50/80">
-                      <span className="text-slate-500 font-medium">Allotted to Parties</span>
-                      <b className="font-semibold text-slate-800">{formatNumber(getDOAllotted(modalConfig.data))} MT</b>
-                    </div>
-                    <div className="flex justify-between p-3">
-                      <span className="text-slate-500 font-medium">Unallocated</span>
-                      <b className="font-semibold text-amber-600">
-                        {formatNumber(modalConfig.data.tot - getDOAllotted(modalConfig.data))} MT
-                      </b>
-                    </div>
-                    <div className="flex justify-between p-3 bg-slate-50/80">
-                      <span className="text-slate-500 font-medium">Dispatched</span>
-                      <b className="font-semibold text-emerald-600">{formatNumber(getDODispatched(modalConfig.data))} MT</b>
-                    </div>
-                    <div className="flex justify-between p-3">
-                      <span className="text-slate-500 font-medium">Balance</span>
-                      <b className="font-bold text-[#e7000b]">
-                        {formatNumber(modalConfig.data.tot - getDODispatched(modalConfig.data))} MT
-                      </b>
-                    </div>
-                    <div className="flex justify-between p-3 bg-slate-50/80">
-                      <span className="text-slate-500 font-medium">Parties</span>
-                      <span className="font-semibold text-slate-700">{modalConfig.data.parties?.length || 0}</span>
-                    </div>
-                    <div className="flex justify-between p-3">
-                      <span className="text-slate-500 font-medium">Trucks</span>
-                      <span className="font-semibold text-slate-700">
-                        {(store.trucks || []).filter((t) => t.did === modalConfig.data.id).length}
-                      </span>
-                    </div>
-                    <div className="flex justify-between p-3 bg-slate-50/80">
-                      <span className="text-slate-500 font-medium">Status</span>
-                      <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${currentDO.id === modalConfig.data.id ? "bg-red-50 text-red-700 border border-red-200" : "bg-slate-100 text-slate-600"}`}>
-                        {currentDO.id === modalConfig.data.id ? "Active DO" : "Inactive"}
-                      </span>
-                    </div>
+
+                    {/* Allotted Receiver Parties Summary List */}
+                    {d.parties && d.parties.length > 0 && (
+                      <div className="bg-white rounded-xl border border-slate-200/90 shadow-2xs overflow-hidden">
+                        <div className="px-3.5 py-2.5 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between">
+                          <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                            <List className="w-3.5 h-3.5 text-blue-600" /> Receiver Party Allotments ({d.parties.length})
+                          </span>
+                        </div>
+                        <div className="divide-y divide-slate-100 max-h-48 overflow-y-auto">
+                          {d.parties.map((p, pIdx) => {
+                            const pDisp = getPartyDispatched(p.id);
+                            const pBal = Math.max(0, p.qty - pDisp);
+                            return (
+                              <div key={p.id || pIdx} className="px-3.5 py-2 flex items-center justify-between hover:bg-slate-50/60 transition-colors">
+                                <div className="flex items-center gap-2">
+                                  <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold flex items-center justify-center">
+                                    {pIdx + 1}
+                                  </span>
+                                  <span className="font-bold text-slate-800 text-xs">{p.name}</span>
+                                </div>
+                                <div className="flex items-center gap-4 text-xs">
+                                  <span className="text-slate-500 font-medium">Order: <b className="text-slate-800">{formatNumber(p.qty)} MT</b></span>
+                                  <span className="text-emerald-600 font-semibold">Disp: {formatNumber(pDisp)} MT</span>
+                                  <span className="text-amber-600 font-bold">Bal: {formatNumber(pBal)} MT</span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* Party Form */}
               {modalConfig.type === "partyForm" && (() => {
@@ -3749,7 +4404,7 @@ function DispatchPageContent() {
                       </div>
                     </div>
 
-                    {/* Lifter Details */}
+                    {/* Receiver Party Details */}
                     <div className="bg-white p-4.5 rounded-xl border border-slate-200/80 shadow-xs space-y-4">
                       <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
                         <div className="w-2 h-2 rounded-full bg-blue-600"></div>
@@ -3757,10 +4412,10 @@ function DispatchPageContent() {
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* Lifter Name Searchable Combobox */}
+                        {/* Receiver Party Name Searchable Combobox */}
                         <div className="relative">
                           <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between mb-1.5">
-                            <span>Lifter Name</span>
+                            <span>Receiver Party Name</span>
                             <span className="text-red-500 font-bold">*</span>
                           </label>
                           <div className="relative">
@@ -3772,7 +4427,7 @@ function DispatchPageContent() {
                                 setIsLifterDropdownOpen(true);
                               }}
                               onFocus={() => setIsLifterDropdownOpen(true)}
-                              placeholder="Type or select Lifter..."
+                              placeholder="Type or select Receiver Party..."
                               className="w-full px-3.5 py-2.5 pr-8 border border-slate-200 rounded-lg bg-white hover:border-slate-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-xs font-bold text-slate-900 transition-all shadow-xs"
                             />
                             <button
@@ -3787,8 +4442,8 @@ function DispatchPageContent() {
                           {/* Custom Clean Dropdown Popup */}
                           {isLifterDropdownOpen && (
                             <>
-                              <div className="fixed inset-0 z-20" onClick={() => setIsLifterDropdownOpen(false)} />
-                              <div className="absolute left-0 right-0 top-full mt-1.5 z-30 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto divide-y divide-slate-50 py-1">
+                              <div className="fixed inset-0 z-40" onClick={() => setIsLifterDropdownOpen(false)} />
+                              <div className="absolute left-0 right-0 bottom-full mb-1.5 z-50 bg-white border border-slate-200 rounded-xl shadow-2xl max-h-56 overflow-y-auto divide-y divide-slate-50 py-1">
                                 {uniquePartyNames.filter((p) => !formData.partyName || p.toLowerCase().includes((formData.partyName || "").toLowerCase())).length > 0 ? (
                                   uniquePartyNames
                                     .filter((p) => !formData.partyName || p.toLowerCase().includes((formData.partyName || "").toLowerCase()))
@@ -3837,77 +4492,224 @@ function DispatchPageContent() {
               })()}
 
               {/* View Party */}
-              {modalConfig.type === "viewParty" && modalConfig.data && (
-                <div className="space-y-4">
-                  <div className="rounded-xl border border-slate-200 divide-y divide-slate-100 overflow-hidden bg-white shadow-xs">
-                    <div className="flex justify-between p-3 bg-slate-50/80">
-                      <span className="text-slate-500 font-medium">Lifter Party Name</span>
-                      <b className="font-bold text-slate-900">{modalConfig.data.name}</b>
-                    </div>
-                    <div className="flex justify-between p-3">
-                      <span className="text-slate-500 font-medium">DO Party Name</span>
-                      <span className="font-semibold text-slate-800">{currentDO.co}</span>
-                    </div>
-                    <div className="flex justify-between p-3 bg-slate-50/80">
-                      <span className="text-slate-500 font-medium">DO No.</span>
-                      <span className="font-bold text-slate-900">{getDOName(currentDO)}</span>
-                    </div>
-                    <div className="flex justify-between p-3">
-                      <span className="text-slate-500 font-medium">Order Qty</span>
-                      <b className="font-bold text-slate-900">{formatNumber(modalConfig.data.qty)} MT</b>
-                    </div>
-                    <div className="flex justify-between p-3 bg-slate-50/80">
-                      <span className="text-slate-500 font-medium">Dispatched</span>
-                      <b className="font-semibold text-emerald-600">
-                        {formatNumber(getPartyDispatched(modalConfig.data.id))} MT
-                      </b>
-                    </div>
-                    <div className="flex justify-between p-3">
-                      <span className="text-slate-500 font-medium">Balance</span>
-                      <b className="font-bold text-[#e7000b]">
-                        {formatNumber(modalConfig.data.qty - getPartyDispatched(modalConfig.data.id))} MT
-                      </b>
-                    </div>
-                    <div className="flex justify-between p-3 bg-slate-50/80">
-                      <span className="text-slate-500 font-medium">Trucks Count</span>
-                      <span className="font-semibold text-slate-700">
-                        {(store.trucks || []).filter((t) => t.pid === modalConfig.data.id).length}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Truck Form */}
-              {modalConfig.type === "truckForm" && (() => {
-                const currentPid = formData.pid ? parseInt(formData.pid) : (currentDO.parties?.[0]?.id || 0);
-                const selectedParty = (currentDO.parties || []).find((p) => p.id === currentPid);
-                const partyBal = selectedParty ? selectedParty.qty - getPartyDispatched(selectedParty.id) : 0;
+              {modalConfig.type === "viewParty" && modalConfig.data && (() => {
+                const p = modalConfig.data;
+                const disp = getPartyDispatched(p.id);
+                const bal = Math.max(0, (p.qty || 0) - disp);
+                const truckCount = (store.trucks || []).filter((t) => t.pid === p.id).length;
+                const pct = p.qty > 0 ? Math.min(100, (disp / p.qty) * 100) : 0;
+                const expiry = getExpiryDetails(currentDO?.vt, currentDO?.vf);
 
                 return (
                   <div className="space-y-4">
+                    {/* Header Highlight Card - Clean Light Theme */}
+                    <div className="bg-gradient-to-br from-slate-50 via-teal-50/20 to-white p-4 rounded-xl border border-slate-200/90 shadow-xs">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="text-[10px] uppercase font-bold tracking-widest text-teal-700">Receiver Party Profile</div>
+                          <h4 className="text-xl font-extrabold tracking-tight text-slate-900 mt-0.5">{p.name}</h4>
+                          <p className="text-xs text-slate-600 font-semibold mt-0.5">
+                            {currentDO.co ? `${currentDO.co} • ` : ""}DO No: {getDOName(currentDO)}
+                          </p>
+                        </div>
+                        <div className="flex flex-col items-end gap-1.5">
+                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold tracking-wide uppercase ${expiry.badgeClass}`}>
+                            {expiry.text}
+                          </span>
+                          <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                            {truckCount} Trucks Dispatched
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Mini Progress */}
+                      <div className="mt-3.5 pt-3 border-t border-slate-100">
+                        <div className="flex justify-between items-center text-[11px] mb-1.5 font-bold">
+                          <span className="text-slate-600">Allotment Fulfilled</span>
+                          <span className="text-teal-700 font-extrabold">{Math.round(pct)}% Completed</span>
+                        </div>
+                        <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden border border-slate-200/50">
+                          <div
+                            className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-300"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Metric Cards */}
+                    <div className="grid grid-cols-3 gap-2.5">
+                      <div className="bg-blue-50/70 border border-blue-200/80 rounded-xl p-3 shadow-2xs">
+                        <span className="text-[10px] font-bold text-blue-700 uppercase tracking-wider block">Order Qty</span>
+                        <div className="text-base font-extrabold text-blue-900 mt-0.5">{formatNumber(p.qty)} <span className="text-[10px] text-blue-700">MT</span></div>
+                      </div>
+                      <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-xl p-3 shadow-2xs">
+                        <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">Dispatched</span>
+                        <div className="text-base font-extrabold text-emerald-900 mt-0.5">{formatNumber(disp)} <span className="text-[10px] text-emerald-700">MT</span></div>
+                      </div>
+                      <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-3 shadow-2xs">
+                        <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider block">Pending Bal</span>
+                        <div className="text-base font-extrabold text-amber-900 mt-0.5">{formatNumber(bal)} <span className="text-[10px] text-amber-700">MT</span></div>
+                      </div>
+                    </div>
+
+                    {/* Specifications */}
+                    <div className="bg-white rounded-xl border border-slate-200/90 shadow-2xs overflow-hidden">
+                      <div className="px-3.5 py-2.5 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between">
+                        <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                          <Package className="w-3.5 h-3.5 text-red-600" /> Allotment Parameters
+                        </span>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase">DO Reference</span>
+                      </div>
+                      <div className="p-3 grid grid-cols-2 gap-3 text-xs">
+                        <div className="p-2 bg-slate-50/60 rounded-lg border border-slate-100">
+                          <span className="text-[10px] font-semibold text-slate-400 uppercase block">DO Party Name</span>
+                          <span className="font-bold text-slate-800">{currentDO?.co || "-"}</span>
+                        </div>
+                        <div className="p-2 bg-slate-50/60 rounded-lg border border-slate-100">
+                          <span className="text-[10px] font-semibold text-slate-400 uppercase block">DO Number</span>
+                          <span className="font-bold text-slate-800">{getDOName(currentDO)}</span>
+                        </div>
+                        <div className="p-2 bg-slate-50/60 rounded-lg border border-slate-100">
+                          <span className="text-[10px] font-semibold text-slate-400 uppercase block">Mines</span>
+                          <span className="font-bold text-slate-800">{currentDO?.mines || "-"}</span>
+                        </div>
+                        <div className="p-2 bg-slate-50/60 rounded-lg border border-slate-100">
+                          <span className="text-[10px] font-semibold text-slate-400 uppercase block">Grade</span>
+                          <span className="font-bold text-slate-800">{currentDO?.grade || "-"}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Truck Form */}
+              {modalConfig.type === "truckForm" && (() => {
+                const currentPid = formData.pid !== undefined && formData.pid !== null && formData.pid !== ""
+                  ? String(formData.pid)
+                  : String(currentDO.parties?.[0]?.id || "");
+
+                // Find party in currentDO or across all DOs
+                const allPartiesList = (store?.dos || []).flatMap((d) =>
+                  (d.parties || []).map((p) => ({
+                    ...p,
+                    doCo: d.co,
+                    doNo: d.no,
+                    doId: d.id,
+                    doMines: d.mines,
+                    doGrade: d.grade,
+                    doTot: d.tot
+                  }))
+                );
+
+                const availableParties = (currentDO.parties && currentDO.parties.length)
+                  ? currentDO.parties.map((p) => ({
+                      ...p,
+                      doCo: currentDO.co,
+                      doNo: currentDO.no,
+                      doId: currentDO.id,
+                      doMines: currentDO.mines,
+                      doGrade: currentDO.grade,
+                      doTot: currentDO.tot
+                    }))
+                  : allPartiesList;
+
+                const selectedParty = availableParties.find((p) => String(p.id) === currentPid) || availableParties[0];
+                const orderQty = selectedParty ? (parseFloat(selectedParty.qty) || 0) : 0;
+                const baseDispatched = selectedParty ? getPartyDispatched(selectedParty.id) : 0;
+                
+                // Existing truck qty in edit mode
+                const existingTruck = modalConfig.data?.id ? store.trucks.find((t) => t.id === modalConfig.data.id) : null;
+                const existingTruckQty = (existingTruck && String(existingTruck.pid) === String(selectedParty?.id)) ? (parseFloat(existingTruck.qty) || 0) : 0;
+
+                // Currently typed / entered net weight in the form
+                const currentEnteredNetWt = modalConfig.data?.id
+                  ? (parseFloat(formData.qty) || 0)
+                  : (formData.rows || []).reduce((sum, r) => sum + (parseFloat(r.qty) || 0), 0);
+
+                // Live dynamic balance: initial balance minus newly entered net wt
+                const initialPartyBal = Math.max(0, orderQty - baseDispatched + existingTruckQty);
+                const liveRemainingBal = initialPartyBal - currentEnteredNetWt;
+
+                // Corresponding DO details
+                const associatedDO = (store?.dos || []).find((d) => d.id === selectedParty?.doId) || currentDO;
+
+                return (
+                  <div className="space-y-4">
+                    {/* DO Information Banner - Premium Modern Card */}
+                    <div className="p-4 rounded-2xl bg-gradient-to-r from-white via-slate-50/70 to-red-50/30 border border-slate-200/90 shadow-sm relative overflow-hidden">
+                      {/* Decorative Subtle Accent Bar */}
+                      <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-red-600 to-rose-700" />
+                      
+                      <div className="flex flex-wrap items-center justify-between gap-4 pl-1">
+                        {/* Company & DO Info */}
+                        <div className="flex items-center gap-3.5">
+                          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-red-500 to-red-700 text-white flex items-center justify-center font-extrabold text-xs shadow-md shadow-red-500/20 ring-4 ring-red-50 shrink-0">
+                            DO
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">DO Party / Company</span>
+                              <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-red-100/70 text-red-700 border border-red-200/60">
+                                Active Order
+                              </span>
+                            </div>
+                            <h4 className="text-base font-black text-slate-900 tracking-tight mt-0.5">
+                              {associatedDO?.co || "N/A"}
+                            </h4>
+                          </div>
+                        </div>
+
+                        {/* Attribute Badges */}
+                        <div className="flex items-center gap-2.5 flex-wrap">
+                          {/* DO Number Badge */}
+                          <div className="bg-white/90 px-3.5 py-2 rounded-xl border border-slate-200 shadow-2xs hover:border-slate-300 transition-colors">
+                            <span className="text-slate-400 block text-[9px] uppercase font-extrabold tracking-wider">DO No.</span>
+                            <span className="font-extrabold text-slate-800 text-xs tracking-tight">{getDOName(associatedDO)}</span>
+                          </div>
+
+                          {/* Mines Badge */}
+                          {associatedDO?.mines && (
+                            <div className="bg-white/90 px-3.5 py-2 rounded-xl border border-slate-200 shadow-2xs hover:border-slate-300 transition-colors">
+                              <span className="text-slate-400 block text-[9px] uppercase font-extrabold tracking-wider">Mines / Colliery</span>
+                              <span className="font-extrabold text-slate-700 text-xs capitalize">{associatedDO.mines}</span>
+                            </div>
+                          )}
+
+                          {/* Total DO Qty Badge */}
+                          {associatedDO?.tot && (
+                            <div className="bg-gradient-to-br from-red-50 to-rose-50/60 px-3.5 py-2 rounded-xl border border-red-200/80 shadow-2xs">
+                              <span className="text-red-700/80 block text-[9px] uppercase font-extrabold tracking-wider">Total DO Qty</span>
+                              <span className="font-black text-red-700 text-xs tracking-tight">{formatNumber(associatedDO.tot)} <span className="text-[10px] font-bold">MT</span></span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
                     {/* Party & Balance Section */}
                     <div className="bg-white p-4.5 rounded-xl border border-slate-200/80 shadow-xs space-y-4">
                       <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
                         <div className="w-2 h-2 rounded-full bg-red-600"></div>
-                        <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wider">Party Allotment & Available Balance</span>
+                        <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wider">Receiver Party & Balance Details</span>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                         <div>
                           <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between mb-1.5">
-                            <span>Select Party</span>
+                            <span>Select Receiver Party</span>
                             <span className="text-red-500 font-bold">*</span>
                           </label>
                           <div className="relative">
                             <select
-                              value={formData.pid || (selectedParty?.id || "")}
+                              value={selectedParty?.id || ""}
                               onChange={(e) => setFormData({ ...formData, pid: e.target.value })}
                               className="w-full px-3.5 py-2.5 pr-8 border border-slate-200 rounded-lg bg-white text-slate-800 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 cursor-pointer appearance-none shadow-xs"
                             >
-                              {(currentDO.parties || []).map((p) => (
+                              {availableParties.map((p) => (
                                 <option key={p.id} value={p.id}>
-                                  {p.name}
+                                  {p.name} {p.doCo ? `(${p.doCo})` : ''}
                                 </option>
                               ))}
                             </select>
@@ -3916,238 +4718,897 @@ function DispatchPageContent() {
                         </div>
 
                         <div>
+                          <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5">Party Order Qty</label>
+                          <div className="px-3.5 py-2.5 border border-blue-200/90 rounded-lg bg-blue-50/80 text-blue-900 text-xs font-bold flex items-center justify-between">
+                            <span>{formatNumber(orderQty)} MT</span>
+                            <span className="text-[10px] font-semibold text-blue-700 uppercase">Allotted</span>
+                          </div>
+                        </div>
+
+                        <div>
                           <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5">Party Balance Qty</label>
-                          <div className="px-3.5 py-2.5 border border-amber-200/90 rounded-lg bg-amber-50/80 text-amber-900 text-xs font-bold flex items-center justify-between">
-                            <span>{formatNumber(partyBal)} MT</span>
-                            <span className="text-[10px] font-medium text-amber-700 uppercase">Available to load</span>
+                          <div className={`px-3.5 py-2.5 border rounded-lg text-xs font-bold flex items-center justify-between transition-all ${
+                            liveRemainingBal < 0
+                              ? "border-red-200 bg-red-50/90 text-red-700"
+                              : "border-amber-200/90 bg-amber-50/80 text-amber-900"
+                          }`}>
+                            <span>{formatNumber(liveRemainingBal)} MT</span>
+                            <span className={`text-[10px] font-semibold uppercase ${
+                              liveRemainingBal < 0 ? "text-red-600" : "text-amber-700"
+                            }`}>
+                              {liveRemainingBal < 0 ? "Exceeded" : "Remaining"}
+                            </span>
                           </div>
                         </div>
                       </div>
                     </div>
 
                     {/* Truck Details */}
-                    <div className="bg-white p-4.5 rounded-xl border border-slate-200/80 shadow-xs space-y-4">
-                      <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
-                        <div className="w-2 h-2 rounded-full bg-blue-600"></div>
-                        <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wider">Vehicle & Driver Details</span>
+                    {modalConfig.data?.id ? (
+                      /* Edit Mode: Single Truck */
+                      <>
+                        <div className="bg-white p-4.5 rounded-xl border border-slate-200/80 shadow-xs space-y-4">
+                          <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+                            <div className="w-2 h-2 rounded-full bg-blue-600"></div>
+                            <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wider">Vehicle & Driver Details</span>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {/* Truck No Searchable Combobox */}
+                            <div className="relative">
+                              <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between mb-1.5">
+                                <span>Truck No.</span>
+                                <span className="text-red-500 font-bold">*</span>
+                              </label>
+                              <div className="relative">
+                                <input
+                                  type="text"
+                                  value={formData.truckNo || ""}
+                                  onChange={(e) => {
+                                    setFormData({ ...formData, truckNo: e.target.value.toUpperCase() });
+                                    setIsTruckNoDropdownOpen(true);
+                                  }}
+                                  onFocus={() => setIsTruckNoDropdownOpen(true)}
+                                  placeholder="e.g. CG04AB1234"
+                                  className="w-full px-3.5 py-2.5 pr-8 border border-slate-200 rounded-lg bg-white hover:border-slate-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-xs font-bold text-slate-900 transition-all shadow-xs uppercase"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setIsTruckNoDropdownOpen((prev) => !prev)}
+                                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                                >
+                                  <ChevronDown className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+
+                              {isTruckNoDropdownOpen && (
+                                <>
+                                  <div className="fixed inset-0 z-20" onClick={() => setIsTruckNoDropdownOpen(false)} />
+                                  <div className="absolute left-0 right-0 top-full mt-1.5 z-30 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto divide-y divide-slate-50 py-1">
+                                    {uniqueTruckNumbers.filter((no) => !formData.truckNo || no.toUpperCase().includes((formData.truckNo || "").toUpperCase())).length > 0 ? (
+                                      uniqueTruckNumbers
+                                        .filter((no) => !formData.truckNo || no.toUpperCase().includes((formData.truckNo || "").toUpperCase()))
+                                        .map((no) => (
+                                          <div
+                                            key={no}
+                                            onClick={() => {
+                                              setFormData((prev) => ({ ...prev, truckNo: no }));
+                                              setIsTruckNoDropdownOpen(false);
+                                            }}
+                                            className="px-3 py-2 text-xs font-bold text-slate-800 hover:bg-red-50 hover:text-red-600 cursor-pointer flex items-center justify-between transition-colors uppercase"
+                                          >
+                                            <span>{no}</span>
+                                            {formData.truckNo === no && <Check className="w-3.5 h-3.5 text-red-600" />}
+                                          </div>
+                                        ))
+                                    ) : (
+                                      <div className="px-3 py-2 text-xs text-slate-400 italic">No matching truck. Type to use this number.</div>
+                                    )}
+                                  </div>
+                                </>
+                              )}
+                            </div>
+
+                            {/* Transporter / Lifter Name */}
+                            <div className="relative">
+                              <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5">Transporter Name / Lifter Name</label>
+                              <div className="relative">
+                                <input
+                                  type="text"
+                                  value={formData.driver || ""}
+                                  onChange={(e) => {
+                                    setFormData({ ...formData, driver: e.target.value });
+                                    setIsDriverDropdownOpen(true);
+                                  }}
+                                  onFocus={() => setIsDriverDropdownOpen(true)}
+                                  placeholder="Transporter / Lifter name..."
+                                  className="w-full px-3.5 py-2.5 pr-8 border border-slate-200 rounded-lg bg-white hover:border-slate-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-xs font-semibold text-slate-800 transition-all shadow-xs"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setIsDriverDropdownOpen((prev) => !prev)}
+                                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                                >
+                                  <ChevronDown className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+
+                              {isDriverDropdownOpen && (
+                                <>
+                                  <div className="fixed inset-0 z-20" onClick={() => setIsDriverDropdownOpen(false)} />
+                                  <div className="absolute left-0 right-0 top-full mt-1.5 z-30 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto divide-y divide-slate-50 py-1">
+                                    {uniqueDriverNames.filter((dName) => !formData.driver || dName.toLowerCase().includes((formData.driver || "").toLowerCase())).length > 0 ? (
+                                      uniqueDriverNames
+                                        .filter((dName) => !formData.driver || dName.toLowerCase().includes((formData.driver || "").toLowerCase()))
+                                        .map((dName) => (
+                                          <div
+                                            key={dName}
+                                            onClick={() => {
+                                              setFormData((prev) => ({ ...prev, driver: dName }));
+                                              setIsDriverDropdownOpen(false);
+                                            }}
+                                            className="px-3 py-2 text-xs font-semibold text-slate-800 hover:bg-red-50 hover:text-red-600 cursor-pointer flex items-center justify-between transition-colors"
+                                          >
+                                            <span>{dName}</span>
+                                            {formData.driver === dName && <Check className="w-3.5 h-3.5 text-red-600" />}
+                                          </div>
+                                        ))
+                                    ) : (
+                                      <div className="px-3 py-2 text-xs text-slate-400 italic">No matching driver. Type to use this name.</div>
+                                    )}
+                                  </div>
+                                </>
+                              )}
+                            </div>
+
+                            <div>
+                              <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5">TP No.</label>
+                              <input
+                                type="text"
+                                value={formData.tp || ""}
+                                onChange={(e) => setFormData({ ...formData, tp: e.target.value })}
+                                placeholder="e.g. TP-98210"
+                                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg bg-white hover:border-slate-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-xs font-medium text-slate-800 transition-all shadow-xs"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Weight & Date */}
+                        <div className="bg-white p-4.5 rounded-xl border border-slate-200/80 shadow-xs space-y-4">
+                          <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+                            <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                            <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wider">Route, Freight & Weight</span>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                              <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5">Route From</label>
+                              <input
+                                type="text"
+                                value={formData.fromLoc || ""}
+                                onChange={(e) => setFormData({ ...formData, fromLoc: e.target.value })}
+                                placeholder="e.g. Gevra Mines"
+                                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-xs font-semibold text-slate-800 shadow-xs"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5">Route To</label>
+                              <input
+                                type="text"
+                                value={formData.toLoc || ""}
+                                onChange={(e) => setFormData({ ...formData, toLoc: e.target.value })}
+                                placeholder="e.g. Raipur Plant"
+                                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-xs font-semibold text-slate-800 shadow-xs"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5">Freight (₹/MT)</label>
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={formData.freight || ""}
+                                onChange={(e) => setFormData({ ...formData, freight: e.target.value })}
+                                placeholder="e.g. 850.00"
+                                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-xs font-bold text-slate-900 shadow-xs"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1 border-t border-slate-100 items-end">
+                            <div>
+                              <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5">Dispatch Date</label>
+                              <input
+                                type="date"
+                                value={formData.date || ""}
+                                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg bg-white hover:border-slate-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-xs font-semibold text-slate-800 cursor-pointer shadow-xs"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between mb-1.5">
+                                <span>Net Wt (MT)</span>
+                                <span className="text-red-500 font-bold">*</span>
+                              </label>
+                              <div className="relative">
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={formData.qty || ""}
+                                  onChange={(e) => setFormData({ ...formData, qty: e.target.value })}
+                                  placeholder="0.00"
+                                  className="w-full pl-3.5 pr-10 py-2.5 border border-slate-200 rounded-lg bg-white hover:border-slate-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-xs font-bold text-slate-900 shadow-xs"
+                                />
+                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 pointer-events-none">MT</span>
+                              </div>
+                            </div>
+                            <div>
+                              <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5">
+                                Freight Amount
+                              </label>
+                              <div className="w-full px-3.5 py-2.5 bg-emerald-50/70 border border-emerald-200 rounded-lg flex items-center justify-between text-xs font-extrabold text-emerald-900 shadow-xs">
+                                <span className="text-[10px] font-bold text-emerald-700">₹</span>
+                                <span>
+                                  {formatNumber((parseFloat(formData.freight) || 0) * (parseFloat(formData.qty) || 0))}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      /* Multi-Row Entry for Add Trucks */
+                      <div className="bg-white p-4.5 rounded-xl border border-slate-200/80 shadow-xs space-y-4">
+                        <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-blue-600"></div>
+                            <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wider">
+                              Vehicle & Driver Details ({(formData.rows || []).length} { (formData.rows || []).length === 1 ? 'Truck' : 'Trucks' })
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newRows = [
+                                ...(formData.rows || []),
+                                {
+                                  id: Date.now(),
+                                  truckNo: '',
+                                  driver: '',
+                                  tp: '',
+                                  fromLoc: '',
+                                  toLoc: '',
+                                  freight: '',
+                                  date: formData.date || new Date().toISOString().split('T')[0],
+                                  qty: ''
+                                }
+                              ];
+                              setFormData({ ...formData, rows: newRows });
+                            }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 rounded-lg text-xs font-bold transition-all shadow-xs border border-red-200"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Add Row</span>
+                          </button>
+                        </div>
+
+                        <div className="space-y-3 pr-1">
+                          {(formData.rows || []).map((row, idx) => (
+                            <div key={row.id || idx} className="p-3.5 bg-slate-50/70 border border-slate-200 rounded-xl relative group hover:border-slate-300 transition-all">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-[10px] font-bold px-2 py-0.5 bg-slate-200/80 text-slate-700 rounded-md uppercase">
+                                  #{idx + 1} Truck Entry
+                                </span>
+                                {(formData.rows || []).length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const updated = (formData.rows || []).filter((_, i) => i !== idx);
+                                      setFormData({ ...formData, rows: updated });
+                                    }}
+                                    className="text-slate-400 hover:text-red-600 hover:bg-red-50 p-1 rounded-md transition-colors"
+                                    title="Remove this row"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
+
+                                <div className="space-y-2.5">
+                                  {/* Row 1: Vehicle & Driver details */}
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5 items-end">
+                                    {/* Truck No */}
+                                    <div className="relative flex flex-col justify-end">
+                                      <label className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block mb-1.5 h-6 flex items-end">
+                                        <span>Truck No. <span className="text-red-500">*</span></span>
+                                      </label>
+                                      <div className="relative">
+                                        <input
+                                          type="text"
+                                          value={row.truckNo || ''}
+                                          onChange={(e) => {
+                                            const val = e.target.value.toUpperCase();
+                                            const updated = [...(formData.rows || [])];
+                                            updated[idx] = { ...updated[idx], truckNo: val };
+                                            setFormData({ ...formData, rows: updated });
+                                          }}
+                                          placeholder="e.g. CG04AB1234"
+                                          className="w-full h-9 px-3 py-2 pr-7 border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-red-500 text-xs font-bold text-slate-900 uppercase shadow-xs"
+                                        />
+                                        {uniqueTruckNumbers.length > 0 && (
+                                          <button
+                                            type="button"
+                                            tabIndex={-1}
+                                            onClick={() => {
+                                              const updated = [...(formData.rows || [])];
+                                              updated[idx] = { ...updated[idx], isTruckDropdown: !updated[idx].isTruckDropdown };
+                                              setFormData({ ...formData, rows: updated });
+                                            }}
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                                          >
+                                            <ChevronDown className="w-3.5 h-3.5" />
+                                          </button>
+                                        )}
+                                      </div>
+
+                                      {row.isTruckDropdown && (
+                                        <>
+                                          <div
+                                            className="fixed inset-0 z-20"
+                                            onClick={() => {
+                                              const updated = [...(formData.rows || [])];
+                                              updated[idx] = { ...updated[idx], isTruckDropdown: false };
+                                              setFormData({ ...formData, rows: updated });
+                                            }}
+                                          />
+                                          <div className="absolute left-0 right-0 top-full mt-1 z-30 bg-white border border-slate-200 rounded-lg shadow-lg max-h-36 overflow-y-auto divide-y divide-slate-50 py-1">
+                                            {uniqueTruckNumbers
+                                              .filter((tn) => !row.truckNo || tn.toLowerCase().includes((row.truckNo || "").toLowerCase()))
+                                              .map((tn) => (
+                                                <div
+                                                  key={tn}
+                                                  onClick={() => {
+                                                    const updated = [...(formData.rows || [])];
+                                                    updated[idx] = { ...updated[idx], truckNo: tn, isTruckDropdown: false };
+                                                    setFormData({ ...formData, rows: updated });
+                                                  }}
+                                                  className="px-3 py-1.5 text-xs font-bold text-slate-800 hover:bg-red-50 hover:text-red-600 cursor-pointer flex items-center justify-between"
+                                                >
+                                                  <span>{tn}</span>
+                                                  {row.truckNo === tn && <Check className="w-3 h-3 text-red-600" />}
+                                                </div>
+                                              ))}
+                                          </div>
+                                        </>
+                                      )}
+                                    </div>
+
+                                    {/* Transporter / Lifter Name */}
+                                    <div className="relative flex flex-col justify-end">
+                                      <label className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block mb-1.5 h-6 flex items-end leading-tight">
+                                        <span>Transporter Name / Lifter Name</span>
+                                      </label>
+                                      <div className="relative">
+                                        <input
+                                          type="text"
+                                          value={row.driver || ''}
+                                          onChange={(e) => {
+                                            const updated = [...(formData.rows || [])];
+                                            updated[idx] = { ...updated[idx], driver: e.target.value };
+                                            setFormData({ ...formData, rows: updated });
+                                          }}
+                                          placeholder="Transporter / Lifter..."
+                                          className="w-full h-9 px-3 py-2 pr-7 border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-red-500 text-xs font-medium text-slate-800 shadow-xs"
+                                        />
+                                        {uniqueDriverNames.length > 0 && (
+                                          <button
+                                            type="button"
+                                            tabIndex={-1}
+                                            onClick={() => {
+                                              const updated = [...(formData.rows || [])];
+                                              updated[idx] = { ...updated[idx], isDriverDropdown: !updated[idx].isDriverDropdown };
+                                              setFormData({ ...formData, rows: updated });
+                                            }}
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                                          >
+                                            <ChevronDown className="w-3.5 h-3.5" />
+                                          </button>
+                                        )}
+                                      </div>
+
+                                      {row.isDriverDropdown && (
+                                        <>
+                                          <div
+                                            className="fixed inset-0 z-20"
+                                            onClick={() => {
+                                              const updated = [...(formData.rows || [])];
+                                              updated[idx] = { ...updated[idx], isDriverDropdown: false };
+                                              setFormData({ ...formData, rows: updated });
+                                            }}
+                                          />
+                                          <div className="absolute left-0 right-0 top-full mt-1 z-30 bg-white border border-slate-200 rounded-lg shadow-lg max-h-36 overflow-y-auto divide-y divide-slate-50 py-1">
+                                            {uniqueDriverNames
+                                              .filter((dn) => !row.driver || dn.toLowerCase().includes((row.driver || "").toLowerCase()))
+                                              .map((dn) => (
+                                                <div
+                                                  key={dn}
+                                                  onClick={() => {
+                                                    const updated = [...(formData.rows || [])];
+                                                    updated[idx] = { ...updated[idx], driver: dn, isDriverDropdown: false };
+                                                    setFormData({ ...formData, rows: updated });
+                                                  }}
+                                                  className="px-3 py-1.5 text-xs text-slate-800 hover:bg-red-50 hover:text-red-600 cursor-pointer flex items-center justify-between"
+                                                >
+                                                  <span>{dn}</span>
+                                                  {row.driver === dn && <Check className="w-3 h-3 text-red-600" />}
+                                                </div>
+                                              ))}
+                                          </div>
+                                        </>
+                                      )}
+                                    </div>
+
+                                    {/* TP No */}
+                                    <div className="relative flex flex-col justify-end">
+                                      <label className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block mb-1.5 h-6 flex items-end">
+                                        <span>TP No.</span>
+                                      </label>
+                                      <div className="relative">
+                                        <input
+                                          type="text"
+                                          value={row.tp || ''}
+                                          onChange={(e) => {
+                                            const updated = [...(formData.rows || [])];
+                                            updated[idx] = { ...updated[idx], tp: e.target.value };
+                                            setFormData({ ...formData, rows: updated });
+                                          }}
+                                          placeholder="e.g. TP-98210"
+                                          className="w-full h-9 px-3 py-2 pr-7 border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-red-500 text-xs font-medium text-slate-800 shadow-xs"
+                                        />
+                                        {uniqueTpNumbers.length > 0 && (
+                                          <button
+                                            type="button"
+                                            tabIndex={-1}
+                                            onClick={() => {
+                                              const updated = [...(formData.rows || [])];
+                                              updated[idx] = { ...updated[idx], isTpDropdown: !updated[idx].isTpDropdown };
+                                              setFormData({ ...formData, rows: updated });
+                                            }}
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                                          >
+                                            <ChevronDown className="w-3.5 h-3.5" />
+                                          </button>
+                                        )}
+                                      </div>
+
+                                      {row.isTpDropdown && (
+                                        <>
+                                          <div
+                                            className="fixed inset-0 z-20"
+                                            onClick={() => {
+                                              const updated = [...(formData.rows || [])];
+                                              updated[idx] = { ...updated[idx], isTpDropdown: false };
+                                              setFormData({ ...formData, rows: updated });
+                                            }}
+                                          />
+                                          <div className="absolute left-0 right-0 top-full mt-1 z-30 bg-white border border-slate-200 rounded-lg shadow-lg max-h-36 overflow-y-auto divide-y divide-slate-50 py-1">
+                                            {uniqueTpNumbers
+                                              .filter((tpn) => !row.tp || tpn.toLowerCase().includes((row.tp || "").toLowerCase()))
+                                              .map((tpn) => (
+                                                <div
+                                                  key={tpn}
+                                                  onClick={() => {
+                                                    const updated = [...(formData.rows || [])];
+                                                    updated[idx] = { ...updated[idx], tp: tpn, isTpDropdown: false };
+                                                    setFormData({ ...formData, rows: updated });
+                                                  }}
+                                                  className="px-3 py-1.5 text-xs text-slate-800 hover:bg-red-50 hover:text-red-600 cursor-pointer flex items-center justify-between"
+                                                >
+                                                  <span>{tpn}</span>
+                                                  {row.tp === tpn && <Check className="w-3 h-3 text-red-600" />}
+                                                </div>
+                                              ))}
+                                          </div>
+                                        </>
+                                      )}
+                                    </div>
+
+                                    {/* Date */}
+                                    <div className="flex flex-col justify-end">
+                                      <label className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block mb-1.5 h-6 flex items-end">
+                                        <span>Date</span>
+                                      </label>
+                                      <input
+                                        type="date"
+                                        value={row.date || ''}
+                                        onChange={(e) => {
+                                          const updated = [...(formData.rows || [])];
+                                          updated[idx] = { ...updated[idx], date: e.target.value };
+                                          setFormData({ ...formData, rows: updated });
+                                        }}
+                                        className="w-full h-9 px-3 py-2 border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-red-500 text-xs font-semibold text-slate-800 shadow-xs cursor-pointer"
+                                      />
+                                    </div>
+                                  </div>
+
+                                  {/* Row 2: Route, Freight, Net Weight & Dynamic Freight Amount */}
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2.5 pt-2.5 border-t border-slate-100 items-end">
+                                    {/* Route From */}
+                                    <div className="relative flex flex-col justify-end">
+                                      <label className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block mb-1.5 h-5 flex items-end">
+                                        <span>Route From</span>
+                                      </label>
+                                      <div className="relative">
+                                        <input
+                                          type="text"
+                                          value={row.fromLoc || ''}
+                                          onChange={(e) => {
+                                            const updated = [...(formData.rows || [])];
+                                            updated[idx] = { ...updated[idx], fromLoc: e.target.value };
+                                            setFormData({ ...formData, rows: updated });
+                                          }}
+                                          placeholder="From location..."
+                                          className="w-full h-9 px-3 py-2 pr-7 border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-red-500 text-xs font-semibold text-slate-800 shadow-xs"
+                                        />
+                                        {uniqueFromLocations.length > 0 && (
+                                          <button
+                                            type="button"
+                                            tabIndex={-1}
+                                            onClick={() => {
+                                              const updated = [...(formData.rows || [])];
+                                              updated[idx] = { ...updated[idx], isFromDropdown: !updated[idx].isFromDropdown };
+                                              setFormData({ ...formData, rows: updated });
+                                            }}
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                                          >
+                                            <ChevronDown className="w-3.5 h-3.5" />
+                                          </button>
+                                        )}
+                                      </div>
+
+                                      {row.isFromDropdown && (
+                                        <>
+                                          <div
+                                            className="fixed inset-0 z-20"
+                                            onClick={() => {
+                                              const updated = [...(formData.rows || [])];
+                                              updated[idx] = { ...updated[idx], isFromDropdown: false };
+                                              setFormData({ ...formData, rows: updated });
+                                            }}
+                                          />
+                                          <div className="absolute left-0 right-0 top-full mt-1 z-30 bg-white border border-slate-200 rounded-lg shadow-lg max-h-36 overflow-y-auto divide-y divide-slate-50 py-1">
+                                            {uniqueFromLocations
+                                              .filter((fl) => !row.fromLoc || fl.toLowerCase().includes((row.fromLoc || "").toLowerCase()))
+                                              .map((fl) => (
+                                                <div
+                                                  key={fl}
+                                                  onClick={() => {
+                                                    const updated = [...(formData.rows || [])];
+                                                    updated[idx] = { ...updated[idx], fromLoc: fl, isFromDropdown: false };
+                                                    setFormData({ ...formData, rows: updated });
+                                                  }}
+                                                  className="px-3 py-1.5 text-xs text-slate-800 hover:bg-red-50 hover:text-red-600 cursor-pointer flex items-center justify-between"
+                                                >
+                                                  <span>{fl}</span>
+                                                  {row.fromLoc === fl && <Check className="w-3 h-3 text-red-600" />}
+                                                </div>
+                                              ))}
+                                          </div>
+                                        </>
+                                      )}
+                                    </div>
+
+                                    {/* Route To */}
+                                    <div className="relative flex flex-col justify-end">
+                                      <label className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block mb-1.5 h-5 flex items-end">
+                                        <span>Route To</span>
+                                      </label>
+                                      <div className="relative">
+                                        <input
+                                          type="text"
+                                          value={row.toLoc || ''}
+                                          onChange={(e) => {
+                                            const updated = [...(formData.rows || [])];
+                                            updated[idx] = { ...updated[idx], toLoc: e.target.value };
+                                            setFormData({ ...formData, rows: updated });
+                                          }}
+                                          placeholder="To destination..."
+                                          className="w-full h-9 px-3 py-2 pr-7 border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-red-500 text-xs font-semibold text-slate-800 shadow-xs"
+                                        />
+                                        {uniqueToLocations.length > 0 && (
+                                          <button
+                                            type="button"
+                                            tabIndex={-1}
+                                            onClick={() => {
+                                              const updated = [...(formData.rows || [])];
+                                              updated[idx] = { ...updated[idx], isToDropdown: !updated[idx].isToDropdown };
+                                              setFormData({ ...formData, rows: updated });
+                                            }}
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                                          >
+                                            <ChevronDown className="w-3.5 h-3.5" />
+                                          </button>
+                                        )}
+                                      </div>
+
+                                      {row.isToDropdown && (
+                                        <>
+                                          <div
+                                            className="fixed inset-0 z-20"
+                                            onClick={() => {
+                                              const updated = [...(formData.rows || [])];
+                                              updated[idx] = { ...updated[idx], isToDropdown: false };
+                                              setFormData({ ...formData, rows: updated });
+                                            }}
+                                          />
+                                          <div className="absolute left-0 right-0 top-full mt-1 z-30 bg-white border border-slate-200 rounded-lg shadow-lg max-h-36 overflow-y-auto divide-y divide-slate-50 py-1">
+                                            {uniqueToLocations
+                                              .filter((tl) => !row.toLoc || tl.toLowerCase().includes((row.toLoc || "").toLowerCase()))
+                                              .map((tl) => (
+                                                <div
+                                                  key={tl}
+                                                  onClick={() => {
+                                                    const updated = [...(formData.rows || [])];
+                                                    updated[idx] = { ...updated[idx], toLoc: tl, isToDropdown: false };
+                                                    setFormData({ ...formData, rows: updated });
+                                                  }}
+                                                  className="px-3 py-1.5 text-xs text-slate-800 hover:bg-red-50 hover:text-red-600 cursor-pointer flex items-center justify-between"
+                                                >
+                                                  <span>{tl}</span>
+                                                  {row.toLoc === tl && <Check className="w-3 h-3 text-red-600" />}
+                                                </div>
+                                              ))}
+                                          </div>
+                                        </>
+                                      )}
+                                    </div>
+
+                                    {/* Freight */}
+                                    <div className="relative flex flex-col justify-end">
+                                      <label className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block mb-1.5 h-5 flex items-end">
+                                        <span>Freight (₹/MT)</span>
+                                      </label>
+                                      <div className="relative">
+                                        <input
+                                          type="number"
+                                          step="0.01"
+                                          value={row.freight || ''}
+                                          onChange={(e) => {
+                                            const updated = [...(formData.rows || [])];
+                                            updated[idx] = { ...updated[idx], freight: e.target.value };
+                                            setFormData({ ...formData, rows: updated });
+                                          }}
+                                          placeholder="0.00"
+                                          className="w-full h-9 px-3 py-2 pr-7 border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-red-500 text-xs font-bold text-slate-900 shadow-xs"
+                                        />
+                                        {uniqueFreights.length > 0 && (
+                                          <button
+                                            type="button"
+                                            tabIndex={-1}
+                                            onClick={() => {
+                                              const updated = [...(formData.rows || [])];
+                                              updated[idx] = { ...updated[idx], isFreightDropdown: !updated[idx].isFreightDropdown };
+                                              setFormData({ ...formData, rows: updated });
+                                            }}
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                                          >
+                                            <ChevronDown className="w-3.5 h-3.5" />
+                                          </button>
+                                        )}
+                                      </div>
+
+                                      {row.isFreightDropdown && (
+                                        <>
+                                          <div
+                                            className="fixed inset-0 z-20"
+                                            onClick={() => {
+                                              const updated = [...(formData.rows || [])];
+                                              updated[idx] = { ...updated[idx], isFreightDropdown: false };
+                                              setFormData({ ...formData, rows: updated });
+                                            }}
+                                          />
+                                          <div className="absolute left-0 right-0 top-full mt-1 z-30 bg-white border border-slate-200 rounded-lg shadow-lg max-h-36 overflow-y-auto divide-y divide-slate-50 py-1">
+                                            {uniqueFreights
+                                              .filter((fr) => !row.freight || fr.includes(String(row.freight || "")))
+                                              .map((fr) => (
+                                                <div
+                                                  key={fr}
+                                                  onClick={() => {
+                                                    const updated = [...(formData.rows || [])];
+                                                    updated[idx] = { ...updated[idx], freight: fr, isFreightDropdown: false };
+                                                    setFormData({ ...formData, rows: updated });
+                                                  }}
+                                                  className="px-3 py-1.5 text-xs text-slate-800 hover:bg-red-50 hover:text-red-600 cursor-pointer flex items-center justify-between"
+                                                >
+                                                  <span>₹{fr}</span>
+                                                  {String(row.freight) === String(fr) && <Check className="w-3 h-3 text-red-600" />}
+                                                </div>
+                                              ))}
+                                          </div>
+                                        </>
+                                      )}
+                                    </div>
+
+                                    {/* Net Wt */}
+                                    <div className="flex flex-col justify-end">
+                                      <label className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block mb-1.5 h-5 flex items-end">
+                                        <span>Net Wt (MT) <span className="text-red-500">*</span></span>
+                                      </label>
+                                      <div className="relative">
+                                        <input
+                                          type="number"
+                                          step="0.01"
+                                          value={row.qty || ''}
+                                          onChange={(e) => {
+                                            const updated = [...(formData.rows || [])];
+                                            updated[idx] = { ...updated[idx], qty: e.target.value };
+                                            setFormData({ ...formData, rows: updated });
+                                          }}
+                                          placeholder="0.00"
+                                          className="w-full h-9 pl-3 pr-8 py-2 border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-red-500 text-xs font-bold text-slate-900 shadow-xs"
+                                        />
+                                        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] font-bold text-slate-400 pointer-events-none">MT</span>
+                                      </div>
+                                    </div>
+
+                                    {/* Dynamically Calculated Freight Amount (Freight * Net Wt) */}
+                                    <div className="flex flex-col justify-end">
+                                      <label className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block mb-1.5 h-5 flex items-end">
+                                        <span>Freight Amount</span>
+                                      </label>
+                                      <div className="w-full h-9 px-3 py-2 bg-emerald-50/70 border border-emerald-200 rounded-lg flex items-center justify-between text-xs font-extrabold text-emerald-900 shadow-xs">
+                                        <span className="text-[10px] font-bold text-emerald-700">₹</span>
+                                        <span>
+                                          {formatNumber((parseFloat(row.freight) || 0) * (parseFloat(row.qty) || 0))}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Summary Bar */}
+                        <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newRows = [
+                                ...(formData.rows || []),
+                                {
+                                  id: Date.now(),
+                                  truckNo: '',
+                                  driver: '',
+                                  tp: '',
+                                  fromLoc: '',
+                                  toLoc: '',
+                                  freight: '',
+                                  date: formData.date || new Date().toISOString().split('T')[0],
+                                  qty: ''
+                                }
+                              ];
+                              setFormData({ ...formData, rows: newRows });
+                            }}
+                            className="inline-flex items-center gap-1 text-red-600 hover:text-red-700 font-bold"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Add Another Row</span>
+                          </button>
+                          
+                          <div className="flex items-center gap-3 font-semibold text-slate-700">
+                            <span>Total Entered:</span>
+                            <span className="font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                              {formatNumber((formData.rows || []).reduce((sum, r) => sum + (parseFloat(r.qty) || 0), 0))} MT
+                            </span>
+                          </div>
+                        </div>
                       </div>
+                    )}
+                  </div>
+                );
+              })()}
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {/* Truck No Searchable Combobox */}
-                        <div className="relative">
-                          <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between mb-1.5">
-                            <span>Truck No.</span>
-                            <span className="text-red-500 font-bold">*</span>
-                          </label>
-                          <div className="relative">
-                            <input
-                              type="text"
-                              value={formData.truckNo || ""}
-                              onChange={(e) => {
-                                setFormData({ ...formData, truckNo: e.target.value.toUpperCase() });
-                                setIsTruckNoDropdownOpen(true);
-                              }}
-                              onFocus={() => setIsTruckNoDropdownOpen(true)}
-                              placeholder="e.g. CG04AB1234"
-                              className="w-full px-3.5 py-2.5 pr-8 border border-slate-200 rounded-lg bg-white hover:border-slate-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-xs font-bold text-slate-900 transition-all shadow-xs uppercase"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setIsTruckNoDropdownOpen((prev) => !prev)}
-                              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
-                            >
-                              <ChevronDown className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
+              {/* View Truck */}
+              {modalConfig.type === "viewTruck" && modalConfig.data && (() => {
+                const t = modalConfig.data;
+                const truckDO = ((store?.dos || []).find((d) => d.id === t.did) || currentDO);
+                const party = truckDO?.parties?.find((p) => p.id === t.pid) || currentDO.parties?.find((p) => p.id === t.pid);
 
-                          {/* Custom Clean Dropdown Popup */}
-                          {isTruckNoDropdownOpen && (
-                            <>
-                              <div className="fixed inset-0 z-20" onClick={() => setIsTruckNoDropdownOpen(false)} />
-                              <div className="absolute left-0 right-0 top-full mt-1.5 z-30 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto divide-y divide-slate-50 py-1">
-                                {uniqueTruckNumbers.filter((no) => !formData.truckNo || no.toUpperCase().includes((formData.truckNo || "").toUpperCase())).length > 0 ? (
-                                  uniqueTruckNumbers
-                                    .filter((no) => !formData.truckNo || no.toUpperCase().includes((formData.truckNo || "").toUpperCase()))
-                                    .map((no) => (
-                                      <div
-                                        key={no}
-                                        onClick={() => {
-                                          setFormData((prev) => ({ ...prev, truckNo: no }));
-                                          setIsTruckNoDropdownOpen(false);
-                                        }}
-                                        className="px-3 py-2 text-xs font-bold text-slate-800 hover:bg-red-50 hover:text-red-600 cursor-pointer flex items-center justify-between transition-colors uppercase"
-                                      >
-                                        <span>{no}</span>
-                                        {formData.truckNo === no && <Check className="w-3.5 h-3.5 text-red-600" />}
-                                      </div>
-                                    ))
-                                ) : (
-                                  <div className="px-3 py-2 text-xs text-slate-400 italic">No matching truck. Type to use this number.</div>
-                                )}
-                              </div>
-                            </>
-                          )}
-                        </div>
-
-                        {/* Driver Name Searchable Combobox */}
-                        <div className="relative">
-                          <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5">Driver Name</label>
-                          <div className="relative">
-                            <input
-                              type="text"
-                              value={formData.driver || ""}
-                              onChange={(e) => {
-                                setFormData({ ...formData, driver: e.target.value });
-                                setIsDriverDropdownOpen(true);
-                              }}
-                              onFocus={() => setIsDriverDropdownOpen(true)}
-                              placeholder="Driver name..."
-                              className="w-full px-3.5 py-2.5 pr-8 border border-slate-200 rounded-lg bg-white hover:border-slate-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-xs font-semibold text-slate-800 transition-all shadow-xs"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setIsDriverDropdownOpen((prev) => !prev)}
-                              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
-                            >
-                              <ChevronDown className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-
-                          {/* Custom Clean Dropdown Popup */}
-                          {isDriverDropdownOpen && (
-                            <>
-                              <div className="fixed inset-0 z-20" onClick={() => setIsDriverDropdownOpen(false)} />
-                              <div className="absolute left-0 right-0 top-full mt-1.5 z-30 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto divide-y divide-slate-50 py-1">
-                                {uniqueDriverNames.filter((dName) => !formData.driver || dName.toLowerCase().includes((formData.driver || "").toLowerCase())).length > 0 ? (
-                                  uniqueDriverNames
-                                    .filter((dName) => !formData.driver || dName.toLowerCase().includes((formData.driver || "").toLowerCase()))
-                                    .map((dName) => (
-                                      <div
-                                        key={dName}
-                                        onClick={() => {
-                                          setFormData((prev) => ({ ...prev, driver: dName }));
-                                          setIsDriverDropdownOpen(false);
-                                        }}
-                                        className="px-3 py-2 text-xs font-semibold text-slate-800 hover:bg-red-50 hover:text-red-600 cursor-pointer flex items-center justify-between transition-colors"
-                                      >
-                                        <span>{dName}</span>
-                                        {formData.driver === dName && <Check className="w-3.5 h-3.5 text-red-600" />}
-                                      </div>
-                                    ))
-                                ) : (
-                                  <div className="px-3 py-2 text-xs text-slate-400 italic">No matching driver. Type to use this name.</div>
-                                )}
-                              </div>
-                            </>
-                          )}
-                        </div>
-
+                return (
+                  <div className="space-y-4">
+                    {/* Header Highlight Card - Clean Light Theme */}
+                    <div className="bg-gradient-to-br from-slate-50 via-amber-50/20 to-white p-4 rounded-xl border border-slate-200/90 shadow-xs">
+                      <div className="flex items-start justify-between gap-3">
                         <div>
-                          <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5">TP No.</label>
-                          <input
-                            type="text"
-                            value={formData.tp || ""}
-                            onChange={(e) => setFormData({ ...formData, tp: e.target.value })}
-                            placeholder="e.g. TP-98210"
-                            className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg bg-white hover:border-slate-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-xs font-medium text-slate-800 transition-all shadow-xs"
-                          />
+                          <div className="text-[10px] uppercase font-bold tracking-widest text-amber-700">Truck Dispatch Record</div>
+                          <h4 className="text-xl font-extrabold tracking-tight text-slate-900 mt-0.5">{t.no || "No Truck Number"}</h4>
+                          <p className="text-xs text-slate-600 font-semibold mt-0.5">
+                            Transporter / Lifter: <span className="text-slate-900 font-bold">{t.driver || "-"}</span>
+                          </p>
+                        </div>
+                        <div className="flex flex-col items-end gap-1.5">
+                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold tracking-wide uppercase ${t.done ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-amber-50 text-amber-700 border border-amber-200"}`}>
+                            {t.done ? "Done (History)" : "Running (Pending)"}
+                          </span>
+                          <span className="text-[11px] font-bold text-slate-500">
+                            {formatDate(t.date)}
+                          </span>
                         </div>
                       </div>
                     </div>
 
-                    {/* Weight & Date */}
-                    <div className="bg-white p-4.5 rounded-xl border border-slate-200/80 shadow-xs space-y-4">
-                      <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
-                        <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-                        <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wider">Weight & Dispatch Date</span>
+                    {/* Weight Metric Card */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-red-50/70 border border-red-200/80 rounded-xl p-3.5 shadow-2xs flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] font-bold text-red-700 uppercase tracking-wider block">Net Weight</span>
+                          <div className="text-lg font-black text-red-900 mt-0.5">{formatNumber(t.qty)} <span className="text-xs font-bold text-red-700">MT</span></div>
+                        </div>
+                        <div className="w-9 h-9 rounded-lg bg-red-100 text-red-700 flex items-center justify-center font-bold">
+                          <Truck className="w-5 h-5 text-red-600" />
+                        </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="bg-slate-50 border border-slate-200/90 rounded-xl p-3.5 shadow-2xs flex items-center justify-between">
                         <div>
-                          <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5">Dispatch Date</label>
-                          <input
-                            type="date"
-                            value={formData.date || ""}
-                            onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                            className="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg bg-white hover:border-slate-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-xs font-semibold text-slate-800 cursor-pointer shadow-xs"
-                          />
+                          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">TP / Challan No.</span>
+                          <div className="text-base font-extrabold text-slate-800 mt-0.5">{t.tp || "N/A"}</div>
                         </div>
-                        <div>
-                          <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between mb-1.5">
-                            <span>Net Wt (MT)</span>
-                            <span className="text-red-500 font-bold">*</span>
-                          </label>
-                          <div className="relative">
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={formData.qty || ""}
-                              onChange={(e) => setFormData({ ...formData, qty: e.target.value })}
-                              placeholder="0.00"
-                              className="w-full pl-3.5 pr-10 py-2.5 border border-slate-200 rounded-lg bg-white hover:border-slate-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-xs font-bold text-slate-900 shadow-xs"
-                            />
-                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 pointer-events-none">MT</span>
-                          </div>
+                        <div className="w-9 h-9 rounded-lg bg-slate-200/60 text-slate-600 flex items-center justify-center font-bold">
+                          <FileText className="w-5 h-5 text-slate-600" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Specifications */}
+                    <div className="bg-white rounded-xl border border-slate-200/90 shadow-2xs overflow-hidden">
+                      <div className="px-3.5 py-2.5 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between">
+                        <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                          <Package className="w-3.5 h-3.5 text-red-600" /> Allotment & DO Mapping
+                        </span>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase">Dispatch Meta</span>
+                      </div>
+                      <div className="p-3 grid grid-cols-2 gap-3 text-xs">
+                        <div className="p-2.5 bg-slate-50/60 rounded-lg border border-slate-100">
+                          <span className="text-[10px] font-semibold text-slate-400 uppercase block">DO Party Name</span>
+                          <span className="font-bold text-slate-800">{truckDO?.co || "-"}</span>
+                        </div>
+                        <div className="p-2.5 bg-slate-50/60 rounded-lg border border-slate-100">
+                          <span className="text-[10px] font-semibold text-slate-400 uppercase block">DO Number</span>
+                          <span className="font-bold text-slate-800">{getDOName(truckDO)}</span>
+                        </div>
+                        <div className="p-2.5 bg-slate-50/60 rounded-lg border border-slate-100">
+                          <span className="text-[10px] font-semibold text-slate-400 uppercase block">Lifter Party Name</span>
+                          <span className="font-bold text-slate-900">{party?.name || "-"}</span>
+                        </div>
+                        <div className="p-2.5 bg-slate-50/60 rounded-lg border border-slate-100">
+                          <span className="text-[10px] font-semibold text-slate-400 uppercase block">Mines / Grade</span>
+                          <span className="font-bold text-slate-800">{truckDO?.mines || "-"} {truckDO?.grade ? `(${truckDO.grade})` : ""}</span>
+                        </div>
+                        <div className="p-2.5 bg-slate-50/60 rounded-lg border border-slate-100">
+                          <span className="text-[10px] font-semibold text-slate-400 uppercase block">Route (From → To)</span>
+                          <span className="font-bold text-slate-800">
+                            {t.fromLoc || t.toLoc ? `${t.fromLoc || "-"} → ${t.toLoc || "-"}` : "-"}
+                          </span>
+                        </div>
+                        <div className="p-2.5 bg-slate-50/60 rounded-lg border border-slate-100">
+                          <span className="text-[10px] font-semibold text-slate-400 uppercase block">Freight Rate</span>
+                          <span className="font-bold text-emerald-700">
+                            {t.freight ? `₹${formatNumber(t.freight)} / MT` : "-"}
+                          </span>
+                        </div>
+                        <div className="p-2.5 bg-emerald-50/70 rounded-lg border border-emerald-100">
+                          <span className="text-[10px] font-bold text-emerald-700 uppercase block">Total Freight Amount</span>
+                          <span className="font-extrabold text-emerald-900 text-sm">
+                            {t.freight && t.qty ? `₹${formatNumber((parseFloat(t.freight) || 0) * (parseFloat(t.qty) || 0))}` : "-"}
+                          </span>
                         </div>
                       </div>
                     </div>
                   </div>
                 );
               })()}
-
-              {/* View Truck */}
-              {modalConfig.type === "viewTruck" && modalConfig.data && (
-                <div className="space-y-4">
-                  <div className="rounded-xl border border-slate-200 divide-y divide-slate-100 overflow-hidden">
-                    <div className="flex justify-between p-2.5 bg-slate-50">
-                      <span className="text-slate-500">Date</span>
-                      <span>{formatDate(modalConfig.data.date)}</span>
-                    </div>
-                    <div className="flex justify-between p-2.5">
-                      <span className="text-slate-500">Truck No.</span>
-                      <b className="font-bold text-slate-900">{modalConfig.data.no}</b>
-                    </div>
-                    <div className="flex justify-between p-2.5 bg-slate-50">
-                      <span className="text-slate-500">DO PARTY Name</span>
-                      <b className="font-semibold text-slate-800">
-                        {((store?.dos || []).find((d) => d.id === modalConfig.data.did) || currentDO)?.co || "-"}
-                      </b>
-                    </div>
-                    <div className="flex justify-between p-2.5">
-                      <span className="text-slate-500">DO No.</span>
-                      <span className="font-medium">
-                        {getDOName(((store?.dos || []).find((d) => d.id === modalConfig.data.did) || currentDO))}
-                      </span>
-                    </div>
-                    <div className="flex justify-between p-2.5 bg-slate-50">
-                      <span className="text-slate-500">Lifter Party Name</span>
-                      <span className="font-bold text-slate-800">
-                        {currentDO.parties?.find((p) => p.id === modalConfig.data.pid)?.name || "-"}
-                      </span>
-                    </div>
-                    <div className="flex justify-between p-2.5">
-                      <span className="text-slate-500">Driver Name</span>
-                      <span className="font-semibold text-slate-800">
-                        {modalConfig.data.driver || "-"}
-                      </span>
-                    </div>
-                    <div className="flex justify-between p-2.5 bg-slate-50">
-                      <span className="text-slate-500">TP No.</span>
-                      <span className="font-medium">{modalConfig.data.tp || "-"}</span>
-                    </div>
-                    <div className="flex justify-between p-2.5">
-                      <span className="text-slate-500">Net Wt</span>
-                      <b className="font-bold text-[#e7000b]">{formatNumber(modalConfig.data.qty)} MT</b>
-                    </div>
-                    <div className="flex justify-between p-2.5 bg-slate-50">
-                      <span className="text-slate-500">Status</span>
-                      <span className={`font-bold ${modalConfig.data.done ? "text-emerald-600" : "text-amber-600"}`}>
-                        {modalConfig.data.done ? "Done (History)" : "Pending"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {/* Confirm Dialog */}
               {modalConfig.type === "confirm" && (
